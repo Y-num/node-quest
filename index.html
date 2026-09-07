@@ -545,7 +545,8 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="bt">🎁 ダンジョンで拾った施設</div>
       <button id="bClose">閉じる</button>
     </div>
-    <p class="bnote">第100層から落ちます。10層深くなるごとに等級が上がり、良い接辞も悪い接辞も増えます。
+    <p class="bnote">第50層から落ちます。撃破のほか、深くて倒せないときも潜り続ければ拾えます。
+       15層深くなるごとに等級が上がり、良い接辞も悪い接辞も混ざります。
        いらないものは解体して研究ポイントに変えられます。</p>
     <div id="bagList"></div>
   </div>
@@ -916,21 +917,22 @@ const capOut  = (n,item) => (TYPES[n.type].src && item==='sta') ? maxSta()
 /* ========== トレハン：第100層から施設がドロップする ==========
    良い接辞ばかりではなく、体力を余計に食う・稼働に部品が要る といった悪い接辞も混ざる。
    10層深くなるごとに等級が1つ上がり、接辞の数と振れ幅が増える。 */
-const DROP_FROM = 100;
-const dropGrade = f => Math.max(1, Math.floor((f - DROP_FROM) / 10) + 1);
+const DROP_FROM = 50;                 // ここから施設が落ちる
+const DROP_PER  = 12000;              // 撃破が止まっても、この回数潜るごとに1つ拾える
+const dropGrade = f => Math.max(1, Math.floor((f - DROP_FROM) / 15) + 1);
 
 const AFFIX = [
   // key,       表示,        良,  重み, 適用
-  {k:'spd+',  n:'高速',      good:1, w:10, f:(m,g)=>m.spd*=Math.max(.45, 0.85-0.03*g)},
-  {k:'spd-',  n:'鈍重',      good:0, w:9,  f:(m,g)=>m.spd*=1.15+0.05*g},
-  {k:'sta+',  n:'省エネ',    good:1, w:10, f:(m,g)=>m.sta*=Math.max(.35, 0.85-0.035*g)},
-  {k:'sta-',  n:'大食い',    good:0, w:10, f:(m,g)=>m.sta*=1.2+0.07*g},
-  {k:'yld+',  n:'多産',      good:1, w:7,  f:(m,g)=>m.yld+=1+Math.floor(g/6)},
-  {k:'wst-',  n:'清潔',      good:1, w:6,  f:(m)  =>m.clean=1},
-  {k:'wst+',  n:'汚い',      good:0, w:8,  f:(m,g)=>m.wst+=1+Math.floor(g/8)},
-  {k:'cap+',  n:'大容量',    good:1, w:6,  f:(m,g)=>m.cap*=2+g*0.2},
-  {k:'cap-',  n:'脆い',      good:0, w:6,  f:(m)  =>m.cap*=0.5},
-  {k:'need',  n:'要整備',    good:0, w:8,  f:(m,g,rnd)=>{ const c=CHAIN[Math.min(CHAIN.length-1, Math.floor(rnd()*Math.min(6,1+g/3)))];
+  {k:'spd+', grp:'spd', n:'高速',   good:1, w:10, f:(m,g)=>m.spd*=Math.max(.62, 0.90-0.02*g)},
+  {k:'spd-', grp:'spd', n:'鈍重',   good:0, w:9,  f:(m,g)=>m.spd*=1.15+0.04*g},
+  {k:'sta+', grp:'sta', n:'省エネ', good:1, w:10, f:(m,g)=>m.sta*=Math.max(.55, 0.90-0.022*g)},
+  {k:'sta-', grp:'sta', n:'大食い', good:0, w:10, f:(m,g)=>m.sta*=1.2+0.06*g},
+  {k:'yld+', grp:'yld', n:'多産',   good:1, w:7,  f:(m)  =>m.yld+=1},
+  {k:'wst-', grp:'wst', n:'清潔',   good:1, w:6,  f:(m)  =>m.clean=1},
+  {k:'wst+', grp:'wst', n:'汚い',   good:0, w:8,  f:(m,g)=>m.wst+=1+Math.floor(g/8)},
+  {k:'cap+', grp:'cap', n:'大容量', good:1, w:6,  f:(m,g)=>m.cap*=1.8+g*0.12},
+  {k:'cap-', grp:'cap', n:'脆い',   good:0, w:6,  f:(m)  =>m.cap*=0.5},
+  {k:'need', grp:'need',n:'要整備', good:0, w:8,  f:(m,g,rnd)=>{ const c=CHAIN[Math.min(CHAIN.length-1, Math.floor(rnd()*Math.min(6,1+g/3)))];
                                                           m.need[c.part]=(m.need[c.part]||0)+1; }},
 ];
 function newMods(){ return {spd:1, sta:1, yld:0, wst:0, cap:1, clean:0, need:{}, tags:[]}; }
@@ -942,19 +944,20 @@ function rollDrop(floor, rnd){
   if(!pool.length) return null;
   const type = pool[Math.floor(rnd()*pool.length)];
   const m = newMods();
-  const count = Math.min(4, 1 + Math.floor(g/3));
+  const count = Math.min(4, 1 + Math.floor(g/4));
   const bag = [];
   for(const a of AFFIX){
     // 等級が上がるほど良い接辞がやや出やすい
     const w = a.w * (a.good ? 1 + g*0.04 : 1);
     for(let i=0;i<Math.round(w);i++) bag.push(a);
   }
+  // 相反する接辞（高速と鈍重など）は同時に付かない。1つ目は必ず良い接辞にする
   const used = new Set();
   for(let i=0;i<count;i++){
-    let a=null;
-    for(let t=0;t<12;t++){ const c=bag[Math.floor(rnd()*bag.length)]; if(!used.has(c.k)){ a=c; break; } }
-    if(!a) break;
-    used.add(a.k); a.f(m, g, rnd); m.tags.push(a.n);
+    const pool = (i===0 ? bag.filter(x=>x.good) : bag).filter(x=>!used.has(x.grp));
+    if(!pool.length) break;
+    const a = pool[Math.floor(rnd()*pool.length)];
+    used.add(a.grp); a.f(m, g, rnd); m.tags.push(a.n);
   }
   m.spd=Math.max(.2, m.spd); m.sta=Math.max(.2, m.sta); m.cap=Math.max(.3, m.cap);
   return {id:S.nextId++, type, grade:g, mods:m, floor};
@@ -1036,7 +1039,7 @@ function freshState(){
   return {
     gold:40, nextId:1, counts:{}, nodes:[], links:[],
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
-    floor:1, best:1, enemy:null, log:[], drops:[],
+    floor:1, best:1, enemy:null, log:[], drops:[], dives:0,
     v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
@@ -1326,6 +1329,11 @@ function tick(dt,fast){
 const statName = s => ({str:'💪筋力',int:'🧠知力',vit:'❤️体力'})[s];
 function doDive(fast){
   if(!S.enemy) spawnEnemy();
+  // 撃破できない深さで止まっても、潜り続ければ拾える
+  if(S.floor >= DROP_FROM){
+    S.dives = (S.dives||0) + 1;
+    if(S.dives >= DROP_PER){ S.dives = 0; tryDrop(S.floor, fast); }
+  }
   S.enemy.hp -= dmg();
   if(S.enemy.hp>0) return;
   const f=S.floor, g=enemyGold(f), wasTier=depthTier(), wasZone=zoneOf(f);
@@ -1339,15 +1347,16 @@ function doDive(fast){
     const nz = zoneOf(S.floor);
     if(nz !== wasZone && !fast) addLog(`【新区域】${nz.i} ${nz.n} に到達`,'b');
   }
-  // 第100層から施設がドロップする（ボス層は確定、通常層は10%）
-  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.10) && S.drops.length < 40){
-    const d = rollDrop(f);
-    if(d){
-      S.drops.push(d);
-      if(!fast) addLog(`【入手】${dropName(d)}（等級${d.grade}）`,'b');
-    }
-  }
+  // 撃破でのドロップ（ボス層は確定、通常層は8%）
+  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.08)) tryDrop(f, fast);
   spawnEnemy();
+}
+function tryDrop(f, fast){
+  if(S.drops.length >= 40) return;
+  const d = rollDrop(f);
+  if(!d) return;
+  S.drops.push(d);
+  if(!fast) addLog(`【入手】${dropName(d)}（等級${d.grade}）`,'b');
 }
 function spawnEnemy(){
   const f=S.floor, z=zoneOf(f), hp=enemyHp(f);
