@@ -35,6 +35,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #top .sp{margin-left:auto}
 .tbtn{background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:11px;color:var(--dim)}
 .tbtn:hover{border-color:var(--acc);color:var(--fg)}
+.tbtn.danger{border-color:var(--bad);color:var(--bad);background:rgba(224,87,107,.14)}
 
 #mid{flex:1;display:flex;min-height:0}
 #shop{width:224px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:10px}
@@ -330,6 +331,9 @@ body.tut #offscr{display:none}
 #modal .mbtns button:hover{border-color:var(--acc);color:var(--acc)}
 #modal .mmsg{font-size:11px;margin-top:8px;min-height:16px;color:var(--warn)}
 #insp .slotsel{display:grid;gap:4px;margin-left:auto}
+#insp .ren{margin-left:auto;background:#0c111b;border:1px solid var(--line);border-radius:6px;
+  padding:2px 9px;font-size:11px;font-weight:700;color:var(--fg)}
+#insp .ren:hover{border-color:var(--acc);color:var(--acc)}
 #insp .prio{margin-left:auto;display:flex;align-items:center;gap:6px}
 #insp .prio button{flex:none;width:24px;padding:2px 0;font-size:13px;line-height:1;
   background:#0c111b;border:1px solid var(--line);border-radius:6px;color:var(--fg)}
@@ -480,7 +484,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="alert"></div>
       <div class="sec">勇者</div>
       <div class="box">
-        <div class="hd"><span>🧍</span><span>体力</span><span class="sub num" id="hSta">0 / 10</span></div>
+        <div class="hd"><span>🧍</span><span id="hName">体力</span><span class="sub num" id="hSta">0 / 10</span></div>
         <div class="hbar sta"><i id="hStaBar"></i></div>
         <div class="rows">
           <div class="row">体力の生成<b class="num" id="hRegen">0 /秒</b></div>
@@ -623,7 +627,7 @@ const CAP    = 10;    // バッファの基準値（必要数が大きいノー�
 const PSPEED = 170;   // 配線上を素材が流れる速さ px/s
 const SENDCD = 0.10;  // 1回送り出すごとの間隔
 const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
-const UP_K   = 1.9;   // 強化コストの伸び
+const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
 
 const ITEMS = {
   sta  :{n:'体力',   i:'⚡', c:'#f2c14e'},
@@ -653,7 +657,28 @@ const ITEMS = {
   exs  :{n:'筋の経験', i:'💪', c:'#e8785a'},
   exi  :{n:'知の経験', i:'🧠', c:'#7aa2ff'},
   exv  :{n:'体の経験', i:'❤️', c:'#5ee0c0'},
+  // 副産物。世代が進むほど厄介なものが必ず出る
+  toxic:{n:'汚染',   i:'☢️', c:'#9ad14a'},
+  rift :{n:'歪み',   i:'🌌', c:'#c07af5'},
 };
+/* 副産物と、燃料に戻したときの価値。世代4から汚染、世代7から歪みが出る */
+const BYP = [
+  {k:'waste', from:0, v:2},
+  {k:'toxic', from:4, v:9},
+  {k:'rift',  from:7, v:40},
+];
+const bypOf = gen => BYP.filter(b => gen >= b.from);
+/* ---------- 圧縮素材 ----------
+   同じ素材を何度でも圧縮できる。5つを1つにまとめるたびに「密度」が1上がり、
+   価値は 5倍より少しだけ多く増える。ただしその上乗せは圧縮するほど小さくなる。   */
+const DENS_MAX  = 15;
+const COMP_EDGE = 0.60, COMP_FADE = 0.85;      // 上乗せの初期値と、その減り方
+const densOf = k => { const i=k.indexOf('@'); return i<0 ? 0 : +k.slice(i+1); };
+const baseOf = k => { const i=k.indexOf('@'); return i<0 ? k : k.slice(0,i); };
+const densKey= (k,d) => d<=0 ? baseOf(k) : baseOf(k)+'@'+d;
+// 密度d→d+1 で価値が何倍になるか。5倍(まとめただけ)＋上乗せぶん
+const densStep = d => COMP_TAKE * (1 + COMP_EDGE * Math.pow(COMP_FADE, d));
+const DENS_MARK = ['','²','³','⁴','⁵','⁶','⁷','⁸','⁹','¹⁰','¹¹','¹²','¹³','¹⁴','¹⁵'];
 const EXP_OF  = {str:'exs', int:'exi', vit:'exv'};
 const STAT_OF = {exs:'str', exi:'int', exv:'vit'};
 
@@ -667,38 +692,61 @@ const CHAIN = [
   {ore:'ore5', ingot:'ing5', part:'prt5', floor:100, sta:34, val:1300},
   {ore:'ore6', ingot:'ing6', part:'prt6', floor:175, sta:58, val:4600},
 ];
-// 1つ上の段位（圧縮の行き先）。同じ分類の中でのみ上がる
-function nextTier(k){
-  for(let i=0;i<CHAIN.length-1;i++){
-    if(CHAIN[i].ore===k)   return CHAIN[i+1].ore;
-    if(CHAIN[i].ingot===k) return CHAIN[i+1].ingot;
-    if(CHAIN[i].part===k)  return CHAIN[i+1].part;
-  }
-  return null;
+// 圧縮の行き先＝1つ上の密度。世代が低い圧縮機は浅い密度までしか扱えない
+const densCap = gen => Math.min(DENS_MAX, 3 + Math.floor((gen||0)/8));
+function nextTier(k, cap){
+  const d = densOf(k);
+  if(d >= (cap===undefined ? DENS_MAX : cap)) return null;
+  return densKey(k, d+1);
 }
-// 分解したときの研究ポイント（部品を基準に、地金は3割、原鉱は1割）
-function itemVal(k){
-  if(k==='waste') return 0.2;
+// 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
+const BYP_VAL = {waste:0.2, toxic:1, rift:5};
+function baseVal(b){
+  if(BYP_VAL[b]!==undefined) return BYP_VAL[b];
   for(const c of CHAIN){
-    if(c.ore===k)   return c.val*0.1;
-    if(c.ingot===k) return c.val*0.3;
-    if(c.part===k)  return c.val;
+    if(c.ore===b)   return c.val*0.1;
+    if(c.ingot===b) return c.val*0.3;
+    if(c.part===b)  return c.val;
   }
   return 0;
 }
-const COMP_TAKE = 5, DECOMP_TAKE = 4;
-const chainOf = n => n.item ? (CHAIN.find(c=>c.ore===n.item||c.ingot===n.item||c.part===n.item)||null) : null;
+function itemVal(k){
+  let v = baseVal(baseOf(k));
+  const d = densOf(k);
+  for(let i=0;i<d;i++) v *= densStep(i);
+  return v;
+}
+const COMP_TAKE = 5, DECOMP_TAKE = 4, SELL_TAKE = 4, SELL_K = 3;
+// 副産物を燃やして得られる体力。厄介なものほど多い
+const bypVal = k => (BYP.find(b=>b.k===k)||{v:0}).v;
+const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(densStep(0), densOf(n.item))
+                     * (1 + (TYPES[n.type].gen||0)*0.06) * lvPow(n.level)));
+/* 売値。原鉱のままではほとんど値が付かず、加工・圧縮するほど跳ね上がる */
+const SELL_CLASS = k => { const b=baseOf(k);
+  return /^ore/.test(b) ? 0.5 : /^ing/.test(b) ? 1.2 : /^prt/.test(b) ? 3.0 : 1; };
+function sellPrice(k, lv){
+  return Math.max(1, Math.round(itemVal(k) * SELL_CLASS(k) * SELL_TAKE * SELL_K * lvPow(lv)));
+}
+const chainOf = n => { if(!n.item) return null; const b=baseOf(n.item);
+  return CHAIN.find(c=>c.ore===b||c.ingot===b||c.part===b) || null; };
 const chainOpen = c => S.best >= c.floor;
 // そのノードの素材セレクタに並べる選択肢
+// 圧縮で作ったことのある密度までを選択肢に出す（無闇に長くしない）
+const seenDens = () => Math.max(0, Math.min(DENS_MAX, S.maxDens||0));
+const withDens = (arr, cap) => {
+  const d = Math.min(seenDens(), cap===undefined ? DENS_MAX : cap), o=[];
+  for(const k of arr) for(let i=0;i<=d;i++) o.push(densKey(k,i));
+  return o;
+};
 function chainOpts(t){
-  const k = TYPES[t].chain;
-  if(k==='comp'){
-    const o=[];
-    CHAIN.forEach((c,i)=>{ if(i<CHAIN.length-1 && chainOpen(c)) o.push(c.ore,c.ingot,c.part); });
-    return o;
-  }
-  if(k==='decomp') return ['waste', ...CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part])];
-  return CHAIN.filter(chainOpen).map(c => k==='atk' ? c.part : k==='part' ? c.ingot : c.ore);
+  const T = TYPES[t], k = T.chain, g = T.gen||0;
+  const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
+  if(k==='comp')          return withDens(mats, densCap(g)-1);
+  if(k==='clean')         return bypOf(g).map(b=>b.k);
+  if(k==='fuel')          return withDens(bypOf(g).map(b=>b.k));
+  if(k==='decomp'||k==='sell') return withDens(['waste','toxic','rift'].concat(mats));
+  if(k==='atk')           return withDens(CHAIN.filter(chainOpen).map(c=>c.part));
+  return CHAIN.filter(chainOpen).map(c => k==='part' ? c.ingot : c.ore);
 }
 
 /* ノード＝勇者の「行動」。
@@ -714,8 +762,8 @@ const TYPES = {
           d:'体力を大きく消費して1回攻撃する。ゴールドと階層はここから'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore', see:0, rp:0,
           d:'原鉱を掘る。掘る鉱石は選ぶ。かならず廃材が出る'},
-  dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, ins:{sta:3, waste:3},  outs:{}, see:0, rp:0,
-          d:'廃材を片付ける。ここが止まると工房全体が詰まる'},
+  dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean', see:0, rp:0,
+          d:'副産物を片付ける。世代が上がると汚染や歪みも扱える。止まると工房全体が詰まる'},
   lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12}, outs:{}, effect:'lab', see:0, rp:0,
           matIn:true,
           d:'体力を研究力に変える。部品を1種類だけ受け取れて、送り込むと研究在庫になる'},
@@ -740,6 +788,10 @@ const TYPES = {
   // 弱い素材を腐らせないための2つ
   comp  :{n:'圧縮機',    i:'🗜️', cost:2000,   up:2600,   time:2.0, chain:'comp',   see:8,  rp:1,
           d:'下位の素材5つを、1つ上の素材1つに圧縮する'},
+  shop  :{n:'露店',      i:'🏪', cost:600,    up:800,    time:1.6, chain:'sell', see:0, rp:1,
+          d:'素材を売ってゴールドにする。良い素材ほど高く売れる'},
+  fuel  :{n:'堆肥箱',    i:'🪱', cost:1500,   up:2000,   time:2.0, chain:'fuel', see:0, rp:1,
+          d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になる'},
   decomp:{n:'分解機',    i:'🧪', cost:20000,  up:26000,  time:2.0, chain:'decomp', see:11, rp:1,
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
 };
@@ -747,8 +799,9 @@ const TYPES = {
 /* 施設の見た目と名前は「世代」で決まる。レベルは速度だけを上げる */
 function tierOf(n){
   const T = TYPES[n.type], L = T.line ? LINES[T.line] : null;
-  return {t:(T.gen||0)+1, n:T.n, i:T.i, max:L?L.length:1,
-          next: (L && T.gen+1 < L.length) ? [T.gen+2, L[T.gen+1][0]] : null};
+  const nm = (n.type==='hero' && S.name) ? S.name : T.n;   // 主人公は名前を付けられる
+  return {t:(T.gen||0)+1, n:nm, i:T.i, max:L?GENS:1,
+          next: (L && T.gen+1 < GENS) ? [T.gen+2, genName(T.line, T.gen+1)[0]] : null};
 }
 const effOf = n => Math.pow(GEN_EFF, TYPES[n.type].gen || 0);
 const baseName = t => TYPES[t].i + TYPES[t].n;
@@ -773,53 +826,88 @@ const LINES = {
   box:   [['木箱','📦'],['棚','🗄️'],['倉庫','🏬'],['貯蔵庫','🏦'],['大倉庫','🏛️'],['亜空間倉庫','🌀'],['無限庫','♾️']],
   comp:  [['石臼','🗿'],['圧縮機','🗜️'],['油圧プレス','🛢'],['特異点プレス','⚫'],['次元圧縮','🌌']],
   decomp:[['解体台','🔪'],['分解機','🧪'],['分子分解器','🧬'],['原子炉','⚛️'],['情報還元','🧿']],
+  shop:  [['露店','🏪'],['商店','🏬'],['交易所','⛵'],['市場','🎪'],['商会','🏦'],['通商網','🌐'],['星間交易','🛰']],
+  fuel:  [['堆肥箱','🪱'],['焼却発電','🔥'],['ガス化炉','💨'],['燃料電池','🔋'],['核燃料炉','☢️'],['対消滅炉','💫'],['真空還元','🌌']],
 };
-/* 世代ごとの伸び。速く・安くなるかわりに、建設費と研究費は指数で増える */
-const GEN_SPD = 0.87, GEN_EFF = 0.90, GEN_COST = 3.0, GEN_RP0 = 11000, GEN_RP = 2.85;
+/* 世代は 0〜99 の100段。名前は「時代」で決まり、その中の枝番で細かく刻む。
+   1世代ぶんの伸びは小さいが、建設費・強化費・研究費は世代ごとに指数で増える。
+   世代を進めるのは研究、施設そのものを強くするのはゴールドだけ。
+   そのゴールドは世代が進むほど桁が変わるので、工房を広げて売り続けないと追いつかない */
+const GENS    = 100;
+const GEN_SPD = 0.972, GEN_EFF = 0.988;          // 1世代あたり 2.9%速く / 1.2%省エネ
+const GEN_COST= 1.19, GEN_UP = 1.22;             // 建設費 / 強化費の基準
+const GEN_RP0 = 900,  GEN_RP = 1.20;             // 研究費
+const UP_RATE = 0.03;                            // 強化1回の基準＝建設費の3%
 // 世代ごとに変わる固有の値（増幅の倍率、貯蔵のスロットと容量）
 const GEN_EXTRA = {
-  tool: g => ({mul: 1.5 + g*0.5, sta: 3 + g}),
-  box:  g => ({slots: 1 + g, cap: 200 * Math.pow(2, g)}),
+  tool: g => ({mul: 1.5 + g*0.06, sta: 3 + g*0.05}),
+  box:  g => ({slots: 1 + Math.floor(g/12), cap: Math.round(200 * Math.pow(2, g/10))}),
 };
-const LINE_ORDER = ['mine','dump','lab','tstr','tint','tvit','smelt','forge','armory','mate','tool','comp','box','decomp','dive'];
+/* 世代 → 表示名。時代の名前＋枝番（2型・3型…） */
+function genName(line, g){
+  const eras = LINES[line], m = eras.length, per = GENS / m;
+  const ei = Math.min(m-1, Math.floor(g / per));
+  const k  = g - Math.ceil(ei * per);
+  const nm = eras[ei];
+  return [k > 0 ? `${nm[0]} ${k+1}型` : nm[0], nm[1]];
+}
+const LINE_ORDER = ['mine','dump','lab','tstr','tint','tvit','smelt','comp','shop','fuel','forge','box','armory','tool','decomp','mate','dive'];
 const genKey = (line, g) => g===0 ? line+'0' : line+g;
 /* 研究費は「世代」で指数的に増え、系統ごとの重みで横並びを調整する。
    並び順を指数の肩に乗せると差が開きすぎるため、倍率は係数で持つ */
 /* 系統ごとの重み。差を大きく取って、世代が1つずつ順に開くようにする */
 const LINE_RP = {mine:1, dump:2, tstr:4, tint:6, tvit:9, lab:14, smelt:22, comp:33,
-                 forge:50, box:75, armory:110, tool:170, decomp:250, mate:380, dive:570};
+                 shop:45, fuel:55, forge:70, box:95, armory:130, tool:190, decomp:270, mate:400, dive:590};
 const genRp = (line, g) => Math.round(GEN_RP0 * Math.pow(GEN_RP, g) * (LINE_RP[line]||1));
 
 const ORDER = ['hero'];
 function buildLines(){
   for(const line of LINE_ORDER){
     const base = TYPES[line];
-    LINES[line].forEach((nm, g) => {
-      const key = genKey(line, g);
+    for(let g=0; g<GENS; g++){
+      const key = genKey(line, g), nm = genName(line, g);
+      const cost = Math.round(base.cost * Math.pow(GEN_COST, g));
       TYPES[key] = Object.assign({}, base, {
         n:nm[0], i:nm[1], line, gen:g,
-        time: +(base.time * Math.pow(GEN_SPD, g)).toFixed(3),
-        cost: Math.round(base.cost * Math.pow(GEN_COST, g)),
-        up:   Math.round(base.up   * Math.pow(GEN_COST, g)),
+        time: +(base.time * Math.pow(GEN_SPD, g)).toFixed(4),
+        cost,
+        up:   Math.max(1, Math.round(base.cost * UP_RATE * Math.pow(GEN_UP, g))),
         rp:   g===0 ? 0 : genRp(line, g),
         see:  0, unique:false,
       });
       if(GEN_EXTRA[line]) Object.assign(TYPES[key], GEN_EXTRA[line](g));
       ORDER.push(key);
-    });
+    }
   }
 }
 buildLines();
+/* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
+(function buildDens(){
+  const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt)\d$/.test(k) || BYP_VAL[k]!==undefined);
+  for(const b of base){
+    if(b==='sta') continue;
+    for(let d=1; d<=DENS_MAX; d++){
+      ITEMS[densKey(b,d)] = {n: ITEMS[b].n + DENS_MARK[d], i: ITEMS[b].i, c: ITEMS[b].c, dens:d};
+    }
+  }
+})();
 
 // ❤️体力は指数的に効く（生成も上限も）。だから数字はインフレするが、コストの伸びが上回るので成長は緩やか
+/* レベルによる強化は逓減する。
+   レベル50でちょうど次の世代ぶん、レベル250でその次の世代ぶんに追いつく。
+   世代を進めるのは研究、施設そのものを強くするのはゴールドだけ、という住み分け */
+const LV_STEP = 5, LV_BASE = 12.25;
+const lvPow = L => Math.pow(1/GEN_SPD, Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP));
+const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP);  // 何世代ぶんか
+
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
-const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / n.level / (1 + (tierOf(n).t-1)*0.5);
+const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / lvPow(n.level) / (1 + (tierOf(n).t-1)*0.5);
 const intBoost = () => 1 + S.stats.int * 0.02;
 const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15) * depthBonus());
-const rpGain   = n  => n.level * (1 + S.stats.int * 0.15);
+const rpGain   = n  => lvPow(n.level) * (1 + S.stats.int * 0.15) * (1 + (TYPES[n.type].gen||0)*0.05);
 const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1));
 const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
-const enemyGold= f  => Math.floor(10 * Math.pow(1.24, f-1) * (f%10===0 ? 5 : 1));
+const enemyGold= f  => Math.floor(10 * Math.pow(1.12, f-1) * (f%10===0 ? 5 : 1));
 const ARMOR_K  = 8;   // 装甲は引き算ではなく減衰率。1ダメージ固定の壁ができない
 const dmg      = () => Math.max(1, Math.round(atk() * 100 / (100 + enemyArm(S.floor) * ARMOR_K)));
 const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
@@ -828,11 +916,24 @@ const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 const storeItems = n => (n.items||[]).filter(Boolean);
 // 系統ノードの体力コスト（段階ごとの倍率）
 const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, atk:1.5};
+/* 増幅器は入れた素材で働きが変わる。
+   安い素材ほどよく増え、高価な素材ほど増えにくく、体力も余計に食う。   */
+const TOOL_REF = 8;                                   // 基準になる素材の価値（銅の部品）
+const toolWeight = n => n.item ? Math.max(1, itemVal(n.item)/TOOL_REF) : 1;
+const toolMul  = n => 1 + (TYPES[n.type].mul - 1) / Math.pow(toolWeight(n), 0.22);
+const toolLoad = n => Math.pow(toolWeight(n), 0.30);
 function insOf(n){
   const T = TYPES[n.type], e = effOf(n), o = {};
-  if(T.chain==='comp' || T.chain==='decomp'){
+  if(T.chain==='clean'){                       // 副産物を片付ける
     if(!n.item) return {};
-    const take = T.chain==='comp' ? COMP_TAKE : DECOMP_TAKE;
+    return modIns(n, {sta:Math.max(1,Math.ceil(3*e*COST_K)), [n.item]:3});
+  }
+  if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
+    return n.item ? modIns(n, {[n.item]:4}) : {};
+  }
+  if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
+    if(!n.item) return {};
+    const take = T.chain==='comp' ? COMP_TAKE : T.chain==='sell' ? SELL_TAKE : DECOMP_TAKE;
     const st = Math.max(1, Math.ceil((T.chain==='comp'?3:2) * e * COST_K));
     return modIns(n, {sta:st, [n.item]:take});
   }
@@ -849,7 +950,7 @@ function insOf(n){
   if(T.store){ for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool){
     if(n.item) o[n.item] = T.take;
-    o.sta = Math.max(1, Math.ceil(T.sta * e * COST_K));
+    o.sta = Math.max(1, Math.ceil(T.sta * toolLoad(n) * e * COST_K));
     return o;
   }
   const k = T.stat ? Math.pow(TRAIN_K, S.stats[T.stat]) : 1;   // 訓練は鍛えるほど重くなる
@@ -875,8 +976,11 @@ function modOuts(n, o){
 }
 function outsOf(n){
   const T = TYPES[n.type];
-  if(T.chain==='comp')   return n.item && nextTier(n.item) ? modOuts(n,{[nextTier(n.item)]:1}) : {};
-  if(T.chain==='decomp') return {};
+  if(T.chain==='comp'){ const to = n.item ? nextTier(n.item, densCap(T.gen)) : null;
+                        return to ? modOuts(n, {[to]:1}) : {}; }
+  if(T.chain==='clean') return {};
+  if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
+  if(T.chain==='decomp' || T.chain==='sell') return {};
   if(T.chain){
     const c = chainOf(n);
     if(!c) return {};
@@ -884,10 +988,12 @@ function outsOf(n){
                : T.chain==='ingot' ? {[c.ingot]:1, waste:1}
                : T.chain==='part'  ? {[c.part]:1,  waste:2}
                :                     {};
+    // 進んだ世代の施設は、必ず新しい厄介物も出す
+    if(T.chain!=='atk') for(const b of bypOf(T.gen||0)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
   }
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
-  if(T.tool) return n.item ? {[n.item]: Math.round(T.take * T.mul)} : {};
+  if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
   return modOuts(n, T.outs);
 }
 // 必須ではないが受け取れる入力（主人公の経験値など）。口は作るが、稼働の条件にはしない
@@ -903,13 +1009,13 @@ function craftTime(n){
   const T = TYPES[n.type];
   const sp = n.mods ? n.mods.spd : 1;
   if(TYPES[n.type].src) return staRate(n) * sp;
-  return T.time / n.level / intBoost() * sp;
+  return T.time / lvPow(n.level) / intBoost() * sp;
 }
 const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(PRICE_K, S.counts[t]||0));
 const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
 const capMul  = n => n.mods ? n.mods.cap : 1;
 const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].store
-                          ? TYPES[n.type].cap * n.level
+                          ? TYPES[n.type].cap * lvPow(n.level)
                           : Math.max(CAP, (allIns(n)[item]||0) * 2)));
 const capOut  = (n,item) => (TYPES[n.type].src && item==='sta') ? maxSta()
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
@@ -965,7 +1071,7 @@ function rollDrop(floor, rnd){
 const dropName = d => `${baseName(d.type)}〈${d.mods.tags.join('・')||'無印'}〉`;
 // 解体で戻る研究ポイント（ドロップ品は等級ぶん上乗せ）
 const scrapRp = (type, level, grade) =>
-  Math.max(1, Math.ceil(TYPES[type].cost * 0.02 * level + (grade||0) * 15));
+  Math.max(1, Math.ceil(TYPES[type].cost * 0.02 * lvPow(level) + (grade||0) * 15));
 
 /* オフライン報酬：解放するたびに倍率と時間上限が伸びる
    解放数 = 研究で開発したノードの数 ＋ 10層ごとの踏破段階 */
@@ -989,10 +1095,11 @@ const gotRp = () => Math.floor(S.rp || 0);
 /* 現代（世代4）以降の研究には🧱研究資材も要る。
    研究所に部品を送り込むと、その部品の価値ぶんが資材になる。
    良い部品ほど一気に貯まるので、深く潜って良い素材を作る動機になる */
-const MAT_FROM = 4;
+const MAT_FROM = 10;                 // この世代から先は研究資材も要る
+const MAT_K    = 1.22;               // 必要量の伸び
 const needMat = t => {
   const T = TYPES[t];
-  return (!T.line || T.gen < MAT_FROM) ? 0 : Math.round(80 * Math.pow(4, T.gen - MAT_FROM));
+  return (!T.line || T.gen < MAT_FROM) ? 0 : Math.round(60 * Math.pow(MAT_K, T.gen - MAT_FROM));
 };
 const gotMat = () => Math.floor(S.stock || 0);
 function canResearch(t){
@@ -1039,7 +1146,7 @@ function freshState(){
   return {
     gold:40, nextId:1, counts:{}, nodes:[], links:[],
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
-    floor:1, best:1, enemy:null, log:[], drops:[], dives:0,
+    floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
@@ -1097,7 +1204,7 @@ function geomPt(G,t){
 
 /* ========================= DOM ========================= */
 function mkNodeEl(n){
-  const ins = insOf(n), outs = outsOf(n);
+  const ins = allIns(n), outs = outsOf(n);      // 任意の入力（経験値など）も口を作る
   const ik = Object.keys(ins), ok = Object.keys(outs);
   const tr = tierOf(n);
   const el = document.createElement('div');
@@ -1241,8 +1348,8 @@ function tick(dt,fast){
     }
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
-    if(T.chain==='comp' || T.chain==='decomp'){
-      if(!n.item){ n.stall=true; n.why='扱う素材が未設定'; continue; }
+    if(['comp','decomp','sell','clean','fuel'].includes(T.chain)){
+      if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
     }else if(T.chain && !chainOf(n)){ n.stall=true; n.why='扱う素材が未設定'; continue; }
     // 1回の更新で複数回ぶん進める（生産が速いノードがフレーム間隔で頭打ちにならないように）
     let budget=dt, guard=1000;
@@ -1261,12 +1368,16 @@ function tick(dt,fast){
       if(budget < rest){ n.prog+=budget; break; }
       budget-=rest;
       const give=outsOf(n);
-      for(const k in give) n.outBuf[k]=(n.outBuf[k]||0)+give[k];
+      for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k];
+        const d=densOf(k); if(d>(S.maxDens||0)) S.maxDens=d; }
       n.done++;
       // 訓練は経験値を産むだけ。主人公まで配線を戻して初めて能力になる
-      if(T.effect==='atk'){ const c=chainOf(n); const g=(c?c.val:0)*n.level; S.atkBonus+=g; n.gain=(n.gain||0)+g; }
+      if(T.effect==='atk'){ const g=Math.round(itemVal(n.item)*lvPow(n.level)); S.atkBonus+=g; n.gain=(n.gain||0)+g; }
+      if(T.chain==='sell' && n.item){
+        const g=sellPrice(n.item, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
+      }
       if(T.chain==='decomp' && n.item){
-        const rp = itemVal(n.item) * DECOMP_TAKE * n.level;
+        const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(n.level) * (1 + (TYPES[n.type].gen||0)*0.05);
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
       if(T.effect==='dive') doDive(fast);
@@ -1375,27 +1486,36 @@ function checkSeen(){}
 /* ========================= 研究ツリー ========================= */
 const LINE_LABEL = {mine:'採掘',dump:'廃棄',lab:'研究',tstr:'筋トレ',tint:'読書',tvit:'走り込み',
   smelt:'精錬',forge:'加工',armory:'装備',mate:'仲間',tool:'増幅',comp:'圧縮',box:'貯蔵',
-  decomp:'分解',dive:'探索'};
-function renderTree(){
+  decomp:'分解',dive:'探索',shop:'販売',fuel:'再利用'};
+/* その系統でいま到達している世代 */
+function devGen(line){
+  let g=-1; for(let i=0;i<GENS;i++){ if(isDev(genKey(line,i))) g=i; else break; }
+  return g;
+}
+const TREE_AHEAD = 3;                 // 先の世代をいくつ見せるか
+let treeKey='';
+function renderTree(force){
   const g=$('#treeGrid'); if(!g) return;
   $('#rpNow').textContent=fmt(gotRp()); $('#matNow').textContent=fmt(gotMat());
+  const k = LINE_ORDER.map(devGen).join(',')+'|'+gotRp()+'|'+gotMat();
+  if(k===treeKey && !force) return;   // 中身が変わっていなければ作り直さない
+  treeKey=k;
   g.innerHTML = LINE_ORDER.map(line=>{
-    const cells = LINES[line].map((nm,gi)=>{
-      const t=genKey(line,gi), dev=isDev(t), seen=isSeen(t), can=canResearch(t);
-      const m=needMat(t);
-      const cls = dev?'done':can?'can':seen?'':'lock';
-      const cost = dev ? '解放済み'
-        : `🔬${fmt(needRp(t))}` + (m ? ` ＋🧱${fmt(m)}` : '');
-      const btn = dev ? '' : seen
-        ? `<button class="rs" data-t="${t}" ${can?'':'disabled'}>研究</button>`
-        : `<button disabled>—</button>`;
-      return `<div class="tcell ${cls}"><span class="cn">${nm[1]}${nm[0]}</span>
-              <div class="cc">${cost}</div>${btn}</div>`;
-    }).join('<span class="tarrow">▸</span>');
-    return `<div class="trow"><div class="tlab">${LINE_LABEL[line]}</div>${cells}</div>`;
+    const cur = devGen(line);
+    const cells=[];
+    cells.push(`<div class="tcell done"><span class="cn">${TYPES[genKey(line,Math.max(0,cur))].i}${genName(line,Math.max(0,cur))[0]}</span>
+                <div class="cc">第${cur+1}世代 / ${GENS}</div></div>`);
+    for(let i=cur+1; i<=cur+TREE_AHEAD && i<GENS; i++){
+      const t=genKey(line,i), can=canResearch(t), seen=isSeen(t), m=needMat(t);
+      cells.push(`<div class="tcell ${can?'can':seen?'':'lock'}">
+        <span class="cn">${TYPES[t].i}${TYPES[t].n}</span>
+        <div class="cc">🔬${fmt(needRp(t))}${m?` ＋🧱${fmt(m)}`:''}</div>
+        ${seen?`<button class="rs" data-t="${t}" ${can?'':'disabled'}>研究</button>`:'<button disabled>—</button>'}</div>`);
+    }
+    return `<div class="trow"><div class="tlab">${LINE_LABEL[line]}</div>${cells.join('<span class="tarrow">▸</span>')}</div>`;
   }).join('');
   g.querySelectorAll('.rs').forEach(b=>b.onclick=()=>{
-    if(doUnlock(b.dataset.t)){ renderTree(); renderShop(); }
+    if(doUnlock(b.dataset.t)){ renderTree(true); renderShop(); }
     else toast('研究ポイントか素材が足りません');
   });
 }
@@ -1468,12 +1588,13 @@ function render(){
     const tr=tierOf(n);
     if(e.lastTier!==tr.t){ e.lastTier=tr.t; e.ic.textContent=tr.i; e.nm.textContent=tr.n; }
     e.lv.textContent='Lv.'+n.level;
-    const need=insOf(n), give=outsOf(n);
-    for(const k in need){
-      const s=e.slots['in-'+k], c=n.inBuf[k]||0;
+    const need=insOf(n), give=outsOf(n), shown=allIns(n);
+    for(const k in shown){
+      const s=e.slots['in-'+k]; if(!s) continue;
+      const c=n.inBuf[k]||0, req=need[k];
       s.querySelector('b').textContent=fmt(c);
-      s.querySelector('.q').textContent='/'+fmt(T.store ? capIn(n,k) : need[k]);
-      s.classList.toggle('short', c < need[k]);
+      s.querySelector('.q').textContent = req ? '/'+fmt(T.store ? capIn(n,k) : req) : '';
+      s.classList.toggle('short', !!req && c < req);
       s.classList.toggle('full', c >= capIn(n,k));
     }
     for(const k in give){
@@ -1492,6 +1613,9 @@ function render(){
       : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
       : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
+      : T.chain==='sell' ? (n.item ? `${ITEMS[n.item].n}を販売中 → 💰累計 ${fmt(n.gain||0)}` : '売る素材を選んでください')
+      : T.chain==='clean' ? (n.item ? `${ITEMS[n.item].i}を処理中` : '片付ける副産物を選んでください')
+      : T.chain==='fuel' ? (n.item ? `${ITEMS[n.item].i}を燃やして ⚡${fmt(fuelOut(n))}` : '燃やす副産物を選んでください')
       : T.chain ? (chainOf(n)
           ? (T.chain==='atk' ? `装備中 → 攻撃力 +${fmt(n.gain||0)}` : `${ITEMS[n.item].i}${ITEMS[n.item].n} を処理中`)
           : '扱う素材を選んでください')
@@ -1523,6 +1647,7 @@ function render(){
   $('#dTier').textContent=dt+'段階';
   $('#dBonus').textContent='×'+depthBonus().toFixed(2);
   $('#dNext').textContent='第'+((dt+1)*BOSS_EVERY)+'層';
+  $('#hName').textContent = S.name || '体力';
   $('#hSta').textContent=`${fmt(sta)} / ${fmt(mx)}`;
   $('#hStaBar').style.width=Math.min(100,sta/mx*100)+'%';
   $('#hRegen').textContent=hero?(1/staRate(hero)).toFixed(2)+' /秒':'—';
@@ -1562,6 +1687,9 @@ function ioText(T){
   const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
   if(T.chain==='comp')   return `素材×${COMP_TAKE} ⚡<span class="ar">→</span>1つ上の素材×1`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
+  if(T.chain==='sell')   return `素材×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
+  if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
+  if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
   if(T.chain){
     const m={ore:'⚡<span class="ar">→</span>原鉱＋🗑️',
              ingot:'原鉱×2 ⚡<span class="ar">→</span>地金＋🗑️',
@@ -1574,28 +1702,33 @@ function ioText(T){
   const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='atk'?'攻撃力↑':T.effect==='lab'?'🔬研究力':'—');
   return `${a}<span class="ar">→</span>${b}`;
 }
+/* 建設リストは系統ごとに1枚。研究で到達している最新の世代が並ぶ */
+const SHOP_ROWS = ['hero'].concat(LINE_ORDER);
+const rowType = r => r==='hero' ? 'hero' : genKey(r, Math.max(0, devGen(r)));
 function buildShop(){
   const box=$('#shopList'); box.innerHTML='';
-  for(const t of ORDER){
-    const T=TYPES[t], b=document.createElement('button');
+  for(const r of SHOP_ROWS){
+    const T=TYPES[rowType(r)], b=document.createElement('button');
     b.className='card';
     b.innerHTML=`<div class="r1"><span class="ic">${T.i}</span><span class="nm">${T.n}</span><span class="price"></span></div>
-                 <div class="io">${ioText(T)}</div><div class="d">${T.d}</div><div class="rq"></div>`;
-    b.onclick=()=>buy(t);
+                 <div class="io"></div><div class="d">${T.d}</div><div class="rq"></div>`;
+    b.onclick=()=>buy(shopEls[r].cur);
     box.appendChild(b);
-    shopEls[t]={root:b, name:b.querySelector('.nm'), price:b.querySelector('.price'), rq:b.querySelector('.rq')};
+    shopEls[r]={root:b, cur:rowType(r), ic:b.querySelector('.ic'), name:b.querySelector('.nm'),
+                price:b.querySelector('.price'), io:b.querySelector('.io'), rq:b.querySelector('.rq')};
   }
 }
 function renderShop(){
-  for(const t of ORDER){
-    const T=TYPES[t], e=shopEls[t], dev=isDev(t);
+  for(const r of SHOP_ROWS){
+    const t=rowType(r), T=TYPES[t], e=shopEls[r], dev=isDev(t);
     e.root.hidden = !dev;                       // 研究で開けたものだけ並べる
     if(!dev) continue;
+    if(e.cur!==t){ e.cur=t; e.ic.textContent=T.i; e.io.innerHTML=ioText(T); }
     const uniq=T.unique && (S.counts[t]||0)>=1;
     const cost=buyCost(t);
     e.name.textContent=T.n;
     e.price.textContent = uniq ? '設置済' : fmt(cost)+' G';
-    e.rq.textContent = '';
+    e.rq.textContent = T.line ? `第${(T.gen||0)+1}世代` : '';
     e.root.classList.toggle('off', uniq || S.gold<cost);
   }
 }
@@ -1729,16 +1862,19 @@ function renderInsp(){
   const T=TYPES[n.type], isLab=T.effect==='lab', tr=tierOf(n);
   box.innerHTML=
     `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>
+     ${n.type==='hero' ? `<div class="kv">名前<button class="ren"></button></div>` : ''}
      <div class="kv">階級<b class="tier"></b></div>
      <div class="kv">入出力<b style="font-size:10.5px">${ioText(T)}</b></div>
      <div class="kv">1回あたり<b class="rate"></b></div>
      <div class="kv">体力効率<b class="eff"></b></div>` +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>
                 <div class="kv">研究在庫<b class="stk"></b></div>` : '') +
-    (T.chain ? `<div class="kv">${{ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',atk:'身につける部品',comp:'圧縮する素材',decomp:'分解する素材'}[T.chain]}<select class="chn"></select></div>` : '') +
+    (T.chain ? `<div class="kv">${{ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',atk:'身につける部品',comp:'圧縮する素材',decomp:'分解する素材',sell:'売る素材',clean:'片付ける副産物',fuel:'燃やす副産物'}[T.chain]}<select class="chn"></select></div>` : '') +
     (T.chain==='atk'    ? `<div class="kv">1つあたり<b class="cval"></b></div>` : '') +
     (T.chain==='comp'   ? `<div class="kv">圧縮先<b class="cval"></b></div>` : '') +
     (T.chain==='decomp' ? `<div class="kv">1回あたり<b class="cval"></b></div>` : '') +
+    (T.chain==='sell'   ? `<div class="kv">1回の売値<b class="cval"></b></div>` : '') +
+    (T.chain==='fuel'   ? `<div class="kv">1回の産出<b class="cval"></b></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
     (T.store ? `<div class="kv">貯める素材<div class="slotsel"></div></div>` : '') +
     `<div class="kv">受け取る優先度
@@ -1791,6 +1927,13 @@ function renderInsp(){
     if(S.gold<c) return toast('ゴールドが足りません');
     S.gold-=c; n.level++;
   };
+  const rn=box.querySelector('.ren');
+  if(rn) rn.onclick=()=>{
+    const v=prompt('主人公の名前', S.name || TYPES.hero.n);
+    if(v===null) return;
+    S.name = v.trim().slice(0,12);
+    renderInsp(); toast(S.name ? `${S.name} と名乗った` : '名前を戻しました');
+  };
   box.querySelector('.pm').onclick=()=>{ n.prio=Math.max(1,prioOf(n)-1); };
   box.querySelector('.pp').onclick=()=>{ n.prio=Math.min(9,prioOf(n)+1); };
   box.querySelector('.del').onclick=()=>{
@@ -1813,6 +1956,8 @@ function renderInspLive(){
   const box=$('#insp'); if(!box.classList.contains('on')) return;
   const n=sel?N(sel):null; if(!n) return;
   const tr=tierOf(n);
+  const rnb=box.querySelector('.ren');
+  if(rnb) rnb.textContent = (S.name || TYPES.hero.n) + ' ✎';
   box.querySelector('.lv').textContent='Lv.'+n.level;
   box.querySelector('.ic2').textContent=tr.i;
   box.querySelector('.nm2').textContent=tr.n;
@@ -1831,16 +1976,22 @@ function renderInspLive(){
   if(stk) stk.textContent = '🧱 '+fmt(gotMat()) + (n.item?`（${ITEMS[n.item].i}1つで +${fmt(itemVal(n.item))}）`:'');
   const cv=box.querySelector('.cval');
   if(cv){
-    if(TY.chain==='comp'){ const nx=n.item&&nextTier(n.item);
-      cv.textContent = nx ? `${ITEMS[n.item].i}×${COMP_TAKE} → ${ITEMS[nx].i}${ITEMS[nx].n}×1` : '—'; }
+    if(TY.chain==='comp'){ const nx=n.item&&nextTier(n.item, densCap(TY.gen));
+      cv.textContent = nx ? `${ITEMS[n.item].n}×${COMP_TAKE} → ${ITEMS[nx].n}×1（価値 ×${(itemVal(nx)/Math.max(1e-9,itemVal(n.item))).toFixed(2)}）`
+        : (n.item ? `この世代では密度${densCap(TY.gen)}まで` : '—'); }
+    else if(TY.chain==='fuel'){
+      cv.textContent = n.item ? `⚡ ${fmt(fuelOut(n))}` : '—'; }
+    else if(TY.chain==='sell'){
+      cv.textContent = n.item ? `💰 ${fmt(sellPrice(n.item,n.level))}` : '—'; }
     else if(TY.chain==='decomp'){
-      cv.textContent = n.item ? `🔬 +${fmt(itemVal(n.item)*DECOMP_TAKE*n.level)}` : '—'; }
-    else { const c=chainOf(n); cv.textContent = c ? '攻撃力 +'+fmt(c.val*n.level) : '—'; }
+      cv.textContent = n.item ? `🔬 +${fmt(itemVal(n.item)*DECOMP_TAKE*lvPow(n.level)*(1+(TY.gen||0)*0.05))}` : '—'; }
+    else { cv.textContent = n.item ? '攻撃力 +'+fmt(itemVal(n.item)*lvPow(n.level)) : '—'; }
   }
   box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
   box.querySelectorAll('.alc').forEach(el=>{ el.textContent=allocText(n, el.dataset.i); });
   const up=box.querySelector('.up'), c=upCost(n);
-  up.textContent=`強化 ${fmt(c)} G`; up.disabled=S.gold<c;
+  up.textContent=`強化 ${fmt(c)} G ／ +${((lvPow(n.level+1)/lvPow(n.level)-1)*100).toFixed(1)}%（いま ${lvGen(n.level).toFixed(2)}世代ぶん）`;
+  up.disabled=S.gold<c;
   box.querySelector('.del').disabled=!!TYPES[n.type].unique;
 }
 
@@ -2055,7 +2206,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=5;
+const SAVE_V=7;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -2090,6 +2241,32 @@ function migrate(d){
     d.rp = 0; d.stock = 0;
     delete d.seen;
     d.v = 5;
+  }
+  if(d.v < 6){
+    // 廃棄場が「片付ける副産物を選ぶ」形になったので、既存には廃材を割り当てる
+    for(const n of d.nodes||[]) if(/^dump/.test(n.type) && !n.item) n.item='waste';
+    d.name = d.name || '';
+    d.v = 6;
+  }
+  if(d.v < 7){
+    // 世代を100段に刻み直した。旧世代は同じ位置の新世代へ読み替える
+    const OLD = {mate:10,mine:11,smelt:10,forge:10,armory:9,dive:9,lab:9,dump:7,
+                 tstr:6,tint:6,tvit:6,tool:7,box:7,comp:5,decomp:5,shop:7,fuel:7};
+    const conv = t => { const m=/^([a-z]+)(\d+)$/.exec(t||''); if(!m||!OLD[m[1]]) return t;
+      return genKey(m[1], Math.min(GENS-1, Math.round(+m[2] * GENS / OLD[m[1]]))); };
+    for(const n of d.nodes||[]) n.type = conv(n.type);
+    const c={}; for(const k in (d.counts||{})) c[conv(k)] = (c[conv(k)]||0) + d.counts[k];
+    d.counts = c;
+    // 研究は順番に進むので、読み替えた世代までを開発済みにする
+    const dv={};
+    for(const k in (d.dev||{})){
+      const m=/^([a-z]+)(\d+)$/.exec(k); if(!m||!OLD[m[1]]) continue;
+      const g = Math.min(GENS-1, Math.round(+m[2] * GENS / OLD[m[1]]));
+      for(let i=1;i<=g;i++) dv[genKey(m[1],i)] = 1;
+    }
+    d.dev = dv;
+    d.maxDens = 0;
+    d.v = 7;
   }
   d.v = SAVE_V;
   return d;
@@ -2181,12 +2358,28 @@ $('#mLoad').onclick=()=>{
   }catch(e){ msg.textContent='コードが正しくありません（'+e.message+'）'; }
 };
 $('#bSave').onclick=()=>toast(save()?'保存しました':'保存できませんでした');
-let resetting=false;
+/* リセット。confirm も reload も端末によっては効かないので、
+   ボタン自身を2段階にして、その場で作り直す */
+let resetting=false, resetArm=0, resetT=null;
 $('#bReset').onclick=()=>{
-  if(!confirm('本当に最初からやり直しますか？')) return;
+  const b=$('#bReset');
+  if(Date.now() > resetArm){                       // 1回目：確認待ちにする
+    resetArm=Date.now()+5000; b.textContent='本当に消す？'; b.classList.add('danger');
+    clearTimeout(resetT);
+    resetT=setTimeout(()=>{ resetArm=0; b.textContent='リセット'; b.classList.remove('danger'); },5000);
+    return;
+  }
+  clearTimeout(resetT); resetArm=0;
+  b.textContent='リセット'; b.classList.remove('danger');
   resetting=true;                                  // 以降の保存を止めてから消す
   try{ localStorage.removeItem(KEY); }catch(_){}
-  location.reload();
+  for(const l of [...S.links]) removeLink(l.id);
+  for(const n of [...S.nodes]) removeNode(n.id);
+  sel=null; tutHi=null; tutShown=-1;
+  newGame(); spawnEnemy();
+  buildShop(); renderShop(); renderTree(true); renderInsp(); tutRender(); render();
+  resetting=false; save();
+  toast('最初からやり直しました');
 };
 
 /* ========================= デバッグ：ノード一覧と設置 =========================
@@ -2277,8 +2470,8 @@ function newGame(){
   addLog('⛏採掘を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
   fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
 }
-buildShop();
 if(!load()) newGame();
+buildShop();                       // 建設リストは研究の進み具合を見るので S を作ってから
 if(!S.enemy) spawnEnemy();
 checkSeen(true);
 
