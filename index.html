@@ -127,6 +127,9 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
   padding:6px 10px;line-height:1.8;pointer-events:auto;cursor:help;max-width:340px}
 #hint b{color:var(--fg)}
 #hint .ttl{font-weight:700;color:var(--acc);line-height:1.4}
+#hint #tRestart{margin-top:6px;background:#0c111b;border:1px solid var(--line);
+  border-radius:6px;padding:4px 9px;font-size:10px;font-weight:700;color:var(--dim)}
+#hint #tRestart:hover{border-color:var(--acc);color:var(--acc)}
 #hint .body{display:none}
 #hint:hover .body{display:block;margin-top:4px}
 .slot.short b{color:var(--dim)}
@@ -156,6 +159,48 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
   padding:7px 14px;border-radius:8px;font-size:11.5px;font-weight:600;opacity:0;
   transition:opacity .25s;pointer-events:none}
 #toast.on{opacity:1}
+
+/* ---------- チュートリアル ---------- */
+#tut{position:absolute;left:50%;transform:translateX(-50%);width:min(660px,calc(100% - 24px));
+  top:12px;z-index:30;display:none;
+  background:rgba(15,21,32,.97);border:1px solid var(--acc);border-radius:12px;
+  padding:11px 13px;box-shadow:0 14px 40px rgba(0,0,0,.55);backdrop-filter:blur(10px)}
+#tut.on{display:grid;grid-template-columns:auto 1fr auto;gap:13px;align-items:center}
+#tut .tno{font-family:ui-monospace,monospace;font-size:11px;color:var(--acc);
+  border:1px solid var(--acc);border-radius:20px;padding:3px 9px;white-space:nowrap}
+#tut .tno i{opacity:.5;font-style:normal;margin:0 1px}
+#tut .ttl{font-weight:700;font-size:13px;margin-bottom:2px}
+#tut .txt{font-size:11.5px;line-height:1.65;color:var(--dim)}
+#tut .txt b{color:var(--fg)}
+#tut .tacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#tut button{border-radius:7px;padding:6px 12px;font-size:11.5px;font-weight:700;
+  background:#0c111b;border:1px solid var(--line);white-space:nowrap}
+#tut #tNext{border-color:var(--acc);color:var(--acc)}
+#tut #tNext:hover{background:var(--acc);color:#08131a}
+#tut #tSkip{color:var(--dim)}
+#tut #tSkip:hover{border-color:var(--dim);color:var(--fg)}
+#tut #tNext[hidden]{display:none}
+body.tut #hint{display:none}
+body.tut #toast{top:auto;bottom:16px}
+body.tut #offscr{display:none}
+
+/* 案内中の対象を光らせる。
+   position や transform には触らない（ポートは absolute 配置なので位置が動いてしまう） */
+.tut-hi{animation:tpulse 1.5s ease-in-out infinite}
+@keyframes tpulse{
+  0%,100%{box-shadow:0 0 0 2px var(--acc), 0 0 14px 3px rgba(94,224,192,.55)}
+  50%    {box-shadow:0 0 0 2px var(--acc), 0 0 4px 0 rgba(94,224,192,.12)}
+}
+@media (prefers-reduced-motion:reduce){
+  .tut-hi{animation:none;box-shadow:0 0 0 2px var(--acc)}
+}
+
+@media (max-width:860px){
+  #tut{left:8px;right:8px;top:8px;grid-template-columns:auto 1fr;padding:10px 11px}
+  #tut.on{grid-template-columns:auto 1fr}
+  #tut .tacts{grid-column:1 / -1;justify-content:stretch}
+  #tut .tacts button{flex:1}
+}
 #modal{position:fixed;inset:0;background:rgba(6,9,14,.78);z-index:100;display:none;
   align-items:center;justify-content:center;padding:16px}
 #modal.on{display:flex}
@@ -171,6 +216,17 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
   border-radius:8px;padding:8px;font-size:11.5px;font-weight:600}
 #modal .mbtns button:hover{border-color:var(--acc);color:var(--acc)}
 #modal .mmsg{font-size:11px;margin-top:8px;min-height:16px;color:var(--warn)}
+#insp .slotsel{display:grid;gap:4px;margin-left:auto}
+#insp .prio{margin-left:auto;display:flex;align-items:center;gap:6px}
+#insp .prio button{flex:none;width:24px;padding:2px 0;font-size:13px;line-height:1;
+  background:#0c111b;border:1px solid var(--line);border-radius:6px;color:var(--fg)}
+#insp .prio button:hover{border-color:var(--acc);color:var(--acc)}
+#insp .prio b{min-width:16px;text-align:center;font-variant-numeric:tabular-nums}
+#insp .alc{font-size:10.5px;font-weight:600;text-align:right;max-width:170px;color:var(--sta)}
+#insp .dst{font-size:10.5px;font-weight:600;text-align:right;max-width:170px}
+/* 配線をドラッグしている間は、受け取れる相手だけを明るく残す */
+body.linking .node{opacity:.28;transition:opacity .12s}
+body.linking .node.tgt,body.linking .node.src{opacity:1}
 
 /* ---------- 操作ヘルプはタップでも開ける ---------- */
 #hint .body{display:none}
@@ -256,7 +312,16 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
         <div class="body">
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
-        配線を<b>ドラッグ</b>=経路を整理 / <b>クリック</b>=切断 / 中継点を<b>ダブルクリック</b>=直線に戻す
+        配線を<b>ドラッグ</b>=経路を整理 / <b>クリック</b>=切断 / 中継点を<b>ダブルクリック</b>=直線に戻す<br>
+        <button id="tRestart">チュートリアルをやり直す</button>
+        </div>
+      </div>
+      <div id="tut">
+        <div class="tno"><span id="tCur">1</span><i>/</i><span id="tAll">6</span></div>
+        <div class="tbody"><div class="ttl" id="tTtl"></div><div class="txt" id="tTxt"></div></div>
+        <div class="tacts">
+          <button id="tNext">次へ</button>
+          <button id="tSkip">スキップ</button>
         </div>
       </div>
       <div id="insp"></div>
@@ -408,6 +473,17 @@ const TYPES = {
           d:'通した素材が2倍になる高級な道具'},
   tool3 :{n:'魔道具',    i:'💎', cost:90000, up:120000, time:2.5, tool:true, mul:3.0, take:4, sta:5, see:16, rp:3000,
           d:'通した素材が3倍になる最高級の道具'},
+  // 倉庫＝素材を貯めておく場所。スロットの数だけ違う素材を同時に扱える
+  box1  :{n:'木箱',      i:'📦', cost:400,    up:500,    time:0.4, store:true, slots:1, cap:200,  see:6,  rp:300,
+          d:'素材を1種類だけ貯めておける。詰まりを防げる'},
+  box2  :{n:'棚',        i:'🗄️', cost:2500,   up:3200,   time:0.4, store:true, slots:2, cap:400,  see:10, rp:1200,
+          d:'2種類まとめて貯めておける'},
+  box3  :{n:'倉庫',      i:'🏬', cost:15000,  up:19000,  time:0.4, store:true, slots:3, cap:800,  see:15, rp:5000,
+          d:'3種類。工房が大きくなってきたら'},
+  box4  :{n:'貯蔵庫',    i:'🏦', cost:90000,  up:115000, time:0.4, store:true, slots:4, cap:1600, see:20, rp:20000,
+          d:'4種類。長い放置に耐える'},
+  box5  :{n:'大倉庫',    i:'🏛️', cost:500000, up:640000, time:0.4, store:true, slots:5, cap:3200, see:26, rp:80000,
+          d:'5種類すべて。最大の貯蔵量'},
 };
 
 /* 施設はレベルの節目でグレードアップする（見た目と名前が変わり、体力効率も上がる） */
@@ -433,7 +509,7 @@ function tierOf(n){
 }
 // ティアが1つ上がるごとに体力の消費が18%減る＝同じ⚡でより多く動ける
 const effOf = n => Math.pow(0.82, tierOf(n).t - 1);
-const ORDER = ['hero','dive','mine','dump','lab','tstr','tint','tvit','smelt','tool1','armory','forge','tool2','tool3'];
+const ORDER = ['hero','dive','mine','dump','lab','tstr','tint','tvit','box1','smelt','tool1','box2','armory','forge','box3','tool2','box4','tool3','box5'];
 
 // ❤️体力は指数的に効く（生成も上限も）。だから数字はインフレするが、コストの伸びが上回るので成長は緩やか
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
@@ -448,8 +524,10 @@ const dmg      = () => Math.max(1, atk() - enemyArm(S.floor));
 const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 
 // 訓練は鍛えるほど1回の体力消費が増える → 放置ゲームらしい対数的な伸びになる
+const storeItems = n => (n.items||[]).filter(Boolean);
 function insOf(n){
   const T = TYPES[n.type], e = effOf(n), o = {};
+  if(T.store){ for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool){
     if(n.item) o[n.item] = T.take;
     o.sta = Math.max(1, Math.ceil(T.sta * e * COST_K));
@@ -461,6 +539,7 @@ function insOf(n){
 }
 function outsOf(n){
   const T = TYPES[n.type];
+  if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.round(T.take * T.mul)} : {};
   return T.outs;
 }
@@ -473,7 +552,9 @@ function craftTime(n){
 }
 const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(PRICE_K, S.counts[t]||0));
 const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
-const capIn   = (n,item) => Math.max(CAP, (insOf(n)[item]||0) * 2);
+const capIn   = (n,item) => TYPES[n.type].store
+                          ? TYPES[n.type].cap * n.level
+                          : Math.max(CAP, (insOf(n)[item]||0) * 2);
 const capOut  = (n,item) => (n.type==='hero' && item==='sta') ? maxSta()
                           : Math.max(CAP, (outsOf(n)[item]||0) * 2);
 
@@ -523,7 +604,7 @@ function freshState(){
     gold:40, nextId:1, counts:{}, nodes:[], links:[],
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:{}, dev:{}, seen:{},
     floor:1, best:1, enemy:null, log:[],
-    v:SAVE_V, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -617,6 +698,17 @@ function rebuildNodeEl(n){
   n.el.root.remove(); mkNodeEl(n);
   if(wasSel) n.el.root.classList.add('sel');
 }
+function setStoreItem(n, idx, item){
+  n.items = n.items || [];
+  if(n.items[idx] === item) return;
+  const old = n.items[idx];
+  if(old) for(const l of [...S.links])
+    if((l.from===n.id || l.to===n.id) && l.item===old) removeLink(l.id);
+  n.items[idx] = item || null;
+  if(old){ delete n.inBuf[old]; delete n.outBuf[old]; }
+  n.crafting=false; n.prog=0;
+  rebuildNodeEl(n);
+}
 function setToolItem(n, item){
   if(n.item === item) return;
   for(const l of [...S.links]) if(l.from===n.id || l.to===n.id) removeLink(l.id);
@@ -646,7 +738,7 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y){
-  const n={id:S.nextId++,type,x,y,level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},stall:false,done:0,target:null,item:null};
+  const n={id:S.nextId++,type,x,y,level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[]};
   S.nodes.push(n); reindex(); mkNodeEl(n); return n;
 }
 function removeNode(id){
@@ -668,6 +760,21 @@ function removeLink(id){
   l.el.hit.remove(); l.el.wire.remove(); l.el.flow.remove(); l.el.wph.remove();
   S.links.splice(i,1);
 }
+/* 送り先の優先度。数字が大きいほど多く配られる（1〜9）*/
+const prioOf = n => Math.max(1, Math.min(9, (n && n.prio) || 1));
+// 何割が各先に行くかを人が読める形で
+function allocText(n, item){
+  const ls = S.links.filter(l=>l.from===n.id && l.item===item);
+  if(!ls.length) return '未接続';
+  const agg = new Map(); let tot = 0;                 // 同じ相手への複数本はまとめる
+  for(const l of ls){
+    const d = N(l.to); if(!d) continue;
+    const w = prioOf(d); tot += w;
+    agg.set(d.id, (agg.get(d.id)||0) + w);
+  }
+  if(!tot) return '未接続';
+  return [...agg].map(([id,w])=>`${tierOf(N(id)).i}${Math.round(w/tot*100)}%`).join('  ');
+}
 const spaceIn = (n,item) => !insOf(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
 
 /* ========================= シミュレーション ========================= */
@@ -675,7 +782,8 @@ function tick(dt,fast){
   for(const n of S.nodes){
     const T=TYPES[n.type];
     n.stall=false; n.why='';
-    if(T.tool && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
+    if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
+    if(T.store && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
     // 1回の更新で複数回ぶん進める（生産が速いノードがフレーム間隔で頭打ちにならないように）
     let budget=dt, guard=1000;
     for(;;){
@@ -715,21 +823,28 @@ function tick(dt,fast){
       // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る
       let left=Math.min(200, 1+Math.floor(-n.cd[item]/SENDCD));
       n.cd[item]=SENDCD;
+      // 優先度つきの分配（数字の大きい送り先ほど多く回る）
+      n.wrr = n.wrr || {};
+      let st = n.wrr[item];
+      if(!Array.isArray(st) || st.length !== ls.length) st = n.wrr[item] = ls.map(()=>0);
+      const w = ls.map(l=>prioOf(N(l.to)));
+      const wtot = w.reduce((a,b)=>a+b,0);
       while(left-- > 0 && (n.outBuf[item]||0) > 0){
-        const r=n.rr[item]||0;
+        for(let i=0;i<ls.length;i++) st[i]+=w[i];
+        const order=ls.map((_,i)=>i).sort((a,b)=>st[b]-st[a]);
         let sent=false;
-        for(let i=0;i<ls.length;i++){
-          const l=ls[(r+i)%ls.length], dst=N(l.to);
+        for(const i of order){
+          const l=ls[i], dst=N(l.to);
           const sp=dst?spaceIn(dst,item):0;
           if(sp>0){
             const q=Math.min(n.outBuf[item], chunk, sp);
-            n.outBuf[item]-=q; n.rr[item]=(r+i+1)%ls.length;
+            n.outBuf[item]-=q; st[i]-=wtot;
             if(fast||packetCount>280) dst.inBuf[item]=(dst.inBuf[item]||0)+q;
             else { const p={item,t:0,q}; mkPacketEl(p); l.packets.push(p); }
             sent=true; break;
           }
         }
-        if(!sent) break;
+        if(!sent){ for(let i=0;i<ls.length;i++) st[i]-=w[i]; break; }
       }
     }
   }
@@ -812,7 +927,7 @@ function render(){
     for(const k in need){
       const s=e.slots['in-'+k], c=n.inBuf[k]||0;
       s.querySelector('b').textContent=fmt(c);
-      s.querySelector('.q').textContent='/'+fmt(need[k]);
+      s.querySelector('.q').textContent='/'+fmt(T.store ? capIn(n,k) : need[k]);
       s.classList.toggle('short', c < need[k]);
       s.classList.toggle('full', c >= capIn(n,k));
     }
@@ -829,7 +944,9 @@ function render(){
       : T.effect==='dive'? '稼働中 → '+n.done+'回 潜った'
       : T.effect==='lab' ? (n.target ? `研究中 → ${TYPES[n.target].i}${TYPES[n.target].n} ${fmt(gotRp(n.target))}/${fmt(needRp(n.target))}` : '研究対象を選んでください')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
+      : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
       : '稼働中';
+    if(prioOf(n)>1) e.nf.textContent += `　優先${prioOf(n)}`;
     e.root.classList.toggle('stall',n.stall);
     e.root.classList.toggle('run',!n.stall);
     e.root.classList.toggle('sel',sel===n.id);
@@ -882,13 +999,14 @@ function render(){
   const oc=offscreenCount(), ob=$('#offscr');
   ob.classList.toggle('on', oc>0);
   if(oc>0) ob.textContent=`⤢ ${oc}個のノードが画面外です — クリックで全体表示`;
-  renderShop(); renderInspLive();
+  renderShop(); renderInspLive(); tutRender();
 }
 
 /* ========================= ショップ ========================= */
 const shopEls={};
 function ioText(T){
   const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
+  if(T.store) return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
   if(T.tool) return `素材×${T.take} ⚡×${T.sta}<span class="ar">→</span>素材×${Math.round(T.take*T.mul)}`;
   const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='atk'?'攻撃力↑':T.effect==='lab'?'🔬研究力':'—');
   return `${a}<span class="ar">→</span>${b}`;
@@ -945,6 +1063,11 @@ const taken = (x,y) => S.nodes.some(n => Math.abs(n.x-x) < NW+20 && Math.abs(n.y
 function uiBlocked(wx,wy){
   const v=S.view, W=stage.clientWidth, H=stage.clientHeight;
   const sx=wx*v.s+v.x, sy=wy*v.s+v.y, w=NW*v.s, h=NHmax*v.s;
+  const tut=$('#tut');
+  if(tut.classList.contains('on')){        // 案内パネルの下は掴めなくなるので避ける
+    const tw=tut.offsetWidth*1, tl=(W-tw)/2, tb=12+tut.offsetHeight+12;
+    if(sy < tb && sx+w > tl && sx < tl+tw) return true;
+  }
   if(sx < 290 && sy+h > H-220) return true;
   if(sx+w > W-140 && sy < 60)  return true;
   return false;
@@ -1004,6 +1127,19 @@ function offscreenCount(){
   }).length;
 }
 
+/* この素材を受け取れる施設を出す（採掘したはいいが送り先が分からない、を防ぐ） */
+const baseName = t => (TIERS[t] ? TIERS[t][0][2]+TIERS[t][0][1] : TYPES[t].i+TYPES[t].n);
+function destText(item){
+  const built = [...new Set(S.nodes.filter(n=>insOf(n)[item]).map(n=>tierOf(n).i+tierOf(n).n))];
+  if(built.length) return built.join(' ・ ');
+  const kinds = [...new Set(ORDER.filter(t=>{
+    const T=TYPES[t];
+    if(!isSeen(t) || !isDev(t)) return false;
+    return (T.ins && T.ins[item]) || T.store || T.tool;
+  }).map(baseName))];
+  return kinds.length ? kinds.join(' ・ ') + '（未建設）' : 'まだ無い';
+}
+
 /* ========================= インスペクタ ========================= */
 function renderInsp(){
   const box=$('#insp'), n=sel?N(sel):null;
@@ -1015,7 +1151,13 @@ function renderInsp(){
      <div class="kv">入出力<b style="font-size:10.5px">${ioText(T)}</b></div>
      <div class="kv">1回あたり<b class="rate"></b></div>
      <div class="kv">体力効率<b class="eff"></b></div>` +
-    (T.tool ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
+    (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
+    (T.store ? `<div class="kv">貯める素材<div class="slotsel"></div></div>` : '') +
+    `<div class="kv">受け取る優先度
+       <span class="prio"><button class="pm">−</button><b class="pv">1</b><button class="pp">＋</button></span></div>` +
+    Object.keys(outsOf(n)).map(k=>
+      `<div class="kv">${ITEMS[k].i}${ITEMS[k].n}の行き先<b class="dst" data-i="${k}"></b></div>` +
+      `<div class="kv">${ITEMS[k].i}が届く割合<b class="alc" data-i="${k}"></b></div>`).join('') +
     (isLab ? `<div class="kv">研究対象<select class="tgt"></select></div>
               <div class="kv">研究の進捗<b class="rp"></b></div>` : '') +
     `<div class="kv">状態<b class="st2"></b></div>
@@ -1030,6 +1172,17 @@ function renderInsp(){
     sl.value=n.target||'';
     sl.onchange=()=>{ n.target=sl.value||null; };
   }
+  if(T.store){
+    const w=box.querySelector('.slotsel'); w.innerHTML='';
+    for(let i=0;i<T.slots;i++){
+      const sl=document.createElement('select');
+      sl.innerHTML=`<option value="">— 空き —</option>`+
+        Object.keys(ITEMS).map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
+      sl.value=(n.items&&n.items[i])||'';
+      sl.onchange=()=>{ setStoreItem(n,i,sl.value||null); renderInsp(); };
+      w.appendChild(sl);
+    }
+  }
   if(T.tool){
     const il=box.querySelector('.itm');
     il.innerHTML=`<option value="">— 未設定 —</option>`+
@@ -1043,6 +1196,8 @@ function renderInsp(){
     if(S.gold<c) return toast('ゴールドが足りません');
     S.gold-=c; n.level++;
   };
+  box.querySelector('.pm').onclick=()=>{ n.prio=Math.max(1,prioOf(n)-1); };
+  box.querySelector('.pp').onclick=()=>{ n.prio=Math.min(9,prioOf(n)+1); };
   box.querySelector('.del').onclick=()=>{
     if(TYPES[n.type].unique) return toast('勇者は撤去できません');
     S.counts[n.type]=Math.max(0,(S.counts[n.type]||1)-1);
@@ -1068,10 +1223,98 @@ function renderInspLive(){
     ? `${fmt(gotRp(n.target))} / ${fmt(needRp(n.target))}（+${rpGain(n).toFixed(1)}/回）`
     : '—';
   box.querySelector('.st2').textContent=n.stall?('停止：'+n.why):'稼働中';
+  box.querySelector('.pv').textContent=prioOf(n);
+  box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
+  box.querySelectorAll('.alc').forEach(el=>{ el.textContent=allocText(n, el.dataset.i); });
   const up=box.querySelector('.up'), c=upCost(n);
   up.textContent=`強化 ${fmt(c)} G`; up.disabled=S.gold<c;
   box.querySelector('.del').disabled=!!TYPES[n.type].unique;
 }
+
+/* ========================= チュートリアル =========================
+   「実際にやったら次へ進む」形。check() が true になると自動で進み、
+   manual:true の手順だけ〈次へ〉で進める。いつでもスキップできる。 */
+const heroNode = () => S.nodes.find(n=>n.type==='hero');
+const linkFrom = (a,item,b) => S.links.some(l =>
+  N(l.from) && N(l.to) && N(l.from).type===a && N(l.to).type===b && l.item===item);
+
+const TUT = [
+  { t:'ようこそ',
+    d:'これは <b>⚡体力の配り方</b>を考える放置RPGです。体力を生むのは勇者ひとつだけ。'
+     +'そこから伸ばす配線が、そのまま体力の配分になります。',
+    manual:true },
+
+  { t:'まずは放っておく',
+    d:'勇者 ⚡→ 洞窟の入口 はもう繋がっています。何もしなくても自動で潜り、ゴールドが貯まります。'
+     +'<b>60G たまるまで待ってください。</b>',
+    check:()=> S.gold>=60 },
+
+  { t:'採掘を建てる',
+    d:'左の一覧（スマホでは下の〈建設〉タブ）から <b>⛏ 素手掘り</b> を建ててください。'
+     +'素材が手に入るようになります。',
+    pane:'shop', hi:()=> shopEls.mine.root,
+    check:()=> S.nodes.some(n=>n.type==='mine') },
+
+  { t:'体力を分ける',
+    d:'建てただけでは動きません。<b>勇者の右にある緑の丸</b>をドラッグして、'
+     +'<b>素手掘りの左にある青い角</b>まで運んでください。',
+    pane:'stage', hi:()=> { const h=heroNode(); return h && h.el.root.querySelector('.pout'); },
+    check:()=> linkFrom('hero','sta','mine') },
+
+  { t:'廃材を片付ける',
+    d:'採掘は <b>🗑廃材</b> も出します。捨て先がないと満杯になって採掘が止まります。'
+     +'<b>🛍 ゴミ袋</b>を建て、そこへ <b>勇者の⚡</b> と <b>採掘の🗑</b> の2本を繋いでください。',
+    pane:'shop', hi:()=> shopEls.dump.root,
+    check:()=> linkFrom('hero','sta','dump') && linkFrom('mine','waste','dump') },
+
+  { t:'あとは自由に',
+    d:'基本はこれだけです。あとは 🏋️訓練で能力を上げ、🧠知力で未知のノードを判明させ、'
+     +'🔬研究所で開発して工房を広げてください。目標は <b>どこまで深く潜れるか</b> です。',
+    manual:true, last:true },
+];
+
+let tutHi=null, tutShown=-1;
+const tutOn = () => S.tut>=0 && S.tut<TUT.length;
+function tutSetHi(el){
+  if(tutHi===el) return;
+  if(tutHi) tutHi.classList.remove('tut-hi');
+  tutHi = el || null;
+  if(tutHi) tutHi.classList.add('tut-hi');
+}
+function tutEnter(i){
+  tutShown=i;
+  const st=TUT[i];
+  $('#tCur').textContent=i+1; $('#tAll').textContent=TUT.length;
+  $('#tTtl').textContent=st.t; $('#tTxt').innerHTML=st.d;
+  $('#tNext').hidden=!st.manual;
+  $('#tNext').textContent=st.last?'はじめる':'次へ';
+  if(st.pane) setPane(st.pane);
+}
+function tutRender(){
+  const on=tutOn();
+  document.body.classList.toggle('tut',on);
+  $('#tut').classList.toggle('on',on);
+  if(!on){ tutSetHi(null); tutShown=-1; return; }
+  if(tutShown!==S.tut) tutEnter(S.tut);
+  const st=TUT[S.tut];
+  tutSetHi(st.hi ? st.hi() : null);
+  if(st.check && st.check()) tutAdvance();
+}
+function tutAdvance(){
+  S.tut++;
+  if(S.tut>=TUT.length){ tutFinish('チュートリアル完了！'); return; }
+  toast('できました');
+}
+function tutFinish(msg){
+  S.tut=-1; tutSetHi(null); tutShown=-1;
+  document.body.classList.remove('tut');
+  $('#tut').classList.remove('on');
+  if(msg) toast(msg);
+  save();
+}
+$('#tNext').onclick=()=>{ const st=TUT[S.tut]; if(st&&st.last) tutFinish('それでは、良い深層を'); else tutAdvance(); };
+$('#tSkip').onclick=()=>tutFinish('チュートリアルをスキップしました');
+$('#tRestart').onclick=()=>{ S.tut=0; tutShown=-1; setPane('stage'); toast('チュートリアルを最初から'); };
 
 /* ========================= 操作 ========================= */
 let drag=null;
@@ -1100,7 +1343,8 @@ stage.addEventListener('pointerdown', e=>{
   if(ptrs.size>=2){                       // 2本目が触れたらドラッグを中止してピンチへ
     drag=null; pinch=null; stage.classList.remove('panning');
     $('#temp').setAttribute('d','');
-    document.querySelectorAll('.node.tgt').forEach(x=>x.classList.remove('tgt'));
+    document.body.classList.remove('linking');
+    document.querySelectorAll('.node.tgt,.node.src').forEach(x=>x.classList.remove('tgt','src'));
     return;
   }
   const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
@@ -1110,7 +1354,13 @@ stage.addEventListener('pointerdown', e=>{
     return;
   }
   const port=e.target.closest('.pout'), nodeEl=e.target.closest('.node');
-  if(port&&nodeEl)      drag={mode:'link', from:+nodeEl.dataset.id, item:port.dataset.item};
+  if(port&&nodeEl){
+    drag={mode:'link', from:+nodeEl.dataset.id, item:port.dataset.item};
+    document.body.classList.add('linking'); nodeEl.classList.add('src');
+    // 受け取れるノードを先に光らせておく（どこへ送れるかが一目で分かる）
+    const a=N(drag.from);
+    for(const m of S.nodes) if(canLink(a,drag.item,m)) m.el.root.classList.add('tgt');
+  }
   else if(nodeEl){
     const n=N(+nodeEl.dataset.id), w=toWorld(e.clientX,e.clientY);
     drag={mode:'node', id:n.id, ox:w.x-n.x, oy:w.y-n.y, moved:0};
@@ -1161,7 +1411,8 @@ stage.addEventListener('pointerup', e=>{
     if(b&&canLink(a,drag.item,b)) addLink(a.id,drag.item,b.id);
     else if(b) toast(`${TYPES[b.type].n}に ${ITEMS[drag.item].n} の入力口はありません`);
     $('#temp').setAttribute('d','');
-    document.querySelectorAll('.node.tgt').forEach(x=>x.classList.remove('tgt'));
+    document.body.classList.remove('linking');
+    document.querySelectorAll('.node.tgt,.node.src').forEach(x=>x.classList.remove('tgt','src'));
   }else if(drag.mode==='wire'){
     if(!drag.handle&&drag.moved<5){ removeLink(drag.id); toast('配線を切断しました'); }
   }else if(drag.mode==='node'&&drag.moved<6){ sel=drag.id; renderInsp(); }
@@ -1203,6 +1454,7 @@ function load(){
   try{
     const d=migrate(JSON.parse(raw)); if(!d||!Array.isArray(d.nodes)||!d.nodes.length) return false;
     S=Object.assign(freshState(),d); reindex();
+    if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
     for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
     applyView(); renderLog();
