@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>NODE QUEST — 体力配分の自動化RPG</title>
+<style>
+:root{
+  --bg:#0a0d14; --panel:#111623; --panel2:#161d2c; --line:#232c40;
+  --fg:#dbe3f0; --dim:#7e8ba4; --acc:#5ee0c0; --acc2:#7aa2ff;
+  --gold:#f2c14e; --sta:#f2c14e; --pw:#b487f5; --warn:#e08a4b; --bad:#e0576b;
+  --str:#e8785a; --int:#7aa2ff; --vit:#5ee0c0;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);overflow:hidden;
+  font:13px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  -webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+
+#app{display:flex;flex-direction:column;height:100%}
+#top{flex:none;height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;
+  background:var(--panel);border-bottom:1px solid var(--line)}
+#top .logo{font-weight:700;letter-spacing:.14em;font-size:12px;color:var(--acc);margin-right:8px}
+.stat{display:flex;align-items:baseline;gap:6px;padding:4px 10px;border-radius:7px;
+  background:#0c111b;border:1px solid var(--line)}
+.stat .k{font-size:10px;color:var(--dim);letter-spacing:.06em}
+.stat .v{font-size:14px;font-weight:700}
+.stat.g .v{color:var(--gold)} .stat.a .v{color:var(--bad)} .stat.f .v{color:var(--acc2)}
+.stat.best{border-color:var(--acc);background:linear-gradient(180deg,rgba(94,224,192,.14),rgba(94,224,192,.04))}
+.stat.best .v{color:var(--acc);font-size:19px}
+.stat.best .u{font-size:10px;color:var(--acc);opacity:.8}
+#log .b{color:var(--gold);font-weight:700}
+#top .sp{margin-left:auto}
+.tbtn{background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:11px;color:var(--dim)}
+.tbtn:hover{border-color:var(--acc);color:var(--fg)}
+
+#mid{flex:1;display:flex;min-height:0}
+#shop{width:224px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:10px}
+#side{width:268px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:10px}
+.sec{font-size:10px;letter-spacing:.14em;color:var(--dim);margin:2px 0 8px;font-weight:700}
+
+.card{width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:8px 9px;margin-bottom:7px;transition:.12s}
+.card:hover:not(.off){border-color:var(--acc);transform:translateY(-1px)}
+.card.off{opacity:.45;cursor:not-allowed}
+.card .r1{display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px}
+.card .r1 .ic{font-size:15px}
+.card .r1 .price{margin-left:auto;font-size:11px;color:var(--gold);font-weight:700}
+.card.off .price{color:var(--dim)}
+.card .io{font-size:10px;color:var(--dim);margin-top:3px}
+.card .io .ar{color:var(--line);margin:0 3px}
+.card .d{font-size:10px;color:#5f6b82;margin-top:2px;line-height:1.4}
+.card .rq{font-size:10px;color:var(--warn);margin-top:2px}
+.card.unknown .nm{color:var(--dim);letter-spacing:.22em}
+.card.unknown .io,.card.unknown .d{visibility:hidden}
+.card.unknown .rq{color:var(--dim)}
+#insp select{background:#0c111b;border:1px solid var(--line);border-radius:6px;
+  color:var(--fg);font:inherit;font-size:10.5px;padding:2px 4px;max-width:158px;margin-left:auto}
+
+#stage{flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab;background-color:#080b11;
+  background-image:linear-gradient(rgba(90,120,170,.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(90,120,170,.055) 1px,transparent 1px)}
+#stage.panning{cursor:grabbing}
+#wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+/* ノードだけがクリックを受け、空白は下の配線に通す */
+#world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
+path.hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:move}
+path.wire{fill:none;stroke-width:3.5;stroke-linecap:round}
+path.flow{fill:none;stroke-width:2;stroke-linecap:round;stroke-dasharray:5 13;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-18}}
+path.hit:hover + .wire{stroke-width:6;stroke-opacity:.85}
+circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
+#temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
+
+/* ---------- ノード ---------- */
+.node{position:absolute;width:176px;padding:7px 9px;pointer-events:auto;
+  background:var(--panel2);border:1px solid var(--line);border-radius:11px;
+  user-select:none;cursor:grab;box-shadow:0 8px 22px rgba(0,0,0,.45);
+  transition:border-color .15s,box-shadow .15s}
+.node.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 8px 24px rgba(0,0,0,.5)}
+.node.stall{border-color:#6d3a45}
+.node.run{border-color:#2f6b60}
+.node.tgt{border-color:var(--acc2);box-shadow:0 0 0 2px var(--acc2)}
+.nh{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;height:22px}
+.nh .ic{font-size:14px}
+.nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
+  background:#0b1119;border:1px solid var(--line);padding:0 5px;border-radius:4px}
+/* 素材ごとに1行＝1ポート。左が入力、右が出力 */
+.rowio{display:flex;align-items:center;height:20px;gap:4px}
+.slot{flex:1;min-width:0;display:flex;align-items:center;gap:3px;font-size:9.5px;
+  border-radius:4px;padding:0 4px;height:16px;white-space:nowrap;overflow:hidden}
+.slot.i{justify-content:flex-start;background:rgba(122,162,255,.09);color:var(--acc2)}
+.slot.o{justify-content:flex-end;  background:rgba(94,224,192,.09);color:var(--acc)}
+.slot.e{background:none}
+.slot .q{color:var(--dim)}
+.slot b{color:var(--fg);font-weight:700}
+.slot.full{background:rgba(224,138,75,.18);color:var(--warn)}
+.slot.full b{color:var(--warn)}
+.bar{height:5px;background:#0b1119;border-radius:3px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc))}
+.nf{font-size:9.5px;color:var(--dim);height:14px;line-height:14px;overflow:hidden}
+.node.stall .nf{color:var(--bad)}
+.port{position:absolute;width:16px;height:16px;margin-top:-8px;
+  display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1}
+.pin {left:-8px;border-radius:4px;background:#101a2c;border:2px solid var(--acc2);color:var(--acc2)}
+.pout{right:-8px;border-radius:50%;background:#10241f;border:2px solid var(--acc);color:var(--acc);cursor:crosshair}
+.pout:hover{background:var(--acc);color:#08131a}
+
+#insp{position:absolute;left:12px;bottom:12px;width:258px;padding:11px;
+  background:rgba(17,22,35,.97);border:1px solid var(--line);border-radius:11px;
+  backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.5);display:none}
+#insp.on{display:block}
+#insp .t{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px}
+#insp .t .lv{margin-left:auto;font-size:10px;color:var(--acc)}
+#insp .kv{display:flex;font-size:11px;color:var(--dim);margin-top:5px;gap:8px}
+#insp .kv b{margin-left:auto;color:var(--fg);font-weight:600;text-align:right}
+#insp .btns{display:flex;gap:6px;margin-top:9px}
+#insp button{flex:1;border-radius:7px;padding:6px;font-size:11px;font-weight:600;
+  background:#0c111b;border:1px solid var(--line)}
+#insp .up:hover:not(:disabled){border-color:var(--acc);color:var(--acc)}
+#insp .del:hover{border-color:var(--bad);color:var(--bad)}
+#insp button:disabled{opacity:.4;cursor:not-allowed}
+#hint{position:absolute;right:12px;top:12px;font-size:10.5px;color:var(--dim);
+  background:rgba(12,17,27,.92);border:1px solid var(--line);border-radius:8px;
+  padding:6px 10px;line-height:1.8;pointer-events:auto;cursor:help;max-width:340px}
+#hint b{color:var(--fg)}
+#hint .ttl{font-weight:700;color:var(--acc);line-height:1.4}
+#hint .body{display:none}
+#hint:hover .body{display:block;margin-top:4px}
+.slot.short b{color:var(--dim)}
+
+.box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:9px}
+.box .hd{display:flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px}
+.box .hd .sub{margin-left:auto;font-size:10px;color:var(--dim);font-weight:600}
+.box .hd.zsub{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px}
+.hbar{height:9px;background:#0b1119;border-radius:5px;overflow:hidden;margin-top:7px;border:1px solid var(--line)}
+.hbar i{display:block;height:100%;width:0;transition:width .18s}
+.hbar.sta i{background:linear-gradient(90deg,#8a6a1c,var(--sta))}
+.hbar.eh  i{background:linear-gradient(90deg,#6a2f3a,var(--bad))}
+.rows{margin-top:7px}
+.row{display:flex;font-size:11px;color:var(--dim);padding:1.5px 0}
+.row b{margin-left:auto;color:var(--fg);font-weight:600}
+.row.s1 b{color:var(--str)} .row.s2 b{color:var(--int)} .row.s3 b{color:var(--vit)}
+#alert{display:none;font-size:11px;color:var(--warn);background:rgba(224,138,75,.1);
+  border:1px solid rgba(224,138,75,.4);border-radius:8px;padding:7px 9px;margin-bottom:9px;line-height:1.5}
+#alert.on{display:block}
+#log{font-size:10.5px;line-height:1.65;color:var(--dim);max-height:150px;overflow:hidden}
+#log div{padding:1px 0;border-bottom:1px solid rgba(35,44,64,.5)}
+#log .w{color:var(--acc)} #log .l{color:var(--bad)} #log .u{color:var(--acc2)}
+#side::-webkit-scrollbar,#shop::-webkit-scrollbar{width:8px}
+#side::-webkit-scrollbar-thumb,#shop::-webkit-scrollbar-thumb{background:#232c40;border-radius:4px}
+#toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);
+  background:rgba(12,17,27,.95);border:1px solid var(--warn);color:var(--warn);
+  padding:7px 14px;border-radius:8px;font-size:11.5px;font-weight:600;opacity:0;
+  transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+#modal{position:fixed;inset:0;background:rgba(6,9,14,.78);z-index:100;display:none;
+  align-items:center;justify-content:center;padding:16px}
+#modal.on{display:flex}
+#modal .mbox{width:min(560px,100%);background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#modal .mt{font-weight:700;font-size:14px;margin-bottom:6px}
+#modal .mp{font-size:11px;color:var(--dim);line-height:1.6;margin:0 0 10px}
+#modal textarea{width:100%;height:120px;resize:vertical;background:#0b1119;color:var(--fg);
+  border:1px solid var(--line);border-radius:8px;padding:8px;font:11px/1.5 ui-monospace,monospace;
+  word-break:break-all}
+#modal .mbtns{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+#modal .mbtns button{flex:1;min-width:130px;background:#0c111b;border:1px solid var(--line);
+  border-radius:8px;padding:8px;font-size:11.5px;font-weight:600}
+#modal .mbtns button:hover{border-color:var(--acc);color:var(--acc)}
+#modal .mmsg{font-size:11px;margin-top:8px;min-height:16px;color:var(--warn)}
+
+/* ---------- 操作ヘルプはタップでも開ける ---------- */
+#hint .body{display:none}
+#hint.open .body{display:block;margin-top:4px}
+@media (hover:hover){ #hint:hover .body{display:block;margin-top:4px} }
+
+/* ---------- 指で触る端末：当たり判定を広げる ---------- */
+@media (pointer:coarse){
+  .port{width:24px;height:24px;margin-top:-12px;font-size:9px}
+  .pin{left:-12px}
+  .pout{right:-12px}
+  path.hit{stroke-width:34}
+  circle.wph{r:10}
+}
+
+/* ---------- 縦画面・スマホ ---------- */
+#mtabs{display:none;position:absolute;left:0;right:0;bottom:0;z-index:20;
+  height:calc(48px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
+  background:var(--panel);border-top:1px solid var(--line)}
+#mtabs button{flex:1;background:none;border:none;color:var(--dim);font-size:11.5px;font-weight:700}
+#mtabs button.on{color:var(--acc);box-shadow:inset 0 2px 0 var(--acc)}
+
+@media (max-width:860px){
+  #top{height:46px;gap:5px;padding:0 8px;overflow-x:auto;overflow-y:hidden}
+  #top::-webkit-scrollbar{display:none}
+  #top .logo{display:none}
+  #top .sp{margin-left:4px}
+  .stat,.tbtn{flex:none}
+  .stat{padding:3px 8px}
+  .stat .v{font-size:13px}
+  .stat.best .v{font-size:17px}
+
+  #mid{position:relative;display:block}
+  #mtabs{display:flex}
+  #stage,#shop,#side{position:absolute;left:0;right:0;top:0;
+    bottom:calc(48px + env(safe-area-inset-bottom))}
+  #shop,#side{width:auto;border:none;border-top:1px solid var(--line);display:none;z-index:10}
+  #shop.on,#side.on{display:block}
+
+  #insp{left:8px;right:8px;width:auto;bottom:8px}
+  #hint{max-width:58vw;font-size:10px}
+}
+#offscr{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:none;
+  background:rgba(12,17,27,.95);border:1px solid var(--acc2);color:var(--acc2);
+  padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700}
+#offscr.on{display:block}
+#offscr:hover{background:var(--acc2);color:#08131a}
+@media (max-width:860px){
+  #offscr{top:10px;bottom:auto;font-size:10.5px;max-width:88vw}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <span class="logo">NODE QUEST</span>
+    <div class="stat best"><span class="k">最深到達</span><span class="v num" id="tBest">1</span><span class="u">層</span></div>
+    <div class="stat f"><span class="k">現在</span><span class="v num" id="tFloor">1</span></div>
+    <div class="stat a"><span class="k">攻撃力</span><span class="v num" id="tAtk">0</span></div>
+    <div class="stat g"><span class="k">GOLD</span><span class="v num" id="tGold">0</span></div>
+    <span class="sp"></span>
+    <button class="tbtn" id="bFit">全体表示</button>
+    <button class="tbtn" id="bTidy">整列</button>
+    <button class="tbtn" id="bCode">引き継ぎ</button>
+    <button class="tbtn" id="bSave">保存</button>
+    <button class="tbtn" id="bReset">リセット</button>
+  </div>
+  <div id="mid">
+    <nav id="mtabs">
+      <button data-p="stage" class="on">🗺 工房</button>
+      <button data-p="shop">🏗 建設</button>
+      <button data-p="side">🛡 状態</button>
+    </nav>
+    <div id="shop">
+      <div class="sec">行動ノードを建てる</div>
+      <div id="shopList"></div>
+    </div>
+    <div id="stage">
+      <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><path id="temp"></path></g></svg>
+      <div id="world"></div>
+      <div id="hint">
+        <div class="ttl">ⓘ 操作方法</div>
+        <div class="body">
+        <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
+        緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
+        配線を<b>ドラッグ</b>=経路を整理 / <b>クリック</b>=切断 / 中継点を<b>ダブルクリック</b>=直線に戻す
+        </div>
+      </div>
+      <div id="insp"></div>
+      <div id="toast"></div>
+      <button id="offscr"></button>
+    </div>
+    <div id="side">
+      <div id="alert"></div>
+      <div class="sec">勇者</div>
+      <div class="box">
+        <div class="hd"><span>🧍</span><span>体力</span><span class="sub num" id="hSta">0 / 10</span></div>
+        <div class="hbar sta"><i id="hStaBar"></i></div>
+        <div class="rows">
+          <div class="row">体力の生成<b class="num" id="hRegen">0 /秒</b></div>
+          <div class="row">攻撃力<b class="num" id="hAtk">0</b></div>
+          <div class="row s1">💪 筋力<b class="num" id="sStr">0</b></div>
+          <div class="row s2">🧠 知力<b class="num" id="sInt">0</b></div>
+          <div class="row s3">❤️ 体力<b class="num" id="sVit">0</b></div>
+        </div>
+      </div>
+      <div class="sec">無限ダンジョン</div>
+      <div class="box">
+        <div class="hd"><span id="zIc">🕳️</span><span id="zName">苔むした洞窟</span><span class="sub num" id="zFloor">第1層</span></div>
+        <div class="hd zsub"><span id="eIc">👾</span><span id="eName">スライム</span><span class="sub num" id="eHp">0 / 0</span></div>
+        <div class="hbar eh"><i id="eHpBar"></i></div>
+        <div class="rows">
+          <div class="row">1回の与ダメージ<b class="num" id="eDmg">0</b></div>
+          <div class="row">撃破まで<b class="num" id="eHits">—</b></div>
+          <div class="row">敵の装甲<b class="num" id="eArm">0</b></div>
+          <div class="row">撃破報酬<b class="num" id="eGold">0</b></div>
+        </div>
+      </div>
+      <div class="box">
+        <div class="hd"><span>🏅</span><span>踏破報酬</span><span class="sub num" id="dTier">0段階</span></div>
+        <div class="rows">
+          <div class="row">攻撃力<b class="num" id="dBonus">×1.00</b></div>
+          <div class="row">次の踏破<b class="num" id="dNext">第10層</b></div>
+        </div>
+      </div>
+      <div class="sec">留守のあいだの報酬</div>
+      <div class="box">
+        <div class="hd"><span>🌙</span><span>オフライン報酬</span><span class="sub num" id="oSteps">0解放</span></div>
+        <div class="rows">
+          <div class="row">倍率<b class="num" id="oRate">×1.0</b></div>
+          <div class="row">時間の上限<b class="num" id="oCap">2時間</b></div>
+          <div class="row">次に伸びる条件<b class="num" id="oNext">—</b></div>
+        </div>
+      </div>
+      <div class="sec">ログ</div>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<div id="modal">
+  <div class="mbox">
+    <div class="mt">引き継ぎコード</div>
+    <p class="mp">ブラウザや端末を変えるときは、このコードを控えて移行先で読み込んでください。
+       セーブはブラウザ内に保存されるため、別の端末には自動では引き継がれません。</p>
+    <textarea id="mCode" spellcheck="false"></textarea>
+    <div class="mbtns">
+      <button id="mCopy">コードをコピー</button>
+      <button id="mLoad">貼り付けたコードを読み込む</button>
+      <button id="mClose">閉じる</button>
+    </div>
+    <div class="mmsg" id="mMsg"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   バランス調整はこのブロックだけ触ればOK
+   ========================================================================= */
+/* =========================================================================
+   成長曲線の指標。いまの調整が「100」。ここだけ動かせば曲線全体が変わる。
+
+   index … 全体の速度（すべての⚡消費に効く）
+           1時間時点の最深: 60→30層 / 100→40層 / 150→44層
+   taper … 訓練の逓減。大きいほど能力値が伸びなくなる
+           6時間時点: 50→75層・能力50 / 100→67層・能力28 / 200→58層・能力17
+   depth … 敵HPの階層あたりの伸び。深度だけを動かす（能力値には無影響）
+           6時間時点の最深: 60→44層 / 100→67層 / 160→100層 / 250→150層
+
+   ── 指標100 の実測値（標準構成で放置） ─────────────────────
+     到達時間  10層 7分 / 25層 23分 / 50層 1時間54分 / 75層 10時間 / 100層 3日4時間
+               能力10 19分 / 能力25 3時間33分 / 能力50 3日21時間
+     時点別    10分 12層 / 1時間 40層 / 6時間 67層 / 1日 86層 / 7日 108層 / 15日 115層
+     15日時点  最深115層（溶岩回廊）/ 能力61 / 攻撃力 29.0M / 2.55T G
+   ──────────────────────────────────────────────
+   ※ 指標を変えると既存のセーブデータの難易度もその場で変わります
+   ========================================================================= */
+const CURVE = { index:100, taper:100, depth:100 };
+
+const VIT_K = 1.10;              // ❤️体力1につき体力生成が10%増える（曲線の土台）
+let COST_K, TRAIN_K, ENEMY_K;
+function applyCurve(){
+  COST_K  = 100 / CURVE.index;                      // すべての⚡消費にかかる倍率
+  TRAIN_K = VIT_K * (1 + 0.165 * CURVE.taper/100);  // 訓練コストの指数（指標100で 1.282）
+  ENEMY_K = 1 + 0.26 * (100 / CURVE.depth);         // 敵HPの階層あたりの伸び（指標100で 1.26）
+}
+applyCurve();
+
+const CAP    = 10;    // バッファの基準値（必要数が大きいノードは自動で広がる）
+const PSPEED = 170;   // 配線上を素材が流れる速さ px/s
+const SENDCD = 0.10;  // 1回送り出すごとの間隔
+const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
+const UP_K   = 1.9;   // 強化コストの伸び
+
+const ITEMS = {
+  sta  :{n:'体力',      i:'⚡', c:'#f2c14e'},
+  ore  :{n:'鉱石',      i:'🪨', c:'#9aa4ae'},
+  ingot:{n:'インゴット', i:'🧱', c:'#e2a24c'},
+  gear :{n:'装備',      i:'⚔️', c:'#58c6e8'},
+  waste:{n:'廃材',      i:'🗑️', c:'#8a6f5c'},
+};
+
+/* ノード＝勇者の「行動」。
+   see : この🧠知力に達すると存在が“判明”して研究対象に選べる
+   rp  : 研究所で開発しきるのに必要な研究力（0なら研究不要）
+   stat : 上がる能力。訓練ノードは鍛えるほど1回の体力消費が指数的に増える  */
+const TYPES = {
+  hero  :{n:'勇者',      i:'🧍', cost:0,    up:400,  time:0.9, ins:{},                outs:{sta:1}, unique:true, see:0, rp:0,
+          d:'すべての行動の源。ここから伸ばす配線の本数が体力の配分になる'},
+  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8},           outs:{}, effect:'dive', see:0, rp:0,
+          d:'体力を大きく消費して1回攻撃する。ゴールドと階層はここから'},
+  mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{sta:4},           outs:{ore:1, waste:1}, see:0, rp:0,
+          d:'鉱石を掘る。かならず廃材が出る'},
+  dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, ins:{sta:3, waste:3},  outs:{}, see:0, rp:0,
+          d:'廃材を片付ける。ここが止まると工房全体が詰まる'},
+  lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12},          outs:{}, effect:'lab', see:0, rp:0,
+          d:'体力を研究力に変える。判明したノードを選んで開発する'},
+  tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{}, stat:'str', see:0, rp:0,
+          d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増える'},
+  tint  :{n:'読書',      i:'📖', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{}, stat:'int', see:0, rp:0,
+          d:'🧠知力+1。未知のノードが判明し、研究も速くなる'},
+  tvit  :{n:'走り込み',  i:'🏃', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{}, stat:'vit', see:0, rp:0,
+          d:'❤️体力+1。体力の生成と上限が指数的に伸びる'},
+  smelt :{n:'精錬',      i:'🔥', cost:900,  up:1200, time:3.2, ins:{sta:5, ore:2},    outs:{ingot:1, waste:1}, see:3,  rp:60,
+          d:'鉱石をインゴットにする'},
+  armory:{n:'装備庫',    i:'🛡️', cost:3000, up:4000, time:1.8, ins:{sta:6, gear:1},   outs:{}, effect:'atk', see:6, rp:200,
+          d:'装備を身につけて攻撃力を永久に上げる'},
+  forge :{n:'鍛造',      i:'🛠️', cost:6000, up:8000, time:4.0, ins:{sta:10, ingot:2}, outs:{gear:1, waste:2}, see:12, rp:800,
+          d:'インゴットから装備を作る。廃材も多い'},
+  // 道具＝配線の「間」に挟んで通した素材を増やす増幅器。対象の素材はインスペクタで選ぶ
+  tool1 :{n:'木の道具',  i:'🪵', cost:800,   up:1100,   time:2.5, tool:true, mul:1.5, take:4, sta:3,  see:4,  rp:120,
+          d:'間に挟むと通した素材が1.5倍になる'},
+  tool2 :{n:'鉄の道具',  i:'⚒️', cost:9000,  up:12000,  time:2.5, tool:true, mul:2.0, take:4, sta:4,  see:9,  rp:600,
+          d:'通した素材が2倍になる高級な道具'},
+  tool3 :{n:'魔道具',    i:'💎', cost:90000, up:120000, time:2.5, tool:true, mul:3.0, take:4, sta:5, see:16, rp:3000,
+          d:'通した素材が3倍になる最高級の道具'},
+};
+
+/* 施設はレベルの節目でグレードアップする（見た目と名前が変わり、体力効率も上がる） */
+const TIERS = {
+  hero  :[[1,'寝床','🛏️'],[4,'我が家','🏠'],[8,'拠点','🏘️'],[13,'砦','🏯'],[19,'王城','👑']],
+  lab   :[[1,'家の机','🪑'],[4,'書斎','📚'],[8,'研究室','🔬'],[13,'研究所','🏢'],[19,'大学','🏛️']],
+  mine  :[[1,'素手掘り','✋'],[4,'つるはし','⛏️'],[8,'採掘機','🚜'],[13,'大採掘場','🏗️']],
+  dump  :[[1,'ゴミ袋','🛍️'],[4,'焼却炉','🔥'],[8,'廃棄場','♻️'],[13,'再生工場','🏭']],
+  smelt :[[1,'焚き火','🔥'],[4,'炉','🏺'],[8,'精錬所','🌋'],[13,'高炉','🏭']],
+  forge :[[1,'金床','🔨'],[4,'鍛冶場','🛠️'],[8,'鍛造所','⚙️'],[13,'工廠','🏭']],
+  armory:[[1,'背負い袋','🎒'],[4,'武具棚','🗄️'],[8,'装備庫','🛡️'],[13,'宝物庫','💎']],
+  dive  :[[1,'洞窟の入口','🕳️'],[4,'ダンジョン','🚪'],[8,'深層門','🌀'],[13,'魔界門','🌌']],
+  tstr  :[[1,'腕立て','🙇'],[4,'筋トレ','🏋️'],[8,'道場','🥋']],
+  tint  :[[1,'読書','📖'],[4,'勉強会','📝'],[8,'講義','🎓']],
+  tvit  :[[1,'散歩','🚶'],[4,'走り込み','🏃'],[8,'山ごもり','⛰️']],
+};
+function tierOf(n){
+  const T=TYPES[n.type], list=TIERS[n.type];
+  if(!list) return {t:1, n:T.n, i:T.i, max:1};
+  let k=0; for(let i=0;i<list.length;i++) if(n.level>=list[i][0]) k=i;
+  return {t:k+1, n:list[k][1], i:list[k][2], max:list.length,
+          next:(k+1<list.length)?list[k+1]:null};
+}
+// ティアが1つ上がるごとに体力の消費が18%減る＝同じ⚡でより多く動ける
+const effOf = n => Math.pow(0.82, tierOf(n).t - 1);
+const ORDER = ['hero','dive','mine','dump','lab','tstr','tint','tvit','smelt','tool1','armory','forge','tool2','tool3'];
+
+// ❤️体力は指数的に効く（生成も上限も）。だから数字はインフレするが、コストの伸びが上回るので成長は緩やか
+const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
+const staRate  = n  => TYPES.hero.time / Math.pow(VIT_K, S.stats.vit) / n.level / (1 + (tierOf(n).t-1)*0.5);
+const intBoost = () => 1 + S.stats.int * 0.02;
+const atk      = () => Math.floor((5 + S.atkBonus) * (1 + S.stats.str * 0.15) * depthBonus());
+const rpGain   = n  => n.level * (1 + S.stats.int * 0.15);
+const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1));
+const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
+const enemyGold= f  => Math.floor(10 * Math.pow(1.24, f-1) * (f%10===0 ? 5 : 1));
+const dmg      = () => Math.max(1, atk() - enemyArm(S.floor));
+const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
+
+// 訓練は鍛えるほど1回の体力消費が増える → 放置ゲームらしい対数的な伸びになる
+function insOf(n){
+  const T = TYPES[n.type], e = effOf(n), o = {};
+  if(T.tool){
+    if(n.item) o[n.item] = T.take;
+    o.sta = Math.max(1, Math.ceil(T.sta * e * COST_K));
+    return o;
+  }
+  const k = T.stat ? Math.pow(TRAIN_K, S.stats[T.stat]) : 1;   // 訓練は鍛えるほど重くなる
+  for(const i in T.ins) o[i] = Math.max(1, Math.ceil(T.ins[i] * k * (i==='sta' ? e*COST_K : 1)));
+  return o;
+}
+function outsOf(n){
+  const T = TYPES[n.type];
+  if(T.tool) return n.item ? {[n.item]: Math.round(T.take * T.mul)} : {};
+  return T.outs;
+}
+const inKeys  = n => Object.keys(insOf(n));
+const outKeys = n => Object.keys(outsOf(n));
+function craftTime(n){
+  const T = TYPES[n.type];
+  if(n.type === 'hero') return staRate(n);
+  return T.time / n.level / intBoost();
+}
+const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(PRICE_K, S.counts[t]||0));
+const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
+const capIn   = (n,item) => Math.max(CAP, (insOf(n)[item]||0) * 2);
+const capOut  = (n,item) => (n.type==='hero' && item==='sta') ? maxSta()
+                          : Math.max(CAP, (outsOf(n)[item]||0) * 2);
+
+/* オフライン報酬：解放するたびに倍率と時間上限が伸びる
+   解放数 = 研究で開発したノードの数 ＋ 10層ごとの踏破段階 */
+const devCount  = () => ORDER.filter(t => TYPES[t].rp > 0 && S.dev[t]).length;
+const offSteps  = () => devCount() + depthTier();
+const offRate   = () => 1 + offSteps() * 0.10;              // 倍率（上限なし）
+const offCapH   = () => Math.min(24, 2 + Math.floor(offSteps() * 0.5)); // 時間上限 2〜24時間
+const OFF_SIM_MAX = 48 * 3600;                              // 一度に計算する上限
+
+/* 研究：🧠知力で「判明」→ 🔬研究所で「開発」→ ようやく建設できる */
+const isSeen = t => S.stats.int >= TYPES[t].see;
+const isDev  = t => TYPES[t].rp === 0 || !!S.dev[t];
+const needRp = t => TYPES[t].rp;
+const gotRp  = t => Math.floor(S.rp[t] || 0);
+
+/* 無限ダンジョン。潜った深さがそのままスコアで、10層ごとの踏破が恒久的な力になる */
+const ZONES = [
+  {f:1,   n:'苔むした洞窟',  i:'🕳️', c:'#8a9bb5', e:['スライム','コウモリ','大ネズミ','ゴブリン']},
+  {f:25,  n:'地下水路',      i:'💧', c:'#58c6e8', e:['ヘドロ','人喰い魚','水霊','サハギン']},
+  {f:50,  n:'古代遺跡',      i:'🏛️', c:'#e2a24c', e:['石像兵','呪われた鎧','ミイラ','遺跡の守護者']},
+  {f:100, n:'溶岩回廊',      i:'🌋', c:'#e0576b', e:['火竜の仔','マグマゴーレム','焔鬼','サラマンダー']},
+  {f:175, n:'凍てつく深淵',  i:'❄️', c:'#7aa2ff', e:['氷霊','霜の巨人','白狼','氷結騎士']},
+  {f:275, n:'虚無の底',      i:'🌌', c:'#b487f5', e:['影喰い','虚無の使徒','混沌','名もなきもの']},
+  {f:400, n:'極点',          i:'✴️', c:'#5ee0c0', e:['深層の主','終焉','忘却','■■■■']},
+];
+const zoneOf = f => { let z=ZONES[0]; for(const q of ZONES) if(f>=q.f) z=q; return z; };
+const BOSS_EVERY = 10;
+const isBoss = f => f % BOSS_EVERY === 0;
+// 踏破報酬：10層ごとに攻撃力が恒久的に +8%（潜った深さがそのまま力になる）
+const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
+const depthBonus = () => 1 + depthTier() * 0.08;
+const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
+const rowsOf = n => Math.max(1, inKeys(n).length, outKeys(n).length);
+const nodeH  = n => HEAD + rowsOf(n)*ROWH + 26;
+const portY  = i => HEAD + i*ROWH + ROWH/2;
+
+/* ========================= state ========================= */
+let S, idx = new Map(), sel = null, packetCount = 0;
+const $ = s => document.querySelector(s);
+const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'), gw = $('#gw');
+const SVG = 'http://www.w3.org/2000/svg';
+
+function freshState(){
+  return {
+    gold:40, nextId:1, counts:{}, nodes:[], links:[],
+    stats:{str:0, int:0, vit:0}, atkBonus:0, rp:{}, dev:{}, seen:{},
+    floor:1, best:1, enemy:null, log:[],
+    v:SAVE_V, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+  };
+}
+function fmt(n){
+  n = Number(n)||0;
+  if(n < 1000) return (Math.round(n*10)/10).toString().replace(/\.0$/,'');
+  const u=['','K','M','B','T','Qa','Qi']; let i=0;
+  while(n>=1000 && i<u.length-1){ n/=1000; i++; }
+  return n.toFixed(2)+u[i];
+}
+function toast(m){
+  const t=$('#toast'); t.textContent=m; t.classList.add('on');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),1500);
+}
+function addLog(m,c){ S.log.unshift({m,c:c||''}); if(S.log.length>12) S.log.pop(); renderLog(); }
+function renderLog(){ $('#log').innerHTML = S.log.map(l=>`<div class="${l.c}">${l.m}</div>`).join(''); }
+const reindex = () => { idx = new Map(S.nodes.map(n=>[n.id,n])); };
+const N = id => idx.get(id);
+
+/* ========================= 座標 ========================= */
+function portPos(n, item, dir){
+  const keys = dir==='in' ? inKeys(n) : outKeys(n);
+  const i = Math.max(0, keys.indexOf(item));
+  return {x: n.x + (dir==='in' ? 0 : NW), y: n.y + portY(i)};
+}
+function bez(a,b){
+  const dx = Math.max(50, Math.abs(b.x-a.x)*0.5);
+  return {p0:a, p1:{x:a.x+dx,y:a.y}, p2:{x:b.x-dx,y:b.y}, p3:b};
+}
+function bezPt(B,t){
+  const u=1-t, a=u*u*u, b=3*u*u*t, c=3*u*t*t, d=t*t*t;
+  return {x:a*B.p0.x+b*B.p1.x+c*B.p2.x+d*B.p3.x, y:a*B.p0.y+b*B.p1.y+c*B.p2.y+d*B.p3.y};
+}
+function bezLen(B){ let L=0,p=B.p0; for(let i=1;i<=8;i++){const q=bezPt(B,i/8);L+=Math.hypot(q.x-p.x,q.y-p.y);p=q;} return L; }
+const dStr = B => `M${B.p0.x} ${B.p0.y}C${B.p1.x} ${B.p1.y} ${B.p2.x} ${B.p2.y} ${B.p3.x} ${B.p3.y}`;
+
+// 配線は中継点(waypoint)を1つ持てる → 引っ張って経路を整理できる
+function linkGeom(l){
+  const a=N(l.from), b=N(l.to); if(!a||!b) return null;
+  const P=portPos(a,l.item,'out'), Q=portPos(b,l.item,'in');
+  const segs = l.wp ? [bez(P,l.wp), bez(l.wp,Q)] : [bez(P,Q)];
+  const lens = segs.map(bezLen);
+  const total = Math.max(1, lens.reduce((x,y)=>x+y,0));
+  const d = `M${P.x} ${P.y}` + segs.map(B=>`C${B.p1.x} ${B.p1.y} ${B.p2.x} ${B.p2.y} ${B.p3.x} ${B.p3.y}`).join('');
+  return {segs,lens,total,d};
+}
+function geomPt(G,t){
+  let d = t*G.total;
+  for(let i=0;i<G.segs.length;i++){
+    if(d<=G.lens[i] || i===G.segs.length-1)
+      return bezPt(G.segs[i], Math.max(0,Math.min(1, d/Math.max(1,G.lens[i]))));
+    d -= G.lens[i];
+  }
+}
+
+/* ========================= DOM ========================= */
+function mkNodeEl(n){
+  const ins = insOf(n), outs = outsOf(n);
+  const ik = Object.keys(ins), ok = Object.keys(outs);
+  const tr = tierOf(n);
+  const el = document.createElement('div');
+  el.className = 'node'; el.dataset.id = n.id;
+  el.style.height = nodeH(n) + 'px';
+
+  let rows = '', ports = '';
+  for(let i=0;i<rowsOf(n);i++){
+    const a = ik[i], b = ok[i];
+    rows += `<div class="rowio">`+
+      (a ? `<div class="slot i" data-s="in-${a}">${ITEMS[a].i}<b>0</b><span class="q">/0</span></div>`
+         : `<div class="slot e"></div>`)+
+      (b ? `<div class="slot o" data-s="out-${b}"><span class="q">/0</span><b>0</b>${ITEMS[b].i}</div>`
+         : `<div class="slot e"></div>`)+
+      `</div>`;
+    if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
+    if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
+  }
+  el.innerHTML =
+    `<div class="nh"><span class="ic">${tr.i}</span><span class="nm">${tr.n}</span><span class="lv">Lv.${n.level}</span></div>`+
+    rows + `<div class="bar"><i></i></div><div class="nf"></div>` + ports;
+
+  const slots = {};
+  el.querySelectorAll('.slot[data-s]').forEach(s=>slots[s.dataset.s]=s);
+  n.el = {root:el, ic:el.querySelector('.ic'), nm:el.querySelector('.nm'),
+          lv:el.querySelector('.lv'), bar:el.querySelector('.bar i'),
+          nf:el.querySelector('.nf'), slots};
+  el.style.left = n.x+'px'; el.style.top = n.y+'px';
+  world.appendChild(el);
+}
+// 道具の対象素材を変える／ティアが上がったときにノードを作り直す
+function rebuildNodeEl(n){
+  const wasSel = n.el.root.classList.contains('sel');
+  n.el.root.remove(); mkNodeEl(n);
+  if(wasSel) n.el.root.classList.add('sel');
+}
+function setToolItem(n, item){
+  if(n.item === item) return;
+  for(const l of [...S.links]) if(l.from===n.id || l.to===n.id) removeLink(l.id);
+  n.item = item || null; n.inBuf = {}; n.outBuf = {}; n.crafting = false; n.prog = 0;
+  rebuildNodeEl(n);
+}
+function mkLinkEl(l){
+  const c = ITEMS[l.item].c;
+  const hit =document.createElementNS(SVG,'path');  hit.setAttribute('class','hit');
+  const wire=document.createElementNS(SVG,'path');  wire.setAttribute('class','wire');
+  const flow=document.createElementNS(SVG,'path');  flow.setAttribute('class','flow');
+  const wph =document.createElementNS(SVG,'circle');wph.setAttribute('class','wph');
+  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','.32');
+  flow.setAttribute('stroke',c); flow.setAttribute('stroke-opacity','.9');
+  wph.setAttribute('r',6); wph.setAttribute('stroke',c); wph.style.display='none';
+  hit.dataset.link=l.id; wph.dataset.wp=l.id;
+  gwL.append(hit,wire,flow,wph);
+  l.el={hit,wire,flow,wph};
+}
+function mkPacketEl(p){
+  const c=document.createElementNS(SVG,'circle');
+  c.setAttribute('r',5.5); c.setAttribute('fill',ITEMS[p.item].c);
+  c.setAttribute('stroke','#0a0d14'); c.setAttribute('stroke-width','1.5');
+  gwP.appendChild(c); p.el=c; packetCount++;
+}
+function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCount--;} l.packets.splice(i,1); }
+
+/* ========================= 建設・接続 ========================= */
+function addNode(type,x,y){
+  const n={id:S.nextId++,type,x,y,level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},stall:false,done:0,target:null,item:null};
+  S.nodes.push(n); reindex(); mkNodeEl(n); return n;
+}
+function removeNode(id){
+  for(const l of [...S.links]) if(l.from===id||l.to===id) removeLink(l.id);
+  const i=S.nodes.findIndex(n=>n.id===id); if(i<0) return;
+  S.nodes[i].el.root.remove(); S.nodes.splice(i,1); reindex();
+  if(sel===id){ sel=null; renderInsp(); }
+}
+function canLink(a,item,b){
+  if(!a||!b||a.id===b.id) return false;
+  if(!outsOf(a)[item]) return false;
+  if(!insOf(b)[item])  return false;
+  return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
+}
+function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
+function removeLink(id){
+  const i=S.links.findIndex(l=>l.id===id); if(i<0) return;
+  const l=S.links[i]; while(l.packets.length) delPacket(l,0);
+  l.el.hit.remove(); l.el.wire.remove(); l.el.flow.remove(); l.el.wph.remove();
+  S.links.splice(i,1);
+}
+const spaceIn = (n,item) => !insOf(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
+
+/* ========================= シミュレーション ========================= */
+function tick(dt,fast){
+  for(const n of S.nodes){
+    const T=TYPES[n.type];
+    n.stall=false; n.why='';
+    if(T.tool && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
+    // 1回の更新で複数回ぶん進める（生産が速いノードがフレーム間隔で頭打ちにならないように）
+    let budget=dt, guard=1000;
+    for(;;){
+      if(!n.crafting){
+        const need=insOf(n), give=outsOf(n);
+        let ok=true;
+        for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
+        if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){ ok=false; n.why=`${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`; }
+        if(ok && T.effect==='lab' && !n.target){ ok=false; n.why='研究対象が未設定'; }
+        if(!ok){ n.stall=true; break; }
+        for(const k in need) n.inBuf[k]-=need[k];
+        n.crafting=true; n.prog=0; n.need=Math.max(1e-6, craftTime(n));
+      }
+      const rest=n.need-n.prog;
+      if(budget < rest){ n.prog+=budget; break; }
+      budget-=rest;
+      const give=outsOf(n);
+      for(const k in give) n.outBuf[k]=(n.outBuf[k]||0)+give[k];
+      n.done++;
+      if(T.stat){ S.stats[T.stat]++; if(!fast) addLog(`${T.i} ${statName(T.stat)}が ${S.stats[T.stat]} になった`,'u'); checkSeen(fast); }
+      if(T.effect==='atk'){ const g=4*n.level; S.atkBonus+=g; n.gain=(n.gain||0)+g; }
+      if(T.effect==='dive') doDive(fast);
+      if(T.effect==='lab')  doResearch(n,fast);
+      n.crafting=false; n.prog=0;
+      if(--guard<=0) break;
+    }
+  }
+
+  // 出力バッファ → 配線へ。数字がインフレするので1粒にまとめて運ぶ
+  for(const n of S.nodes){
+    for(const item in n.outBuf){
+      if((n.outBuf[item]||0)<=0) continue;
+      n.cd[item]=(n.cd[item]||0)-dt; if(n.cd[item]>0) continue;
+      const ls=S.links.filter(l=>l.from===n.id&&l.item===item);
+      if(!ls.length) continue;
+      const chunk=Math.max(1, Math.ceil(capOut(n,item)/8));
+      // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る
+      let left=Math.min(200, 1+Math.floor(-n.cd[item]/SENDCD));
+      n.cd[item]=SENDCD;
+      while(left-- > 0 && (n.outBuf[item]||0) > 0){
+        const r=n.rr[item]||0;
+        let sent=false;
+        for(let i=0;i<ls.length;i++){
+          const l=ls[(r+i)%ls.length], dst=N(l.to);
+          const sp=dst?spaceIn(dst,item):0;
+          if(sp>0){
+            const q=Math.min(n.outBuf[item], chunk, sp);
+            n.outBuf[item]-=q; n.rr[item]=(r+i+1)%ls.length;
+            if(fast||packetCount>280) dst.inBuf[item]=(dst.inBuf[item]||0)+q;
+            else { const p={item,t:0,q}; mkPacketEl(p); l.packets.push(p); }
+            sent=true; break;
+          }
+        }
+        if(!sent) break;
+      }
+    }
+  }
+
+  // 配線上の移動
+  for(const l of S.links){
+    if(!l.packets.length) continue;
+    const b=N(l.to); if(!b) continue;
+    const G=l.G=linkGeom(l); if(!G) continue;
+    for(let i=l.packets.length-1;i>=0;i--){
+      const p=l.packets[i];
+      p.t+=dt*PSPEED/G.total;
+      if(p.t>=1){ b.inBuf[p.item]=(b.inBuf[p.item]||0)+(p.q||1); delPacket(l,i); }
+    }
+  }
+  if(!S.enemy) spawnEnemy();
+}
+const statName = s => ({str:'💪筋力',int:'🧠知力',vit:'❤️体力'})[s];
+function doDive(fast){
+  if(!S.enemy) spawnEnemy();
+  S.enemy.hp -= dmg();
+  if(S.enemy.hp>0) return;
+  const f=S.floor, g=enemyGold(f), wasTier=depthTier(), wasZone=zoneOf(f);
+  S.gold += g;
+  if(!fast) addLog(`第${f}層 ${S.enemy.name} 撃破 → +${fmt(g)}G`,'w');
+  S.floor++;
+  if(S.floor > S.best){
+    S.best = S.floor;
+    if(depthTier() > wasTier && !fast)
+      addLog(`【第${depthTier()*BOSS_EVERY}層 踏破】攻撃力 ×${depthBonus().toFixed(2)} に`,'b');
+    const nz = zoneOf(S.floor);
+    if(nz !== wasZone && !fast) addLog(`【新区域】${nz.i} ${nz.n} に到達`,'b');
+  }
+  spawnEnemy();
+}
+function spawnEnemy(){
+  const f=S.floor, z=zoneOf(f), hp=enemyHp(f);
+  S.enemy = isBoss(f)
+    ? {name:'★ '+z.e[z.e.length-1], icon:'👑', hp, max:hp, boss:true, zone:z}
+    : {name:z.e[(f-1)%(z.e.length-1)], icon:z.i, hp, max:hp, boss:false, zone:z};
+}
+function doResearch(n,fast){
+  const t=n.target; if(!t) return;
+  if(isDev(t)){ n.target=null; if(sel===n.id) renderInsp(); return; }  // 他で開発済みなら空回りさせない
+  S.rp[t]=(S.rp[t]||0)+rpGain(n);
+  if(S.rp[t]>=needRp(t)){
+    S.dev[t]=1;
+    if(!fast){
+      addLog(`【開発完了】${TYPES[t].i} ${TYPES[t].n} が建設可能に！`,'w');
+      addLog(`　留守の報酬が ×${offRate().toFixed(1)} / ${offCapH()}時間ぶん に伸びた`,'b');
+    }
+    n.target=null; if(sel===n.id) renderInsp();
+  }
+}
+function checkSeen(fast){
+  for(const t of ORDER){
+    const T=TYPES[t];
+    if(T.see<=0 || S.seen[t] || !isSeen(t)) continue;
+    S.seen[t]=1;
+    if(!fast) addLog(`【判明】${T.i} ${T.n} の存在に気づいた。🔬研究所で開発できる`,'u');
+  }
+}
+
+/* ========================= 描画 ========================= */
+function applyView(){
+  const v=S.view;
+  world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.s})`;
+  gw.setAttribute('transform',`translate(${v.x},${v.y}) scale(${v.s})`);
+  stage.style.backgroundSize=`${40*v.s}px ${40*v.s}px`;
+  stage.style.backgroundPosition=`${v.x}px ${v.y}px`;
+}
+function render(){
+  let jam = null;
+  for(const n of S.nodes){
+    const T=TYPES[n.type], e=n.el;
+    const tr=tierOf(n);
+    if(e.lastTier!==tr.t){ e.lastTier=tr.t; e.ic.textContent=tr.i; e.nm.textContent=tr.n; }
+    e.lv.textContent='Lv.'+n.level;
+    const need=insOf(n), give=outsOf(n);
+    for(const k in need){
+      const s=e.slots['in-'+k], c=n.inBuf[k]||0;
+      s.querySelector('b').textContent=fmt(c);
+      s.querySelector('.q').textContent='/'+fmt(need[k]);
+      s.classList.toggle('short', c < need[k]);
+      s.classList.toggle('full', c >= capIn(n,k));
+    }
+    for(const k in give){
+      const s=e.slots['out-'+k], c=n.outBuf[k]||0;
+      s.querySelector('b').textContent=fmt(c);
+      s.querySelector('.q').textContent='/'+fmt(capOut(n,k));
+      s.classList.toggle('full', c+give[k]>capOut(n,k));
+    }
+    e.bar.style.width=(n.crafting?Math.min(100,n.prog/n.need*100):0)+'%';
+    e.nf.textContent = n.stall ? '停止：'+n.why
+      : T.stat ? '稼働中 → '+statName(T.stat)
+      : T.effect==='atk' ? '稼働中 → 攻撃力 +'+fmt(n.gain||0)
+      : T.effect==='dive'? '稼働中 → '+n.done+'回 潜った'
+      : T.effect==='lab' ? (n.target ? `研究中 → ${TYPES[n.target].i}${TYPES[n.target].n} ${fmt(gotRp(n.target))}/${fmt(needRp(n.target))}` : '研究対象を選んでください')
+      : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
+      : '稼働中';
+    e.root.classList.toggle('stall',n.stall);
+    e.root.classList.toggle('run',!n.stall);
+    e.root.classList.toggle('sel',sel===n.id);
+    if(n.stall && /満杯/.test(n.why||'')) jam = {n:T.n, i:T.i, w:n.why};
+  }
+  for(const l of S.links){
+    const G=l.G=linkGeom(l); if(!G) continue;
+    l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d); l.el.flow.setAttribute('d',G.d);
+    if(l.wp){ l.el.wph.setAttribute('cx',l.wp.x); l.el.wph.setAttribute('cy',l.wp.y); l.el.wph.style.display=''; }
+    else l.el.wph.style.display='none';
+    for(const p of l.packets){ if(!p.el) continue; const q=geomPt(G,p.t); p.el.setAttribute('cx',q.x); p.el.setAttribute('cy',q.y); }
+  }
+  const hero = S.nodes.find(n=>n.type==='hero');
+  const sta = hero ? (hero.outBuf.sta||0) : 0, mx = maxSta();
+  $('#tGold').textContent=fmt(S.gold);
+  $('#tAtk').textContent=fmt(atk());
+  $('#tFloor').textContent=S.floor;
+  $('#tBest').textContent=S.best;
+  const dt=depthTier();
+  $('#oSteps').textContent=offSteps()+'解放';
+  $('#oRate').textContent='×'+offRate().toFixed(1);
+  $('#oCap').textContent=offCapH()+'時間';
+  $('#oNext').textContent=`研究をあと1つ / 第${(dt+1)*BOSS_EVERY}層 踏破`;
+  $('#dTier').textContent=dt+'段階';
+  $('#dBonus').textContent='×'+depthBonus().toFixed(2);
+  $('#dNext').textContent='第'+((dt+1)*BOSS_EVERY)+'層';
+  $('#hSta').textContent=`${fmt(sta)} / ${fmt(mx)}`;
+  $('#hStaBar').style.width=Math.min(100,sta/mx*100)+'%';
+  $('#hRegen').textContent=hero?(1/staRate(hero)).toFixed(2)+' /秒':'—';
+  $('#hAtk').textContent=fmt(atk());
+  $('#sStr').textContent=S.stats.str; $('#sInt').textContent=S.stats.int; $('#sVit').textContent=S.stats.vit;
+  if(S.enemy){
+    const z=zoneOf(S.floor);
+    $('#zIc').textContent=z.i; $('#zName').textContent=z.n; $('#zName').style.color=z.c;
+    $('#zFloor').textContent='第'+S.floor+'層'+(isBoss(S.floor)?' ★節目':'');
+    $('#eIc').textContent=S.enemy.icon; $('#eName').textContent=S.enemy.name;
+    $('#eHp').textContent=`${fmt(Math.max(0,S.enemy.hp))} / ${fmt(S.enemy.max)}`;
+    $('#eHpBar').style.width=Math.max(0,S.enemy.hp/S.enemy.max*100)+'%';
+    $('#eArm').textContent=fmt(enemyArm(S.floor));
+    $('#eDmg').textContent=fmt(dmg())+(atk()<=enemyArm(S.floor)?' ⚠装甲に阻まれている':'');
+    $('#eHits').textContent=fmt(hitsLeft())+' 回';
+    $('#eGold').textContent=fmt(enemyGold(S.floor))+' G';
+  }
+  const al=$('#alert');
+  if(jam){ al.classList.add('on');
+    al.innerHTML = /廃材/.test(jam.w)
+      ? `${jam.i} <b>${jam.n}</b> が<b>廃材</b>で詰まって停止中。<br>♻️廃棄場に ⚡体力 と 🗑️廃材 を送って片付けてください。`
+      : `${jam.i} <b>${jam.n}</b> が「${jam.w}」で停止中。<br>出力の行き先を作るか、配線を繋いでください。`; }
+  else al.classList.remove('on');
+  const oc=offscreenCount(), ob=$('#offscr');
+  ob.classList.toggle('on', oc>0);
+  if(oc>0) ob.textContent=`⤢ ${oc}個のノードが画面外です — クリックで全体表示`;
+  renderShop(); renderInspLive();
+}
+
+/* ========================= ショップ ========================= */
+const shopEls={};
+function ioText(T){
+  const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
+  if(T.tool) return `素材×${T.take} ⚡×${T.sta}<span class="ar">→</span>素材×${Math.round(T.take*T.mul)}`;
+  const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='atk'?'攻撃力↑':T.effect==='lab'?'🔬研究力':'—');
+  return `${a}<span class="ar">→</span>${b}`;
+}
+function buildShop(){
+  const box=$('#shopList'); box.innerHTML='';
+  for(const t of ORDER){
+    const T=TYPES[t], b=document.createElement('button');
+    b.className='card';
+    const base = TIERS[t] ? {i:TIERS[t][0][2], n:TIERS[t][0][1]} : {i:T.i, n:T.n};
+    b.innerHTML=`<div class="r1"><span class="ic">${base.i}</span><span class="nm">${base.n}</span><span class="price"></span></div>
+                 <div class="io">${ioText(T)}</div><div class="d">${T.d}</div><div class="rq"></div>`;
+    b.onclick=()=>buy(t);
+    box.appendChild(b);
+    shopEls[t]={root:b, name:b.querySelector('.nm'), price:b.querySelector('.price'), rq:b.querySelector('.rq')};
+  }
+}
+function renderShop(){
+  for(const t of ORDER){
+    const T=TYPES[t], e=shopEls[t];
+    const seen=isSeen(t), dev=isDev(t);
+    const uniq=T.unique && (S.counts[t]||0)>=1;
+    const cost=buyCost(t);
+    e.root.classList.toggle('unknown', !seen);
+    if(!seen){
+      e.name.textContent='???';
+      e.price.textContent='🔒';
+      e.rq.textContent=`🧠知力 ${T.see} で判明する`;
+    }else{
+      e.name.textContent=TIERS[t]?TIERS[t][0][1]:T.n;
+      e.price.textContent = uniq ? '設置済' : dev ? fmt(cost)+' G' : '🔬未開発';
+      e.rq.textContent = dev ? '' : `研究力 ${fmt(gotRp(t))} / ${fmt(needRp(t))} — 🔬研究所で開発する`;
+    }
+    e.root.classList.toggle('off', !seen || !dev || uniq || S.gold<cost);
+  }
+}
+function buy(t){
+  const T=TYPES[t];
+  if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
+  if(!isSeen(t)) return toast(`まだ存在を知りません（🧠知力 ${T.see} で判明）`);
+  if(!isDev(t))  return toast(`未開発です。🔬研究所で研究力 ${fmt(needRp(t))} を貯めてください`);
+  const cost=buyCost(t);
+  if(S.gold<cost) return toast('ゴールドが足りません');
+  S.gold-=cost; S.counts[t]=(S.counts[t]||0)+1;
+  const p=freeSpot();
+  sel=addNode(t,p.x,p.y).id; renderInsp();
+}
+
+/* ========================= 配置と視点 ========================= */
+const NHmax = 126;                       // 判定に使うノードの高さ（最大3行ぶん）
+const hOf = n => parseFloat(n.el.root.style.height) || NHmax;
+const taken = (x,y) => S.nodes.some(n => Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
+// 左下のインスペクタ・右上のヘルプに隠れる位置は避ける
+function uiBlocked(wx,wy){
+  const v=S.view, W=stage.clientWidth, H=stage.clientHeight;
+  const sx=wx*v.s+v.x, sy=wy*v.s+v.y, w=NW*v.s, h=NHmax*v.s;
+  if(sx < 290 && sy+h > H-220) return true;
+  if(sx+w > W-140 && sy < 60)  return true;
+  return false;
+}
+// いま見えている範囲の中から空いているマスを探す
+function freeSpot(){
+  const v=S.view, W=stage.clientWidth, H=stage.clientHeight, pad=20;
+  const x0=(pad-v.x)/v.s, y0=(pad-v.y)/v.s;
+  const x1=(W-pad-v.x)/v.s, y1=(H-pad-v.y)/v.s;
+  for(let y=y0; y+NHmax<=y1; y+=NHmax+18)
+    for(let x=x0; x+NW<=x1; x+=NW+30){
+      const gx=Math.round(x/10)*10, gy=Math.round(y/10)*10;
+      if(uiBlocked(gx,gy) || taken(gx,gy)) continue;
+      return {x:gx, y:gy};
+    }
+  // 見えている範囲が埋まっていたら、いちばん下に折り返して積む
+  let bx=Math.round(x0/10)*10, by=Math.round(y0/10)*10;
+  for(const n of S.nodes) by=Math.max(by, n.y);
+  by+=NHmax+18;
+  while(taken(bx,by)) bx+=NW+30;
+  return {x:bx, y:by};
+}
+function bounds(){
+  let a={x0:Infinity,y0:Infinity,x1:-Infinity,y1:-Infinity};
+  for(const n of S.nodes){
+    a.x0=Math.min(a.x0,n.x); a.y0=Math.min(a.y0,n.y);
+    a.x1=Math.max(a.x1,n.x+NW); a.y1=Math.max(a.y1,n.y+hOf(n));
+  }
+  return a;
+}
+function fitView(maxS){
+  if(!S.nodes.length) return;
+  const b=bounds(), W=stage.clientWidth, H=stage.clientHeight, pad=48;
+  const s=Math.min(maxS||1.2, Math.max(0.2, Math.min((W-pad*2)/Math.max(1,b.x1-b.x0),
+                                               (H-pad*2)/Math.max(1,b.y1-b.y0))));
+  S.view.s=s;
+  S.view.x=(W-(b.x1-b.x0)*s)/2 - b.x0*s;
+  S.view.y=(H-(b.y1-b.y0)*s)/2 - b.y0*s;
+  applyView();
+}
+// バラバラになったノードを格子状に並べ直す（勇者を先頭に、種類ごとにまとめる）
+function tidyLayout(){
+  const order=[...S.nodes].sort((a,b)=>ORDER.indexOf(a.type)-ORDER.indexOf(b.type));
+  const cols=Math.max(1, Math.ceil(Math.sqrt(order.length*1.6)));
+  order.forEach((n,i)=>{
+    n.x=(i%cols)*(NW+60)+40;
+    n.y=Math.floor(i/cols)*(NHmax+40)+40;
+    n.el.root.style.left=n.x+'px'; n.el.root.style.top=n.y+'px';
+  });
+  fitView();
+}
+function offscreenCount(){
+  const v=S.view, W=stage.clientWidth, H=stage.clientHeight;
+  return S.nodes.filter(n=>{
+    const x=n.x*v.s+v.x, y=n.y*v.s+v.y, w=NW*v.s, h=hOf(n)*v.s;
+    return x+w<0 || x>W || y+h<0 || y>H;
+  }).length;
+}
+
+/* ========================= インスペクタ ========================= */
+function renderInsp(){
+  const box=$('#insp'), n=sel?N(sel):null;
+  if(!n){ box.classList.remove('on'); box.innerHTML=''; return; }
+  const T=TYPES[n.type], isLab=T.effect==='lab', tr=tierOf(n);
+  box.innerHTML=
+    `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>
+     <div class="kv">階級<b class="tier"></b></div>
+     <div class="kv">入出力<b style="font-size:10.5px">${ioText(T)}</b></div>
+     <div class="kv">1回あたり<b class="rate"></b></div>
+     <div class="kv">体力効率<b class="eff"></b></div>` +
+    (T.tool ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
+    (isLab ? `<div class="kv">研究対象<select class="tgt"></select></div>
+              <div class="kv">研究の進捗<b class="rp"></b></div>` : '') +
+    `<div class="kv">状態<b class="st2"></b></div>
+     <div class="btns"><button class="up"></button><button class="del">撤去</button></div>`;
+  box.classList.add('on');
+  if(isLab){
+    const sl=box.querySelector('.tgt');
+    const opts=ORDER.filter(t=>isSeen(t)&&!isDev(t));
+    sl.innerHTML = opts.length
+      ? `<option value="">— 未設定 —</option>`+opts.map(t=>`<option value="${t}">${TYPES[t].i} ${TYPES[t].n}（${fmt(needRp(t))}）</option>`).join('')
+      : `<option value="">研究できるものがない</option>`;
+    sl.value=n.target||'';
+    sl.onchange=()=>{ n.target=sl.value||null; };
+  }
+  if(T.tool){
+    const il=box.querySelector('.itm');
+    il.innerHTML=`<option value="">— 未設定 —</option>`+
+      Object.keys(ITEMS).filter(k=>k!=='sta')
+        .map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
+    il.value=n.item||'';
+    il.onchange=()=>{ setToolItem(n, il.value||null); renderInsp(); };
+  }
+  box.querySelector('.up').onclick=()=>{
+    const c=upCost(n);
+    if(S.gold<c) return toast('ゴールドが足りません');
+    S.gold-=c; n.level++;
+  };
+  box.querySelector('.del').onclick=()=>{
+    if(TYPES[n.type].unique) return toast('勇者は撤去できません');
+    S.counts[n.type]=Math.max(0,(S.counts[n.type]||1)-1);
+    S.gold+=Math.floor(buyCost(n.type)*0.5);
+    removeNode(n.id); toast('撤去しました（50%返金）');
+  };
+  renderInspLive();
+}
+function renderInspLive(){
+  const box=$('#insp'); if(!box.classList.contains('on')) return;
+  const n=sel?N(sel):null; if(!n) return;
+  const tr=tierOf(n);
+  box.querySelector('.lv').textContent='Lv.'+n.level;
+  box.querySelector('.ic2').textContent=tr.i;
+  box.querySelector('.nm2').textContent=tr.n;
+  box.querySelector('.tier').textContent=`${tr.t} / ${tr.max}`+(tr.next?`（Lv.${tr.next[0]}で ${tr.next[1]}）`:'（最高）');
+  box.querySelector('.eff').textContent=n.type==='hero'
+    ? `⚡産出 ×${(1+(tr.t-1)*0.5).toFixed(1)}`
+    : `⚡消費 ×${effOf(n).toFixed(2)}`;
+  box.querySelector('.rate').textContent=craftTime(n).toFixed(2)+' 秒';
+  const rpEl=box.querySelector('.rp');
+  if(rpEl) rpEl.textContent = n.target
+    ? `${fmt(gotRp(n.target))} / ${fmt(needRp(n.target))}（+${rpGain(n).toFixed(1)}/回）`
+    : '—';
+  box.querySelector('.st2').textContent=n.stall?('停止：'+n.why):'稼働中';
+  const up=box.querySelector('.up'), c=upCost(n);
+  up.textContent=`強化 ${fmt(c)} G`; up.disabled=S.gold<c;
+  box.querySelector('.del').disabled=!!TYPES[n.type].unique;
+}
+
+/* ========================= 操作 ========================= */
+let drag=null;
+const toWorld=(cx,cy)=>{ const r=stage.getBoundingClientRect(), v=S.view;
+  return {x:(cx-r.left-v.x)/v.s, y:(cy-r.top-v.y)/v.s}; };
+
+/* 2本指のピンチで拡大縮小（スマホ用） */
+const ptrs = new Map();
+let pinch = null;
+function doPinch(){
+  const [a,b] = [...ptrs.values()].slice(0,2);
+  const d = Math.hypot(a.x-b.x, a.y-b.y);
+  const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+  if(!pinch || d < 1){ pinch = {d, mx, my, s:S.view.s, vx:S.view.x, vy:S.view.y}; return; }
+  const r = stage.getBoundingClientRect();
+  const ns = Math.min(1.6, Math.max(0.2, pinch.s * d / pinch.d));
+  const cx = mx - r.left, cy = my - r.top;
+  S.view.s = ns;
+  S.view.x = cx - (cx - pinch.vx) * (ns / pinch.s);
+  S.view.y = cy - (cy - pinch.vy) * (ns / pinch.s);
+  applyView();
+}
+
+stage.addEventListener('pointerdown', e=>{
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size>=2){                       // 2本目が触れたらドラッグを中止してピンチへ
+    drag=null; pinch=null; stage.classList.remove('panning');
+    $('#temp').setAttribute('d','');
+    document.querySelectorAll('.node.tgt').forEach(x=>x.classList.remove('tgt'));
+    return;
+  }
+  const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
+  if(wph||hit){                                   // 配線を掴む：動かせば整理、動かさなければ切断
+    drag={mode:'wire', id:+(wph?wph.dataset.wp:hit.dataset.link), sx:e.clientX, sy:e.clientY, moved:0, handle:!!wph};
+    try{stage.setPointerCapture(e.pointerId)}catch(_){}
+    return;
+  }
+  const port=e.target.closest('.pout'), nodeEl=e.target.closest('.node');
+  if(port&&nodeEl)      drag={mode:'link', from:+nodeEl.dataset.id, item:port.dataset.item};
+  else if(nodeEl){
+    const n=N(+nodeEl.dataset.id), w=toWorld(e.clientX,e.clientY);
+    drag={mode:'node', id:n.id, ox:w.x-n.x, oy:w.y-n.y, moved:0};
+  }else{
+    drag={mode:'pan', sx:e.clientX, sy:e.clientY, vx:S.view.x, vy:S.view.y};
+    stage.classList.add('panning');
+    if(sel!==null){ sel=null; renderInsp(); }
+  }
+  try{stage.setPointerCapture(e.pointerId)}catch(_){}
+});
+stage.addEventListener('pointermove', e=>{
+  if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size>=2){ doPinch(); return; }
+  if(!drag) return;
+  if(drag.mode==='pan'){
+    S.view.x=drag.vx+(e.clientX-drag.sx); S.view.y=drag.vy+(e.clientY-drag.sy); applyView();
+  }else if(drag.mode==='node'){
+    const n=N(drag.id), w=toWorld(e.clientX,e.clientY);
+    const nx=Math.round((w.x-drag.ox)/10)*10, ny=Math.round((w.y-drag.oy)/10)*10;
+    drag.moved+=Math.abs(nx-n.x)+Math.abs(ny-n.y);
+    n.x=nx; n.y=ny; n.el.root.style.left=nx+'px'; n.el.root.style.top=ny+'px';
+  }else if(drag.mode==='wire'){
+    const l=S.links.find(x=>x.id===drag.id); if(!l) return;
+    drag.moved=Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy);
+    if(drag.handle||drag.moved>5){
+      const w=toWorld(e.clientX,e.clientY);
+      l.wp={x:Math.round(w.x/10)*10, y:Math.round(w.y/10)*10};
+    }
+  }else if(drag.mode==='link'){
+    const a=N(drag.from), w=toWorld(e.clientX,e.clientY);
+    $('#temp').setAttribute('d', dStr(bez(portPos(a,drag.item,'out'), w)));
+    const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
+    document.querySelectorAll('.node.tgt').forEach(x=>x.classList.remove('tgt'));
+    if(tn&&canLink(a,drag.item,N(+tn.dataset.id))) tn.classList.add('tgt');
+  }
+});
+function endPointer(e){
+  ptrs.delete(e.pointerId);
+  if(ptrs.size<2) pinch=null;
+}
+stage.addEventListener('pointercancel', e=>{ endPointer(e); drag=null; stage.classList.remove('panning'); });
+stage.addEventListener('pointerup', e=>{
+  endPointer(e);
+  if(!drag) return;
+  if(drag.mode==='link'){
+    const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
+    const a=N(drag.from), b=tn?N(+tn.dataset.id):null;
+    if(b&&canLink(a,drag.item,b)) addLink(a.id,drag.item,b.id);
+    else if(b) toast(`${TYPES[b.type].n}に ${ITEMS[drag.item].n} の入力口はありません`);
+    $('#temp').setAttribute('d','');
+    document.querySelectorAll('.node.tgt').forEach(x=>x.classList.remove('tgt'));
+  }else if(drag.mode==='wire'){
+    if(!drag.handle&&drag.moved<5){ removeLink(drag.id); toast('配線を切断しました'); }
+  }else if(drag.mode==='node'&&drag.moved<6){ sel=drag.id; renderInsp(); }
+  stage.classList.remove('panning'); drag=null;
+});
+stage.addEventListener('dblclick', e=>{
+  const wph=e.target.closest('circle.wph'); if(!wph) return;
+  const l=S.links.find(x=>x.id===+wph.dataset.wp);
+  if(l){ l.wp=null; toast('配線をまっすぐに戻しました'); }
+});
+stage.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const r=stage.getBoundingClientRect(), v=S.view;
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const ns=Math.min(1.6,Math.max(0.20, v.s*(e.deltaY>0?0.9:1.1)));
+  v.x=mx-(mx-v.x)*(ns/v.s); v.y=my-(my-v.y)*(ns/v.s); v.s=ns; applyView();
+},{passive:false});
+
+/* ========================= セーブ / ロード ========================= */
+/* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
+   （キーごと変えるとテスターのデータが消えるため） */
+const KEY='nodequest';
+const SAVE_V=3;
+function migrate(d){
+  d.v = d.v || 0;
+  // 例）if(d.v < 4){ ...新フィールドの初期化...; d.v = 4; }
+  d.v = SAVE_V;
+  return d;
+}
+function save(){
+  try{ S.savedAt=Date.now();
+    localStorage.setItem(KEY, JSON.stringify(S,(k,v)=> (k==='el'||k==='G')?undefined:v));
+    return true;
+  }catch(_){ return false; }
+}
+function load(){
+  let raw=null; try{ raw=localStorage.getItem(KEY); }catch(_){}
+  if(!raw) return false;
+  try{
+    const d=migrate(JSON.parse(raw)); if(!d||!Array.isArray(d.nodes)||!d.nodes.length) return false;
+    S=Object.assign(freshState(),d); reindex();
+    for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
+    for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
+    applyView(); renderLog();
+    // 留守のあいだの進行。解放が進むほど「時間上限」と「倍率」が伸びる
+    const away = (Date.now() - (d.savedAt||Date.now())) / 1000;
+    const counted = Math.min(offCapH()*3600, away);
+    if(counted > 5){
+      const sim = Math.min(OFF_SIM_MAX, counted * offRate());
+      const g0=S.gold, b0=S.best, step = sim>6*3600 ? 2 : (sim>1800 ? 1 : 0.25);
+      for(let t=0;t<sim;t+=step) tick(step,true);
+      const hm = x => (x>=3600?Math.floor(x/3600)+'時間':'')+Math.floor(x%3600/60)+'分';
+      addLog(`留守 ${hm(away)}（${hm(counted)}ぶん ×${offRate().toFixed(1)}）→ +${fmt(S.gold-g0)}G / 最深 ${b0}→${S.best}層`,'b');
+    }
+    return true;
+  }catch(_){ return false; }
+}
+// 狭い画面のパネル切替
+function setPane(p){
+  $('#shop').classList.toggle('on', p==='shop');
+  $('#side').classList.toggle('on', p==='side');
+  document.querySelectorAll('#mtabs button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+}
+document.querySelectorAll('#mtabs button').forEach(b=>b.onclick=()=>setPane(b.dataset.p));
+$('#hint').onclick=()=>$('#hint').classList.toggle('open');
+$('#bFit').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
+$('#offscr').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
+$('#bTidy').onclick=()=>{ if(confirm('ノードを格子状に並べ直します。よろしいですか？')){ tidyLayout(); toast('整列しました'); } };
+/* ===== 引き継ぎコード（別ブラウザ・別端末へセーブを移す） ===== */
+function b64enc(str){
+  const b=new TextEncoder().encode(str); let o='', CH=0x8000;
+  for(let i=0;i<b.length;i+=CH) o+=String.fromCharCode.apply(null,b.subarray(i,i+CH));
+  return btoa(o);
+}
+function b64dec(c){
+  const bin=atob(c.replace(/\s+/g,'')); const b=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(b);
+}
+const dumpState = () => JSON.stringify(S,(k,v)=> (k==='el'||k==='G')?undefined:v);
+$('#bCode').onclick=()=>{
+  S.savedAt=Date.now();
+  $('#mCode').value=b64enc(dumpState());
+  $('#mMsg').textContent='';
+  $('#modal').classList.add('on');
+};
+$('#mClose').onclick=()=>$('#modal').classList.remove('on');
+$('#modal').onclick=e=>{ if(e.target===$('#modal')) $('#modal').classList.remove('on'); };
+$('#mCopy').onclick=async()=>{
+  const t=$('#mCode'); t.select();
+  try{ await navigator.clipboard.writeText(t.value); $('#mMsg').textContent='コピーしました'; }
+  catch(_){ try{ document.execCommand('copy'); $('#mMsg').textContent='コピーしました'; }
+            catch(e){ $('#mMsg').textContent='コピーできません。手動で選択してください'; } }
+};
+$('#mLoad').onclick=()=>{
+  const msg=$('#mMsg');
+  try{
+    const d=migrate(JSON.parse(b64dec($('#mCode').value)));
+    if(!d || !Array.isArray(d.nodes) || !d.nodes.length) throw new Error('中身が読めません');
+    if(!confirm('いまのデータは失われます。読み込みますか？')) return;
+    try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(_){}
+    for(const l of [...S.links]) removeLink(l.id);
+    for(const n of [...S.nodes]) removeNode(n.id);
+    if(load()){ $('#modal').classList.remove('on'); fitView(); toast('引き継ぎました'); }
+    else msg.textContent='読み込みに失敗しました';
+  }catch(e){ msg.textContent='コードが正しくありません（'+e.message+'）'; }
+};
+$('#bSave').onclick=()=>toast(save()?'保存しました':'保存できませんでした');
+$('#bReset').onclick=()=>{ if(!confirm('本当に最初からやり直しますか？'))return;
+  try{localStorage.removeItem(KEY)}catch(_){} location.reload(); };
+
+/* ========================= 起動 ========================= */
+function newGame(){
+  S=freshState(); reindex(); applyView();
+  const h=addNode('hero',80,150), d=addNode('dive',420,150);
+  S.counts={hero:1,dive:1};
+  addLink(h.id,'sta',d.id);
+  addLog('勇者 ⚡→ ダンジョン が接続済み。まずは潜ってゴールドを貯めよう','u');
+  addLog('⛏採掘を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
+  fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
+}
+buildShop();
+if(!load()) newGame();
+if(!S.enemy) spawnEnemy();
+checkSeen(true);
+
+let last=performance.now(), accS=0;
+function loop(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  tick(dt,false); render();
+  accS+=dt; if(accS>5){ accS=0; save(); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+window.addEventListener('beforeunload',save);
+// 画面サイズが変わってノードが見えなくなったら自動で入れ直す
+let rzT=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(rzT);
+  rzT=setTimeout(()=>{ if(offscreenCount()>0) fitView(); }, 250);
+});
+</script>
+</body>
+</html>
