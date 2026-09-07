@@ -201,6 +201,47 @@ body.tut #offscr{display:none}
   #tut .tacts{grid-column:1 / -1;justify-content:stretch}
   #tut .tacts button{flex:1}
 }
+/* ---------- デバッグ：ノード一覧と設置 ---------- */
+.tbtn.dbg{border-color:var(--warn);color:var(--warn)}
+.tbtn.dbg:hover{background:var(--warn);color:#0a0d14}
+#dbg{position:fixed;inset:0;background:rgba(6,9,14,.82);z-index:110;display:none;
+  align-items:center;justify-content:center;padding:16px}
+#dbg.on{display:flex}
+#dbg .dbox{width:min(1080px,100%);max-height:90vh;display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--warn);border-radius:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden}
+#dbg .dhead{display:flex;align-items:center;gap:10px;padding:13px 16px;
+  border-bottom:1px solid var(--line)}
+#dbg .dt{font-weight:700;font-size:14px;color:var(--warn)}
+#dbg .dhead button{margin-left:auto;background:#0c111b;border:1px solid var(--line);
+  border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600}
+#dbg .dhead button:hover{border-color:var(--fg)}
+#dbg .dtools{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:11px 16px;
+  border-bottom:1px solid var(--line);background:var(--panel2)}
+#dbg .dtools button{background:#0c111b;border:1px solid var(--line);border-radius:7px;
+  padding:5px 11px;font-size:11px;font-weight:600}
+#dbg .dtools button:hover{border-color:var(--warn);color:var(--warn)}
+#dbg .dnote{margin-left:auto;font-size:10.5px;color:var(--dim)}
+#dbg .dnote code{background:#0b1119;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+#dbg .dwrap{overflow:auto;flex:1}
+#dTable{border-collapse:collapse;width:100%;min-width:900px;font-size:11.5px}
+#dTable th,#dTable td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);
+  vertical-align:middle;white-space:nowrap}
+#dTable th{position:sticky;top:0;background:var(--panel2);color:var(--dim);z-index:1;
+  font-size:10px;letter-spacing:.1em;font-weight:700}
+#dTable td.io{white-space:normal;min-width:180px;color:var(--dim)}
+#dTable td.nm{font-weight:700}
+#dTable td.n{font-variant-numeric:tabular-nums;text-align:right}
+#dTable tr:hover td{background:rgba(255,255,255,.03)}
+#dTable .kind{font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;
+  background:#0b1119;border:1px solid var(--line);color:var(--dim)}
+#dTable .put{background:#0c111b;border:1px solid var(--acc);color:var(--acc);
+  border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700}
+#dTable .put:hover{background:var(--acc);color:#08131a}
+#dTable .put:disabled{opacity:.35;cursor:not-allowed;border-color:var(--line);color:var(--dim)}
+#dTable .have{color:var(--acc);font-weight:700}
+@media (max-width:860px){ #dbg{padding:8px} #dbg .dnote{display:none} }
+
 #modal{position:fixed;inset:0;background:rgba(6,9,14,.78);z-index:100;display:none;
   align-items:center;justify-content:center;padding:16px}
 #modal.on{display:flex}
@@ -290,6 +331,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <span class="sp"></span>
     <button class="tbtn" id="bFit">全体表示</button>
     <button class="tbtn" id="bTidy">整列</button>
+    <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
     <button class="tbtn" id="bSave">保存</button>
     <button class="tbtn" id="bReset">リセット</button>
@@ -373,6 +415,22 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="sec">ログ</div>
       <div id="log"></div>
     </div>
+  </div>
+</div>
+
+<div id="dbg">
+  <div class="dbox">
+    <div class="dhead">
+      <div class="dt">🐛 ノード一覧 / 設置（デバッグ）</div>
+      <button id="dClose">閉じる</button>
+    </div>
+    <div class="dtools">
+      <button data-do="gold">ゴールド +100万</button>
+      <button data-do="stats">能力値 +10</button>
+      <button data-do="dev">すべて研究済みに</button>
+      <span class="dnote">この画面は <code>?debug=1</code> か <code>#debug</code> を付けたときだけ開けます</span>
+    </div>
+    <div class="dwrap"><table id="dTable"></table></div>
   </div>
 </div>
 
@@ -1524,6 +1582,84 @@ $('#mLoad').onclick=()=>{
 $('#bSave').onclick=()=>toast(save()?'保存しました':'保存できませんでした');
 $('#bReset').onclick=()=>{ if(!confirm('本当に最初からやり直しますか？'))return;
   try{localStorage.removeItem(KEY)}catch(_){} location.reload(); };
+
+/* ========================= デバッグ：ノード一覧と設置 =========================
+   ?debug=1 が付いているときだけ開ける。通常プレイではボタンごと出さない */
+const DEBUG = /(^|[?&])debug=1(&|$)/.test(location.search) || location.hash === '#debug';
+
+function kindOf(t){
+  const T=TYPES[t];
+  if(T.unique) return '供給';
+  if(T.store)  return '貯蔵';
+  if(T.tool)   return '増幅';
+  if(T.stat)   return '訓練';
+  if(T.effect==='dive') return '探索';
+  if(T.effect==='lab')  return '研究';
+  if(T.effect==='atk')  return '強化';
+  return Object.keys(T.outs||{}).length ? '生産' : '処理';
+}
+function ioCell(t){
+  const T=TYPES[t];
+  if(T.store) return `任意の素材 ${T.slots}種 <span style="color:var(--dim)">×${fmt(T.cap)}個</span>`;
+  const f=o=>Object.keys(o||{}).map(k=>`${ITEMS[k].i}${o[k]>1?'×'+o[k]:''}`).join(' ');
+  if(T.tool)  return `素材×${T.take} ⚡×${T.sta} → 素材×${Math.round(T.take*T.mul)}`;
+  const out = f(T.outs) || (T.stat ? statName(T.stat)
+            : T.effect==='dive' ? '⚔️攻撃' : T.effect==='atk' ? '攻撃力↑'
+            : T.effect==='lab'  ? '🔬研究力' : '—');
+  return `${f(T.ins)||'—'} → ${out}`;
+}
+function reqCell(t){
+  const T=TYPES[t];
+  if(!T.see && !T.rp) return '<span style="color:var(--dim)">最初から</span>';
+  const a = T.see ? `🧠${T.see}` : '';
+  const b = T.rp  ? `🔬${fmt(T.rp)}` : '';
+  return [a,b].filter(Boolean).join(' / ');
+}
+function dbgSpawn(t){
+  const T=TYPES[t];
+  if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
+  S.counts[t]=(S.counts[t]||0)+1;
+  const p=freeSpot();
+  sel=addNode(t,p.x,p.y).id;
+  renderInsp(); renderDbg();
+  toast(`${baseName(t)} を設置しました`);
+}
+function renderDbg(){
+  const tb=$('#dTable');
+  tb.innerHTML =
+    `<thead><tr><th>ノード</th><th>種別</th><th>入出力</th><th>1回</th>
+      <th class="n">建設費</th><th class="n">強化費</th><th>解放条件</th>
+      <th class="n">設置数</th><th></th></tr></thead><tbody>` +
+    ORDER.map(t=>{
+      const T=TYPES[t], have=S.counts[t]||0;
+      const uniq = T.unique && have>=1;
+      return `<tr>
+        <td class="nm">${baseName(t)}</td>
+        <td><span class="kind">${kindOf(t)}</span></td>
+        <td class="io">${ioCell(t)}</td>
+        <td class="n">${T.time}秒</td>
+        <td class="n">${fmt(T.cost)}</td>
+        <td class="n">${fmt(T.up)}</td>
+        <td>${reqCell(t)}</td>
+        <td class="n ${have?'have':''}">${have}</td>
+        <td><button class="put" data-t="${t}" ${uniq?'disabled':''}>設置</button></td>
+      </tr>`;
+    }).join('') + `</tbody>`;
+  tb.querySelectorAll('.put').forEach(b=>b.onclick=()=>dbgSpawn(b.dataset.t));
+}
+if(DEBUG){
+  $('#bDbg').hidden=false;
+  $('#bDbg').onclick=()=>{ renderDbg(); $('#dbg').classList.add('on'); };
+  $('#dClose').onclick=()=>$('#dbg').classList.remove('on');
+  $('#dbg').onclick=e=>{ if(e.target===$('#dbg')) $('#dbg').classList.remove('on'); };
+  document.querySelectorAll('#dbg .dtools button').forEach(b=>b.onclick=()=>{
+    const a=b.dataset.do;
+    if(a==='gold'){ S.gold+=1e6; toast('ゴールド +100万'); }
+    if(a==='stats'){ S.stats.str+=10; S.stats.int+=10; S.stats.vit+=10; checkSeen(true); toast('能力値 +10'); }
+    if(a==='dev'){ for(const t of ORDER) if(TYPES[t].rp>0) S.dev[t]=1; toast('すべて研究済みに'); }
+    renderDbg();
+  });
+}
 
 /* ========================= 起動 ========================= */
 function newGame(){
