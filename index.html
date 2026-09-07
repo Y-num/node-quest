@@ -651,8 +651,12 @@ function chainOpts(t){
    rp  : 研究所で開発しきるのに必要な研究力（0なら研究不要）
    stat : 上がる能力。訓練ノードは鍛えるほど1回の体力消費が指数的に増える  */
 const TYPES = {
-  hero  :{n:'勇者',      i:'🧍', cost:0,    up:400,  time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, unique:true, see:0, rp:0,
-          d:'すべての行動の源。ここから伸ばす配線の本数が体力の配分になる'},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:400,  time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, see:0, rp:0,
+          d:'すべての行動の源。ここから伸ばす配線の本数が体力の配分になる。経験値もここへ戻す'},
+  mate  :{n:'仲間',      i:'🧑‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, see:7, rp:1,
+          d:'もう一つの体力の源。増やすほど工房を広げられる'},
+  homun :{n:'ホムンクルス', i:'🧪', cost:400000, up:500000, time:0.7, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, see:21, rp:1,
+          d:'人の手で作られた体力の源。主人公より速い'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8},           outs:{}, effect:'dive', see:0, rp:0,
           d:'体力を大きく消費して1回攻撃する。ゴールドと階層はここから'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore', see:0, rp:0,
@@ -700,7 +704,9 @@ const TYPES = {
 
 /* 施設はレベルの節目でグレードアップする（見た目と名前が変わり、体力効率も上がる） */
 const TIERS = {
-  hero  :[[1,'寝床','🛏️'],[4,'我が家','🏠'],[8,'拠点','🏘️'],[13,'砦','🏯'],[19,'王城','👑']],
+  hero  :[[1,'見習い','🧍'],[4,'冒険者','🧗'],[8,'熟練者','⚔️'],[13,'英雄','🦸'],[19,'伝説','👑']],
+  mate  :[[1,'村人','🧑‍🌾'],[4,'職人','🧑‍🔧'],[8,'賢者','🧙'],[13,'精霊','🧝']],
+  homun :[[1,'試作体','🧪'],[4,'ホムンクルス','🧬'],[8,'オートマタ','🤖'],[13,'人造神','👾']],
   lab   :[[1,'家の机','🪑'],[4,'書斎','📚'],[8,'研究室','🔬'],[13,'研究所','🏢'],[19,'大学','🏛️']],
   mine  :[[1,'素手掘り','✋'],[4,'つるはし','⛏️'],[8,'採掘機','🚜'],[13,'大採掘場','🏗️']],
   dump  :[[1,'ゴミ袋','🛍️'],[4,'焼却炉','🔥'],[8,'廃棄場','♻️'],[13,'再生工場','🏭']],
@@ -721,11 +727,11 @@ function tierOf(n){
 }
 // ティアが1つ上がるごとに体力の消費が18%減る＝同じ⚡でより多く動ける
 const effOf = n => Math.pow(0.82, tierOf(n).t - 1);
-const ORDER = ['hero','dive','mine','dump','lab','tstr','tint','tvit','smelt','forge','armory','tool1','comp','box1','decomp','tool2','box2','box3','tool3','box4','box5'];
+const ORDER = ['hero','mate','homun','dive','mine','dump','lab','tstr','tint','tvit','smelt','forge','armory','tool1','comp','box1','decomp','tool2','box2','box3','tool3','box4','box5'];
 
 // ❤️体力は指数的に効く（生成も上限も）。だから数字はインフレするが、コストの伸びが上回るので成長は緩やか
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
-const staRate  = n  => TYPES.hero.time / Math.pow(VIT_K, S.stats.vit) / n.level / (1 + (tierOf(n).t-1)*0.5);
+const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / n.level / (1 + (tierOf(n).t-1)*0.5);
 const intBoost = () => 1 + S.stats.int * 0.02;
 const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15) * depthBonus());
 const rpGain   = n  => n.level * (1 + S.stats.int * 0.15);
@@ -810,7 +816,7 @@ const outKeys = n => Object.keys(outsOf(n));
 function craftTime(n){
   const T = TYPES[n.type];
   const sp = n.mods ? n.mods.spd : 1;
-  if(n.type === 'hero') return staRate(n) * sp;
+  if(TYPES[n.type].src) return staRate(n) * sp;
   return T.time / n.level / intBoost() * sp;
 }
 const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(PRICE_K, S.counts[t]||0));
@@ -819,7 +825,7 @@ const capMul  = n => n.mods ? n.mods.cap : 1;
 const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].store
                           ? TYPES[n.type].cap * n.level
                           : Math.max(CAP, (allIns(n)[item]||0) * 2)));
-const capOut  = (n,item) => (n.type==='hero' && item==='sta') ? maxSta()
+const capOut  = (n,item) => (TYPES[n.type].src && item==='sta') ? maxSta()
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
 
 /* ========== トレハン：第100層から施設がドロップする ==========
@@ -885,7 +891,7 @@ const OFF_SIM_MAX = 48 * 3600;                              // 一度に計算�
 const isSeen = t => S.stats.int >= TYPES[t].see;
 const isDev  = t => TYPES[t].rp === 0 || !!S.dev[t];
 /* 研究の順番。分解機を手に入れてから先は素材を注ぎ込む前提で、必要量は指数的に増える */
-const RP_LADDER = ['smelt','forge','armory','tool1','comp','box1','decomp','tool2','box2','box3','tool3','box4','box5'];
+const RP_LADDER = ['smelt','forge','armory','mate','tool1','comp','box1','decomp','tool2','box2','box3','homun','tool3','box4','box5'];
 const RP_BASE = 50, RP_K = 2.72;
 const needRp = t => {
   const i = RP_LADDER.indexOf(t);
@@ -1703,7 +1709,7 @@ function renderInspLive(){
   box.querySelector('.ic2').textContent=tr.i;
   box.querySelector('.nm2').textContent=tr.n;
   box.querySelector('.tier').textContent=`${tr.t} / ${tr.max}`+(tr.next?`（Lv.${tr.next[0]}で ${tr.next[1]}）`:'（最高）');
-  box.querySelector('.eff').textContent=n.type==='hero'
+  box.querySelector('.eff').textContent=TYPES[n.type].src
     ? `⚡産出 ×${(1+(tr.t-1)*0.5).toFixed(1)}`
     : `⚡消費 ×${effOf(n).toFixed(2)}`;
   box.querySelector('.rate').textContent=craftTime(n).toFixed(2)+' 秒';
