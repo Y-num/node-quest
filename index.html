@@ -247,7 +247,15 @@ body.tut #offscr{display:none}
   border-bottom:1px solid var(--line);background:var(--panel2)}
 #tree .tnote b{color:var(--fg)}
 #treeGrid{overflow:auto;padding:12px}
+.ttip{margin:0 0 8px;font-size:10.5px;color:var(--dim)}
 .trow{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.tscroll{display:flex;align-items:center;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;
+  padding-bottom:4px;scrollbar-width:thin}
+.tscroll::-webkit-scrollbar{height:6px}
+.tscroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.tcell.far{width:96px;opacity:.5}
+.tcell.far .cn{color:var(--dim)}
+.tgen{flex:none;font-size:9px;color:var(--faintx,#4d5a70);font-variant-numeric:tabular-nums}
 .tlab{flex:none;width:74px;font-size:11px;font-weight:700;color:var(--dim);text-align:right;padding-right:4px}
 .tcell{flex:none;width:112px;border:1px solid var(--line);border-radius:8px;padding:6px 7px;
   background:var(--panel2);font-size:10.5px;line-height:1.4;position:relative}
@@ -1549,32 +1557,48 @@ function devGen(line){
   let g=-1; for(let i=0;i<GENS;i++){ if(isDev(genKey(line,i))) g=i; else break; }
   return g;
 }
-const TREE_AHEAD = 3;                 // 先の世代をいくつ見せるか
-let treeKey='';
+const TREE_NEAR = 4;                  // ここまでは費用と研究ボタンを出す
+let treeKey='', treeBtns=[];
 function renderTree(force){
   const g=$('#treeGrid'); if(!g) return;
   $('#rpNow').textContent=fmt(gotRp()); $('#matNow').textContent=fmt(gotMat());
-  const k = LINE_ORDER.map(devGen).join(',')+'|'+gotRp()+'|'+gotMat();
-  if(k===treeKey && !force) return;   // 中身が変わっていなければ作り直さない
-  treeKey=k;
-  g.innerHTML = LINE_ORDER.map(line=>{
-    const cur = devGen(line);
-    const cells=[];
-    cells.push(`<div class="tcell done"><span class="cn">${TYPES[genKey(line,Math.max(0,cur))].i}${genName(line,Math.max(0,cur))[0]}</span>
-                <div class="cc">第${cur+1}世代 / ${GENS}</div></div>`);
-    for(let i=cur+1; i<=cur+TREE_AHEAD && i<GENS; i++){
-      const t=genKey(line,i), can=canResearch(t), seen=isSeen(t), m=needMat(t);
-      cells.push(`<div class="tcell ${can?'can':seen?'':'lock'}">
-        <span class="cn">${TYPES[t].i}${TYPES[t].n}</span>
-        <div class="cc">🔬${fmt(needRp(t))}${m?` ＋🧱${fmt(m)}`:''}</div>
-        ${seen?`<button class="rs" data-t="${t}" ${can?'':'disabled'}>研究</button>`:'<button disabled>—</button>'}</div>`);
-    }
-    return `<div class="trow"><div class="tlab">${LINE_LABEL[line]}</div>${cells.join('<span class="tarrow">▸</span>')}</div>`;
-  }).join('');
-  g.querySelectorAll('.rs').forEach(b=>b.onclick=()=>{
-    if(doUnlock(b.dataset.t)){ renderTree(true); renderShop(); }
-    else toast('研究ポイントか素材が足りません');
-  });
+  const k = LINE_ORDER.map(devGen).join(',');
+  if(k!==treeKey || force){        // 中身が動いたときだけ作り直す
+    treeKey=k; treeBtns=[];
+    g.innerHTML = '<p class="ttip">横に流すと、その系統がこれから何になっていくかを最後まで見られます（1系統100世代）。</p>'
+     + LINE_ORDER.map(line=>{
+      const cur = devGen(line);
+      let cells='';
+      for(let i=0;i<GENS;i++){
+        const t=genKey(line,i), T=TYPES[t];
+        if(i>cur+TREE_NEAR){       // まだ遠い先。名前だけ見せる
+          cells+=`<div class="tcell far"><span class="cn">${T.i}${T.n}</span><div class="cc">第${i+1}世代</div></div>`;
+          continue;
+        }
+        const dev=i<=cur, seen=isSeen(t), m=needMat(t);
+        const cost = dev ? `第${i+1}世代` : `🔬${fmt(needRp(t))}${m?` ＋🧱${fmt(m)}`:''}`;
+        const btn  = dev ? '' : seen ? `<button class="rs" data-t="${t}">研究</button>`
+                                     : '<button disabled>—</button>';
+        cells+=`<div class="tcell ${dev?'done':seen?'':'lock'}"><span class="cn">${T.i}${T.n}</span>`
+             + `<div class="cc">${cost}</div>${btn}</div>`;
+      }
+      return `<div class="trow"><div class="tlab">${LINE_LABEL[line]}</div>`
+           + `<div class="tscroll" data-line="${line}">${cells}</div></div>`;
+    }).join('');
+    g.querySelectorAll('.rs').forEach(b=>{
+      treeBtns.push({el:b, cell:b.parentNode, t:b.dataset.t});
+      b.onclick=()=>{ if(doUnlock(b.dataset.t)){ renderTree(true); renderShop(); }
+                      else toast('研究ポイントか素材が足りません'); };
+    });
+    // いま開けるところが見えるように寄せる
+    g.querySelectorAll('.tscroll').forEach(el=>{
+      const c=el.children[Math.max(0, devGen(el.dataset.line))];
+      if(c) el.scrollLeft = Math.max(0, c.offsetLeft - el.offsetLeft - 6);
+    });
+  }
+  // 毎回やるのは「いま買えるか」の更新だけ。横に流した位置は動かさない
+  for(const b of treeBtns){ const can=canResearch(b.t);
+    b.el.disabled=!can; b.cell.classList.toggle('can', can); }
 }
 
 /* ========================= 記録のグラフ =========================
