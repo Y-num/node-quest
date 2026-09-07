@@ -594,7 +594,13 @@ const ITEMS = {
   prt4 :{n:'回路',   i:'🔌', c:'#f5d76a'},
   prt5 :{n:'結晶',   i:'💠', c:'#58c6e8'},
   prt6 :{n:'核',     i:'⚛️', c:'#8ff7e6'},
+  // 経験値。訓練で生まれ、主人公まで配線を戻すと能力になる
+  exs  :{n:'筋の経験', i:'💪', c:'#e8785a'},
+  exi  :{n:'知の経験', i:'🧠', c:'#7aa2ff'},
+  exv  :{n:'体の経験', i:'❤️', c:'#5ee0c0'},
 };
+const EXP_OF  = {str:'exs', int:'exi', vit:'exv'};
+const STAT_OF = {exs:'str', exi:'int', exv:'vit'};
 
 /* 素材の系統。原鉱→地金→部品 が1対1で対応する。
    floor = この最深到達層で解放 / sta = 採掘1回の体力 / val = 部品1つ分の攻撃力 */
@@ -645,7 +651,7 @@ function chainOpts(t){
    rp  : 研究所で開発しきるのに必要な研究力（0なら研究不要）
    stat : 上がる能力。訓練ノードは鍛えるほど1回の体力消費が指数的に増える  */
 const TYPES = {
-  hero  :{n:'勇者',      i:'🧍', cost:0,    up:400,  time:0.9, ins:{},                outs:{sta:1}, unique:true, see:0, rp:0,
+  hero  :{n:'勇者',      i:'🧍', cost:0,    up:400,  time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, unique:true, see:0, rp:0,
           d:'すべての行動の源。ここから伸ばす配線の本数が体力の配分になる'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8},           outs:{}, effect:'dive', see:0, rp:0,
           d:'体力を大きく消費して1回攻撃する。ゴールドと階層はここから'},
@@ -655,11 +661,11 @@ const TYPES = {
           d:'廃材を片付ける。ここが止まると工房全体が詰まる'},
   lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12},          outs:{}, effect:'lab', see:0, rp:0,
           d:'体力を研究力に変える。判明したノードを選んで開発する'},
-  tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{}, stat:'str', see:0, rp:0,
+  tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str', see:0, rp:0,
           d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増える'},
-  tint  :{n:'読書',      i:'📖', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{}, stat:'int', see:0, rp:0,
+  tint  :{n:'読書',      i:'📖', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int', see:0, rp:0,
           d:'🧠知力+1。未知のノードが判明し、研究も速くなる'},
-  tvit  :{n:'走り込み',  i:'🏃', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{}, stat:'vit', see:0, rp:0,
+  tvit  :{n:'走り込み',  i:'🏃', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exv:1}, stat:'vit', see:0, rp:0,
           d:'❤️体力+1。体力の生成と上限が指数的に伸びる'},
   smelt :{n:'精錬',      i:'🔥', cost:900,  up:1200, time:3.2, ins:{}, outs:{}, chain:'ingot', see:3,  rp:1,
           d:'原鉱2つを地金1つにする'},
@@ -796,7 +802,10 @@ function outsOf(n){
   if(T.tool) return n.item ? {[n.item]: Math.round(T.take * T.mul)} : {};
   return modOuts(n, T.outs);
 }
-const inKeys  = n => Object.keys(insOf(n));
+// 必須ではないが受け取れる入力（主人公の経験値など）。口は作るが、稼働の条件にはしない
+const softIns = n => TYPES[n.type].soft || {};
+const allIns  = n => Object.assign({}, insOf(n), softIns(n));
+const inKeys  = n => Object.keys(allIns(n));
 const outKeys = n => Object.keys(outsOf(n));
 function craftTime(n){
   const T = TYPES[n.type];
@@ -809,7 +818,7 @@ const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
 const capMul  = n => n.mods ? n.mods.cap : 1;
 const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].store
                           ? TYPES[n.type].cap * n.level
-                          : Math.max(CAP, (insOf(n)[item]||0) * 2)));
+                          : Math.max(CAP, (allIns(n)[item]||0) * 2)));
 const capOut  = (n,item) => (n.type==='hero' && item==='sta') ? maxSta()
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
 
@@ -1070,7 +1079,7 @@ function removeNode(id){
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
-  if(!insOf(b)[item])  return false;
+  if(!allIns(b)[item]) return false;
   return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
 }
 function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
@@ -1095,13 +1104,24 @@ function allocText(n, item){
   if(!tot) return '未接続';
   return [...agg].map(([id,w])=>`${tierOf(N(id)).i}${Math.round(w/tot*100)}%`).join('  ');
 }
-const spaceIn = (n,item) => !insOf(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
+const spaceIn = (n,item) => !allIns(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
 
 /* ========================= シミュレーション ========================= */
 function tick(dt,fast){
   for(const n of S.nodes){
     const T=TYPES[n.type];
     n.stall=false; n.why='';
+    if(T.soft){                                   // 届いた経験値をその場で能力に変える
+      for(const k in T.soft){
+        const c=Math.floor(n.inBuf[k]||0);
+        if(c>0){
+          const st=STAT_OF[k];
+          S.stats[st]+=c; n.inBuf[k]-=c; n.gain=(n.gain||0)+c;
+          if(!fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
+          checkSeen(fast);
+        }
+      }
+    }
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
     if(T.chain==='comp' || T.chain==='decomp'){
@@ -1126,7 +1146,7 @@ function tick(dt,fast){
       const give=outsOf(n);
       for(const k in give) n.outBuf[k]=(n.outBuf[k]||0)+give[k];
       n.done++;
-      if(T.stat){ S.stats[T.stat]++; if(!fast) addLog(`${T.i} ${statName(T.stat)}が ${S.stats[T.stat]} になった`,'u'); checkSeen(fast); }
+      // 訓練は経験値を産むだけ。主人公まで配線を戻して初めて能力になる
       if(T.effect==='atk'){ const c=chainOf(n); const g=(c?c.val:0)*n.level; S.atkBonus+=g; n.gain=(n.gain||0)+g; }
       if(T.chain==='decomp' && n.item){
         const rp = itemVal(n.item) * DECOMP_TAKE * n.level;
@@ -1341,7 +1361,7 @@ function render(){
     }
     e.bar.style.width=(n.crafting?Math.min(100,n.prog/n.need*100):0)+'%';
     e.nf.textContent = n.stall ? '停止：'+n.why
-      : T.stat ? '稼働中 → '+statName(T.stat)
+      : T.stat ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（主人公へ戻す）`
       : T.effect==='atk' ? '稼働中 → 攻撃力 +'+fmt(n.gain||0)
       : T.effect==='dive'? '稼働中 → '+n.done+'回 潜った'
       : T.effect==='lab' ? (n.target ? `研究中 → ${TYPES[n.target].i}${TYPES[n.target].n} ${fmt(gotRp(n.target))}/${fmt(needRp(n.target))}` : '研究対象を選んでください')
@@ -1577,7 +1597,7 @@ function offscreenCount(){
 /* この素材を受け取れる施設を出す（採掘したはいいが送り先が分からない、を防ぐ） */
 const baseName = t => (TIERS[t] ? TIERS[t][0][2]+TIERS[t][0][1] : TYPES[t].i+TYPES[t].n);
 function destText(item){
-  const built = [...new Set(S.nodes.filter(n=>insOf(n)[item]).map(n=>tierOf(n).i+tierOf(n).n))];
+  const built = [...new Set(S.nodes.filter(n=>allIns(n)[item]).map(n=>tierOf(n).i+tierOf(n).n))];
   if(built.length) return built.join(' ・ ');
   const kinds = [...new Set(ORDER.filter(t=>{
     const T=TYPES[t];
