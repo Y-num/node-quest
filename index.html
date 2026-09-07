@@ -195,7 +195,7 @@ body.tut #offscr{display:none}
   .tut-hi{animation:none;box-shadow:0 0 0 2px var(--acc)}
 }
 
-@media (max-width:860px){
+@media (max-width:860px), (max-height:520px){
   #tut{left:8px;right:8px;top:8px;grid-template-columns:auto 1fr;padding:10px 11px}
   #tut.on{grid-template-columns:auto 1fr}
   #tut .tacts{grid-column:1 / -1;justify-content:stretch}
@@ -240,7 +240,7 @@ body.tut #offscr{display:none}
 #dTable .put:hover{background:var(--acc);color:#08131a}
 #dTable .put:disabled{opacity:.35;cursor:not-allowed;border-color:var(--line);color:var(--dim)}
 #dTable .have{color:var(--acc);font-weight:700}
-@media (max-width:860px){ #dbg{padding:8px} #dbg .dnote{display:none} }
+@media (max-width:860px), (max-height:520px){ #dbg{padding:8px} #dbg .dnote{display:none} }
 
 #modal{position:fixed;inset:0;background:rgba(6,9,14,.78);z-index:100;display:none;
   align-items:center;justify-content:center;padding:16px}
@@ -287,10 +287,12 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
 #mtabs{display:none;position:absolute;left:0;right:0;bottom:0;z-index:20;
   height:calc(48px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
   background:var(--panel);border-top:1px solid var(--line)}
-#mtabs button{flex:1;background:none;border:none;color:var(--dim);font-size:11.5px;font-weight:700}
+#mtabs button{flex:1;background:none;border:none;color:var(--dim);font-size:11.5px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:5px}
+#mtabs button i{font-style:normal;font-size:14px;line-height:1}
 #mtabs button.on{color:var(--acc);box-shadow:inset 0 2px 0 var(--acc)}
 
-@media (max-width:860px){
+@media (max-width:860px), (max-height:520px){
   #top{height:46px;gap:5px;padding:0 8px;overflow-x:auto;overflow-y:hidden}
   #top::-webkit-scrollbar{display:none}
   #top .logo{display:none}
@@ -315,8 +317,38 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
   padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700}
 #offscr.on{display:block}
 #offscr:hover{background:var(--acc2);color:#08131a}
-@media (max-width:860px){
+@media (max-width:860px), (max-height:520px){
   #offscr{top:10px;bottom:auto;font-size:10.5px;max-width:88vw}
+}
+
+/* ---------- 横向き：高さが足りないのでタブを左端の縦レールに ---------- */
+@media (orientation:landscape) and (max-height:520px){
+  #top{height:38px;gap:4px}
+  #top .stat{padding:1px 7px}
+  #top .stat .k{font-size:9px}
+  #top .stat .v{font-size:12px}
+  #top .stat.best .v{font-size:15px}
+  #top .tbtn{padding:3px 8px;font-size:10px}
+
+  #mtabs{flex-direction:column;width:calc(54px + env(safe-area-inset-left));
+    height:auto;top:0;bottom:0;right:auto;padding:0 0 0 env(safe-area-inset-left);
+    border-top:0;border-right:1px solid var(--line)}
+  #mtabs button{flex:none;height:62px;flex-direction:column;gap:2px;font-size:9.5px}
+  #mtabs button i{font-size:17px}
+  #mtabs button.on{box-shadow:inset 2px 0 0 var(--acc)}
+
+  #stage{left:calc(54px + env(safe-area-inset-left));bottom:0}
+  #shop,#side{left:calc(54px + env(safe-area-inset-left));bottom:0;right:auto;
+    width:min(340px,52vw);border-top:0;border-right:1px solid var(--line)}
+
+  /* 下に置くと画面がほぼ埋まるので、インスペクタは右の縦パネルにする */
+  #insp{left:auto;right:8px;top:8px;bottom:8px;width:238px;overflow-y:auto;padding:9px}
+  #insp .kv{margin-top:4px}
+  #insp .btns{margin-top:7px}
+
+  #tut{left:12px;right:auto;transform:none;top:8px;width:min(430px,calc(100% - 270px))}
+  #hint{display:none}
+  #offscr{top:8px;left:auto;right:262px;transform:none}
 }
 </style>
 </head>
@@ -338,9 +370,9 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
   </div>
   <div id="mid">
     <nav id="mtabs">
-      <button data-p="stage" class="on">🗺 工房</button>
-      <button data-p="shop">🏗 建設</button>
-      <button data-p="side">🛡 状態</button>
+      <button data-p="stage" class="on"><i>🗺</i><span>工房</span></button>
+      <button data-p="shop"><i>🏗</i><span>建設</span></button>
+      <button data-p="side"><i>🛡</i><span>状態</span></button>
     </nav>
     <div id="shop">
       <div class="sec">行動ノードを建てる</div>
@@ -1120,20 +1152,32 @@ const NHmax = 126;                       // 判定に使うノードの高さ（
 const hOf = n => parseFloat(n.el.root.style.height) || NHmax;
 const taken = (x,y) => S.nodes.some(n => Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
 // 左下のインスペクタ・右上のヘルプに隠れる位置は避ける
+// 画面に重なっているパネル（案内・インスペクタ・ヘルプ）の下は避ける。
+// 縦向きと横向きでパネルの位置が変わるので、決め打ちせず実際の矩形から判定する
+const UI_PANELS = ['#tut','#insp','#hint'];
 function uiBlocked(wx,wy){
-  const v=S.view, W=stage.clientWidth, H=stage.clientHeight;
+  const v=S.view;
   const sx=wx*v.s+v.x, sy=wy*v.s+v.y, w=NW*v.s, h=NHmax*v.s;
-  const tut=$('#tut');
-  if(tut.classList.contains('on')){        // 案内パネルの下は掴めなくなるので避ける
-    const tw=tut.offsetWidth*1, tl=(W-tw)/2, tb=12+tut.offsetHeight+12;
-    if(sy < tb && sx+w > tl && sx < tl+tw) return true;
+  const sr=stage.getBoundingClientRect(), pad=12;
+  for(const id of UI_PANELS){
+    const el=$(id);
+    if(!el || getComputedStyle(el).display==='none') continue;
+    const r=el.getBoundingClientRect();
+    if(!r.width || !r.height) continue;
+    const l=r.left-sr.left-pad, t=r.top-sr.top-pad;
+    if(sx < l+r.width+pad*2 && sx+w > l && sy < t+r.height+pad*2 && sy+h > t) return true;
   }
-  if(sx < 290 && sy+h > H-220) return true;
-  if(sx+w > W-140 && sy < 60)  return true;
   return false;
 }
-// いま見えている範囲の中から空いているマスを探す
-function freeSpot(){
+// 表示倍率を保ったまま、画面中央を基準に拡大縮小する
+function zoomTo(ns){
+  const v=S.view, cx=stage.clientWidth/2, cy=stage.clientHeight/2;
+  v.x = cx-(cx-v.x)*(ns/v.s);
+  v.y = cy-(cy-v.y)*(ns/v.s);
+  v.s = ns; applyView();
+}
+// いま見えている範囲の中から空いているマスを探す（無ければ null）
+function scanVisible(){
   const v=S.view, W=stage.clientWidth, H=stage.clientHeight, pad=20;
   const x0=(pad-v.x)/v.s, y0=(pad-v.y)/v.s;
   const x1=(W-pad-v.x)/v.s, y1=(H-pad-v.y)/v.s;
@@ -1143,12 +1187,28 @@ function freeSpot(){
       if(uiBlocked(gx,gy) || taken(gx,gy)) continue;
       return {x:gx, y:gy};
     }
-  // 見えている範囲が埋まっていたら、いちばん下に折り返して積む
-  let bx=Math.round(x0/10)*10, by=Math.round(y0/10)*10;
-  for(const n of S.nodes) by=Math.max(by, n.y);
-  by+=NHmax+18;
-  while(taken(bx,by)) bx+=NW+30;
-  return {x:bx, y:by};
+  return null;
+}
+function freeSpot(){
+  let p = scanVisible();
+  if(p) return p;
+  // 空きが無ければ少しずつ引いて、画面の外に置かずに済ませる
+  for(let i=0; i<8 && S.view.s > 0.21; i++){
+    zoomTo(Math.max(0.2, S.view.s*0.8));
+    p = scanVisible();
+    if(p) return p;
+  }
+  // 目一杯引いても入らないときだけ、見えている範囲の下に格子で積む
+  const v=S.view, W=stage.clientWidth, H=stage.clientHeight, pad=20;
+  const x0=(pad-v.x)/v.s, x1=(W-pad-v.x)/v.s, y1=(H-pad-v.y)/v.s;
+  const cols=Math.max(2, Math.floor((x1-x0)/(NW+30)));
+  for(let row=0; row<400; row++)
+    for(let c=0; c<cols; c++){
+      const gx=Math.round((x0+c*(NW+30))/10)*10;
+      const gy=Math.round((y1+row*(NHmax+18))/10)*10;
+      if(!taken(gx,gy)) return {x:gx, y:gy};
+    }
+  return {x:Math.round(x0/10)*10, y:Math.round(y1/10)*10};
 }
 function bounds(){
   let a={x0:Infinity,y0:Infinity,x1:-Infinity,y1:-Infinity};
