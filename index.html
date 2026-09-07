@@ -825,7 +825,14 @@ function itemVal(k){
   return v;
 }
 const COMP_TAKE = 5, DECOMP_TAKE = 4, SELL_TAKE = 4, SELL_K = 3;
-const ANVIL_K = 2.5, ERA_ATK = 1.35;   // 鍛錬1打ちの伸びと、時代ごとの上積み
+/* 鍛錬。打つほど伸びは鈍る（合計は 打数^ANVIL_P に比例）。
+   頭打ちを破るには、より良い合金に持ち替えるしかない。
+     10打ちで 3.6倍 ／ 100打ちで 12.6倍 ／ 1,000打ちで 44.7倍 ／ 1万打ちで 158倍   */
+const ANVIL_K = 12, ANVIL_P = 0.55, ERA_ATK = 1.35;
+const anvilBase = n => itemVal(alloyOf(tierIdx(n.item)+1)) * ANVIL_K * lvPow(n.level)
+                     * Math.pow(ERA_ATK, (TYPES[n.type].era||1)-1);
+const anvilTot  = (n,k) => anvilBase(n) * Math.pow(Math.max(0,k), ANVIL_P);
+const anvilNext = n => Math.max(0, anvilTot(n,(n.eqLv||0)+1) - anvilTot(n,(n.eqLv||0)));
 // 副産物を燃やして得られる体力。厄介なものほど多い
 const bypVal = k => (BYP.find(b=>b.k===k)||{v:0}).v;
 const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(densStep(0), densOf(n.item))
@@ -847,6 +854,12 @@ const withDens = (arr, cap) => {
   for(const k of arr) for(let i=0;i<=d;i++) o.push(densKey(k,i));
   return o;
 };
+/* 貯蔵に入れられるもの。厄介な副産物も貯めておける（片付ける手段が来るまでの緩衝） */
+function storeOpts(){
+  const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
+  const aly  = []; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) aly.push(alloyOf(i));
+  return ['coal','power','nfl'].concat(aly, BYP.map(b=>b.k), withDens(mats));
+}
 function chainOpts(t){
   const T = TYPES[t], k = T.chain, g = T.era||1;
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
@@ -921,8 +934,8 @@ const ERAS = [
   {n:'青銅',   i:'🏺', d:'炉と型。副産物を燃やして⚡に戻せるようになる'},
   {n:'鉄器',   i:'⚒️', d:'合成炉。2種類の地金から合金が作れる'},
   {n:'水力',   i:'💧', d:'水車と炭窯。石炭を焼きはじめる'},
-  {n:'蒸気',   i:'🚂', d:'蒸気機関。この時代の施設は⚡に加えて⚫石炭を食う'},
-  {n:'電気',   i:'⚡', d:'発電所。🔌電力が要るかわりに桁が変わる。かわりに🧪汚染が出る'},
+  {n:'蒸気',   i:'🚂', d:'機械の始まり。この時代の生産施設は⚡ではなく⚫石炭で動く'},
+  {n:'電気',   i:'⚡', d:'発電所。生産は🔌電力で回るようになる。かわりに🧪汚染が出る'},
   {n:'電子',   i:'💻', d:'自動化と触媒分解炉。ようやく汚染を片付けられる'},
   {n:'原子力', i:'☢️', d:'核燃料で一気に伸びるが、☢️放射性廃棄物が必ず出る。捨てるしかない'},
   {n:'量子',   i:'🧿', d:'放射性廃棄物を分解して⚡に変えられるようになる'},
@@ -935,8 +948,10 @@ const ERA_SPD = 0.86, ERA_EFF = 0.87, ERA_COST = 3.2, ERA_UP = 4.0;
 const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
 /* その時代の施設が⚡のほかに要るもの */
 const ERA_POW = {5:{coal:1}, 6:{power:1}, 7:{power:2}, 8:{nfl:1}, 9:{power:3}, 10:{power:6}};
-const POW_ROLE = {ore:1, ingot:1, part:1, alloy:1, atk:1, anvil:1, comp:1, decomp:1};
-const eraPow = T => (POW_ROLE[T.chain] && ERA_POW[T.era]) || null;
+/* 動力で動く役割。ここに入るものは、その時代になると人の体力では動かなくなる。
+   逆に廃棄と再利用は最後まで⚡で動く（動力が止まっても工房を立て直せるように） */
+const POW_ROLE = {ore:1, ingot:1, part:1, alloy:1, atk:1, anvil:1, comp:1, decomp:1, sell:1, tool:1};
+const eraPow = T => (POW_ROLE[T.chain || T.line] && ERA_POW[T.era]) || null;
 const ERA_EXTRA = {
   tool: g => ({mul: 1.5 + g*0.45, sta: 3 + g}),
   box:  g => ({slots: 1 + Math.floor(g*0.9), cap: Math.round(200 * Math.pow(2.2, g))}),
@@ -1074,8 +1089,10 @@ const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, atk:1.5, alloy:1.4, anvil:2.2};
 function tierIdx(k){ if(!k) return -1; const b=baseOf(k);
   for(let i=0;i<CHAIN.length;i++) if(CHAIN[i].ore===b||CHAIN[i].ingot===b||CHAIN[i].part===b) return i;
   return -1; }
-// その時代の施設が⚡のほかに要るものを足す
+/* 動力で動く時代の施設は、人の体力ではなく動力で回る。
+   つるはしと掘削機は同じ「掘る」でも別物、という区別をここで付けている。   */
 function eraIn(T, o){ const x=eraPow(T); if(!x) return o;
+  delete o.sta;                                  // 機械は⚡を使わない
   for(const k in x) o[k]=(o[k]||0)+x[k]; return o; }
 /* 増幅器は入れた素材で働きが変わる。
    安い素材ほどよく増え、高価な素材ほど増えにくく、体力も余計に食う。   */
@@ -1107,7 +1124,7 @@ function insOf(n){
     if(!n.item) return {};
     const take = T.chain==='comp' ? COMP_TAKE : T.chain==='sell' ? SELL_TAKE : DECOMP_TAKE;
     const st = Math.max(1, Math.ceil((T.chain==='comp'?3:2) * e * COST_K));
-    return modIns(n, {sta:st, [n.item]:take});
+    return modIns(n, eraIn(T, {sta:st, [n.item]:take}));
   }
   if(T.chain){
     const c = chainOf(n);
@@ -1128,7 +1145,7 @@ function insOf(n){
   if(T.tool){
     if(n.item) o[n.item] = T.take;
     o.sta = Math.max(1, Math.ceil(T.sta * toolLoad(n) * e * COST_K));
-    return o;
+    return modIns(n, eraIn(T, o));
   }
   const k = T.stat ? trainMul(S.stats[T.stat]) : 1;   // 訓練は鍛えるほど重くなる（後半ほど急に）
   for(const i in T.ins) o[i] = Math.max(1, Math.ceil(T.ins[i] * k * (i==='sta' ? e*COST_K : 1)));
@@ -1554,10 +1571,11 @@ function tick(dt,fast){
       n.done++;
       // 訓練は経験値を産むだけ。主人公まで配線を戻して初めて能力になる
       if(T.effect==='atk'){ const g=Math.round(itemVal(n.item)*lvPow(n.level)); S.atkBonus+=g; n.gain=(n.gain||0)+g; }
-      if(T.effect==='anvil'){                 // 打つほど装備が育つ
-        const i=tierIdx(n.item);
-        const g=Math.round(itemVal(alloyOf(i+1)) * ANVIL_K * lvPow(n.level) * Math.pow(ERA_ATK, (T.era||1)-1));
-        S.atkBonus+=g; n.gain=(n.gain||0)+g; n.eqLv=(n.eqLv||0)+1;
+      if(T.effect==='anvil'){                 // 打つほど装備が育つが、伸びは鈍っていく
+        n.eqLv=(n.eqLv||0)+1;
+        const tot=anvilTot(n, n.eqLv), add=Math.max(0, tot-(n.eqAtk||0));
+        n.eqAtk=Math.max(n.eqAtk||0, tot);
+        S.atkBonus+=add; n.gain=n.eqAtk;
       }
       if(T.chain==='sell' && n.item){
         const g=sellPrice(n.item, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
@@ -1927,7 +1945,7 @@ function render(){
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
       : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
       : T.chain==='alloy' ? (n.item ? `${ITEMS[n.item].n}＋${ITEMS[CHAIN[tierIdx(n.item)+1].ingot].n} → ${ITEMS[alloyOf(tierIdx(n.item)+1)].n}` : '混ぜる地金を選んでください')
-      : T.chain==='anvil' ? (n.item ? `⚔️${ITEMS[n.item].n} を鍛錬中 +${n.eqLv||0}打　攻撃力 +${fmt(n.gain||0)}` : '鍛える装備を選んでください')
+      : T.chain==='anvil' ? (n.item ? `⚔️${ITEMS[n.item].n} ${n.eqLv||0}打　攻撃力 +${fmt(n.gain||0)}（次の1打ち +${fmt(anvilNext(n))}）` : '鍛える装備を選んでください')
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
       : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
       : T.chain==='sell' ? (n.item ? `${ITEMS[n.item].n}を販売中 → 💰累計 ${fmt(n.gain||0)}` : '売る素材を選んでください')
@@ -2265,7 +2283,7 @@ function renderInsp(){
     for(let i=0;i<T.slots;i++){
       const sl=document.createElement('select');
       sl.innerHTML=`<option value="">— 空き —</option>`+
-        Object.keys(ITEMS).map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
+        storeOpts().map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
       sl.value=(n.items&&n.items[i])||'';
       sl.onchange=()=>{ setStoreItem(n,i,sl.value||null); renderInsp(); };
       w.appendChild(sl);
@@ -2346,7 +2364,7 @@ function renderInspLive(){
       cv.textContent = i>=0 ? `${ITEMS[CHAIN[i].ingot].n}×2 ＋ ${ITEMS[CHAIN[i+1].ingot].n}×1 → ${ITEMS[alloyOf(i+1)].n}（価値 ${fmt(itemVal(alloyOf(i+1)))}）` : '—'; }
     else if(TY.chain==='anvil'){ const i=tierIdx(n.item);
       cv.textContent = i>=0
-        ? `1打ちで攻撃力 +${fmt(itemVal(alloyOf(i+1))*ANVIL_K*lvPow(n.level)*Math.pow(ERA_ATK,(TY.era||1)-1))}（${n.eqLv||0}打／累計 +${fmt(n.gain||0)}）`
+        ? `${n.eqLv||0}打／累計 +${fmt(n.eqAtk||0)}　次の1打ち +${fmt(anvilNext(n))}（${ITEMS[alloyOf(i+1)].n}を打ち込み中）`
         : '—'; }
     else { cv.textContent = n.item ? '攻撃力 +'+fmt(itemVal(n.item)*lvPow(n.level)) : '—'; }
   }
