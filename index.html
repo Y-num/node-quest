@@ -204,6 +204,42 @@ body.tut #offscr{display:none}
 /* ---------- デバッグ：ノード一覧と設置 ---------- */
 .tbtn.dbg{border-color:var(--warn);color:var(--warn)}
 .tbtn.dbg:hover{background:var(--warn);color:#0a0d14}
+/* ---------- 研究ツリー ---------- */
+.tbtn.tree{border-color:var(--acc2);color:var(--acc2)}
+.tbtn.tree:hover{background:var(--acc2);color:#08131a}
+#tree{position:fixed;inset:0;background:rgba(6,9,14,.85);z-index:108;display:none;
+  align-items:center;justify-content:center;padding:16px}
+#tree.on{display:flex}
+#tree .tbox{width:min(1180px,100%);max-height:92vh;display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--acc2);border-radius:12px;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#tree .thead{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid var(--line)}
+#tree .tt{font-weight:700;font-size:14px;color:var(--acc2)}
+#tree .tpool{font-size:12px;color:var(--dim)}
+#tree .tpool b{color:var(--acc);font-size:15px;font-variant-numeric:tabular-nums}
+#tree .thead button{margin-left:auto;background:#0c111b;border:1px solid var(--line);
+  border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600}
+#tree .tnote{margin:0;padding:10px 16px;font-size:11px;color:var(--dim);line-height:1.6;
+  border-bottom:1px solid var(--line);background:var(--panel2)}
+#tree .tnote b{color:var(--fg)}
+#treeGrid{overflow:auto;padding:12px}
+.trow{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.tlab{flex:none;width:74px;font-size:11px;font-weight:700;color:var(--dim);text-align:right;padding-right:4px}
+.tcell{flex:none;width:112px;border:1px solid var(--line);border-radius:8px;padding:6px 7px;
+  background:var(--panel2);font-size:10.5px;line-height:1.4;position:relative}
+.tcell .cn{font-weight:700;font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcell .cc{color:var(--dim);font-size:9.5px;margin-top:2px;font-variant-numeric:tabular-nums}
+.tcell button{width:100%;margin-top:5px;border-radius:5px;padding:3px;font-size:10px;font-weight:700;
+  background:#0c111b;border:1px solid var(--line);color:var(--dim)}
+.tcell.done{border-color:var(--acc);background:rgba(94,224,192,.08)}
+.tcell.done .cn{color:var(--acc)}
+.tcell.can{border-color:var(--acc2)}
+.tcell.can button{border-color:var(--acc2);color:var(--acc2)}
+.tcell.can button:hover{background:var(--acc2);color:#08131a}
+.tcell.lock{opacity:.42}
+.tarrow{flex:none;color:var(--line);font-size:11px}
+@media (max-width:860px), (max-height:520px){ #tree{padding:8px} .tlab{width:56px;font-size:10px} }
+
 /* ---------- 拾得品 ---------- */
 .tbtn.bag{border-color:var(--pw);color:var(--pw)}
 .tbtn.bag:hover{background:var(--pw);color:#0a0d14}
@@ -399,6 +435,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <span class="sp"></span>
     <button class="tbtn" id="bFit">全体表示</button>
     <button class="tbtn" id="bTidy">整列</button>
+    <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
     <button class="tbtn bag" id="bBag" hidden>🎁 拾得品 <b id="bCount">0</b></button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
@@ -484,6 +521,20 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="sec">ログ</div>
       <div id="log"></div>
     </div>
+  </div>
+</div>
+
+<div id="tree">
+  <div class="tbox">
+    <div class="thead">
+      <div class="tt">🔬 研究ツリー</div>
+      <div class="tpool">研究ポイント <b id="rpNow">0</b></div>
+      <button id="tClose">閉じる</button>
+    </div>
+    <p class="tnote">系統ごとに、原始から未来へ世代が並びます。1つ前の世代を開けると次が研究できます。
+       世代4以降は研究ポイントに加えて<b>部品</b>も必要です（🔬研究所に部品を送ると在庫になります）。
+       古い世代もそのまま建てられます。</p>
+    <div id="treeGrid"></div>
   </div>
 </div>
 
@@ -655,16 +706,15 @@ const TYPES = {
           d:'すべての行動の源。ここから伸ばす配線の本数が体力の配分になる。経験値もここへ戻す'},
   mate  :{n:'仲間',      i:'🧑‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, see:7, rp:1,
           d:'もう一つの体力の源。増やすほど工房を広げられる'},
-  homun :{n:'ホムンクルス', i:'🧪', cost:400000, up:500000, time:0.7, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, see:21, rp:1,
-          d:'人の手で作られた体力の源。主人公より速い'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8},           outs:{}, effect:'dive', see:0, rp:0,
           d:'体力を大きく消費して1回攻撃する。ゴールドと階層はここから'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore', see:0, rp:0,
           d:'原鉱を掘る。掘る鉱石は選ぶ。かならず廃材が出る'},
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, ins:{sta:3, waste:3},  outs:{}, see:0, rp:0,
           d:'廃材を片付ける。ここが止まると工房全体が詰まる'},
-  lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12},          outs:{}, effect:'lab', see:0, rp:0,
-          d:'体力を研究力に変える。判明したノードを選んで開発する'},
+  lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12}, outs:{}, effect:'lab', see:0, rp:0,
+          soft:{prt1:1,prt2:1,prt3:1,prt4:1,prt5:1,prt6:1},
+          d:'体力を研究力に変える。部品を送り込むと研究在庫になり、現代以降の研究に使える'},
   tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str', see:0, rp:0,
           d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増える'},
   tint  :{n:'読書',      i:'📖', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int', see:0, rp:0,
@@ -678,23 +728,11 @@ const TYPES = {
   forge :{n:'加工',      i:'🛠️', cost:6000, up:8000, time:4.0, ins:{}, outs:{}, chain:'part', see:5,  rp:1,
           d:'地金2つを部品1つに加工する。廃材も多い'},
   // 道具＝配線の「間」に挟んで通した素材を増やす増幅器。対象の素材はインスペクタで選ぶ
-  tool1 :{n:'木の道具',  i:'🪵', cost:800,   up:1100,   time:2.5, tool:true, mul:1.5, take:4, sta:3,  see:7,  rp:1,
-          d:'間に挟むと通した素材が1.5倍になる'},
-  tool2 :{n:'鉄の道具',  i:'⚒️', cost:9000,  up:12000,  time:2.5, tool:true, mul:2.0, take:4, sta:4,  see:12, rp:1,
-          d:'通した素材が2倍になる高級な道具'},
-  tool3 :{n:'魔道具',    i:'💎', cost:90000, up:120000, time:2.5, tool:true, mul:3.0, take:4, sta:5, see:19, rp:1,
-          d:'通した素材が3倍になる最高級の道具'},
+  tool  :{n:'木の道具',  i:'🪵', cost:800,   up:1100,   time:2.5, tool:true, mul:1.5, take:4, sta:3,  see:0, rp:0,
+          d:'間に挟むと通した素材が増える増幅器'},
   // 倉庫＝素材を貯めておく場所。スロットの数だけ違う素材を同時に扱える
-  box1  :{n:'木箱',      i:'📦', cost:400,    up:500,    time:0.4, store:true, slots:1, cap:200,  see:9,  rp:1,
-          d:'素材を1種類だけ貯めておける。詰まりを防げる'},
-  box2  :{n:'棚',        i:'🗄️', cost:2500,   up:3200,   time:0.4, store:true, slots:2, cap:400,  see:14, rp:1,
-          d:'2種類まとめて貯めておける'},
-  box3  :{n:'倉庫',      i:'🏬', cost:15000,  up:19000,  time:0.4, store:true, slots:3, cap:800,  see:17, rp:1,
-          d:'3種類。工房が大きくなってきたら'},
-  box4  :{n:'貯蔵庫',    i:'🏦', cost:90000,  up:115000, time:0.4, store:true, slots:4, cap:1600, see:22, rp:1,
-          d:'4種類。長い放置に耐える'},
-  box5  :{n:'大倉庫',    i:'🏛️', cost:500000, up:640000, time:0.4, store:true, slots:5, cap:3200, see:26, rp:1,
-          d:'5種類すべて。最大の貯蔵量'},
+  box   :{n:'木箱',      i:'📦', cost:400,    up:500,    time:0.4, store:true, slots:1, cap:200,  see:0, rp:0,
+          d:'素材を貯めておける。詰まりを防げる'},
   // 弱い素材を腐らせないための2つ
   comp  :{n:'圧縮機',    i:'🗜️', cost:2000,   up:2600,   time:2.0, chain:'comp',   see:8,  rp:1,
           d:'下位の素材5つを、1つ上の素材1つに圧縮する'},
@@ -702,32 +740,68 @@ const TYPES = {
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
 };
 
-/* 施設はレベルの節目でグレードアップする（見た目と名前が変わり、体力効率も上がる） */
-const TIERS = {
-  hero  :[[1,'見習い','🧍'],[4,'冒険者','🧗'],[8,'熟練者','⚔️'],[13,'英雄','🦸'],[19,'伝説','👑']],
-  mate  :[[1,'村人','🧑‍🌾'],[4,'職人','🧑‍🔧'],[8,'賢者','🧙'],[13,'精霊','🧝']],
-  homun :[[1,'試作体','🧪'],[4,'ホムンクルス','🧬'],[8,'オートマタ','🤖'],[13,'人造神','👾']],
-  lab   :[[1,'家の机','🪑'],[4,'書斎','📚'],[8,'研究室','🔬'],[13,'研究所','🏢'],[19,'大学','🏛️']],
-  mine  :[[1,'素手掘り','✋'],[4,'つるはし','⛏️'],[8,'採掘機','🚜'],[13,'大採掘場','🏗️']],
-  dump  :[[1,'ゴミ袋','🛍️'],[4,'焼却炉','🔥'],[8,'廃棄場','♻️'],[13,'再生工場','🏭']],
-  smelt :[[1,'焚き火','🔥'],[4,'炉','🏺'],[8,'精錬所','🌋'],[13,'高炉','🏭']],
-  forge :[[1,'金床','🔨'],[4,'鍛冶場','🛠️'],[8,'鍛造所','⚙️'],[13,'工廠','🏭']],
-  armory:[[1,'背負い袋','🎒'],[4,'武具棚','🗄️'],[8,'装備庫','🛡️'],[13,'宝物庫','💎']],
-  dive  :[[1,'洞窟の入口','🕳️'],[4,'ダンジョン','🚪'],[8,'深層門','🌀'],[13,'魔界門','🌌']],
-  tstr  :[[1,'腕立て','🙇'],[4,'筋トレ','🏋️'],[8,'道場','🥋']],
-  tint  :[[1,'読書','📖'],[4,'勉強会','📝'],[8,'講義','🎓']],
-  tvit  :[[1,'散歩','🚶'],[4,'走り込み','🏃'],[8,'山ごもり','⛰️']],
-};
+/* 施設の見た目と名前は「世代」で決まる。レベルは速度だけを上げる */
 function tierOf(n){
-  const T=TYPES[n.type], list=TIERS[n.type];
-  if(!list) return {t:1, n:T.n, i:T.i, max:1};
-  let k=0; for(let i=0;i<list.length;i++) if(n.level>=list[i][0]) k=i;
-  return {t:k+1, n:list[k][1], i:list[k][2], max:list.length,
-          next:(k+1<list.length)?list[k+1]:null};
+  const T = TYPES[n.type], L = T.line ? LINES[T.line] : null;
+  return {t:(T.gen||0)+1, n:T.n, i:T.i, max:L?L.length:1,
+          next: (L && T.gen+1 < L.length) ? [T.gen+2, L[T.gen+1][0]] : null};
 }
-// ティアが1つ上がるごとに体力の消費が18%減る＝同じ⚡でより多く動ける
-const effOf = n => Math.pow(0.82, tierOf(n).t - 1);
-const ORDER = ['hero','mate','homun','dive','mine','dump','lab','tstr','tint','tvit','smelt','forge','armory','tool1','comp','box1','decomp','tool2','box2','box3','tool3','box4','box5'];
+const effOf = n => Math.pow(GEN_EFF, TYPES[n.type].gen || 0);
+const baseName = t => TYPES[t].i + TYPES[t].n;
+/* =========================================================================
+   研究ツリー：系統 × 世代。原始から未来まで、研究で新しい施設が解放される。
+   世代0は最初から使えるもの。以降は研究ツリーで開ける。
+   古い世代も建てられるし、建てたものはそのまま動き続ける。
+   ========================================================================= */
+const LINES = {
+  mate:  [['村人','🧑‍🌾'],['職人','🧑‍🔧'],['衛兵','🛡'],['賢者','🧙'],['錬金術師','⚗️'],['精霊','🧝'],['試作体','🧪'],['ホムンクルス','🧬'],['オートマタ','🤖'],['人造神','👾']],
+  mine:  [['素手掘り','✋'],['石のつるはし','🪓'],['鉄のつるはし','⛏️'],['手押し鉱車','🛒'],['削岩機','🔨'],['蒸気掘削機','🚂'],['自動採掘場','🚜'],['レーザー採掘','🔦'],['ナノ採掘機','🦠'],['重力採掘','⚫'],['次元採掘','🌀']],
+  smelt: [['焚き火','🔥'],['炭窯','🏕'],['るつぼ','🏺'],['炉','🧱'],['高炉','🏭'],['反射炉','🌡'],['電気炉','⚡'],['プラズマ炉','💥'],['核融合炉','☢️'],['恒星炉','🌞']],
+  forge: [['金床','🔨'],['鍛冶場','🛠️'],['水車鍛造','💧'],['蒸気ハンマー','🚂'],['旋盤','⚙️'],['自動旋盤','🔧'],['ロボット加工','🦾'],['ナノ組立','🦠'],['分子組立','🧬'],['次元鍛造','🌀']],
+  armory:[['背負い袋','🎒'],['武具棚','🗄️'],['装備庫','🛡️'],['兵器庫','⚔️'],['強化槽','🧫'],['改造ポッド','🛸'],['強化外骨格','🦿'],['ナノスーツ','🥋'],['次元装甲','🌌']],
+  dive:  [['洞窟の入口','🕳️'],['ダンジョン','🚪'],['深層門','🌀'],['転移門','🔷'],['魔界門','🌋'],['異界門','👁'],['次元門','🌌'],['星間門','🌠'],['時空門','⏳']],
+  lab:   [['家の机','🪑'],['書斎','📚'],['研究室','🔬'],['研究所','🏢'],['大学','🏛️'],['計算機室','🖥'],['スパコン','🧮'],['AI研究所','🤖'],['量子演算体','🧿']],
+  dump:  [['ゴミ袋','🛍️'],['焼却炉','🔥'],['廃棄場','♻️'],['再生工場','🏭'],['分子分解炉','🧪'],['消滅炉','🕳'],['次元廃棄','🌀']],
+  tstr:  [['腕立て','🙇'],['筋トレ','🏋️'],['道場','🥋'],['闘技場','🏟'],['重力室','🪐'],['戦神の間','⚡']],
+  tint:  [['読書','📖'],['勉強会','📝'],['講義','🎓'],['図書館','📚'],['知識の泉','💧'],['叡智の海','🌊']],
+  tvit:  [['散歩','🚶'],['走り込み','🏃'],['山ごもり','⛰️'],['霊峰修行','🗻'],['生命の樹','🌳'],['不死の泉','⛲']],
+  tool:  [['木の道具','🪵'],['鉄の道具','⚒️'],['魔道具','💎'],['錬金装置','⚗️'],['増殖炉','🧫'],['複製装置','🖨'],['物質創成','🌟']],
+  box:   [['木箱','📦'],['棚','🗄️'],['倉庫','🏬'],['貯蔵庫','🏦'],['大倉庫','🏛️'],['亜空間倉庫','🌀'],['無限庫','♾️']],
+  comp:  [['石臼','🗿'],['圧縮機','🗜️'],['油圧プレス','🛢'],['特異点プレス','⚫'],['次元圧縮','🌌']],
+  decomp:[['解体台','🔪'],['分解機','🧪'],['分子分解器','🧬'],['原子炉','⚛️'],['情報還元','🧿']],
+};
+/* 世代ごとの伸び。速く・安くなるかわりに、建設費と研究費は指数で増える */
+const GEN_SPD = 0.87, GEN_EFF = 0.90, GEN_COST = 3.0, GEN_RP0 = 40, GEN_RP = 2.55;
+// 世代ごとに変わる固有の値（増幅の倍率、貯蔵のスロットと容量）
+const GEN_EXTRA = {
+  tool: g => ({mul: 1.5 + g*0.5, sta: 3 + g}),
+  box:  g => ({slots: 1 + g, cap: 200 * Math.pow(2, g)}),
+};
+const LINE_ORDER = ['mine','dump','lab','tstr','tint','tvit','smelt','forge','armory','mate','tool','comp','box','decomp','dive'];
+const genKey = (line, g) => g===0 ? line+'0' : line+g;
+// その世代の研究費（系統の並び順が遅いほど、また世代が進むほど高い）
+const genRp = (line, g) => Math.round(GEN_RP0 * Math.pow(GEN_RP, g + LINE_ORDER.indexOf(line)*0.55));
+
+const ORDER = ['hero'];
+function buildLines(){
+  for(const line of LINE_ORDER){
+    const base = TYPES[line];
+    LINES[line].forEach((nm, g) => {
+      const key = genKey(line, g);
+      TYPES[key] = Object.assign({}, base, {
+        n:nm[0], i:nm[1], line, gen:g,
+        time: +(base.time * Math.pow(GEN_SPD, g)).toFixed(3),
+        cost: Math.round(base.cost * Math.pow(GEN_COST, g)),
+        up:   Math.round(base.up   * Math.pow(GEN_COST, g)),
+        rp:   g===0 ? 0 : genRp(line, g),
+        see:  0, unique:false,
+      });
+      if(GEN_EXTRA[line]) Object.assign(TYPES[key], GEN_EXTRA[line](g));
+      ORDER.push(key);
+    });
+  }
+}
+buildLines();
 
 // ❤️体力は指数的に効く（生成も上限も）。だから数字はインフレするが、コストの伸びが上回るので成長は緩やか
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
@@ -888,16 +962,40 @@ const offCapH   = () => Math.min(24, 2 + Math.floor(offSteps() * 0.5)); // 時�
 const OFF_SIM_MAX = 48 * 3600;                              // 一度に計算する上限
 
 /* 研究：🧠知力で「判明」→ 🔬研究所で「開発」→ ようやく建設できる */
-const isSeen = t => S.stats.int >= TYPES[t].see;
-const isDev  = t => TYPES[t].rp === 0 || !!S.dev[t];
-/* 研究の順番。分解機を手に入れてから先は素材を注ぎ込む前提で、必要量は指数的に増える */
-const RP_LADDER = ['smelt','forge','armory','mate','tool1','comp','box1','decomp','tool2','box2','box3','homun','tool3','box4','box5'];
-const RP_BASE = 50, RP_K = 2.72;
-const needRp = t => {
-  const i = RP_LADDER.indexOf(t);
-  return i < 0 ? (TYPES[t].rp||0) : Math.round(RP_BASE * Math.pow(RP_K, i));
-};
-const gotRp  = t => Math.floor(S.rp[t] || 0);
+/* 研究ポイントは共通のプール。研究ツリーで好きな世代に使う */
+const needRp = t => TYPES[t].rp || 0;
+const isDev  = t => needRp(t) === 0 || !!S.dev[t];
+// 1つ前の世代を開けていれば、その次が研究できる
+function isSeen(t){
+  const T = TYPES[t];
+  if(!T.line || !T.gen) return true;
+  return isDev(genKey(T.line, T.gen - 1));
+}
+const gotRp = () => Math.floor(S.rp || 0);
+/* 現代（世代4）以降の研究には素材も要る。研究所に送った素材が在庫になる */
+const MAT_FROM = 4;
+function needMat(t){
+  const T = TYPES[t];
+  if(!T.line || T.gen < MAT_FROM) return null;
+  const i = Math.min(CHAIN.length-1, T.gen - MAT_FROM);
+  return {k: CHAIN[i].part, q: 10 * Math.pow(2, T.gen - MAT_FROM)};
+}
+const gotMat = k => Math.floor((S.stock && S.stock[k]) || 0);
+function canResearch(t){
+  if(isDev(t) || !isSeen(t)) return false;
+  if(gotRp() < needRp(t)) return false;
+  const m = needMat(t);
+  return !m || gotMat(m.k) >= m.q;
+}
+function doUnlock(t){
+  if(!canResearch(t)) return false;
+  S.rp -= needRp(t);
+  const m = needMat(t);
+  if(m) S.stock[m.k] -= m.q;
+  S.dev[t] = 1;
+  addLog(`【研究完了】${baseName(t)}`, 'w');
+  return true;
+}
 
 /* 無限ダンジョン。潜った深さがそのままスコアで、10層ごとの踏破が恒久的な力になる */
 const ZONES = [
@@ -929,7 +1027,7 @@ const SVG = 'http://www.w3.org/2000/svg';
 function freshState(){
   return {
     gold:40, nextId:1, counts:{}, nodes:[], links:[],
-    stats:{str:0, int:0, vit:0}, atkBonus:0, rp:{}, dev:{}, seen:{},
+    stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:{},
     floor:1, best:1, enemy:null, log:[], drops:[],
     v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
@@ -1117,14 +1215,15 @@ function tick(dt,fast){
   for(const n of S.nodes){
     const T=TYPES[n.type];
     n.stall=false; n.why='';
-    if(T.soft){                                   // 届いた経験値をその場で能力に変える
+    if(T.soft){                       // 届いたものをその場で受け取る
       for(const k in T.soft){
-        const c=Math.floor(n.inBuf[k]||0);
-        if(c>0){
-          const st=STAT_OF[k];
-          S.stats[st]+=c; n.inBuf[k]-=c; n.gain=(n.gain||0)+c;
+        const c=Math.floor(n.inBuf[k]||0); if(c<=0) continue;
+        n.inBuf[k]-=c;
+        if(STAT_OF[k]){                 // 主人公・仲間：経験値 → 能力
+          const st=STAT_OF[k]; S.stats[st]+=c; n.gain=(n.gain||0)+c;
           if(!fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
-          checkSeen(fast);
+        }else{                          // 研究所：素材 → 研究在庫
+          S.stock[k]=(S.stock[k]||0)+c;
         }
       }
     }
@@ -1141,7 +1240,7 @@ function tick(dt,fast){
         let ok=true;
         for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
         if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){ ok=false; n.why=`${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`; }
-        if(ok && T.effect==='lab' && !n.target){ ok=false; n.why='研究対象が未設定'; }
+
         if(!ok){ n.stall=true; break; }
         for(const k in need) n.inBuf[k]-=need[k];
         n.crafting=true; n.prog=0; n.need=Math.max(1e-6, craftTime(n));
@@ -1159,7 +1258,7 @@ function tick(dt,fast){
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
       if(T.effect==='dive') doDive(fast);
-      if(T.effect==='lab')  doResearch(n,fast);
+      if(T.effect==='lab')  { const g=rpGain(n); n.gain=(n.gain||0)+g; grantRp(g); }
       n.crafting=false; n.prog=0;
       if(--guard<=0) break;
     }
@@ -1248,39 +1347,39 @@ function spawnEnemy(){
     : {name:z.e[(f-1)%(z.e.length-1)], icon:z.i, hp, max:hp, boss:false, zone:z};
 }
 /* 研究ポイントを、判明済みでまだ開発していない対象に均等に配る */
-function grantRp(amount, fast){
-  const ts = ORDER.filter(t => TYPES[t].rp>0 && isSeen(t) && !isDev(t));
-  if(!ts.length || amount<=0) return 0;
-  const per = amount / ts.length;
-  for(const t of ts){
-    S.rp[t] = (S.rp[t]||0) + per;
-    if(S.rp[t] >= needRp(t)){
-      S.dev[t]=1;
-      if(!fast) addLog(`【開発完了】${baseName(t)} が建設可能に！`,'w');
-    }
-  }
+function grantRp(amount){
+  if(!(amount>0)) return 0;
+  S.rp = (S.rp||0) + amount;
   return amount;
 }
-function doResearch(n,fast){
-  const t=n.target; if(!t) return;
-  if(isDev(t)){ n.target=null; if(sel===n.id) renderInsp(); return; }  // 他で開発済みなら空回りさせない
-  S.rp[t]=(S.rp[t]||0)+rpGain(n);
-  if(S.rp[t]>=needRp(t)){
-    S.dev[t]=1;
-    if(!fast){
-      addLog(`【開発完了】${TYPES[t].i} ${TYPES[t].n} が建設可能に！`,'w');
-      addLog(`　留守の報酬が ×${offRate().toFixed(1)} / ${offCapH()}時間ぶん に伸びた`,'b');
-    }
-    n.target=null; if(sel===n.id) renderInsp();
-  }
-}
-function checkSeen(fast){
-  for(const t of ORDER){
-    const T=TYPES[t];
-    if(T.see<=0 || S.seen[t] || !isSeen(t)) continue;
-    S.seen[t]=1;
-    if(!fast) addLog(`【判明】${T.i} ${T.n} の存在に気づいた。🔬研究所で開発できる`,'u');
-  }
+function checkSeen(){}
+
+/* ========================= 研究ツリー ========================= */
+const LINE_LABEL = {mine:'採掘',dump:'廃棄',lab:'研究',tstr:'筋トレ',tint:'読書',tvit:'走り込み',
+  smelt:'精錬',forge:'加工',armory:'装備',mate:'仲間',tool:'増幅',comp:'圧縮',box:'貯蔵',
+  decomp:'分解',dive:'探索'};
+function renderTree(){
+  const g=$('#treeGrid'); if(!g) return;
+  $('#rpNow').textContent=fmt(gotRp());
+  g.innerHTML = LINE_ORDER.map(line=>{
+    const cells = LINES[line].map((nm,gi)=>{
+      const t=genKey(line,gi), dev=isDev(t), seen=isSeen(t), can=canResearch(t);
+      const m=needMat(t);
+      const cls = dev?'done':can?'can':seen?'':'lock';
+      const cost = dev ? '解放済み'
+        : `🔬${fmt(needRp(t))}` + (m?` ＋${ITEMS[m.k].i}${m.q}`:'');
+      const btn = dev ? '' : seen
+        ? `<button class="rs" data-t="${t}" ${can?'':'disabled'}>研究</button>`
+        : `<button disabled>—</button>`;
+      return `<div class="tcell ${cls}"><span class="cn">${nm[1]}${nm[0]}</span>
+              <div class="cc">${cost}</div>${btn}</div>`;
+    }).join('<span class="tarrow">▸</span>');
+    return `<div class="trow"><div class="tlab">${LINE_LABEL[line]}</div>${cells}</div>`;
+  }).join('');
+  g.querySelectorAll('.rs').forEach(b=>b.onclick=()=>{
+    if(doUnlock(b.dataset.t)){ renderTree(); renderShop(); }
+    else toast('研究ポイントか素材が足りません');
+  });
 }
 
 /* ========================= 拾得品 ========================= */
@@ -1370,7 +1469,7 @@ function render(){
       : T.stat ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（主人公へ戻す）`
       : T.effect==='atk' ? '稼働中 → 攻撃力 +'+fmt(n.gain||0)
       : T.effect==='dive'? '稼働中 → '+n.done+'回 潜った'
-      : T.effect==='lab' ? (n.target ? `研究中 → ${TYPES[n.target].i}${TYPES[n.target].n} ${fmt(gotRp(n.target))}/${fmt(needRp(n.target))}` : '研究対象を選んでください')
+      : T.effect==='lab' ? `研究中 → 🔬累計 ${fmt(n.gain||0)}`
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
       : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
@@ -1433,6 +1532,7 @@ function render(){
   const oc=offscreenCount(), ob=$('#offscr');
   ob.classList.toggle('on', oc>0);
   if(oc>0) ob.textContent=`⤢ ${oc}個のノードが画面外です — クリックで全体表示`;
+  if($('#tree').classList.contains('on')) renderTree();
   $('#bCount').textContent=S.drops.length;
   $('#bBag').hidden = S.drops.length===0;
   renderShop(); renderInspLive(); tutRender();
@@ -1461,8 +1561,7 @@ function buildShop(){
   for(const t of ORDER){
     const T=TYPES[t], b=document.createElement('button');
     b.className='card';
-    const base = TIERS[t] ? {i:TIERS[t][0][2], n:TIERS[t][0][1]} : {i:T.i, n:T.n};
-    b.innerHTML=`<div class="r1"><span class="ic">${base.i}</span><span class="nm">${base.n}</span><span class="price"></span></div>
+    b.innerHTML=`<div class="r1"><span class="ic">${T.i}</span><span class="nm">${T.n}</span><span class="price"></span></div>
                  <div class="io">${ioText(T)}</div><div class="d">${T.d}</div><div class="rq"></div>`;
     b.onclick=()=>buy(t);
     box.appendChild(b);
@@ -1471,28 +1570,21 @@ function buildShop(){
 }
 function renderShop(){
   for(const t of ORDER){
-    const T=TYPES[t], e=shopEls[t];
-    const seen=isSeen(t), dev=isDev(t);
+    const T=TYPES[t], e=shopEls[t], dev=isDev(t);
+    e.root.hidden = !dev;                       // 研究で開けたものだけ並べる
+    if(!dev) continue;
     const uniq=T.unique && (S.counts[t]||0)>=1;
     const cost=buyCost(t);
-    e.root.classList.toggle('unknown', !seen);
-    if(!seen){
-      e.name.textContent='???';
-      e.price.textContent='🔒';
-      e.rq.textContent=`🧠知力 ${T.see} で判明する`;
-    }else{
-      e.name.textContent=TIERS[t]?TIERS[t][0][1]:T.n;
-      e.price.textContent = uniq ? '設置済' : dev ? fmt(cost)+' G' : '🔬未開発';
-      e.rq.textContent = dev ? '' : `研究力 ${fmt(gotRp(t))} / ${fmt(needRp(t))} — 🔬研究所で開発する`;
-    }
-    e.root.classList.toggle('off', !seen || !dev || uniq || S.gold<cost);
+    e.name.textContent=T.n;
+    e.price.textContent = uniq ? '設置済' : fmt(cost)+' G';
+    e.rq.textContent = '';
+    e.root.classList.toggle('off', uniq || S.gold<cost);
   }
 }
 function buy(t){
   const T=TYPES[t];
   if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
-  if(!isSeen(t)) return toast(`まだ存在を知りません（🧠知力 ${T.see} で判明）`);
-  if(!isDev(t))  return toast(`未開発です。🔬研究所で研究力 ${fmt(needRp(t))} を貯めてください`);
+  if(!isDev(t)) return toast('研究ツリーで解放してください');
   const cost=buyCost(t);
   if(S.gold<cost) return toast('ゴールドが足りません');
   S.gold-=cost; S.counts[t]=(S.counts[t]||0)+1;
@@ -1601,7 +1693,6 @@ function offscreenCount(){
 }
 
 /* この素材を受け取れる施設を出す（採掘したはいいが送り先が分からない、を防ぐ） */
-const baseName = t => (TIERS[t] ? TIERS[t][0][2]+TIERS[t][0][1] : TYPES[t].i+TYPES[t].n);
 function destText(item){
   const built = [...new Set(S.nodes.filter(n=>allIns(n)[item]).map(n=>tierOf(n).i+tierOf(n).n))];
   if(built.length) return built.join(' ・ ');
@@ -1635,21 +1726,11 @@ function renderInsp(){
     Object.keys(outsOf(n)).map(k=>
       `<div class="kv">${ITEMS[k].i}${ITEMS[k].n}の行き先<b class="dst" data-i="${k}"></b></div>` +
       `<div class="kv">${ITEMS[k].i}が届く割合<b class="alc" data-i="${k}"></b></div>`).join('') +
-    (isLab ? `<div class="kv">研究対象<select class="tgt"></select></div>
-              <div class="kv">研究の進捗<b class="rp"></b></div>` : '') +
+
     `<div class="kv">状態<b class="st2"></b></div>
      <div class="kv">解体で戻る研究<b class="srp"></b></div>
      <div class="btns"><button class="up"></button><button class="del">撤去</button></div>`;
   box.classList.add('on');
-  if(isLab){
-    const sl=box.querySelector('.tgt');
-    const opts=ORDER.filter(t=>isSeen(t)&&!isDev(t));
-    sl.innerHTML = opts.length
-      ? `<option value="">— 未設定 —</option>`+opts.map(t=>`<option value="${t}">${TYPES[t].i} ${TYPES[t].n}（${fmt(needRp(t))}）</option>`).join('')
-      : `<option value="">研究できるものがない</option>`;
-    sl.value=n.target||'';
-    sl.onchange=()=>{ n.target=sl.value||null; };
-  }
   if(T.chain){
     const cl=box.querySelector('.chn');
     const opts=chainOpts(n.type);
@@ -1713,10 +1794,7 @@ function renderInspLive(){
     ? `⚡産出 ×${(1+(tr.t-1)*0.5).toFixed(1)}`
     : `⚡消費 ×${effOf(n).toFixed(2)}`;
   box.querySelector('.rate').textContent=craftTime(n).toFixed(2)+' 秒';
-  const rpEl=box.querySelector('.rp');
-  if(rpEl) rpEl.textContent = n.target
-    ? `${fmt(gotRp(n.target))} / ${fmt(needRp(n.target))}（+${rpGain(n).toFixed(1)}/回）`
-    : '—';
+
   box.querySelector('.st2').textContent=n.stall?('停止：'+n.why):'稼働中';
   box.querySelector('.pv').textContent=prioOf(n);
   const sr=box.querySelector('.srp');
@@ -1948,7 +2026,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=4;
+const SAVE_V=5;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -1967,6 +2045,22 @@ function migrate(d){
     }
     for(const l of d.links||[]) if(M[l.item]) l.item = M[l.item];
     d.v = 4;
+  }
+  if(d.v < 5){
+    // 施設を「系統×世代」に作り直したときの読み替え
+    const M = {mine:'mine0',dump:'dump0',lab:'lab0',tstr:'tstr0',tint:'tint0',tvit:'tvit0',
+               smelt:'smelt0',forge:'forge0',armory:'armory0',dive:'dive0',mate:'mate0',
+               homun:'mate6',comp:'comp1',decomp:'decomp1',
+               tool1:'tool0',tool2:'tool1',tool3:'tool2',
+               box1:'box0',box2:'box1',box3:'box2',box4:'box3',box5:'box4'};
+    for(const n of d.nodes||[]) if(M[n.type]) n.type = M[n.type];
+    const c={}; for(const k in (d.counts||{})) c[M[k]||k] = d.counts[k];
+    d.counts = c;
+    const dv={}; for(const k in (d.dev||{})) if(M[k]) dv[M[k]]=1;
+    d.dev = dv;
+    d.rp = 0; d.stock = d.stock || {};
+    delete d.seen;
+    d.v = 5;
   }
   d.v = SAVE_V;
   return d;
@@ -2024,6 +2118,9 @@ function b64dec(c){
   return new TextDecoder().decode(b);
 }
 const dumpState = () => JSON.stringify(S,(k,v)=> (k==='el'||k==='G')?undefined:v);
+$('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
+$('#tClose').onclick=()=>$('#tree').classList.remove('on');
+$('#tree').onclick=e=>{ if(e.target===$('#tree')) $('#tree').classList.remove('on'); };
 $('#bBag').onclick=()=>{ renderBag(); $('#bag').classList.add('on'); };
 $('#bClose').onclick=()=>$('#bag').classList.remove('on');
 $('#bag').onclick=e=>{ if(e.target===$('#bag')) $('#bag').classList.remove('on'); };
@@ -2144,8 +2241,8 @@ if(DEBUG){
 /* ========================= 起動 ========================= */
 function newGame(){
   S=freshState(); reindex(); applyView();
-  const h=addNode('hero',80,150), d=addNode('dive',420,150);
-  S.counts={hero:1,dive:1};
+  const h=addNode('hero',80,150), d=addNode('dive0',420,150);
+  S.counts={hero:1,dive0:1};
   addLink(h.id,'sta',d.id);
   addLog('勇者 ⚡→ ダンジョン が接続済み。まずは潜ってゴールドを貯めよう','u');
   addLog('⛏採掘を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
