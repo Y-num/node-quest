@@ -1458,7 +1458,11 @@ function doPinch(){
   applyView();
 }
 
+// 盤面の上に重ねているパネル（インスペクタ・案内・ヘルプ・バッジ）の中の操作は盤面に渡さない。
+// 渡すと背景クリック扱いで選択が解除され、renderInsp() がボタンごと消してしまう
+const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast';
 stage.addEventListener('pointerdown', e=>{
+  if(e.target.closest(OVERLAY_SEL)) return;
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptrs.size>=2){                       // 2本目が触れたらドラッグを中止してピンチへ
     drag=null; pinch=null; stage.classList.remove('panning');
@@ -1492,6 +1496,7 @@ stage.addEventListener('pointerdown', e=>{
   try{stage.setPointerCapture(e.pointerId)}catch(_){}
 });
 stage.addEventListener('pointermove', e=>{
+  if(!ptrs.has(e.pointerId) && e.target.closest(OVERLAY_SEL)) return;
   if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptrs.size>=2){ doPinch(); return; }
   if(!drag) return;
@@ -1539,11 +1544,13 @@ stage.addEventListener('pointerup', e=>{
   stage.classList.remove('panning'); drag=null;
 });
 stage.addEventListener('dblclick', e=>{
+  if(e.target.closest(OVERLAY_SEL)) return;
   const wph=e.target.closest('circle.wph'); if(!wph) return;
   const l=S.links.find(x=>x.id===+wph.dataset.wp);
   if(l){ l.wp=null; toast('配線をまっすぐに戻しました'); }
 });
 stage.addEventListener('wheel', e=>{
+  if(e.target.closest(OVERLAY_SEL)) return;   // パネル内はスクロールさせる
   e.preventDefault();
   const r=stage.getBoundingClientRect(), v=S.view;
   const mx=e.clientX-r.left, my=e.clientY-r.top;
@@ -1563,6 +1570,7 @@ function migrate(d){
   return d;
 }
 function save(){
+  if(resetting) return false;                      // リセット中は書き戻さない
   try{ S.savedAt=Date.now();
     localStorage.setItem(KEY, JSON.stringify(S,(k,v)=> (k==='el'||k==='G')?undefined:v));
     return true;
@@ -1642,8 +1650,13 @@ $('#mLoad').onclick=()=>{
   }catch(e){ msg.textContent='コードが正しくありません（'+e.message+'）'; }
 };
 $('#bSave').onclick=()=>toast(save()?'保存しました':'保存できませんでした');
-$('#bReset').onclick=()=>{ if(!confirm('本当に最初からやり直しますか？'))return;
-  try{localStorage.removeItem(KEY)}catch(_){} location.reload(); };
+let resetting=false;
+$('#bReset').onclick=()=>{
+  if(!confirm('本当に最初からやり直しますか？')) return;
+  resetting=true;                                  // 以降の保存を止めてから消す
+  try{ localStorage.removeItem(KEY); }catch(_){}
+  location.reload();
+};
 
 /* ========================= デバッグ：ノード一覧と設置 =========================
    ?debug=1 が付いているときだけ開ける。通常プレイではボタンごと出さない */
