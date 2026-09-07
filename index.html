@@ -392,7 +392,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         <div class="rows">
           <div class="row">1回の与ダメージ<b class="num" id="eDmg">0</b></div>
           <div class="row">撃破まで<b class="num" id="eHits">—</b></div>
-          <div class="row">敵の装甲<b class="num" id="eArm">0</b></div>
+          <div class="row">敵の装甲（ダメージ軽減）<b class="num" id="eArm">0</b></div>
           <div class="row">撃破報酬<b class="num" id="eGold">0</b></div>
         </div>
       </div>
@@ -455,24 +455,24 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
    バランス調整はこのブロックだけ触ればOK
    ========================================================================= */
 /* =========================================================================
-   成長曲線の指標。いまの調整が「100」。ここだけ動かせば曲線全体が変わる。
+   成長曲線の指標。出荷値は index:120。数字の意味は「到達までの時間が 100/index 倍」。
 
    index … 全体の速度（すべての⚡消費に効く）
-           1時間時点の最深: 60→30層 / 100→40層 / 150→44層
    taper … 訓練の逓減。大きいほど能力値が伸びなくなる
-           6時間時点: 50→75層・能力50 / 100→67層・能力28 / 200→58層・能力17
    depth … 敵HPの階層あたりの伸び。深度だけを動かす（能力値には無影響）
-           6時間時点の最深: 60→44層 / 100→67層 / 160→100層 / 250→150層
 
-   ── 指標100 の実測値（標準構成で放置） ─────────────────────
-     到達時間  10層 7分 / 25層 23分 / 50層 1時間54分 / 75層 10時間 / 100層 3日4時間
-               能力10 19分 / 能力25 3時間33分 / 能力50 3日21時間
-     時点別    10分 12層 / 1時間 40層 / 6時間 67層 / 1日 86層 / 7日 108層 / 15日 115層
-     15日時点  最深115層（溶岩回廊）/ 能力61 / 攻撃力 29.0M / 2.55T G
-   ──────────────────────────────────────────────
+   ── 現在の設定（index 120）の実測値。標準構成で放置 ──────────
+     到達時間  10層 6分 / 25層 23分 / 50層 2時間25分 / 75層 16時間 / 100層 6日17時間
+               能力10 16分 / 能力25 3時間4分 / 能力50 3日5時間
+     時点別    10分 14層 / 1時間 37層 / 6時間 61層 / 7日 100層
+     7日時点   最深100層（溶岩回廊）/ 能力56 / 攻撃力 12.3M / 83.2B G
+
+   ── 初期構成（勇者→ダンジョンのみ）で何分後に何が買えるか ────────
+     初撃破 9秒 / 採掘 15秒 / ゴミ袋 1分31秒 / 研究所 4分40秒 / 精錬 16分44秒
+   ────────────────────────────────────────────────
    ※ 指標を変えると既存のセーブデータの難易度もその場で変わります
    ========================================================================= */
-const CURVE = { index:100, taper:100, depth:100 };
+const CURVE = { index:120, taper:100, depth:100 };
 
 const VIT_K = 1.10;              // ❤️体力1につき体力生成が10%増える（曲線の土台）
 let COST_K, TRAIN_K, ENEMY_K;
@@ -573,12 +573,13 @@ const ORDER = ['hero','dive','mine','dump','lab','tstr','tint','tvit','box1','sm
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
 const staRate  = n  => TYPES.hero.time / Math.pow(VIT_K, S.stats.vit) / n.level / (1 + (tierOf(n).t-1)*0.5);
 const intBoost = () => 1 + S.stats.int * 0.02;
-const atk      = () => Math.floor((5 + S.atkBonus) * (1 + S.stats.str * 0.15) * depthBonus());
+const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15) * depthBonus());
 const rpGain   = n  => n.level * (1 + S.stats.int * 0.15);
 const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1));
 const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
 const enemyGold= f  => Math.floor(10 * Math.pow(1.24, f-1) * (f%10===0 ? 5 : 1));
-const dmg      = () => Math.max(1, atk() - enemyArm(S.floor));
+const ARMOR_K  = 8;   // 装甲は引き算ではなく減衰率。1ダメージ固定の壁ができない
+const dmg      = () => Math.max(1, Math.round(atk() * 100 / (100 + enemyArm(S.floor) * ARMOR_K)));
 const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 
 // 訓練は鍛えるほど1回の体力消費が増える → 放置ゲームらしい対数的な伸びになる
@@ -1044,7 +1045,8 @@ function render(){
     $('#eHp').textContent=`${fmt(Math.max(0,S.enemy.hp))} / ${fmt(S.enemy.max)}`;
     $('#eHpBar').style.width=Math.max(0,S.enemy.hp/S.enemy.max*100)+'%';
     $('#eArm').textContent=fmt(enemyArm(S.floor));
-    $('#eDmg').textContent=fmt(dmg())+(atk()<=enemyArm(S.floor)?' ⚠装甲に阻まれている':'');
+    const cut=Math.round(100 - 100*100/(100+enemyArm(S.floor)*ARMOR_K));
+    $('#eDmg').textContent=fmt(dmg())+`（装甲で -${cut}%）`;
     $('#eHits').textContent=fmt(hitsLeft())+' 回';
     $('#eGold').textContent=fmt(enemyGold(S.floor))+' G';
   }
