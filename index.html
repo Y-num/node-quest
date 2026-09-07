@@ -528,11 +528,12 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
   <div class="tbox">
     <div class="thead">
       <div class="tt">🔬 研究ツリー</div>
-      <div class="tpool">研究ポイント <b id="rpNow">0</b></div>
+      <div class="tpool">研究ポイント <b id="rpNow">0</b>　研究資材 <b id="matNow">0</b></div>
       <button id="tClose">閉じる</button>
     </div>
     <p class="tnote">系統ごとに、原始から未来へ世代が並びます。1つ前の世代を開けると次が研究できます。
-       世代4以降は研究ポイントに加えて<b>部品</b>も必要です（🔬研究所に部品を送ると在庫になります）。
+       世代4以降は研究ポイントに加えて<b>🧱研究資材</b>も必要です。
+       🔬研究所に部品を送り込むと、その部品の価値ぶんが資材になります（板材1つで+8、核1つで+4,600）。
        古い世代もそのまま建てられます。</p>
     <div id="treeGrid"></div>
   </div>
@@ -593,15 +594,17 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
    taper … 訓練の逓減。大きいほど能力値が伸びなくなる
    depth … 敵HPの階層あたりの伸び。深度だけを動かす（能力値には無影響）
 
-   ── 現在の設定（index 120）の実測値。標準構成で放置 ──────────
-     到達時間  10層 6分 / 25層 23分 / 50層 2時間25分 / 75層 16時間 / 100層 6日17時間
-               能力10 16分 / 能力25 3時間4分 / 能力50 3日5時間
-     時点別    10分 14層 / 1時間 37層 / 6時間 61層 / 7日 100層
-     7日時点   最深100層（溶岩回廊）/ 能力56 / 攻撃力 12.3M / 83.2B G
+   ── 標準構成で放置したときの実測（index 120） ──────────────
+     最深到達  10分 14層 / 1時間 37層 / 6時間 60層 / 1日 76層 / 7日 97層 / 14日 101層
+     研究解放  6時間 0世代 / 1日 2 / 3日 6 / 7日 10 / 14日 13
+     研究収入  1時間 527 / 6時間 18.1K / 1日 167K / 7日 2.01M
+     ※ 実プレイでは解放した施設を建てて収入が増えるため、これより速くなる
 
-   ── 初期構成（勇者→ダンジョンのみ）で何分後に何が買えるか ────────
+   ── 初期構成（主人公→ダンジョンのみ）で何分後に何が買えるか ────────
      初撃破 9秒 / 採掘 15秒 / ゴミ袋 1分31秒 / 研究所 4分40秒 / 精錬 16分44秒
    ────────────────────────────────────────────────
+   研究費は GEN_RP0 × GEN_RP^世代 × LINE_RP[系統]。
+   1週間で10世代ぶんの費用が、1週間の研究収入と釣り合うよう校正してある。
    ※ 指標を変えると既存のセーブデータの難易度もその場で変わります
    ========================================================================= */
 const CURVE = { index:120, taper:100, depth:100 };
@@ -713,8 +716,8 @@ const TYPES = {
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, ins:{sta:3, waste:3},  outs:{}, see:0, rp:0,
           d:'廃材を片付ける。ここが止まると工房全体が詰まる'},
   lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12}, outs:{}, effect:'lab', see:0, rp:0,
-          soft:{prt1:1,prt2:1,prt3:1,prt4:1,prt5:1,prt6:1},
-          d:'体力を研究力に変える。部品を送り込むと研究在庫になり、現代以降の研究に使える'},
+          matIn:true,
+          d:'体力を研究力に変える。部品を1種類だけ受け取れて、送り込むと研究在庫になる'},
   tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str', see:0, rp:0,
           d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増える'},
   tint  :{n:'読書',      i:'📖', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int', see:0, rp:0,
@@ -771,7 +774,7 @@ const LINES = {
   decomp:[['解体台','🔪'],['分解機','🧪'],['分子分解器','🧬'],['原子炉','⚛️'],['情報還元','🧿']],
 };
 /* 世代ごとの伸び。速く・安くなるかわりに、建設費と研究費は指数で増える */
-const GEN_SPD = 0.87, GEN_EFF = 0.90, GEN_COST = 3.0, GEN_RP0 = 40, GEN_RP = 2.55;
+const GEN_SPD = 0.87, GEN_EFF = 0.90, GEN_COST = 3.0, GEN_RP0 = 11000, GEN_RP = 2.85;
 // 世代ごとに変わる固有の値（増幅の倍率、貯蔵のスロットと容量）
 const GEN_EXTRA = {
   tool: g => ({mul: 1.5 + g*0.5, sta: 3 + g}),
@@ -779,8 +782,12 @@ const GEN_EXTRA = {
 };
 const LINE_ORDER = ['mine','dump','lab','tstr','tint','tvit','smelt','forge','armory','mate','tool','comp','box','decomp','dive'];
 const genKey = (line, g) => g===0 ? line+'0' : line+g;
-// その世代の研究費（系統の並び順が遅いほど、また世代が進むほど高い）
-const genRp = (line, g) => Math.round(GEN_RP0 * Math.pow(GEN_RP, g + LINE_ORDER.indexOf(line)*0.55));
+/* 研究費は「世代」で指数的に増え、系統ごとの重みで横並びを調整する。
+   並び順を指数の肩に乗せると差が開きすぎるため、倍率は係数で持つ */
+/* 系統ごとの重み。差を大きく取って、世代が1つずつ順に開くようにする */
+const LINE_RP = {mine:1, dump:2, tstr:4, tint:6, tvit:9, lab:14, smelt:22, comp:33,
+                 forge:50, box:75, armory:110, tool:170, decomp:250, mate:380, dive:570};
+const genRp = (line, g) => Math.round(GEN_RP0 * Math.pow(GEN_RP, g) * (LINE_RP[line]||1));
 
 const ORDER = ['hero'];
 function buildLines(){
@@ -883,7 +890,11 @@ function outsOf(n){
   return modOuts(n, T.outs);
 }
 // 必須ではないが受け取れる入力（主人公の経験値など）。口は作るが、稼働の条件にはしない
-const softIns = n => TYPES[n.type].soft || {};
+function softIns(n){
+  const T=TYPES[n.type];
+  if(T.matIn) return n.item ? {[n.item]:1} : {};   // 研究所：選んだ部品だけ受け取る
+  return T.soft || {};
+}
 const allIns  = n => Object.assign({}, insOf(n), softIns(n));
 const inKeys  = n => Object.keys(allIns(n));
 const outKeys = n => Object.keys(outsOf(n));
@@ -972,26 +983,23 @@ function isSeen(t){
   return isDev(genKey(T.line, T.gen - 1));
 }
 const gotRp = () => Math.floor(S.rp || 0);
-/* 現代（世代4）以降の研究には素材も要る。研究所に送った素材が在庫になる */
+/* 現代（世代4）以降の研究には🧱研究資材も要る。
+   研究所に部品を送り込むと、その部品の価値ぶんが資材になる。
+   良い部品ほど一気に貯まるので、深く潜って良い素材を作る動機になる */
 const MAT_FROM = 4;
-function needMat(t){
+const needMat = t => {
   const T = TYPES[t];
-  if(!T.line || T.gen < MAT_FROM) return null;
-  const i = Math.min(CHAIN.length-1, T.gen - MAT_FROM);
-  return {k: CHAIN[i].part, q: 10 * Math.pow(2, T.gen - MAT_FROM)};
-}
-const gotMat = k => Math.floor((S.stock && S.stock[k]) || 0);
+  return (!T.line || T.gen < MAT_FROM) ? 0 : Math.round(80 * Math.pow(4, T.gen - MAT_FROM));
+};
+const gotMat = () => Math.floor(S.stock || 0);
 function canResearch(t){
   if(isDev(t) || !isSeen(t)) return false;
-  if(gotRp() < needRp(t)) return false;
-  const m = needMat(t);
-  return !m || gotMat(m.k) >= m.q;
+  return gotRp() >= needRp(t) && gotMat() >= needMat(t);
 }
 function doUnlock(t){
   if(!canResearch(t)) return false;
   S.rp -= needRp(t);
-  const m = needMat(t);
-  if(m) S.stock[m.k] -= m.q;
+  S.stock -= needMat(t);
   S.dev[t] = 1;
   addLog(`【研究完了】${baseName(t)}`, 'w');
   return true;
@@ -1027,7 +1035,7 @@ const SVG = 'http://www.w3.org/2000/svg';
 function freshState(){
   return {
     gold:40, nextId:1, counts:{}, nodes:[], links:[],
-    stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:{},
+    stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[],
     v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
@@ -1215,15 +1223,16 @@ function tick(dt,fast){
   for(const n of S.nodes){
     const T=TYPES[n.type];
     n.stall=false; n.why='';
-    if(T.soft){                       // 届いたものをその場で受け取る
-      for(const k in T.soft){
+    const soft = softIns(n);
+    if(Object.keys(soft).length){      // 届いたものをその場で受け取る
+      for(const k in soft){
         const c=Math.floor(n.inBuf[k]||0); if(c<=0) continue;
         n.inBuf[k]-=c;
         if(STAT_OF[k]){                 // 主人公・仲間：経験値 → 能力
           const st=STAT_OF[k]; S.stats[st]+=c; n.gain=(n.gain||0)+c;
           if(!fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
-        }else{                          // 研究所：素材 → 研究在庫
-          S.stock[k]=(S.stock[k]||0)+c;
+        }else{                          // 研究所：部品 → 研究資材（価値ぶん）
+          S.stock=(S.stock||0)+itemVal(k)*c;
         }
       }
     }
@@ -1360,14 +1369,14 @@ const LINE_LABEL = {mine:'採掘',dump:'廃棄',lab:'研究',tstr:'筋トレ',ti
   decomp:'分解',dive:'探索'};
 function renderTree(){
   const g=$('#treeGrid'); if(!g) return;
-  $('#rpNow').textContent=fmt(gotRp());
+  $('#rpNow').textContent=fmt(gotRp()); $('#matNow').textContent=fmt(gotMat());
   g.innerHTML = LINE_ORDER.map(line=>{
     const cells = LINES[line].map((nm,gi)=>{
       const t=genKey(line,gi), dev=isDev(t), seen=isSeen(t), can=canResearch(t);
       const m=needMat(t);
       const cls = dev?'done':can?'can':seen?'':'lock';
       const cost = dev ? '解放済み'
-        : `🔬${fmt(needRp(t))}` + (m?` ＋${ITEMS[m.k].i}${m.q}`:'');
+        : `🔬${fmt(needRp(t))}` + (m ? ` ＋🧱${fmt(m)}` : '');
       const btn = dev ? '' : seen
         ? `<button class="rs" data-t="${t}" ${can?'':'disabled'}>研究</button>`
         : `<button disabled>—</button>`;
@@ -1469,7 +1478,7 @@ function render(){
       : T.stat ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（主人公へ戻す）`
       : T.effect==='atk' ? '稼働中 → 攻撃力 +'+fmt(n.gain||0)
       : T.effect==='dive'? '稼働中 → '+n.done+'回 潜った'
-      : T.effect==='lab' ? `研究中 → 🔬累計 ${fmt(n.gain||0)}`
+      : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
       : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
@@ -1715,6 +1724,8 @@ function renderInsp(){
      <div class="kv">入出力<b style="font-size:10.5px">${ioText(T)}</b></div>
      <div class="kv">1回あたり<b class="rate"></b></div>
      <div class="kv">体力効率<b class="eff"></b></div>` +
+    (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>
+                <div class="kv">研究在庫<b class="stk"></b></div>` : '') +
     (T.chain ? `<div class="kv">${{ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',atk:'身につける部品',comp:'圧縮する素材',decomp:'分解する素材'}[T.chain]}<select class="chn"></select></div>` : '') +
     (T.chain==='atk'    ? `<div class="kv">1つあたり<b class="cval"></b></div>` : '') +
     (T.chain==='comp'   ? `<div class="kv">圧縮先<b class="cval"></b></div>` : '') +
@@ -1731,6 +1742,13 @@ function renderInsp(){
      <div class="kv">解体で戻る研究<b class="srp"></b></div>
      <div class="btns"><button class="up"></button><button class="del">撤去</button></div>`;
   box.classList.add('on');
+  if(T.matIn){
+    const ml=box.querySelector('.mat');
+    ml.innerHTML=`<option value="">— 受け取らない —</option>`+
+      CHAIN.map(c=>`<option value="${c.part}">${ITEMS[c.part].i} ${ITEMS[c.part].n}</option>`).join('');
+    ml.value=n.item||'';
+    ml.onchange=()=>{ setChainItem(n, ml.value||null); renderInsp(); };
+  }
   if(T.chain){
     const cl=box.querySelector('.chn');
     const opts=chainOpts(n.type);
@@ -1800,6 +1818,8 @@ function renderInspLive(){
   const sr=box.querySelector('.srp');
   if(sr) sr.textContent = TYPES[n.type].unique ? '—' : '🔬 '+fmt(scrapRp(n.type,n.level,n.grade||0));
   const TY=TYPES[n.type];
+  const stk=box.querySelector('.stk');
+  if(stk) stk.textContent = '🧱 '+fmt(gotMat()) + (n.item?`（${ITEMS[n.item].i}1つで +${fmt(itemVal(n.item))}）`:'');
   const cv=box.querySelector('.cval');
   if(cv){
     if(TY.chain==='comp'){ const nx=n.item&&nextTier(n.item);
@@ -2058,7 +2078,7 @@ function migrate(d){
     d.counts = c;
     const dv={}; for(const k in (d.dev||{})) if(M[k]) dv[M[k]]=1;
     d.dev = dv;
-    d.rp = 0; d.stock = d.stock || {};
+    d.rp = 0; d.stock = 0;
     delete d.seen;
     d.v = 5;
   }
