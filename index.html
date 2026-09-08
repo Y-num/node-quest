@@ -2224,7 +2224,13 @@ function layerNeeds(L){
   return L._needs = need;
 }
 const layerDirty = () => { for(const n of S.nodes) if(isLayer(n)) n._needs = null; };
-/* 中で作れて、中で使い切らないもの＝出口にできるもの */
+/* 中で作っているもの全部。⚡や動力もここに入る（出口に指定すれば外へ出せる） */
+function layerMade(L){
+  const made = {};
+  for(const m of memOf(L).filter(x=>!isPort(x))) for(const k in outsOf(m)) made[k]=1;
+  return Object.keys(made).sort((a,b)=>outRank(b)-outRank(a));
+}
+/* 中で作れて、中で使い切らないもの＝出口の既定にするもの */
 function layerOuts(L){
   const mem = memOf(L).filter(m => !isPort(m)), made = {}, used = new Set();
   for(const m of mem){ for(const k in outsOf(m)) made[k] = 1;
@@ -2285,6 +2291,20 @@ function ensurePorts(L){
   if(!lout){ lout = addNode('lout', x1 + 260, y0); lout.layer = L.id; L.members.push(lout.id); }
   S.at = was; reindex();
   return {lin, lout};
+}
+/* 外へ出すものを決める。レイヤー側の口と、中の出口ノードの口を張り替える */
+function setLayerOut(L, k){
+  if(L.out === k) return;
+  for(const l of [...S.links]) if(l.from === L.id) removeLink(l.id);
+  if(L.out) delete L.outBuf[L.out];
+  const lo = memOf(L).find(m => TYPES[m.type].lout);
+  if(lo){
+    for(const l of [...S.links]) if(l.to === lo.id) removeLink(l.id);
+    lo.inBuf = {};
+  }
+  L.out = k;
+  if(lo) rebuildNodeEl(lo);
+  rebuildNodeEl(L); renderBoard();
 }
 /* まとめる */
 function makeLayer(ids){
@@ -2925,7 +2945,7 @@ function render(){
       : T.lin  ? '外から届いたものがここに出る'
       : T.lout ? (()=>{ const L=N(n.layer);
           return L && L.out ? `ここに入れると外へ出る（${ITEMS[L.out].i}${ITEMS[L.out].n}）`
-                            : '出口の素材が未設定'; })()
+                            : '外へ出すものを選んでください'; })()
       : T.layer ? `${(n.members||[]).length}個をまとめている` + (n.out ? `／出口 ${ITEMS[n.out].i}${ITEMS[n.out].n}` : '／出口なし')
       : T.chain==='hout' ? (n.item
           ? `🏠${ITEMS[n.item].n}を搬出中（自宅に ${fmt(Math.floor(homeOf()[n.item]||0))}）`
@@ -3272,6 +3292,7 @@ function renderInsp(){
     ((T.chain && T.chain!=='sell')||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
+    (T.lout ? `<div class="kv">外へ出すもの<select class="lexit"></select></div>` : '') +
     (T.layer ? `<button class="lopen">🧩 中を開く</button>
                 <div class="kv">出口（ひとつだけ）<select class="lout"></select></div>
                 <div class="kv">中のノード<b class="lmem"></b></div>
@@ -3348,22 +3369,22 @@ function renderInsp(){
   if(T.ware){
     box.querySelector('.wopen').onclick=()=>{ bagWare=n.id; bagTab='ware'; renderBag(); $('#bag').classList.add('on'); };
   }
+  if(T.lout){
+    const L=N(n.layer);
+    const sl=box.querySelector('.lexit');
+    const opts=L ? layerMade(L) : [];
+    sl.innerHTML=`<option value="">— 出さない —</option>`+
+      opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
+    sl.value=(L&&L.out)||'';
+    sl.onchange=()=>{ if(!L) return; setLayerOut(L, sl.value||null); renderInsp(); };
+  }
   if(T.layer){
     const sl=box.querySelector('.lout');
-    const opts=layerOuts(n);
+    const opts=layerMade(n);
     sl.innerHTML=`<option value="">— 出さない —</option>`+
       opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
     sl.value=n.out||'';
-    sl.onchange=()=>{
-      const k=sl.value||null;
-      for(const l of [...S.links]) if(l.from===n.id) removeLink(l.id);
-      if(n.out) delete n.outBuf[n.out];
-      n.out=k;
-      const lo = memOf(n).find(m=>TYPES[m.type].lout);
-      if(lo){ for(const l of [...S.links]) if(l.to===lo.id) removeLink(l.id);
-              lo.inBuf={}; rebuildNodeEl(lo); }
-      rebuildNodeEl(n); renderInsp(); renderBoard();
-    };
+    sl.onchange=()=>{ setLayerOut(n, sl.value||null); renderInsp(); };
     box.querySelector('.lmem').textContent = memOf(n).map(m=>tierOf(m).i).join(' ') || '—';
     box.querySelector('.lbreak').onclick=()=>breakLayer(n);
     box.querySelector('.lopen').onclick=()=>enterLayer(n);
