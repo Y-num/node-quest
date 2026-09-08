@@ -953,8 +953,9 @@ function itemVal(k){
   return v;
 }
 const COMP_TAKE = 5, DECOMP_TAKE = 4;
-/* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る */
-const SELL_TAKE = 1, SELL_K = 12;
+/* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
+   間隔が長いぶん、1個の値段は高い                                        */
+const SELL_TAKE = 1, SELL_K = 200;
 const ERA_ATK = 1.35;
 // 副産物を燃やして得られる体力。厄介なものほど多い
 const bypVal = k => (BYP.find(b=>b.k===k)||{v:0}).v;
@@ -1053,7 +1054,7 @@ const TYPES = {
           d:'素材を貯めておける。詰まりを防げる'},
   comp  :{n:'圧縮機',    i:'🗜️', cost:2000, up:2600, time:2.0, chain:'comp',
           d:'下位の素材5つを、1つ上の密度にまとめる'},
-  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:0.5, chain:'sell', pk:2.4,
+  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:30, chain:'sell', pk:2.4,
           d:'素材を売ってゴールドにする。加工・合成したものほど高く売れる。'
            +'1つ目は安いが、増やすほど値が張る'},
   fuel  :{n:'再利用',    i:'🪱', cost:1500, up:2000, time:2.0, chain:'fuel',
@@ -1070,8 +1071,8 @@ const TYPES = {
           aura:{k:'clean', v:1.0, r:280},
           d:'置いた場所のまわりの汚染を抑える。範囲は点線で見える'},
   boost :{n:'作業灯',    i:'💡', cost:2500, up:3000, time:3.0, ins:{sta:5}, outs:{},
-          aura:{k:'speed', v:0.15, r:250},
-          d:'置いた場所のまわりの施設が速くなる'},
+          aura:{k:'speed', v:0.5, r:250},
+          d:'置いた場所のまわりの施設が速くなる。重ねて置くほど効く'},
   nfuel :{n:'濃縮施設',  i:'🟢', cost:9000, up:11000, time:4.0, ins:{sta:20, power:4, ore5:2}, outs:{nfl:4, rad:1},
           d:'原子力の時代の動力。核燃料を作るが、放射性廃棄物も必ず出る'},
 };
@@ -1106,7 +1107,7 @@ const POW_ROLE = {ore:1, ingot:1, part:1, alloy:1, atk:1, anvil:1, comp:1, decom
 const eraPow = T => (POW_ROLE[T.chain || T.line] && ERA_POW[T.era]) || null;
 const ERA_EXTRA = {
   purify: g => ({aura:{k:'clean', v:+(1.0*Math.pow(1.55,g)).toFixed(2), r:280+g*14}}),
-  boost:  g => ({aura:{k:'speed', v:+(0.15+g*0.035).toFixed(3), r:250+g*12}}),
+  boost:  g => ({aura:{k:'speed', v:+(0.5+g*0.25).toFixed(2), r:250+g*12}}),
   tool: g => ({mul: 1.5 + g*0.45, sta: 3 + g}),
   box:  g => (g < 6
     ? {slots: 1 + Math.floor(g*0.9), cap: Math.round(200 * Math.pow(2.2, g))}
@@ -1475,7 +1476,7 @@ function craftTime(n){
    チュートリアルで触る役割はとくに安くしてある */
 // 採掘だけは割り引かない（最初の「待っていればゴールドが貯まる」を見せる段のため）
 const FIRST = {dump:0.35, shop:0.5, lab:0.5, tstr:0.6, tint:0.6, tvit:0.6, box:0.5,
-               smelt:0.5, forge:0.5, comp:0.5, fuel:0.5, purify:0.5, armory:0.5};
+               smelt:0.5, forge:0.5, comp:0.5, fuel:0.5, purify:0.5, armory:0.5, boost:0.5};
 const buyCost = t => {
   const T = TYPES[t], c = S.counts[t]||0;
   const base = (c===0 && FIRST[T.line]) ? T.cost * FIRST[T.line] : T.cost;
