@@ -2440,8 +2440,9 @@ function render(){
       : T.chain==='equip' ? (n.item ? `${ITEMS[n.item].n}の装備を製作中（${n.gain||0}個）` : '作る装備を選んでください')
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
       : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
-      : T.chain==='sell' ? (n.sellK ? `${ITEMS[n.sellK].n}を販売中 → 💰累計 ${fmt(n.gain||0)}`
-                                     : (n.item ? `${ITEMS[n.item].n}待ち` : `なんでも売る → 💰累計 ${fmt(n.gain||0)}`))
+      : T.chain==='sell' ? (n.sellK
+          ? `${ITEMS[n.sellK].n}を販売中 → 💰累計 ${fmt(n.gain||0)}`
+          : `受け入れ ${storeItems(n).length}/${T.slots}種 → 💰累計 ${fmt(n.gain||0)}`)
       : T.chain==='clean' ? (n.item ? `${ITEMS[n.item].i}を処理中` : '片付ける副産物を選んでください')
       : T.chain==='fuel' ? (n.item ? `${ITEMS[n.item].i}を燃やして ⚡${fmt(fuelOut(n))}` : '燃やす副産物を選んでください')
       : T.chain ? (chainOf(n)
@@ -3152,7 +3153,12 @@ stage.addEventListener('pointerup', e=>{
       if(storeCanTake(b,drag.item)) storeAssign(b, drag.item);   // 空きスロットに自動で割り当て
       addLink(a.id,drag.item,b.id);
     }
-    else if(b) toast(`${TYPES[b.type].n}に ${ITEMS[drag.item].n} の入力口はありません`);
+    else if(b){
+      const T=TYPES[b.type];
+      if((T.store||T.ware||T.chain==='sell') && storeItems(b).length >= T.slots)
+        toast(`${TYPES[b.type].n}は ${T.slots}種類まで。インスペクタで入れ替えるか、いらない線を切ってください`);
+      else toast(`${TYPES[b.type].n}に ${ITEMS[drag.item].n} の入力口はありません`);
+    }
     $('#temp').setAttribute('d','');
     clearTargets();
   }else if(drag.mode==='wire'){
@@ -3308,6 +3314,7 @@ function migrate(d){
       for(const l of d.links||[]) if(l.to===n.id && l.item!=='sta' && !n.items.includes(l.item))
         n.items.push(l.item);
       if(!n.items.length && n.item && n.item!=='waste') n.items.push(n.item);
+      n.items = n.items.slice(0, T.slots || 2);      // 枠より多くは持てない
       n.item = null; n.sellK = null;
     }
     d.v = 11;
