@@ -1556,7 +1556,7 @@ const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].chain==='sell' 
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
 const BYP_CAP  = 1e12;                    // 副産物は上限なく溜まる。詰まらせない代わりに汚染が広がる
 const isByp    = k => BYP.some(b=>b.k===k);
-const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? CAP*8
+const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? BYP_CAP
                           : (TYPES[n.type].src && item==='sta') ? maxSta()
                           : isByp(item) ? BYP_CAP
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
@@ -1981,9 +1981,9 @@ function sellPick(n){
 }
 function spaceIn(n,item){
   const T = TYPES[n.type];
-  if(T.layer) return layerNeeds(n)[item] ? Math.max(0, CAP*8 - (n.inBuf[item]||0)) : 0;
-  if(T.lout){ const L=N(n.layer);
-    return (L && L.out === item) ? Math.max(0, CAP*8 - (n.inBuf[item]||0)) : 0; }
+  // レイヤーの口はいくらでも通す。ここで詰まらせない
+  if(T.layer) return layerNeeds(n)[item] ? BYP_CAP : 0;
+  if(T.lout){ const L=N(n.layer); return (L && L.out === item) ? BYP_CAP : 0; }
   if(T.lin) return 0;
   if(T.store){                                      // 貯蔵：種類の上限と1種あたりの量で決まる
     const held = n.inBuf[item]||0;
@@ -2106,9 +2106,10 @@ function tick(dt,fast){
       n.cd[item]=(n.cd[item]||0)-dt; if(n.cd[item]>0) continue;
       const ls=S.links.filter(l=>l.from===n.id&&l.item===item);
       if(!ls.length) continue;
-      const chunk=Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8));
+      const big = TYPES[n.type].layer || TYPES[n.type].port;   // 口はまとめて流す
+      const chunk = big ? Infinity : Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8));
       // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る
-      let left=Math.min(200, 1+Math.floor(-n.cd[item]/SENDCD));
+      let left = big ? 400 : Math.min(200, 1+Math.floor(-n.cd[item]/SENDCD));
       n.cd[item]=SENDCD;
       // 優先度つきの分配（数字の大きい送り先ほど多く回る）
       n.wrr = n.wrr || {};
@@ -2248,9 +2249,7 @@ function layerFlow(L){
   for(const k in L.inBuf){
     let q = L.inBuf[k]; if(q <= 0) continue;
     if(lin){
-      const room = capOut(lin, k) - (lin.outBuf[k]||0);
-      const t = Math.min(q, Math.max(0, room));
-      if(t > 0){ lin.outBuf[k] = (lin.outBuf[k]||0) + t; q -= t; }
+      lin.outBuf[k] = (lin.outBuf[k]||0) + q; q = 0;    // 入口は素通し
     }else{
       for(const m of mem){
         const sp = spaceIn(m, k); if(sp <= 0) continue;
@@ -2263,18 +2262,14 @@ function layerFlow(L){
   }
   // 出口ノード → 外（無ければ中のノードから吸い上げる）
   const k = L.out; if(!k) return;
-  let left = capOut(L, k) - (L.outBuf[k]||0); if(left <= 0) return;
-  const pull = src => { const have = src.inBuf ? (src.inBuf[k]||0) : 0; return have; };
-  if(lout){
-    const have = Math.min(left, lout.inBuf[k]||0);
-    if(have > 0){ lout.inBuf[k] -= have; L.outBuf[k] = (L.outBuf[k]||0) + have; }
+  if(lout){                                            // 出口も素通し
+    const have = lout.inBuf[k]||0;
+    if(have > 0){ lout.inBuf[k] = 0; L.outBuf[k] = (L.outBuf[k]||0) + have; }
     return;
   }
   for(const m of mem){
     const have = m.outBuf[k]||0; if(have <= 0) continue;
-    const t = Math.min(left, have);
-    m.outBuf[k] -= t; L.outBuf[k] = (L.outBuf[k]||0) + t; left -= t;
-    if(left <= 0) break;
+    m.outBuf[k] = 0; L.outBuf[k] = (L.outBuf[k]||0) + have;
   }
 }
 /* 入口・出口のノードを用意する */
@@ -2908,8 +2903,8 @@ function render(){
       const c=n.inBuf[k]||0, req=need[k];
       // 分母は「その口が何を待っているか」に合わせる。
       // 貯蔵と倉庫と売り場は入れておける量、それ以外は1回に要る数
-      const stack = (T.store || T.ware || T.chain==='sell');
-      const den = stack ? capIn(n,k) : req;
+      const stack = (T.store || T.ware || T.chain==='sell' || T.layer || T.port);
+      const den = (T.layer || T.port) ? 0 : stack ? capIn(n,k) : req;
       s.querySelector('b').textContent=fmt(c);
       s.querySelector('.q').textContent = den ? '/'+fmt(den) : '';
       s.classList.toggle('short', !stack && !!req && c < req);
@@ -2918,7 +2913,7 @@ function render(){
     for(const k in give){
       const s=e.slots['out-'+k], c=n.outBuf[k]||0;
       s.querySelector('b').textContent=fmt(c);
-      s.querySelector('.q').textContent = isByp(k) ? '' : '/'+fmt(capOut(n,k));
+      s.querySelector('.q').textContent = (isByp(k) || T.layer || T.port) ? '' : '/'+fmt(capOut(n,k));
       s.classList.toggle('full', c+give[k]>capOut(n,k));
     }
     e.bar.style.width=(n.crafting?Math.min(100,n.prog/n.need*100):0)+'%';
