@@ -4076,6 +4076,18 @@ function save(){
     return true;
   }catch(_){ return false; }
 }
+/* 留守のあいだの進行。解放が進むほど「時間上限」と「倍率」が伸びる。
+   読み込んだときと、アプリを離れて戻ってきたときの両方で使う      */
+function applyAway(away){
+  const counted = Math.min(offCapH()*3600, away);
+  if(counted <= 5) return 0;
+  const sim = Math.min(OFF_SIM_MAX, counted * offRate());
+  const g0=S.gold, b0=S.best, step = sim>6*3600 ? 2 : (sim>1800 ? 1 : 0.25);
+  for(let t=0;t<sim;t+=step) tick(step,true);
+  const hm = x => (x>=3600?Math.floor(x/3600)+'時間':'')+Math.floor(x%3600/60)+'分';
+  addLog(`留守 ${hm(away)}（${hm(counted)}ぶん ×${offRate().toFixed(1)}）→ +${fmt(S.gold-g0)}G / 最深 ${b0}→${S.best}層`,'b');
+  return S.gold - g0;
+}
 function load(){
   let raw=null; try{ raw=localStorage.getItem(KEY); }catch(_){}
   if(!raw) return false;
@@ -4087,16 +4099,7 @@ function load(){
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
     for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
     S.at = null; applyView(); renderLog(); renderBoard();
-    // 留守のあいだの進行。解放が進むほど「時間上限」と「倍率」が伸びる
-    const away = (Date.now() - (d.savedAt||Date.now())) / 1000;
-    const counted = Math.min(offCapH()*3600, away);
-    if(counted > 5){
-      const sim = Math.min(OFF_SIM_MAX, counted * offRate());
-      const g0=S.gold, b0=S.best, step = sim>6*3600 ? 2 : (sim>1800 ? 1 : 0.25);
-      for(let t=0;t<sim;t+=step) tick(step,true);
-      const hm = x => (x>=3600?Math.floor(x/3600)+'時間':'')+Math.floor(x%3600/60)+'分';
-      addLog(`留守 ${hm(away)}（${hm(counted)}ぶん ×${offRate().toFixed(1)}）→ +${fmt(S.gold-g0)}G / 最深 ${b0}→${S.best}層`,'b');
-    }
+    applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
     return true;
   }catch(_){ return false; }
 }
@@ -4304,6 +4307,18 @@ function loop(now){
 }
 requestAnimationFrame(loop);
 window.addEventListener('beforeunload',save);
+/* 画面を離れているあいだは時間が進まないので、戻ってきたら留守ぶんを足す。
+   （アプリを切り替えただけで放置が止まってしまうため）              */
+let hidAt = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ hidAt = Date.now(); save(); return; }
+  const away = (Date.now() - (hidAt || Date.now())) / 1000;
+  hidAt = 0; last = performance.now();
+  if(away <= 5) return;
+  const g = applyAway(away);
+  render(); renderInsp(); renderLog(); save();
+  if(away >= 60) toast(`おかえり。留守のぶん +${fmt(g)}G`);
+});
 // 画面サイズが変わってノードが見えなくなったら自動で入れ直す
 let rzT=null;
 window.addEventListener('resize',()=>{
