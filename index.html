@@ -107,6 +107,7 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .node.stall .nf{color:var(--bad)}
 .node .aura{position:absolute;border-radius:50%;pointer-events:none;z-index:-1}
 .port.any{border-style:dashed;color:var(--dim);font-size:11px;line-height:1}
+.slot.anyslot{color:var(--dim);border-style:dashed;font-size:9.5px;letter-spacing:.02em}
 .node .aura.clean{border:1px dashed rgba(94,224,192,.30);
   background:radial-gradient(circle,rgba(94,224,192,.09),transparent 70%)}
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
@@ -1540,7 +1541,11 @@ const isBoss = f => f % BOSS_EVERY === 0;
 const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
 const depthBonus = () => 1 + depthTier() * 0.08;
 const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
-const rowsOf = n => Math.max(1, inKeys(n).length, outKeys(n).length);
+/* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
+const anyPort = n => { const T=TYPES[n.type];
+  return !!(T.ware || T.chain==='sell'
+    || (T.store && storeItems(n).length < T.slots)); };
+const rowsOf = n => Math.max(1, inKeys(n).length + (anyPort(n)?1:0), outKeys(n).length);
 const nodeH  = n => HEAD + rowsOf(n)*ROWH + 26;
 const portY  = i => HEAD + i*ROWH + ROWH/2;
 
@@ -1629,11 +1634,13 @@ function mkNodeEl(n){
   el.className = 'node'; el.dataset.id = n.id;
   el.style.height = nodeH(n) + 'px';
 
+  const any = anyPort(n), anyRow = any ? ik.length : -1;
   let rows = '', ports = '';
   for(let i=0;i<rowsOf(n);i++){
     const a = ik[i], b = ok[i];
     rows += `<div class="rowio">`+
       (a ? `<div class="slot i" data-s="in-${a}">${ITEMS[a].i}<b>0</b><span class="q">/0</span></div>`
+         : i===anyRow ? `<div class="slot i anyslot">＋ ${TYPES[n.type].chain==='sell'?'なんでも':'空き'}</div>`
          : `<div class="slot e"></div>`)+
       (b ? `<div class="slot o" data-s="out-${b}"><span class="q">/0</span><b>0</b>${ITEMS[b].i}</div>`
          : `<div class="slot e"></div>`)+
@@ -1641,14 +1648,14 @@ function mkNodeEl(n){
     if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
     if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
   }
-  const free = TYPES[n.type].ware || TYPES[n.type].chain==='sell'
-    || (TYPES[n.type].store && storeItems(n).length < TYPES[n.type].slots);
   const A = TYPES[n.type].aura;
   const auraEl = A
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '';
-  if(free) ports += `<div class="port pin any" style="top:${portY(Math.max(0,rowsOf(n)-1))}px"`
-    + ` title="${TYPES[n.type].ware ? 'どんな素材でもここへ繋げます' : '空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）'}">＋</div>`;
+  if(any) ports += `<div class="port pin any" style="top:${portY(anyRow)}px"`
+    + ` title="${TYPES[n.type].chain==='sell' ? 'どんな素材でもここへ繋げます（届いたものから売ります）'
+        : TYPES[n.type].ware ? 'どんな素材でもここへ繋げます'
+        : '空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）'}">＋</div>`;
   el.innerHTML = auraEl +
     `<div class="nh"><span class="ic">${tr.i}</span><span class="nm">${tr.n}</span><span class="lv">Lv.${n.level}</span></div>`+
     rows + `<div class="bar"><i></i></div><div class="nf"></div>` + ports;
