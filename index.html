@@ -127,6 +127,16 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 .node.stall .aura{opacity:.25}
 .node.pol{box-shadow:0 0 0 1px rgba(154,209,74,.5), 0 0 18px rgba(154,209,74,.25)}
 .node.hid{display:none}
+#board{position:absolute;left:12px;top:12px;display:none;align-items:center;gap:10px;
+  background:rgba(17,22,35,.97);border:1px solid var(--pw);border-radius:10px;padding:6px 10px;
+  z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#board.on{display:flex}
+#board button{background:#0c111b;border:1px solid var(--pw);border-radius:7px;padding:4px 10px;
+  font-size:11px;color:var(--pw)}
+#board .bpath{font-size:12px;font-weight:700;color:var(--pw)}
+#board .bsub{font-size:10.5px;color:var(--dim)}
+@media (max-width:860px){ #board{left:6px;top:6px;padding:5px 8px;gap:6px}
+  #board .bsub{display:none} }
 #lasso{fill:rgba(180,135,245,.14);stroke:var(--pw);stroke-width:2;stroke-dasharray:7 5;
   pointer-events:none;display:none}
 body.lasso #stage{cursor:crosshair}
@@ -596,7 +606,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
           <button id="tSkip">スキップ</button>
         </div>
       </div>
-      <div id="insp"></div>
+      <div id="board"></div><div id="insp"></div>
       <div id="toast"></div>
       <button id="offscr"></button>
     </div>
@@ -1672,7 +1682,7 @@ function freshState(){
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, home:{}, maxEqp:0, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, maxEqp:0, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -1849,7 +1859,7 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y){
-  const n={id:S.nextId++,type,x,y,level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,drop:false};
+  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,drop:false};
   // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく。
   // 売り場だけは既定を「なんでも売る」にする
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
@@ -2152,8 +2162,40 @@ function exTotal(){
    囲んだノードをひとつのノードにまとめる。中のノードは動き続けるが
    盤面からは隠れ、外から見えるのは「入口」と「出口ひとつ」だけ。
    レイヤーの中にレイヤーは作れない。                                  */
+/* 出口の候補としての good さ。動力や副産物より、作ったものを先に選ぶ */
+const outRank = k => (POW_ITEM[k] ? 0 : isByp(k) ? 1 : 2) * 1e12 + itemVal(k);
 const isLayer  = n => !!(n && TYPES[n.type].layer);
 const inLayer  = n => !!(n && n.layer);
+/* いま見ている盤面。null＝いちばん外側。レイヤーに入るとその中の盤面になる */
+const atNow    = () => S.at || null;
+const onBoard  = n => (n.layer || null) === atNow();
+function enterLayer(L){
+  const cur = N(atNow());
+  if(cur) cur.view = Object.assign({}, S.view);      // いまの見え方を覚えておく
+  S.at = L.id;
+  S.view = Object.assign({x:0,y:0,s:1}, L.view || {});
+  sel = null; applyView(); renderInsp(); renderBoard();
+  if(!L.view) fitView(1);
+}
+function leaveLayer(){
+  const L = N(atNow()); if(!L) return;
+  L.view = Object.assign({}, S.view);
+  S.at = L.layer || null;
+  const up = N(atNow());
+  S.view = Object.assign({x:0,y:0,s:1}, (up && up.view) || S.homeView || {});
+  sel = L.id; applyView(); renderInsp(); renderBoard();
+}
+/* パンくず */
+function renderBoard(){
+  const bar = $('#board'); if(!bar) return;
+  const L = N(atNow());
+  bar.classList.toggle('on', !!L);
+  if(L) bar.innerHTML = `<button id="bUp">↩ 外へ</button>`
+    + `<span class="bpath">🧩 ${L.lname || 'レイヤー'} の中</span>`
+    + `<span class="bsub">入口 ${Object.keys(layerNeeds(L)).map(k=>ITEMS[k].i).join('')||'なし'}`
+    + `　出口 ${L.out?ITEMS[L.out].i+ITEMS[L.out].n:'なし'}</span>`;
+  const up = bar.querySelector('#bUp'); if(up) up.onclick=leaveLayer;
+}
 const memOf    = L => (L.members||[]).map(N).filter(Boolean);
 /* 外から入れてもらう必要があるもの（中で作れないもの） */
 function layerNeeds(L){
@@ -2171,7 +2213,7 @@ function layerOuts(L){
   const mem = memOf(L), made = {}, used = new Set();
   for(const m of mem){ for(const k in outsOf(m)) made[k] = 1;
                        for(const k in allIns(m)) used.add(k); }
-  const rank = k => (isByp(k) ? 0 : 1) * 1e9 + itemVal(k);   // 副産物より作ったものを先に
+  const rank = k => outRank(k);
   const o = Object.keys(made).filter(k => !used.has(k)).sort((a,b)=>rank(b)-rank(a));
   return o.length ? o : Object.keys(made).sort((a,b)=>rank(b)-rank(a));
 }
@@ -2199,15 +2241,17 @@ function layerFlow(L){
 }
 /* まとめる */
 function makeLayer(ids){
-  const mem = ids.map(N).filter(n => n && !isLayer(n) && !inLayer(n) && !TYPES[n.type].unique);
+  const mem = ids.map(N).filter(n => n && !isLayer(n) && (n.layer||null) === atNow());
   if(mem.length < 2) return toast('2つ以上のノードを囲んでください');
   const inside = new Set(mem.map(n=>n.id));
   const cx = mem.reduce((a,n)=>a+n.x,0)/mem.length;
   const cy = mem.reduce((a,n)=>a+n.y,0)/mem.length;
   const L = addNode('layer', Math.round(cx), Math.round(cy)); reindex();
+  L.layer = atNow();
   L.members = mem.map(n=>n.id);
   L.lname = 'レイヤー';
   for(const m of mem) m.layer = L.id;
+  S.homeView = S.homeView || Object.assign({}, S.view);
   // 外とつながっている線を、レイヤーへ付け替える
   const outItems = new Set();
   for(const l of [...S.links]){
@@ -2217,7 +2261,8 @@ function makeLayer(ids){
     else if(a){ outItems.add(l.item); l.inFrom = l.from; l.from = L.id; }
   }
   const opts = layerOuts(L);
-  L.out = outItems.size ? [...outItems][0] : (opts[0] || null);
+  const picked = [...outItems].sort((a,b)=>outRank(b)-outRank(a));
+  L.out = picked[0] || opts[0] || null;
   // 出口はひとつだけ。ほかの外向きの線は外す
   for(const l of [...S.links]) if(l.from === L.id && l.item !== L.out) removeLink(l.id);
   // 同じ相手・同じ素材の線が重なったらひとつに畳む
@@ -2230,19 +2275,24 @@ function makeLayer(ids){
   layerDirty();
   for(const m of mem) rebuildNodeEl(m);
   rebuildNodeEl(L);
-  sel = L.id; renderInsp();
-  toast(`${mem.length}個をまとめました`);
-  if(outItems.size > 1) addLog(`【レイヤー】出口は ${ITEMS[L.out].n} ひとつだけです`, 'u');
+  sel = L.id; renderInsp(); renderBoard();
+  toast(`${mem.length}個をまとめました（ダブルタップで中を開けます）`);
+  if(outItems.size > 1){
+    const cut = [...outItems].filter(k => k !== L.out).map(k => ITEMS[k].n).join('・');
+    addLog(`【レイヤー】出口は ${ITEMS[L.out].n} ひとつだけ。${cut} の線は外しました`, 'u');
+    toast(`出口は ${ITEMS[L.out].n} だけ。${cut} の線は外れました`);
+  }
   return L;
 }
 /* ほどく */
 function breakLayer(L){
+  if(atNow() === L.id) leaveLayer();
   const ids = new Set(L.members||[]);
   for(const l of [...S.links]){
     if(l.to === L.id){ if(ids.has(l.inTo)) { l.to = l.inTo; delete l.inTo; } else removeLink(l.id); }
     else if(l.from === L.id){ if(ids.has(l.inFrom)) { l.from = l.inFrom; delete l.inFrom; } else removeLink(l.id); }
   }
-  for(const m of memOf(L)){ delete m.layer; rebuildNodeEl(m); }
+  for(const m of memOf(L)){ m.layer = L.layer || null; rebuildNodeEl(m); }
   const n = memOf(L).length;
   if(sel === L.id) sel = null;
   removeNode(L.id); reindex(); layerDirty();
@@ -2847,7 +2897,7 @@ function render(){
     if(prioOf(n)>1) e.nf.textContent += `　優先${prioOf(n)}`;
     e.root.classList.toggle('pol', (n.pol||0) > 0.05);
     e.root.classList.toggle('won', !!(T.raid && n.clear));
-    e.root.classList.toggle('hid', inLayer(n));
+    e.root.classList.toggle('hid', !onBoard(n));
     e.root.classList.toggle('stall',n.stall);
     e.root.classList.toggle('run',!n.stall);
     e.root.classList.toggle('sel',sel===n.id);
@@ -2855,7 +2905,7 @@ function render(){
   }
   for(const l of S.links){
     // レイヤーの中に隠れた端点を持つ線は見せない
-    const hid = inLayer(N(l.from)) || inLayer(N(l.to));
+    const hid = !onBoard(N(l.from)) || !onBoard(N(l.to));
     if(l.el.hidden !== hid){
       l.el.hidden = hid;
       for(const k of ['hit','wire','flow']) l.el[k].style.display = hid ? 'none' : '';
@@ -3034,7 +3084,7 @@ function buy(t){
 /* ========================= 配置と視点 ========================= */
 const NHmax = 126;                       // 判定に使うノードの高さ（最大3行ぶん）
 const hOf = n => parseFloat(n.el.root.style.height) || NHmax;
-const taken = (x,y) => S.nodes.some(n => !inLayer(n) && Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
+const taken = (x,y) => S.nodes.some(n => onBoard(n) && Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
 // 左下のインスペクタ・右上のヘルプに隠れる位置は避ける
 // 画面に重なっているパネル（案内・インスペクタ・ヘルプ）の下は避ける。
 // 縦向きと横向きでパネルの位置が変わるので、決め打ちせず実際の矩形から判定する
@@ -3097,14 +3147,14 @@ function freeSpot(){
 function bounds(){
   let a={x0:Infinity,y0:Infinity,x1:-Infinity,y1:-Infinity};
   for(const n of S.nodes){
-    if(inLayer(n)) continue;
+    if(!onBoard(n)) continue;
     a.x0=Math.min(a.x0,n.x); a.y0=Math.min(a.y0,n.y);
     a.x1=Math.max(a.x1,n.x+NW); a.y1=Math.max(a.y1,n.y+hOf(n));
   }
   return a;
 }
 function fitView(maxS){
-  if(!S.nodes.length) return;
+  if(!S.nodes.some(onBoard)) return;
   const b=bounds(), W=stage.clientWidth, H=stage.clientHeight, pad=48;
   const s=Math.min(maxS||1.2, Math.max(0.2, Math.min((W-pad*2)/Math.max(1,b.x1-b.x0),
                                                (H-pad*2)/Math.max(1,b.y1-b.y0))));
@@ -3163,7 +3213,8 @@ function renderInsp(){
     ((T.chain && T.chain!=='sell')||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
-    (T.layer ? `<div class="kv">出口（ひとつだけ）<select class="lout"></select></div>
+    (T.layer ? `<button class="lopen">🧩 中を開く</button>
+                <div class="kv">出口（ひとつだけ）<select class="lout"></select></div>
                 <div class="kv">中のノード<b class="lmem"></b></div>
                 <button class="lbreak">🧩 ほどく</button>` : '') +
     (T.store || T.ware ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : '') +
@@ -3252,6 +3303,7 @@ function renderInsp(){
     };
     box.querySelector('.lmem').textContent = memOf(n).map(m=>tierOf(m).i).join(' ') || '—';
     box.querySelector('.lbreak').onclick=()=>breakLayer(n);
+    box.querySelector('.lopen').onclick=()=>enterLayer(n);
   }
   if(T.store || T.ware || T.chain==='sell'){
     const w=box.querySelector('.slotsel'); w.innerHTML='';
@@ -3490,7 +3542,7 @@ function doPinch(){
 
 // 盤面の上に重ねているパネル（インスペクタ・案内・ヘルプ・バッジ）の中の操作は盤面に渡さない。
 // 渡すと背景クリック扱いで選択が解除され、renderInsp() がボタンごと消してしまう
-const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast';
+const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast,#board';
 /* ========================= 投げ縄でまとめる ========================= */
 let lassoOn = false;
 function setLasso(v){
@@ -3628,7 +3680,7 @@ stage.addEventListener('pointerup', e=>{
   }else if(drag.mode==='lasso'){
     const pts=drag.pts; $('#lasso').style.display='none'; $('#lasso').setAttribute('d','');
     if(pts.length > 4){
-      const ids = S.nodes.filter(n => !inLayer(n) && !isLayer(n) && !TYPES[n.type].unique
+      const ids = S.nodes.filter(n => onBoard(n) && !isLayer(n)
         && inPoly(pts, n.x + NW/2, n.y + 45)).map(n=>n.id);
       if(ids.length) makeLayer(ids); else toast('ノードが囲まれていません');
     }
@@ -3642,6 +3694,8 @@ stage.addEventListener('pointerup', e=>{
 });
 stage.addEventListener('dblclick', e=>{
   if(e.target.closest(OVERLAY_SEL)) return;
+  const nd=e.target.closest('.node');
+  if(nd){ const n=N(+nd.dataset.id); if(n && isLayer(n)){ enterLayer(n); return; } }
   const wph=e.target.closest('circle.wph'); if(!wph) return;
   const l=S.links.find(x=>x.id===+wph.dataset.wp);
   if(l){ l.wp=null; toast('配線をまっすぐに戻しました'); }
@@ -3818,7 +3872,7 @@ function load(){
     if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
     for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
-    applyView(); renderLog();
+    S.at = null; applyView(); renderLog(); renderBoard();
     // 留守のあいだの進行。解放が進むほど「時間上限」と「倍率」が伸びる
     const away = (Date.now() - (d.savedAt||Date.now())) / 1000;
     const counted = Math.min(offCapH()*3600, away);
@@ -4011,6 +4065,7 @@ function newGame(){
   addLink(h.id,'sta',d.id);
   addLog('勇者 ⚡→ ダンジョン が接続済み。まずは潜ってゴールドを貯めよう','u');
   addLog('⛏採掘を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
+  S.at = null; renderBoard();
   fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
 }
 if(!load()) newGame();
