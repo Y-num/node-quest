@@ -344,6 +344,9 @@ body.tut #offscr{display:none}
 #bag .bhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--line)}
 #bag .bt{font-weight:700;font-size:14px;color:var(--pw)}
 #bag .bon{font-size:10px;color:var(--acc);font-weight:600}
+.dspd{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+.dspd input{width:110px}
+.dspd b{color:var(--acc);font-variant-numeric:tabular-nums;min-width:34px}
 #bag .btabs{display:flex;gap:6px;margin-left:14px}
 #bag .btabs button{background:#0c111b;border:1px solid var(--line);border-radius:7px;
   padding:4px 10px;font-size:11px;color:var(--dim)}
@@ -689,6 +692,8 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <button data-do="gold">ゴールド +100万</button>
       <button data-do="stats">能力値 +10</button>
       <button data-do="dev">最終時代まで解放</button>
+      <label class="dspd">⏩ 速度 <input id="dSpeed" type="range" min="1" max="5" step="0.5" value="1">
+        <b id="dSpeedV">×1.0</b></label>
       <span class="dnote">この画面は <code>?debug=1</code> か <code>#debug</code> を付けたときだけ開けます</span>
     </div>
     <div class="dwrap"><table id="dTable"></table></div>
@@ -1500,16 +1505,16 @@ const dropName = d => `${baseName(d.type)}〈${d.mods.tags.join('・')||'無印'
 const scrapRp = (type, level, grade) =>
   Math.max(1, Math.ceil(TYPES[type].cost * 0.02 * lvPow(level) + (grade||0) * 15));
 
-/* オフライン報酬：解放するたびに倍率と時間上限が伸びる
-   解放数 = 研究で開発したノードの数 ＋ 10層ごとの踏破段階 */
+/* 留守のあいだの報酬。時代と踏破段階で、倍率と時間上限がゆっくり伸びる。
+   （時代を上げると建てられる施設が一気に増えるので、施設の数では数えない） */
 let devN=null, frontN=null;
 const devDirty  = () => { devN=null; frontN=null; };
 const devCount  = () => { if(devN===null) devN=ORDER.reduce((a,t)=>a+((TYPES[t].era&&TYPES[t].era<=(S.era||1))?1:0),0); return devN; };
 /* 次に上がる時代 */
 function nextResearch(){ return (S.era||1) < ERA_MAX ? (S.era||1)+1 : null; }
-const offSteps  = () => devCount() + depthTier();
-const offRate   = () => 1 + offSteps() * 0.10;              // 倍率（上限なし）
-const offCapH   = () => Math.min(24, 2 + Math.floor(offSteps() * 0.5)); // 時間上限 2〜24時間
+const offSteps  = () => ((S.era||1) - 1) + depthTier();
+const offRate   = () => 1 + offSteps() * 0.05;              // 倍率
+const offCapH   = () => Math.min(24, 2 + offSteps() * 0.8); // 時間上限 2〜24時間
 const OFF_SIM_MAX = 48 * 3600;                              // 一度に計算する上限
 
 /* 研究：🧠知力で「判明」→ 🔬研究所で「開発」→ ようやく建設できる */
@@ -2458,7 +2463,7 @@ function render(){
   $('#tFloor').textContent=S.floor;
   $('#tBest').textContent=S.best;
   const dt=depthTier();
-  $('#oSteps').textContent=offSteps()+'解放';
+  $('#oSteps').textContent=`第${S.era||1}時代/${depthTier()}段`;
   $('#oRate').textContent='×'+offRate().toFixed(1);
   $('#oCap').textContent=offCapH()+'時間';
   $('#oNext').textContent=`研究をあと1つ / 第${(dt+1)*BOSS_EVERY}層 踏破`;
@@ -3415,6 +3420,11 @@ $('#bReset').onclick=()=>{
 /* ========================= デバッグ：ノード一覧と設置 =========================
    ?debug=1 が付いているときだけ開ける。通常プレイではボタンごと出さない */
 const DEBUG = /(^|[?&])debug=1(&|$)/.test(location.search) || location.hash === '#debug';
+if(DEBUG){
+  const sp=$('#dSpeed'), sv=$('#dSpeedV');
+  if(sp) sp.oninput=()=>{ SPEED=+sp.value; sv.textContent='×'+SPEED.toFixed(1);
+    toast(`進行速度 ×${SPEED.toFixed(1)}`); };
+}
 
 function kindOf(t){
   const T=TYPES[t];
@@ -3506,8 +3516,9 @@ if(!S.enemy) spawnEnemy();
 checkSeen(true);
 
 let last=performance.now(), accS=0;
+let SPEED = 1;                      // デバッグ時だけ変えられる進行速度
 function loop(now){
-  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  const dt=Math.min(0.1,(now-last)/1000) * SPEED; last=now;
   tick(dt,false); render();
   accS+=dt; if(accS>5){ accS=0; save(); }
   requestAnimationFrame(loop);
