@@ -779,7 +779,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
    ========================================================================= */
 const CURVE = { index:120, taper:100, depth:100 };
 
-const VIT_K = 1.10;              // ❤️体力1につき体力生成が10%増える（曲線の土台）
+const VIT_K = 1.065;             // ❤️体力1につき体力生成が6.5%増える（曲線の土台）
 /* 訓練の重さ。ただの指数だと1段目から急に重くなるので、肩に指数を乗せて
    「序盤はほとんど増えない・後半で一気に効く」形にする。
      能力値10 で ×2.9 ／ 20 で ×21 ／ 30 で ×326 ／ 50 で ×34万 ／ 70 で ×26億   */
@@ -793,7 +793,7 @@ function applyCurve(){
 const trainMul = lv => Math.pow(TRAIN_K, Math.pow(Math.max(0, lv), TRAIN_P));
 /* 能力を1つ上げるのに要る経験値。1回の訓練で1つ出るので、そのまま回数になる。
    序盤から少しずつ回数が増えるので、体力の重さと合わせて伸びが落ち着く */
-const EXP_STEP = 3;
+const EXP_STEP = 2;
 const expNeed  = lv => 1 + Math.floor(Math.max(0, lv) / EXP_STEP);
 applyCurve();
 
@@ -991,8 +991,12 @@ function itemVal(k){
 }
 const COMP_TAKE = 5, DECOMP_TAKE = 4;
 /* 出資：ゴールド → 研究ポイント。基準は「研究1つ＝1200G」で、
-   レベルと🔮魔導の装備だけが割をよくする。1回に動かす額は時代で大きくなる */
-const FUND_G    = 1200;
+   レベルと🔮魔導の装備だけが割をよくする。1回に動かす額は時代で大きくなる。
+   （素材を解体台に通す道に比べると桁違いに悪い。余ったゴールドの捨て場） */
+const FUND_G    = 4000;
+/* 仲間の給料。1回働くごとに払う。時代が進むほど金額も大きくなる */
+const payOf = n => { const T=TYPES[n.type];
+  return T.pay ? Math.round(T.pay * Math.pow(2.6, (T.era||1)-1)) : 0; };
 const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
 const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(n.level) * gearMul('arcane'));
 /* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
@@ -1067,8 +1071,9 @@ function chainOpts(t){
 const TYPES = {
   hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3,
           d:'すべての行動の源。装備スロットが3つある。ここから伸ばす配線の本数が体力の配分になる。経験値もここへ戻す'},
-  mate  :{n:'仲間',      i:'🧑‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1,
-          d:'もう一つの体力の源。装備スロットが1つある。増やすほど工房を広げられる'},
+  mate  :{n:'仲間',      i:'🧑‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:6,
+          d:'ゴールドを払って働いてもらう、もう一つの体力の源。装備スロットが1つある。'
+           +'給料が払えなくなると手が止まる'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
           d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
            +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
@@ -1672,7 +1677,7 @@ const gotMat = () => Math.floor(S.stock || 0);
 /* 時代を1つ上げるのに要るもの。桁は時代ごとに大きく変わる */
 const ERA_RP0 = 2500, ERA_RPK = 6;
 const ERA_MAT_FROM = 4, ERA_MATK = 3.5;
-const ERA_RP_EARLY = {2:800, 3:5000};      // 装備に触れるまでは軽く
+const ERA_RP_EARLY = {2:400, 3:3000};      // 装備に触れるまでは軽く
 const eraRp  = e => e<=1 ? 0
   : (ERA_RP_EARLY[e] || Math.round(ERA_RP0 * Math.pow(ERA_RPK, e-2)));
 const eraMat = e => e < ERA_MAT_FROM ? 0 : Math.round(150 * Math.pow(ERA_MATK, e-ERA_MAT_FROM));
@@ -2131,9 +2136,11 @@ function tick(dt,fast){
         let ok=true;
         for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
         if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){ ok=false; n.why=`${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`; }
+        if(ok && T.pay && S.gold < payOf(n)){ ok=false; n.why=`給料が払えない（${fmt(payOf(n))}G）`; }
 
         if(!ok){ n.stall=true; break; }
         for(const k in need) n.inBuf[k]-=need[k];
+        if(T.pay) S.gold -= payOf(n);
         n.crafting=true; n.prog=0; n.need=Math.max(1e-6, craftTime(n));
       }
       const rest=n.need-n.prog;
@@ -2669,9 +2676,10 @@ const expRouted = n => { const k=EXP_OF[TYPES[n.type].stat];
 function srcFace(n){
   const e=n.ex||{}, got=(e.str||0)+(e.int||0)+(e.vit||0);
   const r=exRate.str+exRate.int+exRate.vit;
-  if(!got) return '⚡供給中／経験値はまだ戻っていない';
+  const pay = payOf(n) ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分` : '';
+  if(!got) return '⚡供給中'+pay+'／経験値はまだ戻っていない';
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
-  return `⚡供給中／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}`;
+  return `⚡供給中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}`;
 }
 function doDive(fast, node){
   if(!S.enemy) spawnEnemy();
@@ -3261,6 +3269,7 @@ function ioText(T){
   if(T.chain==='open')   return `宝箱×1 ⚡<span class="ar">→</span>🏠自宅へ（素材・装備・ゴールド）`;
   if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='fund')   return `💰ゴールド ⚡<span class="ar">→</span>🔬研究ポイント（割はとても悪い）`;
+  if(T.pay)              return `💰給料<span class="ar">→</span>⚡体力（払えなくなると止まる）`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
   if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
   if(T.chain){
