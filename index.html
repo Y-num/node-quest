@@ -1945,7 +1945,16 @@ function tick(dt,fast){
       n.stall=true; n.why=`空き ${T.slots} スロット／素材の線をここへ繋ぐと入ります`; continue; }
     if(T.chain==='sell'){                        // 何でも売れる。届いているものから選ぶ
       if(!n.crafting) n.sellK = sellPick(n);
-      if(!n.sellK){ n.stall=true; n.why='売るものが届いていない'; continue; }
+      if(!n.sellK){
+        n.stall = true;
+        // 「何も無い」のか「まだ数が足りない」のかを分けて伝える
+        const held = storeItems(n).map(k=>[k, Math.floor(n.inBuf[k]||0)])
+          .filter(x=>x[1] > 0).sort((a,b)=>b[1]-a[1])[0];
+        n.why = held ? `${ITEMS[held[0]].n} ${held[1]}/${SELL_TAKE}（${SELL_TAKE}個そろうと売れます）`
+              : storeItems(n).length ? '売るものが届いていない'
+              : '受け入れる素材が未設定';
+        continue;
+      }
     }else if(['comp','decomp','clean','fuel','anvil'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
     }else if(T.chain==='equip'){
