@@ -952,7 +952,9 @@ function itemVal(k){
   for(let i=0;i<d;i++) v *= eq ? EQP_STEP(i) : densStep(i);   // 装備の鍛錬はごく緩やか
   return v;
 }
-const COMP_TAKE = 5, DECOMP_TAKE = 4, SELL_TAKE = 4, SELL_K = 3;
+const COMP_TAKE = 5, DECOMP_TAKE = 4;
+/* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る */
+const SELL_TAKE = 1, SELL_K = 12;
 const ERA_ATK = 1.35;
 // 副産物を燃やして得られる体力。厄介なものほど多い
 const bypVal = k => (BYP.find(b=>b.k===k)||{v:0}).v;
@@ -1051,7 +1053,7 @@ const TYPES = {
           d:'素材を貯めておける。詰まりを防げる'},
   comp  :{n:'圧縮機',    i:'🗜️', cost:2000, up:2600, time:2.0, chain:'comp',
           d:'下位の素材5つを、1つ上の密度にまとめる'},
-  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:1.6, chain:'sell', pk:2.4,
+  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:0.5, chain:'sell', pk:2.4,
           d:'素材を売ってゴールドにする。加工・合成したものほど高く売れる。'
            +'1つ目は安いが、増やすほど値が張る'},
   fuel  :{n:'再利用',    i:'🪱', cost:1500, up:2000, time:2.0, chain:'fuel',
@@ -1295,7 +1297,7 @@ function insOf(n){
   if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
     if(!n.item && T.chain!=='sell') return {};
     const take = T.chain==='comp' ? COMP_TAKE : T.chain==='sell' ? SELL_TAKE : DECOMP_TAKE;
-    const st = Math.max(1, Math.ceil((T.chain==='comp'?3:2) * e * COST_K));
+    const st = Math.max(1, Math.ceil((T.chain==='comp'?3:T.chain==='sell'?0.6:2) * e * COST_K));
     const k  = T.chain==='sell' ? (n.sellK || n.item) : n.item;
     if(!k) return modIns(n, eraIn(T, {sta:st}));
     return modIns(n, eraIn(T, {sta:st, [k]:take}));
@@ -1950,9 +1952,7 @@ function tick(dt,fast){
         // 「何も無い」のか「まだ数が足りない」のかを分けて伝える
         const held = storeItems(n).map(k=>[k, Math.floor(n.inBuf[k]||0)])
           .filter(x=>x[1] > 0).sort((a,b)=>b[1]-a[1])[0];
-        n.why = held ? `${ITEMS[held[0]].n} ${held[1]}/${SELL_TAKE}（${SELL_TAKE}個そろうと売れます）`
-              : storeItems(n).length ? '売るものが届いていない'
-              : '受け入れる素材が未設定';
+        n.why = storeItems(n).length ? '売るものが届いていない' : '受け入れる素材が未設定';
         continue;
       }
     }else if(['comp','decomp','clean','fuel','anvil'].includes(T.chain)){
@@ -2711,7 +2711,7 @@ function ioText(T){
 
   if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
-  if(T.chain==='sell')   return `受け入れた素材×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
+  if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
   if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
   if(T.chain){
