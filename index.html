@@ -1981,8 +1981,19 @@ function sellPick(n){
 }
 function spaceIn(n,item){
   const T = TYPES[n.type];
-  // レイヤーの口はいくらでも通す。ここで詰まらせない
-  if(T.layer) return layerNeeds(n)[item] ? BYP_CAP : 0;
+  // レイヤーは「中がいま受け取れるぶん」だけ引き受ける。
+  // 際限なく吸い込むと入口に溜まるだけで、外の施設にも回らなくなる
+  if(T.layer){
+    if(!layerNeeds(n)[item]) return 0;
+    let sp = 0;
+    for(const m of memOf(n)){
+      if(TYPES[m.type].lin){ sp -= (m.outBuf[item]||0); continue; }   // 入口の在庫は先に使う
+      if(isPort(m)) continue;
+      sp += spaceIn(m, item);
+    }
+    return Math.max(0, sp);
+  }
+  // 出口は中から詰まらせないよう、いくらでも受ける
   if(T.lout){ const L=N(n.layer); return (L && L.out === item) ? BYP_CAP : 0; }
   if(T.lin) return 0;
   if(T.store){                                      // 貯蔵：種類の上限と1種あたりの量で決まる
