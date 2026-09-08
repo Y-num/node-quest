@@ -86,6 +86,14 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .node.stall{border-color:#6d3a45}
 .node.run{border-color:#2f6b60}
 .node.tgt{border-color:var(--acc2);box-shadow:0 0 0 2px var(--acc2)}
+.node.over{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc),0 0 22px rgba(94,224,192,.45)}
+/* 配線を伸ばしているあいだ、受け取れる口だけをはっきり光らせる */
+body.linking .port.hot{background:var(--acc2);color:#08131a;border-color:var(--acc2);
+  transform:scale(1.35);box-shadow:0 0 0 3px rgba(122,162,255,.35);animation:hotp .9s ease-in-out infinite}
+body.linking .node.tgt .port:not(.hot){opacity:.25}
+body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;background:rgba(122,162,255,.14)}
+@keyframes hotp{0%,100%{box-shadow:0 0 0 3px rgba(122,162,255,.35)}
+                50%{box-shadow:0 0 0 7px rgba(122,162,255,.12)}}
 .nh{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;height:22px}
 .nh .ic{font-size:14px}
 .nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
@@ -430,7 +438,7 @@ body.tut #offscr{display:none}
 #insp .alc{font-size:10.5px;font-weight:600;text-align:right;max-width:170px;color:var(--sta)}
 #insp .dst{font-size:10.5px;font-weight:600;text-align:right;max-width:170px}
 /* 配線をドラッグしている間は、受け取れる相手だけを明るく残す */
-body.linking .node{opacity:.28;transition:opacity .12s}
+body.linking .node{opacity:.30;transition:opacity .12s}
 body.linking .node.tgt,body.linking .node.src{opacity:1}
 
 /* ---------- 操作ヘルプはタップでも開ける ---------- */
@@ -3020,8 +3028,7 @@ stage.addEventListener('pointerdown', e=>{
   if(ptrs.size>=2){                       // 2本目が触れたらドラッグを中止してピンチへ
     drag=null; pinch=null; stage.classList.remove('panning');
     $('#temp').setAttribute('d','');
-    document.body.classList.remove('linking');
-    document.querySelectorAll('.node.tgt,.node.src').forEach(x=>x.classList.remove('tgt','src'));
+    clearTargets();
     return;
   }
   const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
@@ -3034,9 +3041,7 @@ stage.addEventListener('pointerdown', e=>{
   if(port&&nodeEl){
     drag={mode:'link', from:+nodeEl.dataset.id, item:port.dataset.item};
     document.body.classList.add('linking'); nodeEl.classList.add('src');
-    // 受け取れるノードを先に光らせておく（どこへ送れるかが一目で分かる）
-    const a=N(drag.from);
-    for(const m of S.nodes) if(canLink(a,drag.item,m)) m.el.root.classList.add('tgt');
+    markTargets(N(drag.from), drag.item);      // 受け取れる口を光らせておく
   }
   else if(nodeEl){
     const n=N(+nodeEl.dataset.id), w=toWorld(e.clientX,e.clientY);
@@ -3070,11 +3075,30 @@ stage.addEventListener('pointermove', e=>{
   }else if(drag.mode==='link'){
     const a=N(drag.from), w=toWorld(e.clientX,e.clientY);
     $('#temp').setAttribute('d', dStr(bez(portPos(a,drag.item,'out'), w)));
+    // 候補の表示は消さず、いま指しているものだけを強調する
     const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
-    document.querySelectorAll('.node.tgt').forEach(x=>x.classList.remove('tgt'));
-    if(tn&&canLink(a,drag.item,N(+tn.dataset.id))) tn.classList.add('tgt');
+    document.querySelectorAll('.node.over').forEach(x=>x.classList.remove('over'));
+    if(tn && tn.classList.contains('tgt')) tn.classList.add('over');
   }
 });
+/* 受け取れるノードと、その中の受け取り口を光らせる */
+function markTargets(a, item){
+  for(const m of S.nodes){
+    if(!canLink(a, item, m)) continue;
+    m.el.root.classList.add('tgt');
+    const p = m.el.root.querySelector(`.port.pin[data-item="${item}"]`)
+           || m.el.root.querySelector('.port.pin.any');
+    if(p) p.classList.add('hot');
+    const sl = m.el.slots['in-'+item];
+    if(sl) sl.classList.add('hot');
+    else { const any=m.el.root.querySelector('.slot.anyslot'); if(any) any.classList.add('hot'); }
+  }
+}
+function clearTargets(){
+  document.body.classList.remove('linking');
+  document.querySelectorAll('.node.tgt,.node.src,.node.over').forEach(x=>x.classList.remove('tgt','src','over'));
+  document.querySelectorAll('.port.hot,.slot.hot').forEach(x=>x.classList.remove('hot'));
+}
 function endPointer(e){
   ptrs.delete(e.pointerId);
   if(ptrs.size<2) pinch=null;
@@ -3092,8 +3116,7 @@ stage.addEventListener('pointerup', e=>{
     }
     else if(b) toast(`${TYPES[b.type].n}に ${ITEMS[drag.item].n} の入力口はありません`);
     $('#temp').setAttribute('d','');
-    document.body.classList.remove('linking');
-    document.querySelectorAll('.node.tgt,.node.src').forEach(x=>x.classList.remove('tgt','src'));
+    clearTargets();
   }else if(drag.mode==='wire'){
     if(!drag.handle&&drag.moved<5){ removeLink(drag.id); toast('配線を切断しました'); }
   }else if(drag.mode==='node'&&drag.moved<6){ sel=drag.id; renderInsp(); }
