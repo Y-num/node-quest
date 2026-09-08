@@ -990,6 +990,11 @@ function itemVal(k){
   return v;
 }
 const COMP_TAKE = 5, DECOMP_TAKE = 4;
+/* 出資：ゴールド → 研究ポイント。基準は「研究1つ＝1200G」で、
+   レベルと🔮魔導の装備だけが割をよくする。1回に動かす額は時代で大きくなる */
+const FUND_G    = 1200;
+const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
+const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(n.level) * gearMul('arcane'));
 /* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
    間隔が長いぶん、1個の値段は高い                                        */
 const SELL_TAKE = 1, SELL_K = 200;
@@ -1039,6 +1044,7 @@ function chainOpts(t){
   if(T.loot) return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filter(Boolean);
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   if(k==='alloy'){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i-1].ingot); return o; }
+  if(k==='fund')          return [];
   if(k==='open')          return BOXES.map(b=>b.k);
   if(k==='hout'){ const H=homeOf();
     return Object.keys(H).filter(k=>H[k]>0).sort((a,b)=>itemVal(b)-itemVal(a)); }
@@ -1071,6 +1077,8 @@ const TYPES = {
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean',
           d:'副産物を片付ける。扱える種類はその施設の時代まで。'
            +'片付けなくても止まりはしないが、溜めるほどまわりが汚染されて仕事が遅くなる'},
+  fund  :{n:'出資窓口',  i:'💱', cost:5000, up:6000, time:8.0, ins:{}, outs:{}, chain:'fund',
+          d:'ゴールドを研究ポイントに変える。割はとても悪いが、余ったゴールドの使い道になる'},
   lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12}, outs:{}, effect:'lab', matIn:true,
           d:'体力を研究力に変える。素材を1種類だけ受け取れて、送り込むと研究在庫になる'},
   tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
@@ -1186,6 +1194,8 @@ const FAC = {
           {e:10,n:'次元強化',i:'🌌'}],
   dive:  [{e:1,n:'洞窟の入口',i:'🕳️'},{e:3,n:'ダンジョン',i:'🚪'},{e:5,n:'深層門',i:'🌀'},
           {e:7,n:'転移門',i:'🔷'},{e:9,n:'星間門',i:'🌠'},{e:10,n:'時空門',i:'⏳'}],
+  fund:  [{e:2,n:'出資窓口',i:'💱'},{e:4,n:'商会',i:'🏦'},{e:6,n:'投資部',i:'📈'},
+          {e:8,n:'財団',i:'🏛'},{e:10,n:'次元経済',i:'🌌'}],
   lab:   [{e:1,n:'家の机',i:'🪑'},{e:2,n:'書斎',i:'📚'},{e:4,n:'研究室',i:'🔬'},
           {e:6,n:'研究所',i:'🏢'},{e:7,n:'計算機室',i:'🖥'},{e:9,n:'量子演算体',i:'🧿'}],
   dump:  [{e:1,n:'ゴミ袋',i:'🛍️'},{e:2,n:'焼却炉',i:'🔥'},{e:4,n:'廃棄場',i:'♻️'},
@@ -1269,7 +1279,7 @@ buildFac();
 const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
-  tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
+  fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
   coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
@@ -1335,6 +1345,9 @@ function insOf(n){
     if(!n.item) return {};
     // 厄介なものほど片付けるのに体力が要る
     return modIns(n, {sta:Math.max(1,Math.ceil(3*(1+bypVal(baseOf(n.item))/6)*e*COST_K)), [n.item]:3});
+  }
+  if(T.chain==='fund'){                        // ゴールドを研究に変える（要るのは⚡だけ）
+    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(8*e*COST_K))}));
   }
   if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
     return n.item ? modIns(n, {[n.item]:4}) : {};
@@ -1420,7 +1433,7 @@ function outsOf(n){
                         return to ? modOuts(n, {[to]:1}) : {}; }
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
-  if(T.chain==='decomp' || T.chain==='sell' || T.chain==='open') return {};
+  if(T.chain==='decomp' || T.chain==='sell' || T.chain==='open' || T.chain==='fund') return {};
   if(T.chain==='hout') return n.item ? modOuts(n, {[n.item]:1}) : {};
   if(T.chain==='equip'){                       // できた装備はふつうに出力へ積まれる
     const i = tierIdx(n.item); if(i<0) return {};
@@ -2103,6 +2116,8 @@ function tick(dt,fast){
     }else if(T.chain==='hout'){
       if(!n.item){ n.stall=true; n.why='出すものが未設定'; continue; }
       if((homeOf()[n.item]||0) < 1){ n.stall=true; n.why=`自宅に${ITEMS[n.item].n}がない`; continue; }
+    }else if(T.chain==='fund'){
+      if(S.gold < fundGold(n)){ n.stall=true; n.why=`ゴールドが足りない（${fmt(fundGold(n))}G 要る）`; continue; }
     }else if(['comp','decomp','clean','fuel','anvil','open'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
     }else if(T.chain==='equip'){
@@ -2140,6 +2155,11 @@ function tick(dt,fast){
       if(T.chain==='open') openBox(n, fast);
       if(T.chain==='sell' && n.sellK){
         const g=sellPrice(n.sellK, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
+      }
+      if(T.chain==='fund'){                     // ゴールドを払って研究に変える
+        const g = fundGold(n);
+        if(S.gold >= g){ S.gold -= g; const rp = fundRp(n);
+          n.gain=(n.gain||0)+rp; grantRp(rp, fast); }
       }
       if(T.chain==='decomp' && n.item){
         const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(n.level) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
@@ -3103,6 +3123,7 @@ function render(){
       : T.chain==='anvil' ? (n.item
           ? `⚔️${gearName(n.item)} を鍛錬中（${n.gain||0}打）` : '鍛える装備を選んでください')
       : T.chain==='equip' ? (n.item ? `${ITEMS[n.item].n}の装備を製作中（${n.gain||0}個）` : '作る装備を選んでください')
+      : T.chain==='fund' ? `${fmt(fundGold(n))}G → 🔬${fmt(fundRp(n))}（累計 🔬${fmt(n.gain||0)}）`
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
       : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
       : T.chain==='sell' ? (n.sellK
@@ -3239,13 +3260,14 @@ function ioText(T){
   if(T.chain==='hout')   return `🏠自宅から1つ ⚡<span class="ar">→</span>工房へ`;
   if(T.chain==='open')   return `宝箱×1 ⚡<span class="ar">→</span>🏠自宅へ（素材・装備・ゴールド）`;
   if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
+  if(T.chain==='fund')   return `💰ゴールド ⚡<span class="ar">→</span>🔬研究ポイント（割はとても悪い）`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
   if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
   if(T.chain){
     const m={ore:'⚡<span class="ar">→</span>原鉱＋🗑️',
              ingot:'原鉱×2 ⚡<span class="ar">→</span>地金＋🗑️',
              part:'地金×2 ⚡<span class="ar">→</span>部品＋🗑️×2',
-             equip:'部品×1 ＋ 合金×1<span class="ar">→</span>🎽装備をひとつ作る',
+             equip:'部品×1 ＋ 地金×2<span class="ar">→</span>🎽装備をひとつ作る（時間も⚡も大きい）',
              alloy:'地金×2 ＋ 1つ上の地金×1<span class="ar">→</span>合金＋🗑️',
              anvil:'装備×1 ＋ 合金×2<span class="ar">→</span>一段鍛えた装備×1（伸びは鈍る）'};
     return m[T.chain] || '—';
@@ -3436,7 +3458,8 @@ function renderInsp(){
   const head =
     `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>` +
     (n.type==='hero' ? `<div class="kv">名前<button class="ren"></button></div>` : '') +
-    ((T.chain && T.chain!=='sell')||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
+    ((T.chain && T.chain!=='sell' && T.chain!=='fund')||T.loot
+        ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
     (T.lout ? `<div class="kv">外へ出すもの<select class="lexit"></select></div>` : '') +
@@ -3487,7 +3510,7 @@ function renderInsp(){
     ml.value=n.item||'';
     ml.onchange=()=>{ setChainItem(n, ml.value||null); renderInsp(); };
   }
-  if((T.chain && T.chain!=='sell') || T.loot){
+  if((T.chain && T.chain!=='sell' && T.chain!=='fund') || T.loot){
     const cl=box.querySelector('.chn');
     const opts=chainOpts(n.type);
     cl.innerHTML = opts.length
