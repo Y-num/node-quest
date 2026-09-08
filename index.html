@@ -1708,7 +1708,19 @@ function toast(m){
 }
 function addLog(m,c){ S.log.unshift({m,c:c||''}); if(S.log.length>12) S.log.pop(); renderLog(); }
 function renderLog(){ $('#log').innerHTML = S.log.map(l=>`<div class="${l.c}">${l.m}</div>`).join(''); }
-const reindex = () => { idx = new Map(S.nodes.map(n=>[n.id,n])); };
+const reindex = () => { idx = new Map(S.nodes.map(n=>[n.id,n])); memIdx = null; };
+/* レイヤーの中身。n.layer から作り直す（members は持たない） */
+let memIdx = null;
+function memMap(){
+  if(memIdx) return memIdx;
+  memIdx = new Map();
+  for(const n of S.nodes){
+    const k = n.layer || 0;
+    if(!memIdx.has(k)) memIdx.set(k, []);
+    memIdx.get(k).push(n);
+  }
+  return memIdx;
+}
 const N = id => idx.get(id);
 
 /* ========================= 座標 ========================= */
@@ -1910,11 +1922,13 @@ function canAutoSet(b, item){
   if(S.links.some(l => l.to===b.id && !POW_ITEM[l.item])) return false;   // もう使っている
   return (chainOpts(b.type)||[]).includes(item);
 }
+const canSetExit = (b, item) => TYPES[b.type].lout && !POW_ITEM[item]
+  && (N(b.layer)||{}).out !== item;
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
   // 口があるもの（売り場は受け入れた種類ぜんぶ）か、これから枠や設定に入れられるもの
-  if(!portIns(b)[item] && !storeCanTake(b,item) && !canAutoSet(b,item)) return false;
+  if(!portIns(b)[item] && !storeCanTake(b,item) && !canAutoSet(b,item) && !canSetExit(b,item)) return false;
   return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
 }
 function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
@@ -2224,7 +2238,7 @@ function renderBoard(){
     + `　出口 ${L.out?ITEMS[L.out].i+ITEMS[L.out].n:'なし'}</span>`;
   const up = bar.querySelector('#bUp'); if(up) up.onclick=leaveLayer;
 }
-const memOf    = L => (L.members||[]).map(N).filter(Boolean);
+const memOf    = L => memMap().get(L.id) || [];
 /* 外から入れてもらう必要があるもの（中で作れないもの） */
 function layerNeeds(L){
   if(L._needs) return L._needs;
@@ -2235,7 +2249,7 @@ function layerNeeds(L){
     for(const k in ins) if(!made.has(k)) need[k] = Math.max(need[k]||0, ins[k]); }
   return L._needs = need;
 }
-const layerDirty = () => { for(const n of S.nodes) if(isLayer(n)) n._needs = null; };
+const layerDirty = () => { memIdx = null; for(const n of S.nodes) if(isLayer(n)) n._needs = null; };
 /* 中で作っているもの全部。⚡や動力もここに入る（出口に指定すれば外へ出せる） */
 function layerMade(L){
   const made = {};
@@ -2293,21 +2307,22 @@ function ensurePorts(L){
   const x1 = xs.length ? Math.max(...xs.map(m=>m.x)) : 0;
   const y0 = xs.length ? Math.min(...xs.map(m=>m.y)) : 0;
   const was = S.at; S.at = L.id;
-  if(!lin){  lin  = addNode('lin',  x0 - 260, y0); lin.layer = L.id;  L.members.push(lin.id); }
-  if(!lout){ lout = addNode('lout', x1 + 260, y0); lout.layer = L.id; L.members.push(lout.id); }
+  if(!lin){  lin  = addNode('lin',  x0 - 260, y0); lin.layer = L.id;  }
+  if(!lout){ lout = addNode('lout', x1 + 260, y0); lout.layer = L.id; }
+  layerDirty();
   S.at = was; reindex();
   return {lin, lout};
 }
 /* 入口・出口と中のノードを、既定の形につないでおく。
    （まとめた直後から動くように。あとから自由に引き直せる）             */
 const memCount = L => memOf(L).filter(m => !isPort(m)).length;
-function autoWire(L){
+function autoWire(L, side){
   const {lin, lout} = ensurePorts(L);
   const mem = memOf(L).filter(m => !isPort(m));
   const has = (a,k,b) => S.links.some(l => l.from===a.id && l.to===b.id && l.item===k);
-  for(const k in layerNeeds(L))
+  if(side !== 'out') for(const k in layerNeeds(L))
     for(const m of mem) if(allIns(m)[k] && !has(lin,k,m)) addLink(lin.id, k, m.id);
-  if(L.out) for(const m of mem)
+  if(side !== 'in' && L.out) for(const m of mem)
     if(outsOf(m)[L.out] && !has(m,L.out,lout)) addLink(m.id, L.out, lout.id);
 }
 /* 外へ出すものを決める。レイヤー側の口と、中の出口ノードの口を張り替える */
@@ -2322,10 +2337,11 @@ function setLayerOut(L, k){
   }
   L.out = k;
   if(lo) rebuildNodeEl(lo);
-  rebuildNodeEl(L); autoWire(L); renderBoard();
+  rebuildNodeEl(L); autoWire(L, 'out'); renderBoard();
 }
 /* まとめる */
 function makeLayer(ids){
+  if(atNow()) return toast('レイヤーの中では、さらにまとめられません');
   const mem = ids.map(N).filter(n => n && !isLayer(n) && !isPort(n) && (n.layer||null) === atNow());
   if(mem.length < 2) return toast('2つ以上のノードを囲んでください');
   const inside = new Set(mem.map(n=>n.id));
@@ -2333,9 +2349,9 @@ function makeLayer(ids){
   const cy = mem.reduce((a,n)=>a+n.y,0)/mem.length;
   const L = addNode('layer', Math.round(cx), Math.round(cy)); reindex();
   L.layer = atNow();
-  L.members = mem.map(n=>n.id);
   L.lname = 'レイヤー';
   for(const m of mem) m.layer = L.id;
+  layerDirty();
   S.homeView = S.homeView || Object.assign({}, S.view);
   // 外とつながっている線を、レイヤーへ付け替える
   const outItems = new Set();
@@ -2373,17 +2389,32 @@ function makeLayer(ids){
 /* ほどく */
 function breakLayer(L){
   if(atNow() === L.id) leaveLayer();
-  const ids = new Set(L.members||[]);
+  const mem = [...memOf(L)];
+  const ids = new Set(mem.map(m => m.id));
+  const lin  = mem.find(m => TYPES[m.type].lin);
+  const lout = mem.find(m => TYPES[m.type].lout);
+  // 外との線は、口が中で繋いでいた相手へ引き直す（まとめる前の形に戻す）
   for(const l of [...S.links]){
-    if(l.to === L.id){ if(ids.has(l.inTo)) { l.to = l.inTo; delete l.inTo; } else removeLink(l.id); }
-    else if(l.from === L.id){ if(ids.has(l.inFrom)) { l.from = l.inFrom; delete l.inFrom; } else removeLink(l.id); }
+    if(l.to === L.id){
+      const to = ids.has(l.inTo) ? [l.inTo]
+        : lin ? S.links.filter(x => x.from===lin.id && x.item===l.item).map(x => x.to) : [];
+      if(!to.length){ removeLink(l.id); continue; }
+      l.to = to[0]; delete l.inTo;
+      for(const t of to.slice(1)) addLink(l.from, l.item, t);
+    }else if(l.from === L.id){
+      const fr = ids.has(l.inFrom) ? [l.inFrom]
+        : lout ? S.links.filter(x => x.to===lout.id && x.item===l.item).map(x => x.from) : [];
+      if(!fr.length){ removeLink(l.id); continue; }
+      l.from = fr[0]; delete l.inFrom;
+      for(const f of fr.slice(1)) addLink(f, l.item, l.to);
+    }
   }
-  for(const m of memOf(L)){
+  let n = 0;
+  for(const m of mem){
     if(isPort(m)){ removeNode(m.id); continue; }
-    m.layer = L.layer || null; rebuildNodeEl(m);
+    m.layer = L.layer || null; rebuildNodeEl(m); n++;
   }
-  reindex();
-  const n = memOf(L).length;
+  reindex(); layerDirty();
   if(sel === L.id) sel = null;
   removeNode(L.id); reindex(); layerDirty();
   renderInsp(); toast(`${n}個をほどきました`);
@@ -2461,6 +2492,9 @@ const POL_SLOW = 1.6;      // 汚染1.0でどれだけ遅くなるか
 let polT = 0;
 /* 汚染の強さ。抱えている量が多いほど強くなる（桁で効く） */
 function polSource(n){
+  if(TYPES[n.type].layer){                 // 中の汚れをまとめて背負う
+    let v=0; for(const m of memOf(n)) v += polSource(m); return v;
+  }
   let v=0; const out=outsOf(n);
   for(const k in POL_ITEM){
     if(out[k]) v += POL_ITEM[k]*0.5;                       // 出す施設そのもの
@@ -2499,22 +2533,36 @@ function polTick(dt){
     (a.k==='clean' ? cl : sp).push([n,a]);
   }
   const pure = gearMul('pure');
-  for(const n of S.nodes){
+  const bd = n => n.layer || 0;
+  /* 同じ盤面のものだけが届く。近いほど強い */
+  function around(n, skipSelf){
     let v = 0, boost = 0;
     for(const [m,p] of src){
-      if(m===n){ v += p; continue; }
+      if(m===n){ if(!skipSelf) v += p; continue; }
+      if(bd(m)!==bd(n)) continue;
       const dist = Math.hypot(nodeCx(m)-nodeCx(n), nodeCy(m)-nodeCy(n));
       if(dist < POL_R) v += p * (1 - dist/POL_R);
     }
     for(const [c,a] of cl){
+      if(bd(c)!==bd(n)) continue;
       const dist = Math.hypot(nodeCx(c)-nodeCx(n), nodeCy(c)-nodeCy(n));
       if(dist < a.r) v -= a.v * (1 - dist/a.r);
     }
     for(const [c,a] of sp){
+      if(bd(c)!==bd(n)) continue;
       const dist = Math.hypot(nodeCx(c)-nodeCx(n), nodeCy(c)-nodeCy(n));
       if(dist < a.r) boost += a.v * (1 - dist/a.r);
     }
-    n.spd = 1 + boost;
+    return {v, boost};
+  }
+  // レイヤーが外から受けているぶんは、中にもそのまま持ち込む
+  const env = new Map();
+  for(const n of S.nodes) if(isLayer(n)) env.set(n.id, around(n, true));
+  for(const n of S.nodes){
+    const a = around(n, false);
+    const e = n.layer ? env.get(n.layer) : null;
+    const v = a.v + (e ? e.v : 0);
+    n.spd = 1 + a.boost + (e ? e.boost : 0);
     const target = Math.max(0, Math.min(1, v * 0.22 / pure));
     const cur = n.pol || 0;
     // 溜まっているほど広がるのも速くなる
@@ -2960,7 +3008,12 @@ function render(){
       : T.store ? (storeItems(n).length
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
-      : T.lin  ? '外から届いたものがここに出る'
+      : T.lin  ? (()=>{
+          const stuck = Object.keys(n.outBuf).filter(k => (n.outBuf[k]||0) > 0
+            && !S.links.some(l => l.from===n.id && l.item===k));
+          return stuck.length ? `⚠ ${stuck.map(k=>ITEMS[k].n).join('・')} の行き先がない（中のノードへ配線）`
+                              : '外から届いたものがここに出る';
+        })()
       : T.lout ? (()=>{ const L=N(n.layer);
           return L && L.out ? `ここに入れると外へ出る（${ITEMS[L.out].i}${ITEMS[L.out].n}）`
                             : '外へ出すものを選んでください'; })()
@@ -3410,7 +3463,8 @@ function renderInsp(){
       opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
     sl.value=n.out||'';
     sl.onchange=()=>{ setLayerOut(n, sl.value||null); renderInsp(); };
-    box.querySelector('.lmem').textContent = memOf(n).map(m=>tierOf(m).i).join(' ') || '—';
+    box.querySelector('.lmem').textContent =
+      memOf(n).filter(m=>!isPort(m)).map(m=>tierOf(m).i).join(' ') || '—';
     box.querySelector('.lbreak').onclick=()=>breakLayer(n);
     box.querySelector('.lopen').onclick=()=>enterLayer(n);
   }
@@ -3800,12 +3854,17 @@ stage.addEventListener('pointerup', e=>{
     const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
     const a=N(drag.from), b=tn?N(+tn.dataset.id):null;
     if(b&&canLink(a,drag.item,b)){
-      if(storeCanTake(b,drag.item)) storeAssign(b, drag.item);   // 空きスロットに自動で割り当て
+      if(canSetExit(b, drag.item)){                              // 出口は繋いだものを外へ出す
+        setLayerOut(N(b.layer), drag.item);
+        toast(`${ITEMS[drag.item].n} を外へ出すようにしました`);
+      }
+      else if(storeCanTake(b,drag.item)) storeAssign(b, drag.item);   // 空きスロットに自動で割り当て
       else if(canAutoSet(b,drag.item)){                          // 扱う素材を繋いだものに合わせる
         setChainItem(b, drag.item);
         toast(`${TYPES[b.type].n}を ${ITEMS[drag.item].n} に合わせました`);
       }
-      addLink(a.id,drag.item,b.id);
+      if(!S.links.some(l=>l.from===a.id && l.to===b.id && l.item===drag.item))
+        addLink(a.id,drag.item,b.id);
     }
     else if(b){
       const T=TYPES[b.type];
