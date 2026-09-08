@@ -1464,7 +1464,16 @@ function craftTime(n){
   if(TYPES[n.type].src) return staRate(n) * sp * env;
   return T.time / lvPow(n.level) / intBoost() * sp * env;
 }
-const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(TYPES[t].pk || PRICE_K, S.counts[t]||0));
+/* 最初のひとつは安い。序盤で足踏みしないように、
+   チュートリアルで触る役割はとくに安くしてある */
+// 採掘だけは割り引かない（最初の「待っていればゴールドが貯まる」を見せる段のため）
+const FIRST = {dump:0.35, shop:0.5, lab:0.5, tstr:0.6, tint:0.6, tvit:0.6, box:0.5,
+               smelt:0.5, forge:0.5, comp:0.5, fuel:0.5, purify:0.5, armory:0.5};
+const buyCost = t => {
+  const T = TYPES[t], c = S.counts[t]||0;
+  const base = (c===0 && FIRST[T.line]) ? T.cost * FIRST[T.line] : T.cost;
+  return Math.max(1, Math.floor(base * Math.pow(T.pk || PRICE_K, c)));
+};
 const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
 const capMul  = n => n.mods ? n.mods.cap : 1;
 const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].chain==='sell' ? CAP*4
@@ -1813,11 +1822,20 @@ function storeAssign(n, item){
   for(let i=0;i<T.slots;i++) if(!n.items[i]){ setStoreItem(n, i, item); return true; }
   return false;
 }
+/* まだ素材の線が来ていない加工系ノードなら、繋いだ素材をそのまま扱うものにする。
+   （石臼に圧縮鉱石を引いたら、その段を圧縮する設定になる、など）        */
+function canAutoSet(b, item){
+  const T = TYPES[b.type];
+  if(!T.chain || T.store || T.ware || T.chain==='sell') return false;
+  if(b.item === item) return false;
+  if(S.links.some(l => l.to===b.id && !POW_ITEM[l.item])) return false;   // もう使っている
+  return (chainOpts(b.type)||[]).includes(item);
+}
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
-  // 口があるもの（売り場は受け入れた種類ぜんぶ）か、これから枠に入れられるもの
-  if(!portIns(b)[item] && !storeCanTake(b,item)) return false;
+  // 口があるもの（売り場は受け入れた種類ぜんぶ）か、これから枠や設定に入れられるもの
+  if(!portIns(b)[item] && !storeCanTake(b,item) && !canAutoSet(b,item)) return false;
   return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
 }
 function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
@@ -3070,8 +3088,8 @@ const TUT = [
 
   { t:'まずは放っておく',
     d:'主人公 ⚡→ 洞窟の入口 はもう繋がっています。何もしなくても自動で潜り、ゴールドが貯まります。'
-     +'<b>60G たまるまで待ってください。</b>',
-    check:()=> S.gold>=60 },
+     +'<b>石のつるはしが買えるまで待ってください。</b>',
+    check:()=> S.gold >= buyCost('mine1') },
 
   { t:'採掘を建てる',
     d:'左の一覧（スマホでは下の〈建設〉タブ）から <b>🪓 石のつるはし</b> を建ててください。'
@@ -3264,6 +3282,10 @@ stage.addEventListener('pointerup', e=>{
     const a=N(drag.from), b=tn?N(+tn.dataset.id):null;
     if(b&&canLink(a,drag.item,b)){
       if(storeCanTake(b,drag.item)) storeAssign(b, drag.item);   // 空きスロットに自動で割り当て
+      else if(canAutoSet(b,drag.item)){                          // 扱う素材を繋いだものに合わせる
+        setChainItem(b, drag.item);
+        toast(`${TYPES[b.type].n}を ${ITEMS[drag.item].n} に合わせました`);
+      }
       addLink(a.id,drag.item,b.id);
     }
     else if(b){
