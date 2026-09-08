@@ -778,7 +778,9 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
    第4以降は研究資材も要るので、研究所に素材を送り込む工房が必要になる。
    ※ 指標を変えると既存のセーブデータの難易度もその場で変わります
    ========================================================================= */
-const CURVE = { index:120, taper:100, depth:100 };
+/* 全体の曲線をまとめて動かす指標。
+   index=⚡の重さ / taper=訓練の重さ / depth=敵HPの伸び（大きいほど緩やか） */
+const CURVE = { index:120, taper:100, depth:260 };
 
 const VIT_K = 1.065;             // ❤️体力1につき体力生成が6.5%増える（曲線の土台）
 /* 訓練の重さ。ただの指数だと1段目から急に重くなるので、肩に指数を乗せて
@@ -789,7 +791,7 @@ let COST_K, TRAIN_K, ENEMY_K;
 function applyCurve(){
   COST_K  = 100 / CURVE.index;                      // すべての⚡消費にかかる倍率
   TRAIN_K = 1 + 0.03 * (CURVE.taper/100);           // 訓練コストの底（指標100で 1.03）
-  ENEMY_K = 1 + 0.26 * (100 / CURVE.depth);         // 敵HPの階層あたりの伸び（指標100で 1.26）
+  ENEMY_K = 1 + 0.26 * (100 / CURVE.depth);         // 敵HPの階層あたりの伸び（指標260で 1.10）
 }
 const trainMul = lv => Math.pow(TRAIN_K, Math.pow(Math.max(0, lv), TRAIN_P));
 /* 能力を1つ上げるのに要る経験値。1回の訓練で1つ出るので、そのまま回数になる。
