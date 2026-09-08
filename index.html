@@ -1025,6 +1025,8 @@ function chainOpts(t){
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   if(k==='alloy'){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i-1].ingot); return o; }
   if(k==='open')          return BOXES.map(b=>b.k);
+  if(k==='hout'){ const H=homeOf();
+    return Object.keys(H).filter(k=>H[k]>0).sort((a,b)=>itemVal(b)-itemVal(a)); }
   if(k==='comp')          return withDens(mats);
   if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
@@ -1089,6 +1091,8 @@ const TYPES = {
           d:'電気の時代からの動力。多くの施設が電力を要る'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
+  hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
+          d:'自宅にしまってあるものを工房へ出す。開封所の逆。出すものはひとつ選ぶ'},
   layer :{n:'レイヤー',  i:'🧩', cost:0, up:0, time:0.1, ins:{}, outs:{}, layer:true,
           d:'囲んだノードをひとまとめにしたもの。外から見える出口はひとつだけ。'
            +'ほどけば元に戻る'},
@@ -1188,6 +1192,8 @@ const FAC = {
   coal:  [{e:4,n:'炭窯',i:'🪵'}],
   open:  [{e:1,n:'開封所',i:'📦'},{e:4,n:'開封場',i:'🏗'},{e:7,n:'自動開封機',i:'🤖'},
           {e:10,n:'次元開封',i:'🌌'}],
+  hout:  [{e:1,n:'搬出口',i:'🏠'},{e:4,n:'荷出し場',i:'🚚'},{e:7,n:'自動搬出機',i:'🤖'},
+          {e:10,n:'次元搬出',i:'🌌'}],
   purify:[{e:2,n:'送風機',i:'🌬️'},{e:4,n:'緑化区画',i:'🪴'},{e:6,n:'空気清浄機',i:'🌀'},
           {e:8,n:'遮蔽壁',i:'🧱'},{e:10,n:'浄化場',i:'🌌'}],
   boost: [{e:3,n:'作業灯',i:'💡'},{e:6,n:'監督塔',i:'🔔'},{e:9,n:'管制塔',i:'🤖'}],
@@ -1238,7 +1244,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封'};
+  coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -1308,6 +1314,9 @@ function insOf(n){
     return n.item ? modIns(n, {[n.item]:4}) : {};
   }
   if(T.layer) return layerNeeds(n);
+  if(T.chain==='hout'){                        // 自宅から1つ取り出す（⚡だけ要る）
+    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(3*e*COST_K))}));
+  }
   if(T.chain==='open'){                        // 宝箱1つ＋⚡ → 中身は自宅へ
     if(!n.item) return {};
     return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(4*e*COST_K)), [n.item]:1}));
@@ -1384,6 +1393,7 @@ function outsOf(n){
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
   if(T.chain==='decomp' || T.chain==='sell' || T.chain==='open') return {};
+  if(T.chain==='hout') return n.item ? modOuts(n, {[n.item]:1}) : {};
   if(T.chain==='equip'){                       // できた装備はふつうに出力へ積まれる
     const i = tierIdx(n.item); if(i<0) return {};
     const base = {[eqpOf(i)]:1, waste:1};
@@ -2009,6 +2019,9 @@ function tick(dt,fast){
         n.why = storeItems(n).length ? '売るものが届いていない' : '受け入れる素材が未設定';
         continue;
       }
+    }else if(T.chain==='hout'){
+      if(!n.item){ n.stall=true; n.why='出すものが未設定'; continue; }
+      if((homeOf()[n.item]||0) < 1){ n.stall=true; n.why=`自宅に${ITEMS[n.item].n}がない`; continue; }
     }else if(['comp','decomp','clean','fuel','anvil','open'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
     }else if(T.chain==='equip'){
@@ -2030,7 +2043,12 @@ function tick(dt,fast){
       const rest=n.need-n.prog;
       if(budget < rest){ n.prog+=budget; break; }
       budget-=rest;
-      const give = T.loot ? {} : outsOf(n);     // 戦利品は撃破したときだけ積む
+      let give = T.loot ? {} : outsOf(n);        // 戦利品は撃破したときだけ積む
+      if(T.chain==='hout'){                      // 自宅の在庫を1つ減らして出す
+        const H=homeOf(), have=Math.floor(H[n.item]||0);
+        if(have < 1) give = {};
+        else { H[n.item]=have-1; if(H[n.item]<=0) delete H[n.item]; }
+      }
       for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k];
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d; }
@@ -2802,6 +2820,9 @@ function render(){
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
       : T.layer ? `${(n.members||[]).length}個をまとめている` + (n.out ? `／出口 ${ITEMS[n.out].i}${ITEMS[n.out].n}` : '／出口なし')
+      : T.chain==='hout' ? (n.item
+          ? `🏠${ITEMS[n.item].n}を搬出中（自宅に ${fmt(Math.floor(homeOf()[n.item]||0))}）`
+          : '出すものを選んでください')
       : T.chain==='open' ? (n.item ? `${ITEMS[n.item].n}を開封中（${n.gain||0}個）→ 中身は自宅へ`
                                     : '開ける箱を選んでください')
       : T.chain==='alloy' ? (n.item ? `${ITEMS[n.item].n}＋${ITEMS[CHAIN[tierIdx(n.item)+1].ingot].n} → ${ITEMS[alloyOf(tierIdx(n.item)+1)].n}` : '混ぜる地金を選んでください')
@@ -2939,6 +2960,7 @@ function ioText(T){
   if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
   if(T.layer) return `まとめたノードのかたまり<span class="ar">→</span>出口はひとつだけ`;
+  if(T.chain==='hout')   return `🏠自宅から1つ ⚡<span class="ar">→</span>工房へ`;
   if(T.chain==='open')   return `宝箱×1 ⚡<span class="ar">→</span>🏠自宅へ（素材・装備・ゴールド）`;
   if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
@@ -3132,7 +3154,7 @@ function renderInsp(){
     : ({ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',equip:'作る装備の素',
         anvil:'鍛える装備',alloy:'混ぜる地金',comp:'圧縮する素材',decomp:'分解する素材',
         sell:'売るものを絞る',clean:'片付ける副産物',fuel:'燃やす副産物',
-        open:'開ける宝箱'}[T.chain] || '扱うもの');
+        open:'開ける宝箱',hout:'自宅から出すもの'}[T.chain] || '扱うもの');
 
   // ── いつも出す。狭い画面でも触れるように短くまとめる ──
   const head =
@@ -3192,7 +3214,7 @@ function renderInsp(){
     cl.innerHTML = opts.length
       ? (T.loot ? '' : `<option value="">${T.chain==='sell' ? '— なんでも売る —' : '— 未設定 —'}</option>`)
         + opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('')
-      : `<option value="">深く潜ると増えます</option>`;
+      : `<option value="">${T.chain==='hout' ? '宝箱を開けると増えます' : '深く潜ると増えます'}</option>`;
     cl.value = T.loot ? lootItem(n) : (n.item||'');
     cl.onchange=()=>{ setChainItem(n, cl.value||null); renderInsp(); };
   }
@@ -3515,7 +3537,7 @@ stage.addEventListener('pointerdown', e=>{
   }else if(lassoOn){
     const w=toWorld(e.clientX,e.clientY);
     drag={mode:'lasso', pts:[w]};
-    $('#lasso').style.display='';
+    $('#lasso').style.display='block';
     try{stage.setPointerCapture(e.pointerId)}catch(_){}
   }else{
     drag={mode:'pan', sx:e.clientX, sy:e.clientY, vx:S.view.x, vy:S.view.y};
