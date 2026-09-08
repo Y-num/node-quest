@@ -856,6 +856,7 @@ const ITEMS = {
   eqp5 :{n:'魔導の装備', i:'🧥', c:'#c79bff'},
   eqp6 :{n:'星の装備',   i:'👘', c:'#7ff2dd'},
   // 時代ごとの動力。これが無いとその時代の施設は動かない
+  wood :{n:'薪',     i:'🪵', c:'#a3743f'},
   coal :{n:'石炭',   i:'⚫', c:'#6b6b6b'},
   power:{n:'電力',   i:'🔌', c:'#f2e14e'},
   nfl  :{n:'核燃料', i:'🟢', c:'#7ee06b'},
@@ -1040,7 +1041,7 @@ function eqpList(){ const o=[];
 function lotList(){ return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filter(Boolean); }
 function storeOpts(){
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
-  return ['coal','power','nfl'].concat(BOXES.map(b=>b.k), lotList(), alyList(), eqpList(),
+  return ['wood','coal','power','nfl'].concat(BOXES.map(b=>b.k), lotList(), alyList(), eqpList(),
     BYP.map(b=>b.k), withDens(mats));
 }
 function chainOpts(t){
@@ -1115,6 +1116,8 @@ const TYPES = {
           d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になる'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
+  wood  :{n:'薪割り小屋', i:'🪓', cost:900, up:1100, time:2.4, ins:{sta:6, waste:2}, outs:{wood:2},
+          d:'廃材を割って薪にする。第2〜第4の施設は⚡ではなく薪で動く'},
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
   power :{n:'発電所',    i:'🔌', cost:500, up:600, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
@@ -1165,7 +1168,8 @@ const eraName  = e => ERAS[Math.max(0,Math.min(ERA_MAX-1, e-1))];
 const ERA_SPD = 0.86, ERA_EFF = 0.87, ERA_COST = 3.2, ERA_UP = 4.0;
 const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
 /* その時代の施設が⚡のほかに要るもの */
-const ERA_POW = {5:{coal:1}, 6:{power:1}, 7:{power:2}, 8:{nfl:1}, 9:{power:3}, 10:{power:6}};
+const ERA_POW = {2:{wood:1}, 3:{wood:1}, 4:{wood:2},
+                 5:{coal:1}, 6:{power:1}, 7:{power:2}, 8:{nfl:1}, 9:{power:3}, 10:{power:6}};
 /* 動力で動く役割。ここに入るものは、その時代になると人の体力では動かなくなる。
    逆に廃棄と再利用は最後まで⚡で動く（動力が止まっても工房を立て直せるように） */
 const POW_ROLE = {ore:1, ingot:1, part:1, alloy:1, atk:1, anvil:1, comp:1, decomp:1, sell:1, tool:1};
@@ -1229,6 +1233,7 @@ const FAC = {
           {e:7,n:'体質改善',i:'🫀'},{e:9,n:'生体改造',i:'🧬'},{e:10,n:'不死の泉',i:'⛲'}],
   mate:  [{e:3,n:'村人',i:'🧑‍🌾'},{e:6,n:'職人',i:'🧑‍🔧'},{e:8,n:'試作体',i:'🧪'},
           {e:9,n:'ホムンクルス',i:'🧬'},{e:10,n:'オートマタ',i:'🤖'}],
+  wood:  [{e:2,n:'薪割り小屋',i:'🪓'},{e:4,n:'製材所',i:'🪚',outs:{wood:3}}],
   coal:  [{e:4,n:'炭窯',i:'🪵'}],
   open:  [{e:1,n:'開封所',i:'📦'},{e:4,n:'開封場',i:'🏗'},{e:7,n:'自動開封機',i:'🤖'},
           {e:10,n:'次元開封',i:'🌌'}],
@@ -1285,7 +1290,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
+  wood:'薪',coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -2033,7 +2038,7 @@ function allocText(n, item){
 /* 倉庫はどんな素材でも受け取る。種類の上限と、1種類あたりの量で決まる */
 const wareKinds = n => Object.keys(n.inBuf||{}).filter(k=>(n.inBuf[k]||0) > 0);
 const wareTotal = n => wareKinds(n).reduce((a,k)=>a+(n.inBuf[k]||0), 0);
-const POW_ITEM = {sta:1, coal:1, power:1, nfl:1};
+const POW_ITEM = {sta:1, wood:1, coal:1, power:1, nfl:1};
 /* 売り場に届いているもののうち、いちばん値打ちのあるものを選ぶ */
 function sellPick(n){
   let best=null, bv=-1;
