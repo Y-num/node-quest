@@ -4081,7 +4081,7 @@ function migrate(d){
 function save(){
   if(resetting) return false;                      // リセット中は書き戻さない
   try{ S.savedAt=Date.now();
-    localStorage.setItem(KEY, JSON.stringify(S,(k,v)=> (k==='el'||k==='G')?undefined:v));
+    localStorage.setItem(KEY, JSON.stringify(S,(k,v)=> (k==='el'||k==='G'||k==='_needs')?undefined:v));
     return true;
   }catch(_){ return false; }
 }
@@ -4108,6 +4108,7 @@ function load(){
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
     for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
     S.at = null; applyView(); renderLog(); renderBoard();
+    layerDirty();                       // 数え直せるものは持ち越さない
     applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
     return true;
   }catch(_){ return false; }
@@ -4134,7 +4135,7 @@ function b64dec(c){
   for(let i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i);
   return new TextDecoder().decode(b);
 }
-const dumpState = () => JSON.stringify(S,(k,v)=> (k==='el'||k==='G')?undefined:v);
+const dumpState = () => JSON.stringify(S,(k,v)=> (k==='el'||k==='G'||k==='_needs')?undefined:v);
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
 $('#tClose').onclick=()=>$('#tree').classList.remove('on');
 $('#bStats').onclick=()=>{ renderStats(); $('#stats').classList.add('on'); };
