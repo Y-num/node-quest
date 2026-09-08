@@ -956,8 +956,9 @@ const chainOpen = c => S.best >= c.floor;
 // 圧縮で作ったことのある密度までを選択肢に出す（無闇に長くしない）
 const seenDens = () => Math.max(0, Math.min(DENS_MAX, S.maxDens||0));
 const seenEqp  = () => Math.max(0, Math.min(DENS_MAX, S.maxEqp||0));
+// 作ったことのある段＋1つ先まで出す。先に受け手を用意しておけるように
 const withDens = (arr, cap) => {
-  const d = Math.min(seenDens(), cap===undefined ? DENS_MAX : cap), o=[];
+  const d = Math.min(seenDens() + 1, cap===undefined ? DENS_MAX : cap), o=[];
   for(const k of arr) for(let i=0;i<=d;i++) o.push(densKey(k,i));
   return o;
 };
