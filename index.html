@@ -1046,8 +1046,9 @@ const TYPES = {
           d:'素材を貯めておける。詰まりを防げる'},
   comp  :{n:'圧縮機',    i:'🗜️', cost:2000, up:2600, time:2.0, chain:'comp',
           d:'下位の素材5つを、1つ上の密度にまとめる'},
-  shop  :{n:'露店',      i:'🏪', cost:600,  up:800,  time:1.6, chain:'sell',
-          d:'素材を売ってゴールドにする。加工・合成したものほど高く売れる'},
+  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:1.6, chain:'sell', pk:2.4,
+          d:'素材を売ってゴールドにする。加工・合成したものほど高く売れる。'
+           +'1つ目は安いが、増やすほど値が張る'},
   fuel  :{n:'再利用',    i:'🪱', cost:1500, up:2000, time:2.0, chain:'fuel',
           d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になる'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
@@ -1056,6 +1057,8 @@ const TYPES = {
           d:'蒸気の時代の動力。石炭を焼く'},
   power :{n:'発電所',    i:'🔌', cost:500, up:600, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
           d:'電気の時代からの動力。多くの施設が電力を要る'},
+  raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
+          d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
   purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:3.0, ins:{sta:4}, outs:{},
           aura:{k:'clean', v:1.0, r:280},
           d:'置いた場所のまわりの汚染を抑える。範囲は点線で見える'},
@@ -1461,7 +1464,7 @@ function craftTime(n){
   if(TYPES[n.type].src) return staRate(n) * sp * env;
   return T.time / lvPow(n.level) / intBoost() * sp * env;
 }
-const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(PRICE_K, S.counts[t]||0));
+const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(TYPES[t].pk || PRICE_K, S.counts[t]||0));
 const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
 const capMul  = n => n.mods ? n.mods.cap : 1;
 const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].chain==='sell' ? CAP*4
@@ -1956,6 +1959,10 @@ function tick(dt,fast){
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
       if(T.effect==='dive') doDive(fast, n);
+      if(T.effect==='raid'){
+        n.hp = (n.hp || raidHp()) - atk();     // 階層の装甲は関係しない
+        if(n.hp <= 0){ raidClear(n); break; }
+      }
       if(T.effect==='lab')  { const g=rpGain(n); n.gain=(n.gain||0)+g; grantRp(g); }
       n.crafting=false; n.prog=0;
       if(--guard<=0) break;
@@ -2012,6 +2019,7 @@ function tick(dt,fast){
   }
   if(!S.enemy) spawnEnemy();
   polTick(dt);
+  raidTick(dt);
   exTick(dt);
   histTick(dt);
 }
@@ -2034,6 +2042,36 @@ function exTotal(){
   for(const n of S.nodes) if(n.ex) for(const k in o) o[k]+=n.ex[k]||0;
   return o;
 }
+/* ========================= 突発ダンジョン =========================
+   ときどき現れる裂け目。⚡を注いで削りきると、確定の報酬が出て消える。
+   同時にひとつだけ。倒すか撤去するまで残る。                        */
+const RAID_MEAN  = 2700;                 // 平均このくらいの秒数に1つ
+const RAID_FROM  = 5;                    // この階層に届いてから出る
+const RAID_HITS  = 300;                  // 閉じるのに要る回数（いまの攻撃力で決まる）
+const raidHp     = () => Math.max(50, Math.floor(atk() * RAID_HITS));
+const raidGold   = () => Math.max(200, Math.floor(enemyGold(Math.max(1, S.best)) * 10));
+const raidMat    = () => Math.max(10, Math.floor(eraMat(Math.min(ERA_MAX,(S.era||1)+1)) * 0.15) || 10);
+function raidTick(dt){
+  if(S.best < RAID_FROM) return;
+  if(S.nodes.some(n => TYPES[n.type].raid)) return;
+  if(Math.random() >= 1 - Math.exp(-dt / RAID_MEAN)) return;
+  const p = freeSpot();
+  const n = addNode('raid', p.x, p.y);
+  n.hp = n.hpMax = raidHp();
+  addLog(`【突発】裂け目が現れた。⚡を送り込んで閉じよう`, 'b');
+  toast('🌀 突発ダンジョンが現れた');
+  renderBag();
+}
+function raidClear(n){
+  const g = raidGold(), m = raidMat();
+  S.gold += g; S.stock = (S.stock||0) + m;
+  const d = rollDrop(Math.max(DROP_FROM, S.best));      // 確定でひとつ落ちる
+  if(d) S.drops.push(d);
+  addLog(`【突発】裂け目を閉じた → +${fmt(g)}G ＋🧱${fmt(m)}` + (d ? ` ＋${dropName(d)}` : ''), 'b');
+  toast(`🌀 突発ダンジョン クリア +${fmt(g)}G`);
+  removeNode(n.id); reindex(); renderBag();
+}
+
 /* ========================= 汚染とピン =========================
    汚染系のものを出す／持っている場所のまわりは汚れる。
    汚れた施設は仕事が遅くなる。清浄の装備と、置いたピンで抑えられる。   */
@@ -2496,6 +2534,8 @@ function render(){
           ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（次の+1まで あと${Math.max(1, expNeed(S.stats[T.stat]) - ((S.exp&&S.exp[T.stat])||0))}回）`
           : `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`)
       : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
+      : T.effect==='raid'? (()=>{ const hp=Math.max(0,n.hp||0), mx=n.hpMax||1;
+          return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })()
       : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
           return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
@@ -2640,6 +2680,7 @@ function ioText(T){
              anvil:'装備×1 ＋ 合金×2<span class="ar">→</span>一段鍛えた装備×1（伸びは鈍る）'};
     return m[T.chain] || '—';
   }
+  if(T.raid) return `⚡<span class="ar">→</span>裂け目を削る（閉じると確定で報酬）`;
   if(T.loot) return `⚡<span class="ar">→</span>⚔️攻撃 ＋🎁戦利品（${LOOT_CAP}個まで。あふれたぶんは消える）`;
   if(T.aura) return T.aura.k==='clean'
     ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
@@ -3525,6 +3566,7 @@ function kindOf(t){
   if(T.store)  return '貯蔵';
   if(T.tool)   return '増幅';
   if(T.stat)   return '訓練';
+  if(T.effect==='raid') return '突発';
   if(T.effect==='dive') return '探索';
   if(T.effect==='lab')  return '研究';
   if(T.effect==='equip') return '装備';
