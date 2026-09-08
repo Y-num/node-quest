@@ -681,6 +681,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="bt">🎒 持ち物</div>
       <div class="btabs">
         <button class="bt1 on" data-t="gear">🎽 装備 <b id="bcGear">0</b></button>
+        <button class="bt1" data-t="home">🏠 自宅 <b id="bcHome">0</b></button>
         <button class="bt1" data-t="drop">🎁 クリア報酬 <b id="bcDrop">0</b></button>
         <button class="bt1" data-t="ware" id="bcWareTab" hidden>📦 倉庫</button>
       </div>
@@ -813,6 +814,10 @@ const ITEMS = {
   aly3 :{n:'白金鋼', i:'⚪', c:'#e8f0fa'},
   aly4 :{n:'魔導合金',i:'🟪', c:'#c79bff'},
   aly5 :{n:'星辰合金',i:'💫', c:'#8ff7e6'},
+  // 宝箱。ダンジョンが撃破のたびに落とす。開封所で開けると中身が自宅に入る
+  bxc  :{n:'銅箱', i:'🥉', c:'#c98a55'},
+  bxs  :{n:'銀箱', i:'🥈', c:'#dde5ee'},
+  bxg  :{n:'金箱', i:'🥇', c:'#f2ce55'},
   // 戦利品。ダンジョンが撃破のたびに出す。売るか、分解して研究に回す
   lot1 :{n:'戦利品',       i:'🎁', c:'#c98a55'},
   lot2 :{n:'上等な戦利品', i:'🎀', c:'#aeb8c2'},
@@ -920,6 +925,14 @@ function nextTier(k, cap){
 }
 // 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
 const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30};
+/* 宝箱。銅→銀→金 の順に中身が良くなる。落ちる割合もその順に低い */
+const BOXES = [
+  {k:'bxc', n:'銅箱', w:100, num:3, gold:6,  eq:0.10, up:0},
+  {k:'bxs', n:'銀箱', w:26,  num:5, gold:22, eq:0.35, up:1},
+  {k:'bxg', n:'金箱', w:6,   num:8, gold:80, eq:1.00, up:2},
+];
+const BOX_VAL = {bxc:6, bxs:26, bxg:110};
+const isBox   = k => !!BOX_VAL[baseOf(k||'')];
 const LOOT_K  = 0.6;                        // 戦利品の値打ち
 const lotOf   = i => 'lot'+(i+1);           // 段位i(0..5)の戦利品
 const isLot   = k => /^lot\d$/.test(baseOf(k||''));
@@ -938,6 +951,7 @@ function baseVal(b){
   const m=/^aly(\d)$/.exec(b); if(m) return alloyVal(+m[1]);
   const q=/^eqp(\d)$/.exec(b); if(q) return CHAIN[+q[1]-1].val * EQP_K;
   const r=/^lot(\d)$/.exec(b); if(r) return CHAIN[+r[1]-1].val * LOOT_K;
+  if(BOX_VAL[b] !== undefined) return BOX_VAL[b] * Math.max(1, S.best/10);
   for(const c of CHAIN){
     if(c.ore===b)   return c.val*0.1;
     if(c.ingot===b) return c.val*0.3;
@@ -994,19 +1008,21 @@ function eqpList(){ const o=[];
 function lotList(){ return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filter(Boolean); }
 function storeOpts(){
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
-  return ['coal','power','nfl'].concat(lotList(), alyList(), eqpList(), BYP.map(b=>b.k), withDens(mats));
+  return ['coal','power','nfl'].concat(BOXES.map(b=>b.k), lotList(), alyList(), eqpList(),
+    BYP.map(b=>b.k), withDens(mats));
 }
 function chainOpts(t){
   const T = TYPES[t], k = T.chain, g = T.era||1;
   if(T.loot) return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filter(Boolean);
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   if(k==='alloy'){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i-1].ingot); return o; }
+  if(k==='open')          return BOXES.map(b=>b.k);
   if(k==='comp')          return withDens(mats);
   if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
   if(k==='decomp'||k==='sell')
     return withDens(['waste','toxic','rad','rift'].concat(mats))
-      .concat(lotList(), eqpList(), alyList());
+      .concat(lotList(), eqpList(), alyList(), BOXES.map(b=>b.k));
   if(k==='equip')         return CHAIN.filter(chainOpen).map(c=>c.part);
   if(k==='anvil'){ const o=[];           // 鍛える装備。作ったことのある段＋1つ先まで
     for(let i=0;i<CHAIN.length;i++) if(chainOpen(CHAIN[i]))
@@ -1065,6 +1081,8 @@ const TYPES = {
           d:'蒸気の時代の動力。石炭を焼く'},
   power :{n:'発電所',    i:'🔌', cost:500, up:600, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
           d:'電気の時代からの動力。多くの施設が電力を要る'},
+  open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
+          d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
           d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
   purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:3.0, ins:{sta:4}, outs:{},
@@ -1161,6 +1179,8 @@ const FAC = {
   mate:  [{e:3,n:'村人',i:'🧑‍🌾'},{e:6,n:'職人',i:'🧑‍🔧'},{e:8,n:'試作体',i:'🧪'},
           {e:9,n:'ホムンクルス',i:'🧬'},{e:10,n:'オートマタ',i:'🤖'}],
   coal:  [{e:4,n:'炭窯',i:'🪵'}],
+  open:  [{e:1,n:'開封所',i:'📦'},{e:4,n:'開封場',i:'🏗'},{e:7,n:'自動開封機',i:'🤖'},
+          {e:10,n:'次元開封',i:'🌌'}],
   purify:[{e:2,n:'送風機',i:'🌬️'},{e:4,n:'緑化区画',i:'🪴'},{e:6,n:'空気清浄機',i:'🌀'},
           {e:8,n:'遮蔽壁',i:'🧱'},{e:10,n:'浄化場',i:'🌌'}],
   boost: [{e:3,n:'作業灯',i:'💡'},{e:6,n:'監督塔',i:'🔔'},{e:9,n:'管制塔',i:'🤖'}],
@@ -1211,7 +1231,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',anvil:'鍛錬',armory:'装備',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速'};
+  coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -1279,6 +1299,10 @@ function insOf(n){
   }
   if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
     return n.item ? modIns(n, {[n.item]:4}) : {};
+  }
+  if(T.chain==='open'){                        // 宝箱1つ＋⚡ → 中身は自宅へ
+    if(!n.item) return {};
+    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(4*e*COST_K)), [n.item]:1}));
   }
   if(T.chain==='alloy'){                       // 地金2つ＋1つ上の地金1つ → 合金
     const i = tierIdx(n.item); if(i<0) return {};
@@ -1351,7 +1375,7 @@ function outsOf(n){
                         return to ? modOuts(n, {[to]:1}) : {}; }
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
-  if(T.chain==='decomp' || T.chain==='sell') return {};
+  if(T.chain==='decomp' || T.chain==='sell' || T.chain==='open') return {};
   if(T.chain==='equip'){                       // できた装備はふつうに出力へ積まれる
     const i = tierIdx(n.item); if(i<0) return {};
     const base = {[eqpOf(i)]:1, waste:1};
@@ -1379,7 +1403,9 @@ function outsOf(n){
     if(T.chain!=='atk') for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
   }
-  if(T.loot) return modOuts(n, {[lootItem(n)]:1});
+  if(T.loot){ const o = {[lootItem(n)]:1};
+    for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
+    return modOuts(n, o); }
   if(T.store || T.ware){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
   return modOuts(n, T.outs);
@@ -1396,7 +1422,7 @@ function softIns(n){
    配線は要らない。効果は素材の特性と、鍛えた回数で決まる。          */
 /* 装備はふつうのアイテム。工房の出力に積まれ、配線で装備庫へ流せる。
    身につけるときは、工房のどこかにある在庫か「外した装備」から1つ取る。   */
-const packOf = () => (S.pack = S.pack || {});
+const homeOf = () => (S.home = S.home || {});   // 自宅のしまい場所
 const gearSlots = n => TYPES[n.type].gear || 0;
 function gearOf(n){
   const k = gearSlots(n); if(!k) return [];
@@ -1413,14 +1439,14 @@ const gearName = k => k ? `${ITEMS[k].i}${ITEMS[k].n}` : '空き';
 const gearPow  = k => k ? Math.pow(itemVal(k), 0.34) : 0;
 /* 工房のどこかに積まれている装備の数（貯蔵を先に見る） */
 function stockOf(k){
-  let v = packOf()[k] || 0;
+  let v = homeOf()[k] || 0;
   for(const n of S.nodes) v += (n.inBuf[k]||0) + (n.outBuf[k]||0);
   return Math.floor(v);
 }
 /* いま身につけられる装備の一覧 */
 function equipOpts(){
   const o = new Set();
-  for(const k in packOf()) if(packOf()[k] > 0 && isEqp(k)) o.add(k);
+  for(const k in homeOf()) if(homeOf()[k] > 0 && isEqp(k)) o.add(k);
   for(const n of S.nodes){
     for(const k in n.inBuf)  if(isEqp(k) && n.inBuf[k]  >= 1) o.add(k);
     for(const k in n.outBuf) if(isEqp(k) && n.outBuf[k] >= 1) o.add(k);
@@ -1429,14 +1455,14 @@ function equipOpts(){
 }
 /* 1つ取り出す。外した置き場 → 貯蔵 → そのほか の順に探す */
 function takeEquip(k){
-  const P = packOf();
+  const P = homeOf();
   if((P[k]||0) >= 1){ P[k]--; if(!P[k]) delete P[k]; return true; }
   const pick = list => { for(const n of list){
     if((n.outBuf[k]||0) >= 1){ n.outBuf[k]--; return true; }
     if((n.inBuf[k]||0)  >= 1){ n.inBuf[k]--;  return true; } } return false; };
   return pick(S.nodes.filter(n=>TYPES[n.type].store)) || pick(S.nodes);
 }
-const giveEquip = k => { const P=packOf(); P[k]=(P[k]||0)+1; };
+const giveEquip = k => { const P=homeOf(); P[k]=(P[k]||0)+1; };
 function setGear(n, i, k){
   const g = gearOf(n)[i]; if(!g || g.item===k) return;
   if(k && !takeEquip(k)) return toast('その装備の在庫がありません');
@@ -1625,7 +1651,7 @@ function freshState(){
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, pack:{}, maxEqp:0, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, maxEqp:0, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -1954,7 +1980,7 @@ function tick(dt,fast){
         n.why = storeItems(n).length ? '売るものが届いていない' : '受け入れる素材が未設定';
         continue;
       }
-    }else if(['comp','decomp','clean','fuel','anvil'].includes(T.chain)){
+    }else if(['comp','decomp','clean','fuel','anvil','open'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
     }else if(T.chain==='equip'){
       if(!n.item){ n.stall=true; n.why='作る装備が未設定'; continue; }
@@ -1983,6 +2009,7 @@ function tick(dt,fast){
       n.done++;
       // 訓練は経験値を産むだけ。主人公まで配線を戻して初めて能力になる
       if(T.effect==='equip' || T.effect==='anvil') n.gain=(n.gain||0)+1;
+      if(T.chain==='open') openBox(n, fast);
       if(T.chain==='sell' && n.sellK){
         const g=sellPrice(n.sellK, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
       }
@@ -2074,6 +2101,32 @@ function exTotal(){
   for(const n of S.nodes) if(n.ex) for(const k in o) o[k]+=n.ex[k]||0;
   return o;
 }
+/* ========================= 宝箱を開ける =========================
+   中身は箱の等級と、いまの最深到達（10層ごとの段）で決まる。
+   出たものは自宅にしまわれ、🎒持ち物の「自宅」から売ったり捨てたりできる。 */
+function openBox(n, fast){
+  const b = BOXES.find(x => x.k === baseOf(n.item)); if(!b) return;
+  const rank = Math.max(0, depthTier());
+  const open = CHAIN.map((c,i)=>chainOpen(c)?i:-1).filter(i=>i>=0);
+  const top  = open.length ? open[open.length-1] : 0;
+  const lo   = Math.max(0, Math.min(top, top - 2 + b.up));
+  const got  = {};
+  const add  = (k,q)=>{ ensureItem(k); got[k]=(got[k]||0)+q; };
+  for(let i=0;i<b.num;i++){
+    const t = Math.min(top, lo + Math.floor(Math.random()*3));
+    const pool = [CHAIN[t].ore, CHAIN[t].ingot, CHAIN[t].part];
+    add(pool[Math.floor(Math.random()*pool.length)], 1 + Math.floor(rank/4));
+  }
+  if(Math.random() < b.eq) add(eqpOf(Math.min(top, lo)), 1);          // 装備
+  const g = Math.round(b.gold * Math.max(1, enemyGold(Math.max(1,S.best)) / 8));
+  S.gold += g;
+  const H = homeOf();
+  for(const k in got) H[k] = (H[k]||0) + got[k];
+  n.gain = (n.gain||0) + 1;
+  if(!fast) addLog(`${ITEMS[b.k].i}${b.n}を開けた → +${fmt(g)}G ＋ `
+    + Object.keys(got).map(k=>`${ITEMS[k].i}${fmt(got[k])}`).join(' '), 'w');
+}
+
 /* ========================= 突発ダンジョン =========================
    ときどき現れる裂け目。⚡を注いで削りきると、確定の報酬が出て消える。
    同時にひとつだけ。倒すか撤去するまで残る。                        */
@@ -2224,9 +2277,13 @@ function doDive(fast, node){
   if(S.enemy.hp>0) return;
   const f=S.floor, g=enemyGold(f), wasTier=depthTier(), wasZone=zoneOf(f);
   S.gold += g;
-  if(node){                                  // 撃破すると戦利品がひとつ出る
+  if(node){                                  // 撃破すると戦利品と、たまに宝箱が出る
     const k = lootItem(node);
     node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
+    const tot = BOXES.reduce((a,b)=>a+b.w, 0);
+    let r = Math.random() * (tot * 4);          // 4回に1回くらい箱が出る
+    for(const b of BOXES){ r -= b.w; if(r < 0){
+      node.outBuf[b.k] = Math.min(capOut(node,b.k), (node.outBuf[b.k]||0) + 1); break; } }
   }
   if(!fast) addLog(`第${f}層 ${S.enemy.name} 撃破 → +${fmt(g)}G`,'w');
   S.floor++;
@@ -2400,18 +2457,18 @@ function scrapDrop(id){
 let bagTab = 'gear', bagWare = null;
 const gearSell = k => Math.max(1, Math.round(sellPrice(k,1) * 0.6));
 const dropSell = d => Math.max(1, Math.round(TYPES[d.type].cost * 0.5 * (1 + (d.grade||0)*0.35)));
-const packCount = () => Object.values(packOf()).reduce((a,b)=>a+b,0);
-function bagCount(){ return packCount() + S.drops.length; }
-function sellPack(k, all){
-  const P=packOf(), q = all ? (P[k]||0) : Math.min(1, P[k]||0);
+const homeCount = () => Object.values(homeOf()).reduce((a,b)=>a+b,0);
+function bagCount(){ return homeCount() + S.drops.length; }
+function sellHome(k, all){
+  const P=homeOf(), q = all ? (P[k]||0) : Math.min(1, P[k]||0);
   if(q<1) return;
   P[k]-=q; if(!P[k]) delete P[k];
   const g = gearSell(k)*q; S.gold += g;
   addLog(`${gearName(k)}×${q} を売った → +${fmt(g)}G`,'w');
   renderBag();
 }
-function tossPack(k, all){
-  const P=packOf(), q = all ? (P[k]||0) : Math.min(1, P[k]||0);
+function tossHome(k, all){
+  const P=homeOf(), q = all ? (P[k]||0) : Math.min(1, P[k]||0);
   if(q<1) return;
   P[k]-=q; if(!P[k]) delete P[k];
   renderBag();
@@ -2425,9 +2482,11 @@ function tossDrop(id){ const i=S.drops.findIndex(d=>d.id===id); if(i<0) return;
 
 function renderBag(){
   const box = $('#bagList'); if(!box) return;
-  const nG = packCount(), nD = S.drops.length;
+  const nG = homeCount(), nD = S.drops.length;
   $('#bCount').textContent = bagCount();
   $('#bcGear').textContent = nG; $('#bcDrop').textContent = nD+' / '+DROP_MAX;
+  const wt2=$('#bcHome');
+  if(wt2) wt2.textContent = Object.keys(homeOf()).filter(k=>!isEqp(k)).length;
   document.querySelectorAll('#bag .btabs button')
     .forEach(b=>b.classList.toggle('on', b.dataset.t===bagTab));
   const wt=$('#bcWareTab'); if(wt) wt.hidden = bagTab!=='ware';
@@ -2464,11 +2523,37 @@ function renderBag(){
     return;
   }
 
+  if(bagTab==='home'){
+    $('#bagNote').textContent = '📦開封所で宝箱を開けると、中身がここに入ります。'
+      + '素材はここから売ったり捨てたりできます（装備は「装備」のタブへ）。';
+    const H = homeOf();
+    const ks = Object.keys(H).filter(k => H[k] > 0 && !isEqp(k))
+      .sort((a,b)=>itemVal(b)*H[b] - itemVal(a)*H[a]);
+    if(!ks.length){ box.innerHTML = `<div class="bempty">まだ何もありません。📦開封所で宝箱を開けると貯まります。</div>`; return; }
+    box.innerHTML = ks.map(k=>{
+      const q=Math.floor(H[k]), price=gearSell(k);
+      return `<div class="bitem">
+        <div class="bmain">
+          <div class="bname">${ITEMS[k].i}${ITEMS[k].n} × ${fmt(q)}</div>
+          <div class="bsub">1つ ${fmt(price)}G（売り場に流すと ${fmt(sellPrice(k,1))}G）`
+            + `${traitText(k)?' ・ '+traitText(k):''}</div>
+        </div>
+        <div class="bacts">
+          <button class="hsell" data-k="${k}">まとめて売却 +${fmt(q*price)}G</button>
+          <button class="htoss" data-k="${k}">廃棄</button>
+        </div>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('.hsell').forEach(b=>b.onclick=()=>sellHome(b.dataset.k,true));
+    box.querySelectorAll('.htoss').forEach(b=>b.onclick=()=>tossHome(b.dataset.k,true));
+    return;
+  }
+
   if(bagTab==='gear'){
     $('#bagNote').textContent = '装備工房で作ると、ふつうのアイテムとして工房を流れます。'
       + '貯蔵（装備庫）に送れば積んでおけます。ここに出るのは「外した装備」で、売却と廃棄ができます。'
       + '身につけるときは、主人公や仲間のスロットから工房の在庫を選びます。';
-    const P = packOf();
+    const P = homeOf();
     const worn = {};
     for(const n of S.nodes) for(const g of gearOf(n)) if(g.item) (worn[g.item]=worn[g.item]||[]).push(tierOf(n).n);
     const keys = [...new Set(Object.keys(P).concat(Object.keys(worn), equipOpts()))]
@@ -2491,9 +2576,9 @@ function renderBag(){
         </div>
       </div>`;
     }).join('');
-    box.querySelectorAll('.gsell').forEach(b=>b.onclick=()=>sellPack(b.dataset.k,false));
-    box.querySelectorAll('.gsella').forEach(b=>b.onclick=()=>sellPack(b.dataset.k,true));
-    box.querySelectorAll('.gtoss').forEach(b=>b.onclick=()=>tossPack(b.dataset.k,false));
+    box.querySelectorAll('.gsell').forEach(b=>b.onclick=()=>sellHome(b.dataset.k,false));
+    box.querySelectorAll('.gsella').forEach(b=>b.onclick=()=>sellHome(b.dataset.k,true));
+    box.querySelectorAll('.gtoss').forEach(b=>b.onclick=()=>tossHome(b.dataset.k,false));
     return;
   }
 
@@ -2585,6 +2670,8 @@ function render(){
       : T.store ? (storeItems(n).length
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
+      : T.chain==='open' ? (n.item ? `${ITEMS[n.item].n}を開封中（${n.gain||0}個）→ 中身は自宅へ`
+                                    : '開ける箱を選んでください')
       : T.chain==='alloy' ? (n.item ? `${ITEMS[n.item].n}＋${ITEMS[CHAIN[tierIdx(n.item)+1].ingot].n} → ${ITEMS[alloyOf(tierIdx(n.item)+1)].n}` : '混ぜる地金を選んでください')
       : T.chain==='anvil' ? (n.item
           ? `⚔️${gearName(n.item)} を鍛錬中（${n.gain||0}打）` : '鍛える装備を選んでください')
@@ -2710,6 +2797,7 @@ function ioText(T){
 
   if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
+  if(T.chain==='open')   return `宝箱×1 ⚡<span class="ar">→</span>🏠自宅へ（素材・装備・ゴールド）`;
   if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
   if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
@@ -2900,7 +2988,8 @@ function renderInsp(){
   const selLabel = T.loot ? '狙う戦利品'
     : ({ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',equip:'作る装備の素',
         anvil:'鍛える装備',alloy:'混ぜる地金',comp:'圧縮する素材',decomp:'分解する素材',
-        sell:'売るものを絞る',clean:'片付ける副産物',fuel:'燃やす副産物'}[T.chain] || '扱うもの');
+        sell:'売るものを絞る',clean:'片付ける副産物',fuel:'燃やす副産物',
+        open:'開ける宝箱'}[T.chain] || '扱うもの');
 
   // ── いつも出す。狭い画面でも触れるように短くまとめる ──
   const head =
@@ -3348,7 +3437,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=11;
+const SAVE_V=12;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -3481,6 +3570,12 @@ function migrate(d){
       n.item = null; n.sellK = null;
     }
     d.v = 11;
+  }
+  if(d.v < 12){
+    // 外した装備の置き場を「自宅」にまとめた
+    d.home = Object.assign({}, d.home||{}, d.pack||{});
+    delete d.pack;
+    d.v = 12;
   }
   d.v = SAVE_V;
   return d;
