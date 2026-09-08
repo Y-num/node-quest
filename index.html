@@ -1788,7 +1788,8 @@ function storeAssign(n, item){
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
-  if(!allIns(b)[item] && !storeCanTake(b,item)) return false;
+  // 口があるもの（売り場は受け入れた種類ぜんぶ）か、これから枠に入れられるもの
+  if(!portIns(b)[item] && !storeCanTake(b,item)) return false;
   return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
 }
 function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
