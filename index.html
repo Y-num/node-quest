@@ -126,6 +126,13 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
 .node.stall .aura{opacity:.25}
 .node.pol{box-shadow:0 0 0 1px rgba(154,209,74,.5), 0 0 18px rgba(154,209,74,.25)}
+.node.hid{display:none}
+#lasso{fill:rgba(180,135,245,.14);stroke:var(--pw);stroke-width:2;stroke-dasharray:7 5;
+  pointer-events:none;display:none}
+body.lasso #stage{cursor:crosshair}
+.tbtn.lassoon{border-color:var(--pw);color:var(--pw);background:rgba(180,135,245,.14)}
+.node.lay{border-color:var(--pw);box-shadow:0 0 0 1px var(--pw),0 0 18px rgba(180,135,245,.25)}
+.node.lay .nm{color:var(--pw)}
 .node.won{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 26px rgba(242,193,78,.45);
   cursor:pointer;animation:wonp 1.4s ease-in-out infinite}
 .node.won .nf{color:var(--gold)}
@@ -552,6 +559,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <button class="tbtn" id="bTidy">整列</button>
     <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
     <button class="tbtn" id="bStats">📈 記録</button>
+    <button class="tbtn" id="bLasso">🧩 まとめる</button>
     <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
@@ -569,7 +577,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="shopList"></div>
     </div>
     <div id="stage">
-      <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><path id="temp"></path></g></svg>
+      <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><path id="temp"></path><path id="lasso"></path></g></svg>
       <div id="world"></div>
       <div id="hint">
         <div class="ttl">ⓘ 操作方法</div>
@@ -1060,8 +1068,6 @@ const TYPES = {
           d:'2種類の地金を混ぜて合金にする。合金は加工と鍛錬の要になる'},
   forge :{n:'加工',      i:'🛠️', cost:6000, up:8000, time:4.0, ins:{}, outs:{}, chain:'part',
           d:'地金2つを部品1つに加工する。副産物も多い'},
-  armory:{n:'装備工房',  i:'🛡️', cost:3000, up:4000, time:1.8, ins:{}, outs:{}, chain:'equip', effect:'equip',
-          d:'部品と合金から装備をひとつ作る。できた装備は持ち物に入り、スロットで持たせる'},
   anvil :{n:'鍛錬台',    i:'🔨', cost:9000, up:11000, time:2.6, ins:{}, outs:{}, chain:'anvil', effect:'anvil',
           d:'持ち物から装備をひとつ選んでセットし、合金を打ち込んで鍛える。打つほど伸びは鈍る'},
   tool  :{n:'道具',      i:'🪵', cost:800,  up:1100, time:2.5, tool:true, mul:1.5, take:4, sta:3,
@@ -1083,6 +1089,9 @@ const TYPES = {
           d:'電気の時代からの動力。多くの施設が電力を要る'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
+  layer :{n:'レイヤー',  i:'🧩', cost:0, up:0, time:0.1, ins:{}, outs:{}, layer:true,
+          d:'囲んだノードをひとまとめにしたもの。外から見える出口はひとつだけ。'
+           +'ほどけば元に戻る'},
   raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
           d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
   purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:3.0, ins:{sta:4}, outs:{},
@@ -1127,10 +1136,9 @@ const ERA_EXTRA = {
   purify: g => ({aura:{k:'clean', v:+(1.0*Math.pow(1.55,g)).toFixed(2), r:280+g*14}}),
   boost:  g => ({aura:{k:'speed', v:+(0.5+g*0.25).toFixed(2), r:250+g*12}}),
   tool: g => ({mul: 1.5 + g*0.45, sta: 3 + g}),
-  box:  g => (g < 6
-    ? {slots: 1 + Math.floor(g*0.9), cap: Math.round(200 * Math.pow(2.2, g))}
-    // 第7時代から先は「倉庫」。扱える種類も量も桁が変わる
-    : {ware:true, slots: 8 + (g-6)*8, cap: Math.round(4000 * Math.pow(2.2, g))}),
+  // 貯蔵はどんな素材でも受け取る。外へ出す口の数と、しまえる種類・量が時代で伸びる
+  box:  g => ({slots: 1 + Math.floor(g/2), kinds: 4 + g*4,
+               cap: Math.round(200 * Math.pow(2.4, g))}),
   shop: g => ({slots: 2 + Math.floor(g*0.8)}),
 };
 
@@ -1147,7 +1155,6 @@ const FAC = {
           {e:10,n:'次元鍛造',i:'🌀'}],
   anvil: [{e:2,n:'鍛錬台',i:'🔨'},{e:5,n:'強化炉',i:'🛠️'},{e:8,n:'改造槽',i:'🧫'},
           {e:10,n:'次元強化',i:'🌌'}],
-  armory:[{e:1,n:'背負い袋',i:'🎒'},{e:4,n:'装備庫',i:'🛡️'},{e:7,n:'強化外骨格',i:'🦿'}],
   dive:  [{e:1,n:'洞窟の入口',i:'🕳️'},{e:3,n:'ダンジョン',i:'🚪'},{e:5,n:'深層門',i:'🌀'},
           {e:7,n:'転移門',i:'🔷'},{e:9,n:'星間門',i:'🌠'},{e:10,n:'時空門',i:'⏳'}],
   lab:   [{e:1,n:'家の机',i:'🪑'},{e:2,n:'書斎',i:'📚'},{e:4,n:'研究室',i:'🔬'},
@@ -1228,7 +1235,7 @@ function buildFac(){
 buildFac();
 /* 役割の並び順（建設リストと研究ツリーで使う） */
 const LINE_ORDER = Object.keys(FAC);
-const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',anvil:'鍛錬',armory:'装備',
+const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
   coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封'};
@@ -1300,6 +1307,7 @@ function insOf(n){
   if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
     return n.item ? modIns(n, {[n.item]:4}) : {};
   }
+  if(T.layer) return layerNeeds(n);
   if(T.chain==='open'){                        // 宝箱1つ＋⚡ → 中身は自宅へ
     if(!n.item) return {};
     return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(4*e*COST_K)), [n.item]:1}));
@@ -1342,7 +1350,7 @@ function insOf(n){
                :                     {sta:st, [c.part]:1};
     return modIns(n, base);
   }
-  if(T.store || T.ware){ for(const k of storeItems(n)) o[k]=1; return o; }
+  if(T.store) return {};                       // 貯蔵は何でも受け取る（口は共通のひとつ）
   if(T.tool){
     if(n.item) o[n.item] = T.take;
     o.sta = Math.max(1, Math.ceil(T.sta * toolLoad(n) * e * COST_K));
@@ -1403,10 +1411,11 @@ function outsOf(n){
     if(T.chain!=='atk') for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
   }
+  if(T.layer) return n.out ? {[n.out]:1} : {};
   if(T.loot){ const o = {[lootItem(n)]:1};
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
     return modOuts(n, o); }
-  if(T.store || T.ware){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
+  if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
   return modOuts(n, T.outs);
 }
@@ -1517,7 +1526,8 @@ const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].chain==='sell' 
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
 const BYP_CAP  = 1e12;                    // 副産物は上限なく溜まる。詰まらせない代わりに汚染が広がる
 const isByp    = k => BYP.some(b=>b.k===k);
-const capOut  = (n,item) => (TYPES[n.type].src && item==='sta') ? maxSta()
+const capOut  = (n,item) => TYPES[n.type].layer ? CAP*8
+                          : (TYPES[n.type].src && item==='sta') ? maxSta()
                           : isByp(item) ? BYP_CAP
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
@@ -1634,7 +1644,8 @@ const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッ�
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
 const anyPort = n => { const T=TYPES[n.type];
-  return !!((T.store || T.ware || T.chain==='sell') && storeItems(n).length < T.slots); };
+  if(T.store) return true;                          // 貯蔵の受け口はいつも出す
+  return !!(T.chain==='sell' && storeItems(n).length < T.slots); };
 const rowsOf = n => Math.max(1, inKeys(n).length + (anyPort(n)?1:0), outKeys(n).length);
 const nodeH  = n => HEAD + rowsOf(n)*ROWH + 26;
 const portY  = i => HEAD + i*ROWH + ROWH/2;
@@ -1710,6 +1721,7 @@ function geomPt(G,t){
 /* 何でも受け取るものは、素材ごとの口を作らない */
 function portIns(n){
   const T=TYPES[n.type];
+  if(T.store) return {};                            // 受け口は共通のひとつだけ
   if(T.chain==='sell'){                       // 売り場：動力の口＋受け入れた種類ぶんの口
     const o={}, c=insOf(n);
     for(const k in c) if(POW_ITEM[k]) o[k]=c[k];
@@ -1778,6 +1790,7 @@ function setChainItem(n, item){
     if(l.to   === n.id && !ins[l.item])  removeLink(l.id);
     if(l.from === n.id && !outs[l.item]) removeLink(l.id);
   }
+  layerDirty();
   rebuildNodeEl(n);
 }
 function setStoreItem(n, idx, item){
@@ -1845,13 +1858,15 @@ function removeNode(id){
    配線をつないだ時点で、その素材を空きスロットに割り当てる。            */
 function storeCanTake(n, item){
   const T = TYPES[n.type];
-  if(!(T.store || T.ware || T.chain==='sell') || !item) return false;
-  if(POW_ITEM[item] && T.chain==='sell') return false;   // ⚡と動力は元から口がある
-  if((n.items||[]).includes(item)) return false;         // すでに受け取れる
+  if(T.store) return !!item && spaceIn(n, item) > 0;      // 貯蔵は何でも受け取る
+  if(T.chain!=='sell' || !item) return false;
+  if(POW_ITEM[item]) return false;                       // ⚡と動力は元から口がある
+  if((n.items||[]).includes(item)) return false;
   return storeItems(n).length < T.slots;
 }
 function storeAssign(n, item){
   const T = TYPES[n.type];
+  if(T.store) return true;                               // 貯蔵は割り当て不要
   n.items = n.items || [];
   for(let i=0;i<T.slots;i++) if(!n.items[i]){ setStoreItem(n, i, item); return true; }
   return false;
@@ -1936,6 +1951,12 @@ function sellPick(n){
 }
 function spaceIn(n,item){
   const T = TYPES[n.type];
+  if(T.layer) return layerNeeds(n)[item] ? Math.max(0, CAP*8 - (n.inBuf[item]||0)) : 0;
+  if(T.store){                                      // 貯蔵：種類の上限と1種あたりの量で決まる
+    const held = n.inBuf[item]||0;
+    if(held <= 0 && wareKinds(n).length >= (T.kinds||8)) return 0;
+    return Math.max(0, capIn(n,item) - held);
+  }
   if(T.chain==='sell' && !POW_ITEM[item]){          // 売り場：受け入れた種類だけ
     if(!(n.items||[]).includes(item)) return 0;
     return Math.max(0, CAP*4 - (n.inBuf[item]||0));
@@ -1966,10 +1987,18 @@ function tick(dt,fast){
         }
       }
     }
+    if(T.layer){ n.stall=false; n.why=''; layerFlow(n); continue; }
     if(T.raid && n.clear){ n.stall=false; n.why=''; continue; }   // 受け取り待ちは⚡を食わない
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
-    if((T.store || T.ware) && !storeItems(n).length){
-      n.stall=true; n.why=`空き ${T.slots} スロット／素材の線をここへ繋ぐと入ります`; continue; }
+    if(T.store){                                 // 貯蔵：しまって、選んだものだけ外へ出す
+      n.stall=false; n.why='';
+      for(const k of storeItems(n)){
+        const room = capOut(n,k) - (n.outBuf[k]||0), have = n.inBuf[k]||0;
+        const q = Math.min(room, have);
+        if(q > 0){ n.inBuf[k] -= q; n.outBuf[k] = (n.outBuf[k]||0) + q; }
+      }
+      continue;
+    }
     if(T.chain==='sell'){                        // 何でも売れる。届いているものから選ぶ
       if(!n.crafting) n.sellK = sellPick(n);
       if(!n.sellK){
@@ -2101,6 +2130,107 @@ function exTotal(){
   for(const n of S.nodes) if(n.ex) for(const k in o) o[k]+=n.ex[k]||0;
   return o;
 }
+/* ========================= レイヤー =========================
+   囲んだノードをひとつのノードにまとめる。中のノードは動き続けるが
+   盤面からは隠れ、外から見えるのは「入口」と「出口ひとつ」だけ。
+   レイヤーの中にレイヤーは作れない。                                  */
+const isLayer  = n => !!(n && TYPES[n.type].layer);
+const inLayer  = n => !!(n && n.layer);
+const memOf    = L => (L.members||[]).map(N).filter(Boolean);
+/* 外から入れてもらう必要があるもの（中で作れないもの） */
+function layerNeeds(L){
+  if(L._needs) return L._needs;
+  const mem = memOf(L), made = new Set();
+  for(const m of mem) for(const k in outsOf(m)) made.add(k);
+  const need = {};
+  for(const m of mem){ const ins = allIns(m);
+    for(const k in ins) if(!made.has(k)) need[k] = Math.max(need[k]||0, ins[k]); }
+  return L._needs = need;
+}
+const layerDirty = () => { for(const n of S.nodes) if(isLayer(n)) n._needs = null; };
+/* 中で作れて、中で使い切らないもの＝出口にできるもの */
+function layerOuts(L){
+  const mem = memOf(L), made = {}, used = new Set();
+  for(const m of mem){ for(const k in outsOf(m)) made[k] = 1;
+                       for(const k in allIns(m)) used.add(k); }
+  const rank = k => (isByp(k) ? 0 : 1) * 1e9 + itemVal(k);   // 副産物より作ったものを先に
+  const o = Object.keys(made).filter(k => !used.has(k)).sort((a,b)=>rank(b)-rank(a));
+  return o.length ? o : Object.keys(made).sort((a,b)=>rank(b)-rank(a));
+}
+/* 毎tick：入ってきたものを中へ配り、出口のものを外へ吸い上げる */
+function layerFlow(L){
+  for(const k in L.inBuf){
+    let q = L.inBuf[k]; if(q <= 0) continue;
+    for(const m of memOf(L)){
+      const sp = spaceIn(m, k); if(sp <= 0) continue;
+      const t = Math.min(q, sp);
+      m.inBuf[k] = (m.inBuf[k]||0) + t; q -= t;
+      if(q <= 0) break;
+    }
+    L.inBuf[k] = q;
+  }
+  const k = L.out; if(!k) return;
+  const room = capOut(L, k) - (L.outBuf[k]||0); if(room <= 0) return;
+  let left = room;
+  for(const m of memOf(L)){
+    const have = m.outBuf[k]||0; if(have <= 0) continue;
+    const t = Math.min(left, have);
+    m.outBuf[k] -= t; L.outBuf[k] = (L.outBuf[k]||0) + t; left -= t;
+    if(left <= 0) break;
+  }
+}
+/* まとめる */
+function makeLayer(ids){
+  const mem = ids.map(N).filter(n => n && !isLayer(n) && !inLayer(n) && !TYPES[n.type].unique);
+  if(mem.length < 2) return toast('2つ以上のノードを囲んでください');
+  const inside = new Set(mem.map(n=>n.id));
+  const cx = mem.reduce((a,n)=>a+n.x,0)/mem.length;
+  const cy = mem.reduce((a,n)=>a+n.y,0)/mem.length;
+  const L = addNode('layer', Math.round(cx), Math.round(cy)); reindex();
+  L.members = mem.map(n=>n.id);
+  L.lname = 'レイヤー';
+  for(const m of mem) m.layer = L.id;
+  // 外とつながっている線を、レイヤーへ付け替える
+  const outItems = new Set();
+  for(const l of [...S.links]){
+    const a = inside.has(l.from), b = inside.has(l.to);
+    if(a && b) continue;                        // 中どうしはそのまま
+    if(b){ l.inTo = l.to; l.to = L.id; }        // 外 → 中
+    else if(a){ outItems.add(l.item); l.inFrom = l.from; l.from = L.id; }
+  }
+  const opts = layerOuts(L);
+  L.out = outItems.size ? [...outItems][0] : (opts[0] || null);
+  // 出口はひとつだけ。ほかの外向きの線は外す
+  for(const l of [...S.links]) if(l.from === L.id && l.item !== L.out) removeLink(l.id);
+  // 同じ相手・同じ素材の線が重なったらひとつに畳む
+  const seen = new Set();
+  for(const l of [...S.links]){
+    if(l.from !== L.id && l.to !== L.id) continue;
+    const key = `${l.from}>${l.to}:${l.item}`;
+    if(seen.has(key)) removeLink(l.id); else seen.add(key);
+  }
+  layerDirty();
+  for(const m of mem) rebuildNodeEl(m);
+  rebuildNodeEl(L);
+  sel = L.id; renderInsp();
+  toast(`${mem.length}個をまとめました`);
+  if(outItems.size > 1) addLog(`【レイヤー】出口は ${ITEMS[L.out].n} ひとつだけです`, 'u');
+  return L;
+}
+/* ほどく */
+function breakLayer(L){
+  const ids = new Set(L.members||[]);
+  for(const l of [...S.links]){
+    if(l.to === L.id){ if(ids.has(l.inTo)) { l.to = l.inTo; delete l.inTo; } else removeLink(l.id); }
+    else if(l.from === L.id){ if(ids.has(l.inFrom)) { l.from = l.inFrom; delete l.inFrom; } else removeLink(l.id); }
+  }
+  for(const m of memOf(L)){ delete m.layer; rebuildNodeEl(m); }
+  const n = memOf(L).length;
+  if(sel === L.id) sel = null;
+  removeNode(L.id); reindex(); layerDirty();
+  renderInsp(); toast(`${n}個をほどきました`);
+}
+
 /* ========================= 宝箱を開ける =========================
    中身は箱の等級と、いまの最深到達（10層ごとの段）で決まる。
    出たものは自宅にしまわれ、🎒持ち物の「自宅」から売ったり捨てたりできる。 */
@@ -2629,7 +2759,8 @@ function render(){
     const T=TYPES[n.type], e=n.el;
     const tr=tierOf(n);
     if(e.lastTier!==tr.t){ e.lastTier=tr.t; e.ic.textContent=tr.i; e.nm.textContent=tr.n; }
-    e.lv.textContent='Lv.'+n.level;
+    e.lv.textContent = T.layer ? `${(n.members||[]).length}個` : 'Lv.'+n.level;
+    e.root.classList.toggle('lay', !!T.layer);
     const need=insOf(n), give=outsOf(n), shown=portIns(n);
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
@@ -2670,6 +2801,7 @@ function render(){
       : T.store ? (storeItems(n).length
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
+      : T.layer ? `${(n.members||[]).length}個をまとめている` + (n.out ? `／出口 ${ITEMS[n.out].i}${ITEMS[n.out].n}` : '／出口なし')
       : T.chain==='open' ? (n.item ? `${ITEMS[n.item].n}を開封中（${n.gain||0}個）→ 中身は自宅へ`
                                     : '開ける箱を選んでください')
       : T.chain==='alloy' ? (n.item ? `${ITEMS[n.item].n}＋${ITEMS[CHAIN[tierIdx(n.item)+1].ingot].n} → ${ITEMS[alloyOf(tierIdx(n.item)+1)].n}` : '混ぜる地金を選んでください')
@@ -2694,12 +2826,21 @@ function render(){
     if(prioOf(n)>1) e.nf.textContent += `　優先${prioOf(n)}`;
     e.root.classList.toggle('pol', (n.pol||0) > 0.05);
     e.root.classList.toggle('won', !!(T.raid && n.clear));
+    e.root.classList.toggle('hid', inLayer(n));
     e.root.classList.toggle('stall',n.stall);
     e.root.classList.toggle('run',!n.stall);
     e.root.classList.toggle('sel',sel===n.id);
     if(n.stall && /満杯/.test(n.why||'')) jam = {n:T.n, i:T.i, w:n.why};
   }
   for(const l of S.links){
+    // レイヤーの中に隠れた端点を持つ線は見せない
+    const hid = inLayer(N(l.from)) || inLayer(N(l.to));
+    if(l.el.hidden !== hid){
+      l.el.hidden = hid;
+      for(const k of ['hit','wire','flow']) l.el[k].style.display = hid ? 'none' : '';
+      if(hid) l.el.wph.style.display='none';
+    }
+    if(hid) continue;
     const G=l.G=linkGeom(l); if(!G) continue;
     l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d); l.el.flow.setAttribute('d',G.d);
     if(l.wp){ l.el.wph.setAttribute('cx',l.wp.x); l.el.wph.setAttribute('cy',l.wp.y); l.el.wph.style.display=''; }
@@ -2797,6 +2938,7 @@ function ioText(T){
 
   if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
+  if(T.layer) return `まとめたノードのかたまり<span class="ar">→</span>出口はひとつだけ`;
   if(T.chain==='open')   return `宝箱×1 ⚡<span class="ar">→</span>🏠自宅へ（素材・装備・ゴールド）`;
   if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
@@ -2870,7 +3012,7 @@ function buy(t){
 /* ========================= 配置と視点 ========================= */
 const NHmax = 126;                       // 判定に使うノードの高さ（最大3行ぶん）
 const hOf = n => parseFloat(n.el.root.style.height) || NHmax;
-const taken = (x,y) => S.nodes.some(n => Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
+const taken = (x,y) => S.nodes.some(n => !inLayer(n) && Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
 // 左下のインスペクタ・右上のヘルプに隠れる位置は避ける
 // 画面に重なっているパネル（案内・インスペクタ・ヘルプ）の下は避ける。
 // 縦向きと横向きでパネルの位置が変わるので、決め打ちせず実際の矩形から判定する
@@ -2933,6 +3075,7 @@ function freeSpot(){
 function bounds(){
   let a={x0:Infinity,y0:Infinity,x1:-Infinity,y1:-Infinity};
   for(const n of S.nodes){
+    if(inLayer(n)) continue;
     a.x0=Math.min(a.x0,n.x); a.y0=Math.min(a.y0,n.y);
     a.x1=Math.max(a.x1,n.x+NW); a.y1=Math.max(a.y1,n.y+hOf(n));
   }
@@ -2998,6 +3141,9 @@ function renderInsp(){
     ((T.chain && T.chain!=='sell')||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
+    (T.layer ? `<div class="kv">出口（ひとつだけ）<select class="lout"></select></div>
+                <div class="kv">中のノード<b class="lmem"></b></div>
+                <button class="lbreak">🧩 ほどく</button>` : '') +
     (T.store || T.ware ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : '') +
     (T.ware  ? `<button class="wopen">📦 中身を見る</button>` : '') +
     (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
@@ -3070,6 +3216,21 @@ function renderInsp(){
   if(T.ware){
     box.querySelector('.wopen').onclick=()=>{ bagWare=n.id; bagTab='ware'; renderBag(); $('#bag').classList.add('on'); };
   }
+  if(T.layer){
+    const sl=box.querySelector('.lout');
+    const opts=layerOuts(n);
+    sl.innerHTML=`<option value="">— 出さない —</option>`+
+      opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
+    sl.value=n.out||'';
+    sl.onchange=()=>{
+      const k=sl.value||null;
+      for(const l of [...S.links]) if(l.from===n.id) removeLink(l.id);
+      if(n.out) delete n.outBuf[n.out];
+      n.out=k; rebuildNodeEl(n); renderInsp();
+    };
+    box.querySelector('.lmem').textContent = memOf(n).map(m=>tierOf(m).i).join(' ') || '—';
+    box.querySelector('.lbreak').onclick=()=>breakLayer(n);
+  }
   if(T.store || T.ware || T.chain==='sell'){
     const w=box.querySelector('.slotsel'); w.innerHTML='';
     for(let i=0;i<T.slots;i++){
@@ -3104,6 +3265,7 @@ function renderInsp(){
   box.querySelector('.pm').onclick=()=>{ n.prio=Math.max(1,prioOf(n)-1); };
   box.querySelector('.pp').onclick=()=>{ n.prio=Math.min(9,prioOf(n)+1); };
   box.querySelector('.del').onclick=()=>{
+    if(TYPES[n.type].layer) return breakLayer(n);
     if(TYPES[n.type].unique) return toast('勇者は撤去できません');
     const rp = scrapRp(n.type, n.level, n.grade||0);
     let msg;
@@ -3179,6 +3341,8 @@ function renderInspLive(){
   box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
   box.querySelectorAll('.alc').forEach(el=>{ el.textContent=allocText(n, el.dataset.i); });
   const up=box.querySelector('.up'), c=upCost(n);
+  if(TYPES[n.type].layer){ up.textContent='—'; up.disabled=true;
+    box.querySelector('.del').textContent='ほどいて撤去'; }
   up.textContent=`強化 ${fmt(c)} G ／ +${((lvPow(n.level+1)/lvPow(n.level)-1)*100).toFixed(1)}%（いま ${lvGen(n.level).toFixed(2)}時代ぶん）`;
   up.disabled=S.gold<c;
   box.querySelector('.del').disabled=!!TYPES[n.type].unique;
@@ -3305,6 +3469,25 @@ function doPinch(){
 // 盤面の上に重ねているパネル（インスペクタ・案内・ヘルプ・バッジ）の中の操作は盤面に渡さない。
 // 渡すと背景クリック扱いで選択が解除され、renderInsp() がボタンごと消してしまう
 const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast';
+/* ========================= 投げ縄でまとめる ========================= */
+let lassoOn = false;
+function setLasso(v){
+  lassoOn = v;
+  document.body.classList.toggle('lasso', v);
+  $('#bLasso').classList.toggle('lassoon', v);
+  if(v) toast('囲みたいノードをぐるっとなぞってください');
+  else $('#lasso').style.display='none';
+}
+const lassoD = pts => pts.length<2 ? '' :
+  'M'+pts.map(p=>`${p.x.toFixed(0)} ${p.y.toFixed(0)}`).join('L')+'Z';
+function inPoly(pts, x, y){
+  let hit=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const a=pts[i], b=pts[j];
+    if((a.y>y)!==(b.y>y) && x < (b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x) hit=!hit;
+  }
+  return hit;
+}
 stage.addEventListener('pointerdown', e=>{
   if(e.target.closest(OVERLAY_SEL)) return;
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -3329,6 +3512,11 @@ stage.addEventListener('pointerdown', e=>{
   else if(nodeEl){
     const n=N(+nodeEl.dataset.id), w=toWorld(e.clientX,e.clientY);
     drag={mode:'node', id:n.id, ox:w.x-n.x, oy:w.y-n.y, moved:0};
+  }else if(lassoOn){
+    const w=toWorld(e.clientX,e.clientY);
+    drag={mode:'lasso', pts:[w]};
+    $('#lasso').style.display='';
+    try{stage.setPointerCapture(e.pointerId)}catch(_){}
   }else{
     drag={mode:'pan', sx:e.clientX, sy:e.clientY, vx:S.view.x, vy:S.view.y};
     stage.classList.add('panning');
@@ -3355,6 +3543,10 @@ stage.addEventListener('pointermove', e=>{
       const w=toWorld(e.clientX,e.clientY);
       l.wp={x:Math.round(w.x/10)*10, y:Math.round(w.y/10)*10};
     }
+  }else if(drag.mode==='lasso'){
+    const w=toWorld(e.clientX,e.clientY), last=drag.pts[drag.pts.length-1];
+    if(Math.hypot(w.x-last.x, w.y-last.y) > 6) drag.pts.push(w);
+    $('#lasso').setAttribute('d', lassoD(drag.pts));
   }else if(drag.mode==='link'){
     const a=N(drag.from), w=toWorld(e.clientX,e.clientY);
     $('#temp').setAttribute('d', dStr(bez(portPos(a,drag.item,'out'), w)));
@@ -3411,6 +3603,14 @@ stage.addEventListener('pointerup', e=>{
     clearTargets();
   }else if(drag.mode==='wire'){
     if(!drag.handle&&drag.moved<5){ removeLink(drag.id); toast('配線を切断しました'); }
+  }else if(drag.mode==='lasso'){
+    const pts=drag.pts; $('#lasso').style.display='none'; $('#lasso').setAttribute('d','');
+    if(pts.length > 4){
+      const ids = S.nodes.filter(n => !inLayer(n) && !isLayer(n) && !TYPES[n.type].unique
+        && inPoly(pts, n.x + NW/2, n.y + 45)).map(n=>n.id);
+      if(ids.length) makeLayer(ids); else toast('ノードが囲まれていません');
+    }
+    setLasso(false);
   }else if(drag.mode==='node'&&drag.moved<6){
     const t=N(drag.id);
     if(t && TYPES[t.type].raid && t.clear) raidClaim(t);        // クリア済みはタップで受け取り
@@ -3636,6 +3836,7 @@ const dumpState = () => JSON.stringify(S,(k,v)=> (k==='el'||k==='G')?undefined:v
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
 $('#tClose').onclick=()=>$('#tree').classList.remove('on');
 $('#bStats').onclick=()=>{ renderStats(); $('#stats').classList.add('on'); };
+$('#bLasso').onclick=()=>setLasso(!lassoOn);
 $('#sClose').onclick=()=>$('#stats').classList.remove('on');
 $('#stats').onclick=e=>{ if(e.target===$('#stats')) $('#stats').classList.remove('on'); };
 $('#tree').onclick=e=>{ if(e.target===$('#tree')) $('#tree').classList.remove('on'); };
