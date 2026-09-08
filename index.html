@@ -2465,8 +2465,10 @@ function render(){
   const dt=depthTier();
   $('#oSteps').textContent=`第${S.era||1}時代/${depthTier()}段`;
   $('#oRate').textContent='×'+offRate().toFixed(1);
-  $('#oCap').textContent=offCapH()+'時間';
-  $('#oNext').textContent=`研究をあと1つ / 第${(dt+1)*BOSS_EVERY}層 踏破`;
+  const ch=offCapH(), chH=Math.floor(ch), chM=Math.round((ch-chH)*60);
+  $('#oCap').textContent = chH+'時間'+(chM?chM+'分':'');
+  $('#oNext').textContent = ((S.era||1) < ERA_MAX ? `第${(S.era||1)+1}時代へ / ` : '')
+    + `第${(dt+1)*BOSS_EVERY}層 踏破`;
   $('#dTier').textContent=dt+'段階';
   $('#dBonus').textContent='×'+depthBonus().toFixed(2);
   $('#dNext').textContent='第'+((dt+1)*BOSS_EVERY)+'層';
