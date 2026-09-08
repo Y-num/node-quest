@@ -1117,8 +1117,9 @@ const TYPES = {
           d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になる'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
-  wood  :{n:'薪割り小屋', i:'🪓', cost:900, up:1100, time:2.4, ins:{sta:7}, outs:{wood:2},
-          d:'⚡体力を薪に変える。第2〜第4の施設は⚡では動かず、薪が要る'},
+  wood  :{n:'薪割り小屋', i:'🪓', cost:900, up:1100, time:2.4, ins:{sta:6, waste:2}, outs:{wood:2},
+          d:'廃材を割って薪にする。第2〜第4の施設は⚡では動かず薪が要るので、'
+           +'⚡で動く第1世代の施設を「廃材の出し手」として残しておくとよい'},
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
   power :{n:'発電所',    i:'🔌', cost:500, up:600, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
@@ -3084,7 +3085,9 @@ function render(){
     e.bar.style.width=(n.crafting?Math.min(100,n.prog/n.need*100):0)+'%';
     e.nf.textContent = n.stall
         ? (T.stat && !expRouted(n) ? `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`
-                                   : '停止：'+n.why)
+           : (T.outs && T.outs.wood && /廃材/.test(n.why||'')
+              ? '停止：'+n.why+'（⚡で動く第1世代の施設を残すと廃材が出ます）'
+              : '停止：'+n.why))
       : T.src ? srcFace(n)
       : T.stat ? (expRouted(n)
           ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（次の+1まで あと${Math.max(1, expNeed(S.stats[T.stat]) - ((S.exp&&S.exp[T.stat])||0))}回）`
@@ -3130,6 +3133,7 @@ function render(){
           ? `⚔️${gearName(n.item)} を鍛錬中（${n.gain||0}打）` : '鍛える装備を選んでください')
       : T.chain==='equip' ? (n.item ? `${ITEMS[n.item].n}の装備を製作中（${n.gain||0}個）` : '作る装備を選んでください')
       : T.chain==='fund' ? `${fmt(fundGold(n))}G → 🔬${fmt(fundRp(n))}（累計 🔬${fmt(n.gain||0)}）`
+      : T.outs && T.outs.wood ? `🗑廃材 → 🪵薪（⚡で動く第1世代の施設が廃材の出し手）`
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
       : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
       : T.chain==='sell' ? (n.sellK
