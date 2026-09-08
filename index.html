@@ -1727,7 +1727,7 @@ function setStoreItem(n, idx, item){
     if(ware){ if(n.outBuf[old]){ n.inBuf[old]=(n.inBuf[old]||0)+n.outBuf[old]; delete n.outBuf[old]; } }
     else { delete n.inBuf[old]; delete n.outBuf[old]; }
   }
-  n.crafting=false; n.prog=0;
+  n.crafting=false; n.prog=0; n.stall=false; n.why='';
   rebuildNodeEl(n);
 }
 function setToolItem(n, item){
@@ -1802,17 +1802,34 @@ function removeLink(id){
   const l=S.links[i]; while(l.packets.length) delPacket(l,0);
   l.el.hit.remove(); l.el.wire.remove(); l.el.flow.remove(); l.el.wph.remove();
   S.links.splice(i,1);
-  // 売り場：その素材を送る線が無くなったら、受け入れ口も外す
+  // 送る線が無くなったら、空いている枠は手放す
   const to = N(l.to);
-  if(to && TYPES[to.type].chain==='sell' && !POW_ITEM[l.item]
-     && !S.links.some(x => x.to===to.id && x.item===l.item)){
+  if(to && !POW_ITEM[l.item] && !S.links.some(x => x.to===to.id && x.item===l.item)){
+    const T = TYPES[to.type];
     const j = (to.items||[]).indexOf(l.item);
-    if(j >= 0){
+    const empty = ((to.inBuf[l.item]||0) <= 0) && ((to.outBuf[l.item]||0) <= 0);
+    // 売り場は貯めておく場所ではないので常に外す。
+    // 貯蔵と倉庫は、中身が空で外へ出す線も無いときだけ外す（在庫は守る）
+    const free = T.chain==='sell'
+      || ((T.store || T.ware) && empty && !S.links.some(x => x.from===to.id && x.item===l.item));
+    if(j >= 0 && free){
       to.items[j] = null;
-      delete to.inBuf[l.item];
-      if(to.sellK === l.item){ to.sellK = null; to.crafting=false; to.prog=0; }
+      delete to.inBuf[l.item]; delete to.outBuf[l.item];
+      if(to.sellK === l.item){ to.sellK = null; }
+      to.crafting=false; to.prog=0; to.stall=false; to.why='';
       rebuildNodeEl(to);
     }
+  }
+  // 出す側の線を切ったときも、空なら枠を手放す
+  const from = N(l.from);
+  if(from && !POW_ITEM[l.item] && (TYPES[from.type].store || TYPES[from.type].ware)
+     && ((from.inBuf[l.item]||0) <= 0) && ((from.outBuf[l.item]||0) <= 0)
+     && !S.links.some(x => (x.from===from.id || x.to===from.id) && x.item===l.item)){
+    const j = (from.items||[]).indexOf(l.item);
+    if(j >= 0){ from.items[j] = null;
+      delete from.inBuf[l.item]; delete from.outBuf[l.item];
+      from.crafting=false; from.prog=0; from.stall=false; from.why='';
+      rebuildNodeEl(from); }
   }
 }
 /* 送り先の優先度。数字が大きいほど多く配られる（1〜9）*/
