@@ -661,6 +661,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="btabs">
         <button class="bt1 on" data-t="gear">🎽 装備 <b id="bcGear">0</b></button>
         <button class="bt1" data-t="drop">🎁 クリア報酬 <b id="bcDrop">0</b></button>
+        <button class="bt1" data-t="ware" id="bcWareTab" hidden>📦 倉庫</button>
       </div>
       <button id="bClose" style="margin-left:auto">閉じる</button>
     </div>
@@ -1055,7 +1056,10 @@ const ERA_EXTRA = {
   purify: g => ({aura:{k:'clean', v:+(1.0*Math.pow(1.55,g)).toFixed(2), r:280+g*14}}),
   boost:  g => ({aura:{k:'speed', v:+(0.15+g*0.035).toFixed(3), r:250+g*12}}),
   tool: g => ({mul: 1.5 + g*0.45, sta: 3 + g}),
-  box:  g => ({slots: 1 + Math.floor(g*0.9), cap: Math.round(200 * Math.pow(2.2, g))}),
+  box:  g => (g < 6
+    ? {slots: 1 + Math.floor(g*0.9), cap: Math.round(200 * Math.pow(2.2, g))}
+    // 第7時代から先は「倉庫」。何でも受け取れて、種類も量も桁が変わる
+    : {ware:true, slots:3, kinds: 8 + (g-6)*16, cap: Math.round(4000 * Math.pow(2.2, g))}),
 };
 
 /* 役割ごとに「どの時代に、どんな版があるか」。無い時代には無い。 */
@@ -1258,6 +1262,7 @@ function insOf(n){
                :                     {sta:st, [c.part]:1};
     return modIns(n, base);
   }
+  if(T.ware)  return {};                       // 受け取りは口を作らず、何でも入る
   if(T.store){ for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool){
     if(n.item) o[n.item] = T.take;
@@ -1320,6 +1325,7 @@ function outsOf(n){
     return modOuts(n, base);
   }
   if(T.loot) return modOuts(n, {[lootItem(n)]:1});
+  if(T.ware){  const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
   return modOuts(n, T.outs);
@@ -1415,7 +1421,7 @@ function craftTime(n){
 const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(PRICE_K, S.counts[t]||0));
 const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
 const capMul  = n => n.mods ? n.mods.cap : 1;
-const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].store
+const capIn   = (n,item) => Math.ceil(capMul(n) * ((TYPES[n.type].store||TYPES[n.type].ware)
                           ? TYPES[n.type].cap * lvPow(n.level)
                           : Math.max(CAP, (allIns(n)[item]||0) * 2)));
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
@@ -1624,13 +1630,14 @@ function mkNodeEl(n){
     if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
     if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
   }
-  const free = TYPES[n.type].store && storeItems(n).length < TYPES[n.type].slots;
+  const free = TYPES[n.type].ware
+    || (TYPES[n.type].store && storeItems(n).length < TYPES[n.type].slots);
   const A = TYPES[n.type].aura;
   const auraEl = A
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '';
   if(free) ports += `<div class="port pin any" style="top:${portY(Math.max(0,rowsOf(n)-1))}px"`
-    + ` title="空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）">＋</div>`;
+    + ` title="${TYPES[n.type].ware ? 'どんな素材でもここへ繋げます' : '空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）'}">＋</div>`;
   el.innerHTML = auraEl +
     `<div class="nh"><span class="ic">${tr.i}</span><span class="nm">${tr.n}</span><span class="lv">Lv.${n.level}</span></div>`+
     rows + `<div class="bar"><i></i></div><div class="nf"></div>` + ports;
@@ -1658,11 +1665,17 @@ function setChainItem(n, item){
 function setStoreItem(n, idx, item){
   n.items = n.items || [];
   if(n.items[idx] === item) return;
-  const old = n.items[idx];
+  const old = n.items[idx], ware = TYPES[n.type].ware;
   if(old) for(const l of [...S.links])
-    if((l.from===n.id || l.to===n.id) && l.item===old) removeLink(l.id);
+    if(l.from===n.id && l.item===old) removeLink(l.id);
+  if(old && !ware) for(const l of [...S.links])
+    if(l.to===n.id && l.item===old) removeLink(l.id);
   n.items[idx] = item || null;
-  if(old){ delete n.inBuf[old]; delete n.outBuf[old]; }
+  if(old){
+    // 倉庫は在庫を消さない。出すのをやめるだけなので、外へ出しかけた分は棚に戻す
+    if(ware){ if(n.outBuf[old]){ n.inBuf[old]=(n.inBuf[old]||0)+n.outBuf[old]; delete n.outBuf[old]; } }
+    else { delete n.inBuf[old]; delete n.outBuf[old]; }
+  }
   n.crafting=false; n.prog=0;
   rebuildNodeEl(n);
 }
@@ -1710,12 +1723,15 @@ function removeNode(id){
 /* 貯蔵は空きスロットがあれば、どんな素材でも受け取れる。
    配線をつないだ時点で、その素材を空きスロットに割り当てる。            */
 function storeCanTake(n, item){
-  const T = TYPES[n.type]; if(!T.store || !item) return false;
+  const T = TYPES[n.type];
+  if(T.ware) return !!item && spaceIn(n, item) > 0;   // 倉庫は何でも受け取れる
+  if(!T.store || !item) return false;
   if((n.items||[]).includes(item)) return false;      // すでに受け取れる
   return storeItems(n).length < T.slots;
 }
 function storeAssign(n, item){
-  const T = TYPES[n.type]; n.items = n.items || [];
+  const T = TYPES[n.type]; if(T.ware) return true;    // 倉庫は割り当て不要
+  n.items = n.items || [];
   for(let i=0;i<T.slots;i++) if(!n.items[i]){ setStoreItem(n, i, item); return true; }
   return false;
 }
@@ -1747,7 +1763,18 @@ function allocText(n, item){
   if(!tot) return '未接続';
   return [...agg].map(([id,w])=>`${tierOf(N(id)).i}${Math.round(w/tot*100)}%`).join('  ');
 }
-const spaceIn = (n,item) => !allIns(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
+/* 倉庫はどんな素材でも受け取る。種類の上限と、1種類あたりの量で決まる */
+const wareKinds = n => Object.keys(n.inBuf||{}).filter(k=>(n.inBuf[k]||0) > 0);
+const wareTotal = n => wareKinds(n).reduce((a,k)=>a+(n.inBuf[k]||0), 0);
+function spaceIn(n,item){
+  const T = TYPES[n.type];
+  if(T.ware){
+    const held = n.inBuf[item]||0;
+    if(held <= 0 && wareKinds(n).length >= T.kinds) return 0;    // 種類がいっぱい
+    return Math.max(0, capIn(n,item) - held);
+  }
+  return !allIns(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
+}
 
 /* ========================= シミュレーション ========================= */
 function tick(dt,fast){
@@ -1769,6 +1796,15 @@ function tick(dt,fast){
       }
     }
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
+    if(T.ware){                                  // 倉庫：貯めて、選んだ素材だけ外へ出す
+      n.stall=false; n.why='';
+      for(const k of storeItems(n)){
+        const room = capOut(n,k) - (n.outBuf[k]||0), have = n.inBuf[k]||0;
+        const q = Math.min(room, have);
+        if(q > 0){ n.inBuf[k] -= q; n.outBuf[k] = (n.outBuf[k]||0) + q; }
+      }
+      continue;
+    }
     if(T.store && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
     if(['comp','decomp','sell','clean','fuel','anvil'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
@@ -2150,7 +2186,7 @@ function scrapDrop(id){
 /* ========================= 持ち物 =========================
    装備工房で作った装備と、ダンジョンのクリア報酬。どちらも上限なしで貯まる。
    いらないものは売ってゴールドに、または捨てられる。                */
-let bagTab = 'gear';
+let bagTab = 'gear', bagWare = null;
 const gearSell = k => Math.max(1, Math.round(sellPrice(k,1) * 0.6));
 const dropSell = d => Math.max(1, Math.round(TYPES[d.type].cost * 0.5 * (1 + (d.grade||0)*0.35)));
 const packCount = () => Object.values(packOf()).reduce((a,b)=>a+b,0);
@@ -2183,6 +2219,39 @@ function renderBag(){
   $('#bcGear').textContent = nG; $('#bcDrop').textContent = nD+' / '+DROP_MAX;
   document.querySelectorAll('#bag .btabs button')
     .forEach(b=>b.classList.toggle('on', b.dataset.t===bagTab));
+  const wt=$('#bcWareTab'); if(wt) wt.hidden = bagTab!=='ware';
+
+  if(bagTab==='ware'){
+    const n = bagWare!=null ? N(bagWare) : null;
+    if(!n || !TYPES[n.type].ware){ bagTab='gear'; return renderBag(); }
+    const T=TYPES[n.type], ks=wareKinds(n).sort((a,b)=>(n.inBuf[b]||0)-(n.inBuf[a]||0));
+    $('#bagNote').textContent = `${tierOf(n).n}の中身。${wareKinds(n).length}/${T.kinds}種・`
+      + `合計 ${fmt(wareTotal(n))}個（1種あたり ${fmt(capIn(n,'x'))}個まで）。`
+      + '外へ出す素材はインスペクタで選びます。ここからは売却と廃棄ができます。';
+    if(!ks.length){ box.innerHTML = `<div class="bempty">まだ何も入っていません。素材の配線をこの倉庫へ引くと貯まります。</div>`; return; }
+    const outs = storeItems(n);
+    box.innerHTML = ks.map(k=>{
+      const q=Math.floor(n.inBuf[k]||0), price=sellPrice(k,1);
+      return `<div class="bitem">
+        <div class="bmain">
+          <div class="bname">${ITEMS[k].i}${ITEMS[k].n} × ${fmt(q)}${outs.includes(k)?'　<span class="bon">外へ出す</span>':''}</div>
+          <div class="bsub">1つ ${fmt(itemVal(k))} 相当${traitText(k)?' ・ '+traitText(k):''}</div>
+        </div>
+        <div class="bacts">
+          <button class="wsell" data-k="${k}">まとめて売却 +${fmt(Math.floor(q/SELL_TAKE)*price)}G</button>
+          <button class="wtoss" data-k="${k}">廃棄</button>
+        </div>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('.wsell').forEach(b=>b.onclick=()=>{
+      const k=b.dataset.k, q=Math.floor(n.inBuf[k]||0), lots=Math.floor(q/SELL_TAKE);
+      if(lots<1) return toast(`${SELL_TAKE}個からまとめて売れます`);
+      const g=lots*sellPrice(k,1); S.gold+=g; n.inBuf[k]-=lots*SELL_TAKE;
+      if(n.inBuf[k]<=0) delete n.inBuf[k];
+      addLog(`${ITEMS[k].n}×${lots*SELL_TAKE} を売った → +${fmt(g)}G`,'w'); renderBag(); });
+    box.querySelectorAll('.wtoss').forEach(b=>b.onclick=()=>{ delete n.inBuf[b.dataset.k]; renderBag(); });
+    return;
+  }
 
   if(bagTab==='gear'){
     $('#bagNote').textContent = '装備工房で作ると、ふつうのアイテムとして工房を流れます。'
@@ -2293,6 +2362,8 @@ function render(){
           return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
+      : T.ware ? `倉庫 ${wareKinds(n).length}/${T.kinds}種 ${fmt(wareTotal(n))}個`
+          + (storeItems(n).length ? `／出す ${storeItems(n).map(k=>ITEMS[k].i).join('')}` : '／出す素材は未設定')
       : T.store ? (storeItems(n).length
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
@@ -2430,6 +2501,7 @@ function ioText(T){
   if(T.aura) return T.aura.k==='clean'
     ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
     : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
+  if(T.ware)  return `何でも受け取る<span class="ar">→</span>${T.kinds}種 × ${fmt(T.cap)}個まで／出す素材は${T.slots}つ`;
   if(T.store) return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
   if(T.tool) return `素材×${T.take} ⚡×${T.sta}<span class="ar">→</span>素材×${Math.round(T.take*T.mul)}`;
   const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='equip'?'🎽装備':T.effect==='lab'?'🔬研究力':'—');
@@ -2611,6 +2683,9 @@ function renderInsp(){
     (T.chain||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
+    (T.ware  ? `<div class="kv">中身<b class="wsum"></b></div>
+                <div class="kv">外へ出す素材<div class="slotsel"></div></div>
+                <button class="wopen">📦 中身を見る</button>` : '') +
     (T.store ? `<div class="kv">貯める素材<div class="slotsel"></div></div>` : '') +
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     `<div class="kv">状態<b class="st2"></b></div>`;
@@ -2678,7 +2753,10 @@ function renderInsp(){
     });
   }
 
-  if(T.store){
+  if(T.ware){
+    box.querySelector('.wopen').onclick=()=>{ bagWare=n.id; bagTab='ware'; renderBag(); $('#bag').classList.add('on'); };
+  }
+  if(T.store || T.ware){
     const w=box.querySelector('.slotsel'); w.innerHTML='';
     for(let i=0;i<T.slots;i++){
       const sl=document.createElement('select');
