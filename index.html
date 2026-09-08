@@ -106,6 +106,7 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .nf{font-size:9.5px;color:var(--dim);height:14px;line-height:14px;overflow:hidden}
 .node.stall .nf{color:var(--bad)}
 .node .aura{position:absolute;border-radius:50%;pointer-events:none;z-index:-1}
+.port.any{border-style:dashed;color:var(--dim);font-size:11px;line-height:1}
 .node .aura.clean{border:1px dashed rgba(94,224,192,.30);
   background:radial-gradient(circle,rgba(94,224,192,.09),transparent 70%)}
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
@@ -1623,10 +1624,13 @@ function mkNodeEl(n){
     if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
     if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
   }
+  const free = TYPES[n.type].store && storeItems(n).length < TYPES[n.type].slots;
   const A = TYPES[n.type].aura;
   const auraEl = A
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '';
+  if(free) ports += `<div class="port pin any" style="top:${portY(Math.max(0,rowsOf(n)-1))}px"`
+    + ` title="空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）">＋</div>`;
   el.innerHTML = auraEl +
     `<div class="nh"><span class="ic">${tr.i}</span><span class="nm">${tr.n}</span><span class="lv">Lv.${n.level}</span></div>`+
     rows + `<div class="bar"><i></i></div><div class="nf"></div>` + ports;
@@ -1703,10 +1707,22 @@ function removeNode(id){
   S.nodes[i].el.root.remove(); S.nodes.splice(i,1); reindex();
   if(sel===id){ sel=null; renderInsp(); }
 }
+/* 貯蔵は空きスロットがあれば、どんな素材でも受け取れる。
+   配線をつないだ時点で、その素材を空きスロットに割り当てる。            */
+function storeCanTake(n, item){
+  const T = TYPES[n.type]; if(!T.store || !item) return false;
+  if((n.items||[]).includes(item)) return false;      // すでに受け取れる
+  return storeItems(n).length < T.slots;
+}
+function storeAssign(n, item){
+  const T = TYPES[n.type]; n.items = n.items || [];
+  for(let i=0;i<T.slots;i++) if(!n.items[i]){ setStoreItem(n, i, item); return true; }
+  return false;
+}
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
-  if(!allIns(b)[item]) return false;
+  if(!allIns(b)[item] && !storeCanTake(b,item)) return false;
   return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
 }
 function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
@@ -2277,7 +2293,9 @@ function render(){
           return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
-      : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
+      : T.store ? (storeItems(n).length
+          ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
+          : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
       : T.chain==='alloy' ? (n.item ? `${ITEMS[n.item].n}＋${ITEMS[CHAIN[tierIdx(n.item)+1].ingot].n} → ${ITEMS[alloyOf(tierIdx(n.item)+1)].n}` : '混ぜる地金を選んでください')
       : T.chain==='anvil' ? (n.item
           ? `⚔️${gearName(n.item)} を鍛錬中（${n.gain||0}打）` : '鍛える装備を選んでください')
@@ -2966,7 +2984,10 @@ stage.addEventListener('pointerup', e=>{
   if(drag.mode==='link'){
     const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
     const a=N(drag.from), b=tn?N(+tn.dataset.id):null;
-    if(b&&canLink(a,drag.item,b)) addLink(a.id,drag.item,b.id);
+    if(b&&canLink(a,drag.item,b)){
+      if(storeCanTake(b,drag.item)) storeAssign(b, drag.item);   // 空きスロットに自動で割り当て
+      addLink(a.id,drag.item,b.id);
+    }
     else if(b) toast(`${TYPES[b.type].n}に ${ITEMS[drag.item].n} の入力口はありません`);
     $('#temp').setAttribute('d','');
     document.body.classList.remove('linking');
