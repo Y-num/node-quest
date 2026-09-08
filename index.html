@@ -864,6 +864,7 @@ const ITEMS = {
   power:{n:'電力',   i:'🔌', c:'#f2e14e'},
   nfl  :{n:'核燃料', i:'🟢', c:'#7ee06b'},
   // 副産物。時代が進むほど厄介なものが必ず出る
+  slud :{n:'汚染塊', i:'🫙', c:'#7fb03a'},   // 汚れきった施設を解体すると出る
   toxic:{n:'汚染',   i:'🧪', c:'#9ad14a'},
   rad  :{n:'放射性廃棄物', i:'☢️', c:'#d9f24e'},
   rift :{n:'歪み',   i:'🌌', c:'#c07af5'},
@@ -951,7 +952,7 @@ function nextTier(k, cap){
   return to;
 }
 // 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
-const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30};
+const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30, slud:8};
 /* 宝箱。銅→銀→金 の順に中身が良くなる。落ちる割合もその順に低い */
 const BOXES = [
   {k:'bxc', n:'銅箱', w:100, num:3, gold:6,  eq:0.10, up:0},
@@ -997,9 +998,12 @@ const COMP_TAKE = 5, DECOMP_TAKE = 4;
    レベルと🔮魔導の装備だけが割をよくする。1回に動かす額は時代で大きくなる。
    （素材を解体台に通す道に比べると桁違いに悪い。余ったゴールドの捨て場） */
 const FUND_G    = 4000;
-/* 仲間の給料。1回働くごとに払う。時代が進むほど金額も大きくなる */
-const payOf = n => { const T=TYPES[n.type];
+/* 仲間の給料。1回働くごとに払う。時代が進むほど金額も大きくなる。
+   第9以降の人工の仲間は、ゴールドではなく研究ポイントで動く */
+const payOf   = n => { const T=TYPES[n.type];
   return T.pay ? Math.round(T.pay * Math.pow(2.6, (T.era||1)-1)) : 0; };
+const payRpOf = n => { const T=TYPES[n.type];
+  return T.payRp ? Math.max(1, Math.round(T.payRp * Math.pow(2.6, (T.era||1)-1))) : 0; };
 const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
 const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(n.level) * gearMul('arcane'));
 /* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
@@ -1043,7 +1047,7 @@ function lotList(){ return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filt
 function storeOpts(){
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   return ['wood','coal','power','nfl'].concat(BOXES.map(b=>b.k), lotList(), alyList(), eqpList(),
-    BYP.map(b=>b.k), withDens(mats));
+    BYP.map(b=>b.k), ['slud'], withDens(mats));
 }
 function chainOpts(t){
   const T = TYPES[t], k = T.chain, g = T.era||1;
@@ -1058,7 +1062,7 @@ function chainOpts(t){
   if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
   if(k==='decomp'||k==='sell')
-    return withDens(['waste','toxic','rad','rift'].concat(mats))
+    return withDens(['waste','toxic','rad','rift','slud'].concat(mats))
       .concat(lotList(), eqpList(), alyList(), BOXES.map(b=>b.k));
   if(k==='equip')         return CHAIN.filter(chainOpen).map(c=>c.part);
   if(k==='anvil'){ const o=[];           // 鍛える装備。作ったことのある段＋1つ先まで
@@ -1234,7 +1238,8 @@ const FAC = {
   tvit:  [{e:1,n:'散歩',i:'🚶'},{e:3,n:'走り込み',i:'🏃'},{e:5,n:'山ごもり',i:'⛰️'},
           {e:7,n:'体質改善',i:'🫀'},{e:9,n:'生体改造',i:'🧬'},{e:10,n:'不死の泉',i:'⛲'}],
   mate:  [{e:3,n:'村人',i:'🧑‍🌾'},{e:6,n:'職人',i:'🧑‍🔧'},{e:8,n:'試作体',i:'🧪'},
-          {e:9,n:'ホムンクルス',i:'🧬'},{e:10,n:'オートマタ',i:'🤖'}],
+          {e:9,n:'ホムンクルス',i:'🧬',payRp:0.012,d:'研究ポイントを食べて働く人工の仲間。ゴールドは要らない'},
+          {e:10,n:'オートマタ',i:'🤖',payRp:0.012,d:'研究ポイントで動く自動人形。ゴールドは要らない'}],
   wood:  [{e:2,n:'薪割り小屋',i:'🪓'},{e:4,n:'製材所',i:'🪚',outs:{wood:3}}],
   coal:  [{e:4,n:'炭窯',i:'🪵'}],
   open:  [{e:1,n:'開封所',i:'📦'},{e:4,n:'開封場',i:'🏗'},{e:7,n:'自動開封機',i:'🤖'},
@@ -1277,6 +1282,7 @@ function buildFac(){
         up:   Math.max(1, Math.round(base.cost * UP_RATE * Math.pow(ERA_UP, g))),
       });
       if(f.eff)  T.eff  = f.eff;               // ⚡の食いぶちの上乗せ
+      if(f.payRp){ T.payRp = f.payRp; delete T.pay; }   // 研究で動く仲間
       if(f.ins)  T.ins  = f.ins;
       if(f.outs) T.outs = f.outs;
       if(f.hd)   T.hd   = f.hd;
@@ -1652,6 +1658,16 @@ function rollDrop(floor, rnd){
   return {id:S.nextId++, type, grade:g, mods:m, floor};
 }
 const dropName = d => `${baseName(d.type)}〈${d.mods.tags.join('・')||'無印'}〉`;
+/* 汚れきった施設ほど、解体で返るものが増える。
+   汚染は「遅くなるだけの罰」ではなく、育てて刈り取る対象にもなる。
+   建設費に比例させるとゴールドを研究に洗える抜け道になるので、
+   「汚れたまま何回働いたか」で決める（汚れた施設は遅いので、時間そのものが代償）*/
+const POL_SCRAP  = 150;
+const polWorked  = n => Math.min(1, (n.done || 0) / 1000);
+const polScrapRp = (n, pol) => Math.floor(
+  Math.max(0, pol) * POL_SCRAP * Math.pow(2.6, (TYPES[n.type].era || 1) - 1) * polWorked(n));
+const polScrapItems = (n, pol) =>
+  Math.floor(Math.max(0, pol - 0.1) * 5 * (TYPES[n.type].era || 1) * polWorked(n));
 // 解体で戻る研究ポイント（ドロップ品は等級ぶん上乗せ）
 const scrapRp = (type, level, grade) =>
   Math.max(1, Math.ceil(TYPES[type].cost * 0.02 * lvPow(level) + (grade||0) * 15));
@@ -2138,10 +2154,12 @@ function tick(dt,fast){
         for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
         if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){ ok=false; n.why=`${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`; }
         if(ok && T.pay && S.gold < payOf(n)){ ok=false; n.why=`給料が払えない（${fmt(payOf(n))}G）`; }
+        if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`研究ポイントが足りない（${fmt(payRpOf(n))}）`; }
 
         if(!ok){ n.stall=true; break; }
         for(const k in need) n.inBuf[k]-=need[k];
-        if(T.pay) S.gold -= payOf(n);
+        if(T.pay)   S.gold -= payOf(n);
+        if(T.payRp) S.rp = (S.rp||0) - payRpOf(n);
         n.crafting=true; n.prog=0; n.need=Math.max(1e-6, craftTime(n));
       }
       const rest=n.need-n.prog;
@@ -2564,7 +2582,7 @@ function raidClaim(n){
 /* ========================= 汚染とピン =========================
    汚染系のものを出す／持っている場所のまわりは汚れる。
    汚れた施設は仕事が遅くなる。清浄の装備と、置いたピンで抑えられる。   */
-const POL_ITEM = {waste:0.25, toxic:1, rad:4, rift:10};
+const POL_ITEM = {waste:0.25, toxic:1, rad:4, rift:10, slud:6};
 const POL_R    = 280;      // 汚染が届く距離
 const POL_SLOW = 1.6;      // 汚染1.0でどれだけ遅くなるか
 let polT = 0;
@@ -2676,7 +2694,8 @@ const expRouted = n => { const k=EXP_OF[TYPES[n.type].stat];
 function srcFace(n){
   const e=n.ex||{}, got=(e.str||0)+(e.int||0)+(e.vit||0);
   const r=exRate.str+exRate.int+exRate.vit;
-  const pay = payOf(n) ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分` : '';
+  const pay = payOf(n)   ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分`
+            : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分` : '';
   if(!got) return '⚡供給中'+pay+'／経験値はまだ戻っていない';
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
   return `⚡供給中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}`;
@@ -3272,6 +3291,7 @@ function ioText(T){
   if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='fund')   return `💰ゴールド ⚡<span class="ar">→</span>🔬研究ポイント（割はとても悪い）`;
   if(T.pay)              return `💰給料<span class="ar">→</span>⚡体力（払えなくなると止まる）`;
+  if(T.payRp)            return `🔬研究ポイント<span class="ar">→</span>⚡体力（尽きると止まる）`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
   if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
   if(T.chain){
@@ -3632,7 +3652,9 @@ function renderInsp(){
     if(TYPES[n.type].layer) return breakLayer(n);
     if(TYPES[n.type].port) return toast('入口と出口は外せません');
     if(TYPES[n.type].unique) return toast('勇者は撤去できません');
-    const rp = scrapRp(n.type, n.level, n.grade||0);
+    const pol = n.pol || 0;
+    const rp  = scrapRp(n.type, n.level, n.grade||0) + polScrapRp(n, pol);
+    const sl  = polScrapItems(n, pol);
     let msg;
     if(n.drop){                                  // 拾った施設は買っていないので返金なし
       msg = `解体しました（研究ポイント +${fmt(rp)}）`;
@@ -3641,8 +3663,11 @@ function renderInsp(){
       const g=Math.floor(buyCost(n.type)*0.5); S.gold+=g;
       msg = `撤去しました（+${fmt(g)}G / 研究ポイント +${fmt(rp)}）`;
     }
+    if(sl){ homeOf().slud = (homeOf().slud||0) + sl;
+      msg += ` ＋🫙汚染塊×${sl}`;
+      addLog(`☣汚染${Math.round(pol*100)}%の${tierOf(n).n}を解体 → 研究 +${fmt(rp)}／🫙汚染塊×${sl}`,'w'); }
     grantRp(rp, false);
-    removeNode(n.id); toast(msg);
+    removeNode(n.id); toast(msg); renderBag();
   };
   renderInspLive();
 }
@@ -3677,7 +3702,13 @@ function renderInspLive(){
   box.querySelector('.st2').textContent=n.stall?('停止：'+n.why):'稼働中';
   box.querySelector('.pv').textContent=prioOf(n);
   const sr=box.querySelector('.srp');
-  if(sr) sr.textContent = TYPES[n.type].unique ? '—' : '🔬 '+fmt(scrapRp(n.type,n.level,n.grade||0));
+  if(sr){
+    const pol = n.pol||0, bonus = polScrapRp(n, pol), sl = polScrapItems(n, pol);
+    sr.textContent = TYPES[n.type].unique ? '—'
+      : '🔬 '+fmt(scrapRp(n.type,n.level,n.grade||0) + bonus)
+        + (bonus ? `（☣のぶん +${fmt(bonus)}）` : '')
+        + (sl ? ` ＋🫙×${sl}` : '');
+  }
   const TY=TYPES[n.type];
   const stk=box.querySelector('.stk');
   if(stk) stk.textContent = '🧱 '+fmt(gotMat()) + (n.item?`（${ITEMS[n.item].i}1つで +${fmt(itemVal(n.item))}）`:'');
