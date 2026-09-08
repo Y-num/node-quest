@@ -1242,10 +1242,12 @@ function insOf(n){
       [n.item]:1, [alyFor(i)]:2}));
   }
   if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
-    if(!n.item) return {};
+    if(!n.item && T.chain!=='sell') return {};
     const take = T.chain==='comp' ? COMP_TAKE : T.chain==='sell' ? SELL_TAKE : DECOMP_TAKE;
     const st = Math.max(1, Math.ceil((T.chain==='comp'?3:2) * e * COST_K));
-    return modIns(n, eraIn(T, {sta:st, [n.item]:take}));
+    const k  = T.chain==='sell' ? (n.sellK || n.item) : n.item;
+    if(!k) return modIns(n, eraIn(T, {sta:st}));
+    return modIns(n, eraIn(T, {sta:st, [k]:take}));
   }
   if(T.chain){
     const c = chainOf(n);
@@ -1409,7 +1411,7 @@ function gearMul(t){
   return 1 + b[t]*(GEAR_K[t]||0) + b.astral*0.015;
 }
 const allIns  = n => Object.assign({}, insOf(n), softIns(n));
-const inKeys  = n => Object.keys(allIns(n));
+const inKeys  = n => Object.keys(portIns(n));
 const outKeys = n => Object.keys(outsOf(n));
 function craftTime(n){
   const T = TYPES[n.type];
@@ -1610,8 +1612,17 @@ function geomPt(G,t){
 }
 
 /* ========================= DOM ========================= */
+/* 何でも受け取るものは、素材ごとの口を作らない */
+function portIns(n){
+  const T=TYPES[n.type];
+  if(T.ware) return {};
+  if(T.chain==='sell'){ const o={}, c=insOf(n);
+    for(const k in c) if(POW_ITEM[k]) o[k]=c[k];
+    return o; }
+  return allIns(n);
+}
 function mkNodeEl(n){
-  const ins = allIns(n), outs = outsOf(n);      // 任意の入力（経験値など）も口を作る
+  const ins = portIns(n), outs = outsOf(n);      // 任意の入力（経験値など）も口を作る
   const ik = Object.keys(ins), ok = Object.keys(outs);
   const tr = tierOf(n);
   const el = document.createElement('div');
@@ -1630,7 +1641,7 @@ function mkNodeEl(n){
     if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
     if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
   }
-  const free = TYPES[n.type].ware
+  const free = TYPES[n.type].ware || TYPES[n.type].chain==='sell'
     || (TYPES[n.type].store && storeItems(n).length < TYPES[n.type].slots);
   const A = TYPES[n.type].aura;
   const auraEl = A
@@ -1709,8 +1720,11 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y){
   const n={id:S.nextId++,type,x,y,level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,drop:false};
-  // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく
-  if(TYPES[type].chain){ const o=chainOpts(type); if(o.length) n.item=o[0]; }
+  // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく。
+  // 売り場だけは既定を「なんでも売る」にする
+  if(TYPES[type].chain && TYPES[type].chain!=='sell'){
+    const o=chainOpts(type); if(o.length) n.item=o[0];
+  }
   S.nodes.push(n); reindex(); mkNodeEl(n); return n;
 }
 function removeNode(id){
@@ -1738,7 +1752,8 @@ function storeAssign(n, item){
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
-  if(!allIns(b)[item] && !storeCanTake(b,item)) return false;
+  const anyIn = TYPES[b.type].chain==='sell' && !POW_ITEM[item] && (!b.item || b.item===item);
+  if(!allIns(b)[item] && !storeCanTake(b,item) && !anyIn) return false;
   return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
 }
 function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
@@ -1766,8 +1781,23 @@ function allocText(n, item){
 /* 倉庫はどんな素材でも受け取る。種類の上限と、1種類あたりの量で決まる */
 const wareKinds = n => Object.keys(n.inBuf||{}).filter(k=>(n.inBuf[k]||0) > 0);
 const wareTotal = n => wareKinds(n).reduce((a,k)=>a+(n.inBuf[k]||0), 0);
+const POW_ITEM = {sta:1, coal:1, power:1, nfl:1};
+/* 売り場に届いているもののうち、いちばん値打ちのあるものを選ぶ */
+function sellPick(n){
+  let best=null, bv=-1;
+  for(const k in n.inBuf){
+    if(POW_ITEM[k]) continue;
+    const q=n.inBuf[k]||0; if(q < SELL_TAKE) continue;
+    const v=itemVal(k); if(v>bv){ bv=v; best=k; }
+  }
+  return best;
+}
 function spaceIn(n,item){
   const T = TYPES[n.type];
+  if(T.chain==='sell' && !POW_ITEM[item]){          // 売り場は何でも受け取る
+    if(n.item && n.item!==item) return 0;           // 売るものを絞っているときだけ拒む
+    return Math.max(0, CAP*4 - (n.inBuf[item]||0));
+  }
   if(T.ware){
     const held = n.inBuf[item]||0;
     if(held <= 0 && wareKinds(n).length >= T.kinds) return 0;    // 種類がいっぱい
@@ -1806,7 +1836,10 @@ function tick(dt,fast){
       continue;
     }
     if(T.store && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
-    if(['comp','decomp','sell','clean','fuel','anvil'].includes(T.chain)){
+    if(T.chain==='sell'){                        // 何でも売れる。届いているものから選ぶ
+      if(!n.crafting) n.sellK = n.item || sellPick(n);
+      if(!n.sellK){ n.stall=true; n.why='売るものが届いていない'; continue; }
+    }else if(['comp','decomp','clean','fuel','anvil'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
     }else if(T.chain==='equip'){
       if(!n.item){ n.stall=true; n.why='作る装備が未設定'; continue; }
@@ -1835,8 +1868,8 @@ function tick(dt,fast){
       n.done++;
       // 訓練は経験値を産むだけ。主人公まで配線を戻して初めて能力になる
       if(T.effect==='equip' || T.effect==='anvil') n.gain=(n.gain||0)+1;
-      if(T.chain==='sell' && n.item){
-        const g=sellPrice(n.item, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
+      if(T.chain==='sell' && n.sellK){
+        const g=sellPrice(n.sellK, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
       }
       if(T.chain==='decomp' && n.item){
         const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(n.level) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
@@ -2334,7 +2367,7 @@ function render(){
     const tr=tierOf(n);
     if(e.lastTier!==tr.t){ e.lastTier=tr.t; e.ic.textContent=tr.i; e.nm.textContent=tr.n; }
     e.lv.textContent='Lv.'+n.level;
-    const need=insOf(n), give=outsOf(n), shown=allIns(n);
+    const need=insOf(n), give=outsOf(n), shown=portIns(n);
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
       const c=n.inBuf[k]||0, req=need[k];
@@ -2373,7 +2406,8 @@ function render(){
       : T.chain==='equip' ? (n.item ? `${ITEMS[n.item].n}の装備を製作中（${n.gain||0}個）` : '作る装備を選んでください')
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
       : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
-      : T.chain==='sell' ? (n.item ? `${ITEMS[n.item].n}を販売中 → 💰累計 ${fmt(n.gain||0)}` : '売る素材を選んでください')
+      : T.chain==='sell' ? (n.sellK ? `${ITEMS[n.sellK].n}を販売中 → 💰累計 ${fmt(n.gain||0)}`
+                                     : (n.item ? `${ITEMS[n.item].n}待ち` : `なんでも売る → 💰累計 ${fmt(n.gain||0)}`))
       : T.chain==='clean' ? (n.item ? `${ITEMS[n.item].i}を処理中` : '片付ける副産物を選んでください')
       : T.chain==='fuel' ? (n.item ? `${ITEMS[n.item].i}を燃やして ⚡${fmt(fuelOut(n))}` : '燃やす副産物を選んでください')
       : T.chain ? (chainOf(n)
@@ -2485,7 +2519,7 @@ function ioText(T){
   const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
   if(T.chain==='comp')   return `素材×${COMP_TAKE} ⚡<span class="ar">→</span>1つ上の素材×1`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
-  if(T.chain==='sell')   return `素材×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
+  if(T.chain==='sell')   return `なんでも×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
   if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
   if(T.chain){
@@ -2674,7 +2708,7 @@ function renderInsp(){
   const selLabel = T.loot ? '狙う戦利品'
     : ({ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',equip:'作る装備の素',
         anvil:'鍛える装備',alloy:'混ぜる地金',comp:'圧縮する素材',decomp:'分解する素材',
-        sell:'売る素材',clean:'片付ける副産物',fuel:'燃やす副産物'}[T.chain] || '扱うもの');
+        sell:'売るものを絞る',clean:'片付ける副産物',fuel:'燃やす副産物'}[T.chain] || '扱うもの');
 
   // ── いつも出す。狭い画面でも触れるように短くまとめる ──
   const head =
@@ -2703,7 +2737,7 @@ function renderInsp(){
     (T.chain==='fuel'   ? `<div class="kv">1回の産出<b class="cval"></b></div>` : '') +
     (T.chain==='alloy'  ? `<div class="kv">合成<b class="cval"></b></div>` : '') +
     (T.chain==='anvil'  ? `<div class="kv">鍛錬<b class="cval"></b></div>` : '') +
-    (T.chain && T.chain!=='clean' && T.chain!=='fuel'
+    (T.chain && T.chain!=='clean' && T.chain!=='fuel' && T.chain!=='sell'
        ? `<div class="kv">素材の特性<b class="trt"></b></div>` : '') +
     `<div class="kv">受け取る優先度
        <span class="prio"><button class="pm">−</button><b class="pv">1</b><button class="pp">＋</button></span></div>` +
@@ -2730,7 +2764,7 @@ function renderInsp(){
     const cl=box.querySelector('.chn');
     const opts=chainOpts(n.type);
     cl.innerHTML = opts.length
-      ? (T.loot ? '' : `<option value="">— 未設定 —</option>`)
+      ? (T.loot ? '' : `<option value="">${T.chain==='sell' ? '— なんでも売る —' : '— 未設定 —'}</option>`)
         + opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('')
       : `<option value="">深く潜ると増えます</option>`;
     cl.value = T.loot ? lootItem(n) : (n.item||'');
@@ -2847,8 +2881,8 @@ function renderInspLive(){
         : (n.item ? `この時代では密度${densCap(TY.era)}まで` : '—'); }
     else if(TY.chain==='fuel'){
       cv.textContent = n.item ? `⚡ ${fmt(fuelOut(n))}` : '—'; }
-    else if(TY.chain==='sell'){
-      cv.textContent = n.item ? `💰 ${fmt(sellPrice(n.item,n.level))}` : '—'; }
+    else if(TY.chain==='sell'){ const k=n.sellK||n.item;
+      cv.textContent = k ? `${ITEMS[k].i}${ITEMS[k].n} ×${SELL_TAKE} → 💰${fmt(sellPrice(k,n.level))}` : '届いたものを売ります'; }
     else if(TY.chain==='decomp'){
       cv.textContent = n.item ? `🔬 +${fmt(itemVal(n.item)*DECOMP_TAKE*lvPow(n.level)*Math.pow(2.6,(TY.era||1)-1))}` : '—'; }
     else if(TY.chain==='alloy'){ const i=tierIdx(n.item);
