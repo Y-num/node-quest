@@ -722,12 +722,14 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
    taper … 訓練の重さ。大きいほど能力値が伸びなくなる（序盤はゆるく、後半で効く）
    depth … 敵HPの階層あたりの伸び。深度だけを動かす（能力値には無影響）
 
-   ── 12ノードの標準構成で放置したときの実測（index 120 / 2026-09） ──
-     時代の到達  第2 2時間 / 第3 3時間 / 第4 6時間 / 第5 8時間 / 第6 19時間
-                 第7 27時間 / 第8 74時間（3日）/ 第9・第10 は2〜3週間
-     能力値      1時間 30 / 6時間 42 / 1日 48 / 7日 55
-     最深到達    1時間 29層 / 1日 48層 / 7日 58層
-     ※ 実プレイでは工房を広げるぶん、これより速くなる
+   ── 標準構成で放置したときの実測（index 120 / 2026-09） ──────────
+     時代の到達  第2 2h / 第3 3h / 第4 7h / 第5 9h / 第6 20h / 第7 36h / 第8 68h
+                 第9・第10 は1〜2週間
+     ゴールド    1h 3.0万 → 6h 98万 → 24h 38万（建て替えで消える）→ 96h 279万
+     研究        1h 1.3K → 12h 98万 → 48h 4,400万 → 96h 1.1億
+     最深到達    1h 28層 / 12h 44層 / 48h 50層 / 96h 54層
+     工房の規模  11台 → 24台（第5）→ 31台（第6）→ 41台（第8）
+     ※ 素材の段位を深さに合わせて上げ、動力と副産物の処理を建てた場合
 
    ── 初期構成（主人公→洞窟の入口のみ）で何分後に何が買えるか ────────
      初撃破 9秒 / 石のつるはし 15秒 / ゴミ袋 1分31秒 / 家の机 4分40秒
@@ -1019,9 +1021,9 @@ const TYPES = {
           d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になる'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
-  coal  :{n:'炭窯',      i:'🪵', cost:1200, up:1500, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
+  coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
-  power :{n:'発電所',    i:'🔌', cost:9000, up:11000, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
+  power :{n:'発電所',    i:'🔌', cost:500, up:600, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
           d:'電気の時代からの動力。多くの施設が電力を要る'},
   purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:3.0, ins:{sta:4}, outs:{},
           aura:{k:'clean', v:1.0, r:280},
@@ -1029,7 +1031,7 @@ const TYPES = {
   boost :{n:'作業灯',    i:'💡', cost:2500, up:3000, time:3.0, ins:{sta:5}, outs:{},
           aura:{k:'speed', v:0.15, r:250},
           d:'置いた場所のまわりの施設が速くなる'},
-  nfuel :{n:'濃縮施設',  i:'🟢', cost:90000, up:110000, time:4.0, ins:{sta:20, power:4, ore5:2}, outs:{nfl:4, rad:1},
+  nfuel :{n:'濃縮施設',  i:'🟢', cost:9000, up:11000, time:4.0, ins:{sta:20, power:4, ore5:2}, outs:{nfl:4, rad:1},
           d:'原子力の時代の動力。核燃料を作るが、放射性廃棄物も必ず出る'},
 };
 
@@ -1685,8 +1687,17 @@ function rebuildNodeEl(n){
 }
 function setChainItem(n, item){
   if(n.item === item) return;
-  for(const l of [...S.links]) if(l.from===n.id || l.to===n.id) removeLink(l.id);
-  n.item = item || null; n.inBuf={}; n.outBuf={}; n.crafting=false; n.prog=0;
+  n.item = item || null;
+  // ⚡や動力の供給線と、貯めていた動力はそのまま残す。
+  // 使わなくなった素材の線だけを外す
+  const keep = {};
+  for(const k in n.inBuf) if(POW_ITEM[k]) keep[k] = n.inBuf[k];
+  n.inBuf = keep; n.outBuf = {}; n.crafting = false; n.prog = 0;
+  const ins = allIns(n), outs = outsOf(n);
+  for(const l of [...S.links]){
+    if(l.to   === n.id && !ins[l.item])  removeLink(l.id);
+    if(l.from === n.id && !outs[l.item]) removeLink(l.id);
+  }
   rebuildNodeEl(n);
 }
 function setStoreItem(n, idx, item){
