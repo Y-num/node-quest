@@ -2298,6 +2298,18 @@ function ensurePorts(L){
   S.at = was; reindex();
   return {lin, lout};
 }
+/* 入口・出口と中のノードを、既定の形につないでおく。
+   （まとめた直後から動くように。あとから自由に引き直せる）             */
+const memCount = L => memOf(L).filter(m => !isPort(m)).length;
+function autoWire(L){
+  const {lin, lout} = ensurePorts(L);
+  const mem = memOf(L).filter(m => !isPort(m));
+  const has = (a,k,b) => S.links.some(l => l.from===a.id && l.to===b.id && l.item===k);
+  for(const k in layerNeeds(L))
+    for(const m of mem) if(allIns(m)[k] && !has(lin,k,m)) addLink(lin.id, k, m.id);
+  if(L.out) for(const m of mem)
+    if(outsOf(m)[L.out] && !has(m,L.out,lout)) addLink(m.id, L.out, lout.id);
+}
 /* 外へ出すものを決める。レイヤー側の口と、中の出口ノードの口を張り替える */
 function setLayerOut(L, k){
   if(L.out === k) return;
@@ -2310,7 +2322,7 @@ function setLayerOut(L, k){
   }
   L.out = k;
   if(lo) rebuildNodeEl(lo);
-  rebuildNodeEl(L); renderBoard();
+  rebuildNodeEl(L); autoWire(L); renderBoard();
 }
 /* まとめる */
 function makeLayer(ids){
@@ -2348,7 +2360,7 @@ function makeLayer(ids){
   layerDirty();
   for(const m of mem) rebuildNodeEl(m);
   rebuildNodeEl(L);
-  ensurePorts(L);
+  autoWire(L);
   sel = L.id; renderInsp(); renderBoard();
   toast(`${mem.length}個をまとめました（ダブルタップで中を開けます）`);
   if(outItems.size > 1){
@@ -2905,7 +2917,7 @@ function render(){
     const T=TYPES[n.type], e=n.el;
     const tr=tierOf(n);
     if(e.lastTier!==tr.t){ e.lastTier=tr.t; e.ic.textContent=tr.i; e.nm.textContent=tr.n; }
-    e.lv.textContent = T.layer ? `${(n.members||[]).length}個` : 'Lv.'+n.level;
+    e.lv.textContent = T.layer ? `${memCount(n)}個` : 'Lv.'+n.level;
     e.root.classList.toggle('lay', !!T.layer);
     e.root.classList.toggle('port', !!T.port);
     const need=insOf(n), give=outsOf(n), shown=portIns(n);
@@ -2952,7 +2964,14 @@ function render(){
       : T.lout ? (()=>{ const L=N(n.layer);
           return L && L.out ? `ここに入れると外へ出る（${ITEMS[L.out].i}${ITEMS[L.out].n}）`
                             : '外へ出すものを選んでください'; })()
-      : T.layer ? `${(n.members||[]).length}個をまとめている` + (n.out ? `／出口 ${ITEMS[n.out].i}${ITEMS[n.out].n}` : '／出口なし')
+      : T.layer ? (()=>{
+          const lo = memOf(n).find(m=>TYPES[m.type].lout);
+          const wired = lo && S.links.some(l=>l.to===lo.id);
+          return `${memCount(n)}個をまとめている`
+            + (!n.out ? '／出口なし'
+               : !wired ? `／⚠ ${ITEMS[n.out].n} が🚪出口に繋がっていない`
+               : `／出口 ${ITEMS[n.out].i}${ITEMS[n.out].n}`);
+        })()
       : T.chain==='hout' ? (n.item
           ? `🏠${ITEMS[n.item].n}を搬出中（自宅に ${fmt(Math.floor(homeOf()[n.item]||0))}）`
           : '出すものを選んでください')
@@ -4190,6 +4209,10 @@ function newGame(){
   fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
 }
 if(!load()) newGame();
+for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が未配線なので一度だけ繋ぐ
+  const lo = memOf(L).find(m => TYPES[m.type].lout);
+  if(!lo || !S.links.some(l => l.to === lo.id)) autoWire(L);
+}
 buildShop();                       // 建設リストは研究の進み具合を見るので S を作ってから
 if(!S.enemy) spawnEnemy();
 checkSeen(true);
