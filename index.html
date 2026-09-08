@@ -126,6 +126,11 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
 .node.stall .aura{opacity:.25}
 .node.pol{box-shadow:0 0 0 1px rgba(154,209,74,.5), 0 0 18px rgba(154,209,74,.25)}
+.node.won{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 26px rgba(242,193,78,.45);
+  cursor:pointer;animation:wonp 1.4s ease-in-out infinite}
+.node.won .nf{color:var(--gold)}
+@keyframes wonp{0%,100%{box-shadow:0 0 0 2px var(--gold),0 0 20px rgba(242,193,78,.35)}
+                50%{box-shadow:0 0 0 3px var(--gold),0 0 34px rgba(242,193,78,.6)}}
 .port{position:absolute;width:16px;height:16px;margin-top:-8px;
   display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1}
 .pin {left:-8px;border-radius:4px;background:#101a2c;border:2px solid var(--acc2);color:var(--acc2)}
@@ -1934,6 +1939,7 @@ function tick(dt,fast){
         }
       }
     }
+    if(T.raid && n.clear){ n.stall=false; n.why=''; continue; }   // 受け取り待ちは⚡を食わない
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if((T.store || T.ware) && !storeItems(n).length){
       n.stall=true; n.why=`空き ${T.slots} スロット／素材の線をここへ繋ぐと入ります`; continue; }
@@ -1979,7 +1985,7 @@ function tick(dt,fast){
       if(T.effect==='dive') doDive(fast, n);
       if(T.effect==='raid'){
         n.hp = (n.hp || raidHp()) - atk();     // 階層の装甲は関係しない
-        if(n.hp <= 0){ raidClear(n); break; }
+        if(n.hp <= 0){ raidDone(n); break; }
       }
       if(T.effect==='lab')  { const g=rpGain(n); n.gain=(n.gain||0)+g; grantRp(g); }
       n.crafting=false; n.prog=0;
@@ -2080,14 +2086,21 @@ function raidTick(dt){
   toast('🌀 突発ダンジョンが現れた');
   renderBag();
 }
-function raidClear(n){
-  const g = raidGold(), m = raidMat();
-  S.gold += g; S.stock = (S.stock||0) + m;
-  const d = rollDrop(Math.max(DROP_FROM, S.best));      // 確定でひとつ落ちる
-  if(d) S.drops.push(d);
-  addLog(`【突発】裂け目を閉じた → +${fmt(g)}G ＋🧱${fmt(m)}` + (d ? ` ＋${dropName(d)}` : ''), 'b');
-  toast(`🌀 突発ダンジョン クリア +${fmt(g)}G`);
-  removeNode(n.id); reindex(); renderBag();
+/* 削りきった時点で報酬を確定させ、その場に置いておく。タップで受け取る */
+function raidDone(n){
+  n.clear = true; n.hp = 0;
+  n.reward = { g: raidGold(), m: raidMat(), d: rollDrop(Math.max(DROP_FROM, S.best)) };
+  addLog(`【突発】裂け目を閉じた。ノードをタップして報酬を受け取ろう`, 'b');
+  toast('🌀 クリア！ ノードをタップで受け取り');
+}
+function raidClaim(n){
+  const r = n.reward || { g: raidGold(), m: raidMat(), d: null };
+  S.gold += r.g; S.stock = (S.stock||0) + r.m;
+  if(r.d) S.drops.push(r.d);
+  addLog(`【突発】報酬を受け取った → +${fmt(r.g)}G ＋🧱${fmt(r.m)}` + (r.d ? ` ＋${dropName(r.d)}` : ''), 'b');
+  toast(`+${fmt(r.g)}G ＋🧱${fmt(r.m)}` + (r.d ? ' ＋拾得品' : ''));
+  if(sel===n.id) sel=null;
+  removeNode(n.id); reindex(); renderInsp(); renderBag();
 }
 
 /* ========================= 汚染とピン =========================
@@ -2552,8 +2565,10 @@ function render(){
           ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（次の+1まで あと${Math.max(1, expNeed(S.stats[T.stat]) - ((S.exp&&S.exp[T.stat])||0))}回）`
           : `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`)
       : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
-      : T.effect==='raid'? (()=>{ const hp=Math.max(0,n.hp||0), mx=n.hpMax||1;
-          return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })()
+      : T.effect==='raid'? (n.clear
+          ? `✨ クリア！ タップで受け取る（+${fmt((n.reward||{}).g||0)}G ほか）`
+          : (()=>{ const hp=Math.max(0,n.hp||0), mx=n.hpMax||1;
+              return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })())
       : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
           return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
@@ -2583,6 +2598,7 @@ function render(){
     else if((n.spd||1) > 1.01) e.nf.textContent += `　⚡加速+${Math.round((n.spd-1)*100)}%`;
     if(prioOf(n)>1) e.nf.textContent += `　優先${prioOf(n)}`;
     e.root.classList.toggle('pol', (n.pol||0) > 0.05);
+    e.root.classList.toggle('won', !!(T.raid && n.clear));
     e.root.classList.toggle('stall',n.stall);
     e.root.classList.toggle('run',!n.stall);
     e.root.classList.toggle('sel',sel===n.id);
@@ -3298,7 +3314,11 @@ stage.addEventListener('pointerup', e=>{
     clearTargets();
   }else if(drag.mode==='wire'){
     if(!drag.handle&&drag.moved<5){ removeLink(drag.id); toast('配線を切断しました'); }
-  }else if(drag.mode==='node'&&drag.moved<6){ sel=drag.id; renderInsp(); }
+  }else if(drag.mode==='node'&&drag.moved<6){
+    const t=N(drag.id);
+    if(t && TYPES[t.type].raid && t.clear) raidClaim(t);        // クリア済みはタップで受け取り
+    else { sel=drag.id; renderInsp(); }
+  }
   stage.classList.remove('panning'); drag=null;
 });
 stage.addEventListener('dblclick', e=>{
