@@ -1059,8 +1059,9 @@ const ERA_EXTRA = {
   tool: g => ({mul: 1.5 + g*0.45, sta: 3 + g}),
   box:  g => (g < 6
     ? {slots: 1 + Math.floor(g*0.9), cap: Math.round(200 * Math.pow(2.2, g))}
-    // 第7時代から先は「倉庫」。何でも受け取れて、種類も量も桁が変わる
-    : {ware:true, slots:3, kinds: 8 + (g-6)*16, cap: Math.round(4000 * Math.pow(2.2, g))}),
+    // 第7時代から先は「倉庫」。扱える種類も量も桁が変わる
+    : {ware:true, slots: 8 + (g-6)*8, cap: Math.round(4000 * Math.pow(2.2, g))}),
+  shop: g => ({slots: 2 + Math.floor(g*0.8)}),
 };
 
 /* 役割ごとに「どの時代に、どんな版があるか」。無い時代には無い。 */
@@ -1265,8 +1266,7 @@ function insOf(n){
                :                     {sta:st, [c.part]:1};
     return modIns(n, base);
   }
-  if(T.ware)  return {};                       // 受け取りは口を作らず、何でも入る
-  if(T.store){ for(const k of storeItems(n)) o[k]=1; return o; }
+  if(T.store || T.ware){ for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool){
     if(n.item) o[n.item] = T.take;
     o.sta = Math.max(1, Math.ceil(T.sta * toolLoad(n) * e * COST_K));
@@ -1328,8 +1328,7 @@ function outsOf(n){
     return modOuts(n, base);
   }
   if(T.loot) return modOuts(n, {[lootItem(n)]:1});
-  if(T.ware){  const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
-  if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
+  if(T.store || T.ware){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
   return modOuts(n, T.outs);
 }
@@ -1424,7 +1423,8 @@ function craftTime(n){
 const buyCost = t => Math.floor(TYPES[t].cost * Math.pow(PRICE_K, S.counts[t]||0));
 const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
 const capMul  = n => n.mods ? n.mods.cap : 1;
-const capIn   = (n,item) => Math.ceil(capMul(n) * ((TYPES[n.type].store||TYPES[n.type].ware)
+const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].chain==='sell' ? CAP*4
+                          : (TYPES[n.type].store||TYPES[n.type].ware)
                           ? TYPES[n.type].cap * lvPow(n.level)
                           : Math.max(CAP, (allIns(n)[item]||0) * 2)));
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
@@ -1542,9 +1542,9 @@ const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
 const depthBonus = () => 1 + depthTier() * 0.08;
 const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
+/* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
 const anyPort = n => { const T=TYPES[n.type];
-  return !!(T.ware || T.chain==='sell'
-    || (T.store && storeItems(n).length < T.slots)); };
+  return !!((T.store || T.ware || T.chain==='sell') && storeItems(n).length < T.slots); };
 const rowsOf = n => Math.max(1, inKeys(n).length + (anyPort(n)?1:0), outKeys(n).length);
 const nodeH  = n => HEAD + rowsOf(n)*ROWH + 26;
 const portY  = i => HEAD + i*ROWH + ROWH/2;
@@ -1620,9 +1620,10 @@ function geomPt(G,t){
 /* 何でも受け取るものは、素材ごとの口を作らない */
 function portIns(n){
   const T=TYPES[n.type];
-  if(T.ware) return {};
-  if(T.chain==='sell'){ const o={}, c=insOf(n);
+  if(T.chain==='sell'){                       // 売り場：動力の口＋受け入れた種類ぶんの口
+    const o={}, c=insOf(n);
     for(const k in c) if(POW_ITEM[k]) o[k]=c[k];
+    for(const k of storeItems(n)) o[k]=SELL_TAKE;
     return o; }
   return allIns(n);
 }
@@ -1745,13 +1746,13 @@ function removeNode(id){
    配線をつないだ時点で、その素材を空きスロットに割り当てる。            */
 function storeCanTake(n, item){
   const T = TYPES[n.type];
-  if(T.ware) return !!item && spaceIn(n, item) > 0;   // 倉庫は何でも受け取れる
-  if(!T.store || !item) return false;
-  if((n.items||[]).includes(item)) return false;      // すでに受け取れる
+  if(!(T.store || T.ware || T.chain==='sell') || !item) return false;
+  if(POW_ITEM[item] && T.chain==='sell') return false;   // ⚡と動力は元から口がある
+  if((n.items||[]).includes(item)) return false;         // すでに受け取れる
   return storeItems(n).length < T.slots;
 }
 function storeAssign(n, item){
-  const T = TYPES[n.type]; if(T.ware) return true;    // 倉庫は割り当て不要
+  const T = TYPES[n.type];
   n.items = n.items || [];
   for(let i=0;i<T.slots;i++) if(!n.items[i]){ setStoreItem(n, i, item); return true; }
   return false;
@@ -1759,8 +1760,7 @@ function storeAssign(n, item){
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
-  const anyIn = TYPES[b.type].chain==='sell' && !POW_ITEM[item] && (!b.item || b.item===item);
-  if(!allIns(b)[item] && !storeCanTake(b,item) && !anyIn) return false;
+  if(!allIns(b)[item] && !storeCanTake(b,item)) return false;
   return !S.links.some(l=>l.from===a.id&&l.to===b.id&&l.item===item);
 }
 function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],wp:null}; S.links.push(l); mkLinkEl(l); }
@@ -1792,23 +1792,17 @@ const POW_ITEM = {sta:1, coal:1, power:1, nfl:1};
 /* 売り場に届いているもののうち、いちばん値打ちのあるものを選ぶ */
 function sellPick(n){
   let best=null, bv=-1;
-  for(const k in n.inBuf){
-    if(POW_ITEM[k]) continue;
-    const q=n.inBuf[k]||0; if(q < SELL_TAKE) continue;
+  for(const k of storeItems(n)){
+    if((n.inBuf[k]||0) < SELL_TAKE) continue;
     const v=itemVal(k); if(v>bv){ bv=v; best=k; }
   }
   return best;
 }
 function spaceIn(n,item){
   const T = TYPES[n.type];
-  if(T.chain==='sell' && !POW_ITEM[item]){          // 売り場は何でも受け取る
-    if(n.item && n.item!==item) return 0;           // 売るものを絞っているときだけ拒む
+  if(T.chain==='sell' && !POW_ITEM[item]){          // 売り場：受け入れた種類だけ
+    if(!(n.items||[]).includes(item)) return 0;
     return Math.max(0, CAP*4 - (n.inBuf[item]||0));
-  }
-  if(T.ware){
-    const held = n.inBuf[item]||0;
-    if(held <= 0 && wareKinds(n).length >= T.kinds) return 0;    // 種類がいっぱい
-    return Math.max(0, capIn(n,item) - held);
   }
   return !allIns(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
 }
@@ -1833,18 +1827,9 @@ function tick(dt,fast){
       }
     }
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
-    if(T.ware){                                  // 倉庫：貯めて、選んだ素材だけ外へ出す
-      n.stall=false; n.why='';
-      for(const k of storeItems(n)){
-        const room = capOut(n,k) - (n.outBuf[k]||0), have = n.inBuf[k]||0;
-        const q = Math.min(room, have);
-        if(q > 0){ n.inBuf[k] -= q; n.outBuf[k] = (n.outBuf[k]||0) + q; }
-      }
-      continue;
-    }
-    if(T.store && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
+    if((T.store || T.ware) && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
     if(T.chain==='sell'){                        // 何でも売れる。届いているものから選ぶ
-      if(!n.crafting) n.sellK = n.item || sellPick(n);
+      if(!n.crafting) n.sellK = sellPick(n);
       if(!n.sellK){ n.stall=true; n.why='売るものが届いていない'; continue; }
     }else if(['comp','decomp','clean','fuel','anvil'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
@@ -2265,9 +2250,9 @@ function renderBag(){
     const n = bagWare!=null ? N(bagWare) : null;
     if(!n || !TYPES[n.type].ware){ bagTab='gear'; return renderBag(); }
     const T=TYPES[n.type], ks=wareKinds(n).sort((a,b)=>(n.inBuf[b]||0)-(n.inBuf[a]||0));
-    $('#bagNote').textContent = `${tierOf(n).n}の中身。${wareKinds(n).length}/${T.kinds}種・`
+    $('#bagNote').textContent = `${tierOf(n).n}の中身。${storeItems(n).length}/${T.slots}種・`
       + `合計 ${fmt(wareTotal(n))}個（1種あたり ${fmt(capIn(n,'x'))}個まで）。`
-      + '外へ出す素材はインスペクタで選びます。ここからは売却と廃棄ができます。';
+      + '扱う素材はインスペクタか、配線を「＋」へ引くと増えます。ここからは売却と廃棄ができます。';
     if(!ks.length){ box.innerHTML = `<div class="bempty">まだ何も入っていません。素材の配線をこの倉庫へ引くと貯まります。</div>`; return; }
     const outs = storeItems(n);
     box.innerHTML = ks.map(k=>{
@@ -2402,8 +2387,7 @@ function render(){
           return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
-      : T.ware ? `倉庫 ${wareKinds(n).length}/${T.kinds}種 ${fmt(wareTotal(n))}個`
-          + (storeItems(n).length ? `／出す ${storeItems(n).map(k=>ITEMS[k].i).join('')}` : '／出す素材は未設定')
+      : T.ware ? `倉庫 ${storeItems(n).length}/${T.slots}種 ${fmt(wareTotal(n))}個`
       : T.store ? (storeItems(n).length
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
@@ -2526,7 +2510,7 @@ function ioText(T){
   const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
   if(T.chain==='comp')   return `素材×${COMP_TAKE} ⚡<span class="ar">→</span>1つ上の素材×1`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
-  if(T.chain==='sell')   return `なんでも×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
+  if(T.chain==='sell')   return `受け入れた素材×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
   if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
   if(T.chain){
@@ -2542,7 +2526,7 @@ function ioText(T){
   if(T.aura) return T.aura.k==='clean'
     ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
     : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
-  if(T.ware)  return `何でも受け取る<span class="ar">→</span>${T.kinds}種 × ${fmt(T.cap)}個まで／出す素材は${T.slots}つ`;
+  if(T.ware)  return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
   if(T.store) return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
   if(T.tool) return `素材×${T.take} ⚡×${T.sta}<span class="ar">→</span>素材×${Math.round(T.take*T.mul)}`;
   const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='equip'?'🎽装備':T.effect==='lab'?'🔬研究力':'—');
@@ -2721,13 +2705,12 @@ function renderInsp(){
   const head =
     `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>` +
     (n.type==='hero' ? `<div class="kv">名前<button class="ren"></button></div>` : '') +
-    (T.chain||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
+    ((T.chain && T.chain!=='sell')||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
-    (T.ware  ? `<div class="kv">中身<b class="wsum"></b></div>
-                <div class="kv">外へ出す素材<div class="slotsel"></div></div>
-                <button class="wopen">📦 中身を見る</button>` : '') +
-    (T.store ? `<div class="kv">貯める素材<div class="slotsel"></div></div>` : '') +
+    (T.store || T.ware ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : '') +
+    (T.ware  ? `<button class="wopen">📦 中身を見る</button>` : '') +
+    (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     `<div class="kv">状態<b class="st2"></b></div>`;
 
@@ -2767,7 +2750,7 @@ function renderInsp(){
     ml.value=n.item||'';
     ml.onchange=()=>{ setChainItem(n, ml.value||null); renderInsp(); };
   }
-  if(T.chain || T.loot){
+  if((T.chain && T.chain!=='sell') || T.loot){
     const cl=box.querySelector('.chn');
     const opts=chainOpts(n.type);
     cl.innerHTML = opts.length
@@ -2797,7 +2780,7 @@ function renderInsp(){
   if(T.ware){
     box.querySelector('.wopen').onclick=()=>{ bagWare=n.id; bagTab='ware'; renderBag(); $('#bag').classList.add('on'); };
   }
-  if(T.store || T.ware){
+  if(T.store || T.ware || T.chain==='sell'){
     const w=box.querySelector('.slotsel'); w.innerHTML='';
     for(let i=0;i<T.slots;i++){
       const sl=document.createElement('select');
@@ -3135,7 +3118,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=10;
+const SAVE_V=11;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -3253,6 +3236,20 @@ function migrate(d){
     }
     delete d.inv;
     d.v = 10;
+  }
+  if(d.v < 11){
+    // 売り場は「1種類を選ぶ」から「受け入れた種類ぶんの口」に変えた。
+    // 建てた時に既定で入っていた廃材のせいで廃材しか売らなくなっていたのも直す
+    for(const n of d.nodes||[]){
+      const T = TYPES[n.type]; if(!T || T.chain!=='sell') continue;
+      n.items = Array.isArray(n.items) ? n.items.filter(Boolean) : [];
+      // つながっている入力を、そのまま受け入れる種類にする
+      for(const l of d.links||[]) if(l.to===n.id && l.item!=='sta' && !n.items.includes(l.item))
+        n.items.push(l.item);
+      if(!n.items.length && n.item && n.item!=='waste') n.items.push(n.item);
+      n.item = null; n.sellK = null;
+    }
+    d.v = 11;
   }
   d.v = SAVE_V;
   return d;
