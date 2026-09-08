@@ -1893,7 +1893,8 @@ function tick(dt,fast){
       }
     }
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
-    if((T.store || T.ware) && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
+    if((T.store || T.ware) && !storeItems(n).length){
+      n.stall=true; n.why=`空き ${T.slots} スロット／素材の線をここへ繋ぐと入ります`; continue; }
     if(T.chain==='sell'){                        // 何でも売れる。届いているものから選ぶ
       if(!n.crafting) n.sellK = sellPick(n);
       if(!n.sellK){ n.stall=true; n.why='売るものが届いていない'; continue; }
@@ -2031,9 +2032,27 @@ function polSource(n){
 }
 const auraOf = n => (TYPES[n.type].aura && !n.stall) ? TYPES[n.type].aura : null;
 const nodeCx = n => n.x + NW/2, nodeCy = n => n.y + 45;
+/* 中身が空で、入る線も出る線も無い枠は手放す。
+   線を切ったあとだけでなく、読み込んだデータにも効くよう定期的に見る */
+function freeIdleSlots(){
+  for(const n of S.nodes){
+    const T = TYPES[n.type];
+    if(!(T.store || T.ware) || !n.items) continue;
+    for(let i=0;i<n.items.length;i++){
+      const k = n.items[i]; if(!k) continue;
+      if((n.inBuf[k]||0) > 0 || (n.outBuf[k]||0) > 0) continue;
+      if(S.links.some(l => (l.to===n.id || l.from===n.id) && l.item===k)) continue;
+      n.items[i] = null;
+      delete n.inBuf[k]; delete n.outBuf[k];
+      n.crafting=false; n.prog=0; n.stall=false; n.why='';
+      rebuildNodeEl(n);
+    }
+  }
+}
 function polTick(dt){
   polT += dt; if(polT < 1) return;
   const d = polT; polT = 0;
+  freeIdleSlots();
   const src = [], cl = [], sp = [];
   for(const n of S.nodes){
     const p = polSource(n); if(p>0) src.push([n,p]);
