@@ -758,6 +758,10 @@ function applyCurve(){
   ENEMY_K = 1 + 0.26 * (100 / CURVE.depth);         // 敵HPの階層あたりの伸び（指標100で 1.26）
 }
 const trainMul = lv => Math.pow(TRAIN_K, Math.pow(Math.max(0, lv), TRAIN_P));
+/* 能力を1つ上げるのに要る経験値。1回の訓練で1つ出るので、そのまま回数になる。
+   序盤から少しずつ回数が増えるので、体力の重さと合わせて伸びが落ち着く */
+const EXP_STEP = 3;
+const expNeed  = lv => 1 + Math.floor(Math.max(0, lv) / EXP_STEP);
 applyCurve();
 
 const CAP    = 10;    // バッファの基準値（必要数が大きいノードは自動で広がる）
@@ -1579,7 +1583,7 @@ function freshState(){
     gold:40, nextId:1, counts:{}, nodes:[], links:[],
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
-    hist:[], histStep:60, histAt:0, playT:0,
+    hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
     era:1, pack:{}, maxEqp:0, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
@@ -1859,9 +1863,13 @@ function tick(dt,fast){
         const c=Math.floor(n.inBuf[k]||0); if(c<=0) continue;
         n.inBuf[k]-=c;
         if(STAT_OF[k]){                 // 主人公・仲間：経験値 → 能力
-          const st=STAT_OF[k]; S.stats[st]+=c; n.gain=(n.gain||0)+c;
+          const st=STAT_OF[k]; n.gain=(n.gain||0)+c;
           n.ex=n.ex||{}; n.ex[st]=(n.ex[st]||0)+c; exAcc[st]+=c;
-          if(!fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
+          S.exp = S.exp || {str:0,int:0,vit:0};
+          S.exp[st] = (S.exp[st]||0) + c;
+          let up=0;
+          while(S.exp[st] >= expNeed(S.stats[st])){ S.exp[st] -= expNeed(S.stats[st]); S.stats[st]++; up++; }
+          if(up && !fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
         }else if(T.matIn){              // 研究所：素材 → 研究資材（価値ぶん）
           S.stock=(S.stock||0)+itemVal(k)*c;
         }
@@ -2407,9 +2415,13 @@ function render(){
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
       const c=n.inBuf[k]||0, req=need[k];
+      // 分母は「その口が何を待っているか」に合わせる。
+      // 貯蔵と倉庫と売り場は入れておける量、それ以外は1回に要る数
+      const stack = (T.store || T.ware || T.chain==='sell');
+      const den = stack ? capIn(n,k) : req;
       s.querySelector('b').textContent=fmt(c);
-      s.querySelector('.q').textContent = req ? '/'+fmt(T.store ? capIn(n,k) : req) : '';
-      s.classList.toggle('short', !!req && c < req);
+      s.querySelector('.q').textContent = den ? '/'+fmt(den) : '';
+      s.classList.toggle('short', !stack && !!req && c < req);
       s.classList.toggle('full', c >= capIn(n,k));
     }
     for(const k in give){
@@ -2424,7 +2436,7 @@ function render(){
                                    : '停止：'+n.why)
       : T.src ? srcFace(n)
       : T.stat ? (expRouted(n)
-          ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}を戻している（累計 ${fmt(n.done||0)}）`
+          ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（次の+1まで あと${Math.max(1, expNeed(S.stats[T.stat]) - ((S.exp&&S.exp[T.stat])||0))}回）`
           : `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`)
       : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
       : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
@@ -2493,9 +2505,10 @@ function render(){
   $('#hAtk').textContent=fmt(atk());
   $('#sStr').textContent=S.stats.str; $('#sInt').textContent=S.stats.int; $('#sVit').textContent=S.stats.vit;
   // 能力値が何に効いているかを数字で添える
-  $('#rStr').textContent = `→ 攻撃 ×${(1 + S.stats.str*0.15).toFixed(2)}`;
-  $('#rInt').textContent = `→ 速さ ×${intBoost().toFixed(2)}`;
-  $('#rVit').textContent = `→ ⚡ ×${fmt(Math.pow(VIT_K, S.stats.vit))}`;
+  const ep = st => { const e=(S.exp&&S.exp[st])||0, nd=expNeed(S.stats[st]); return `${e}/${nd}`; };
+  $('#rStr').textContent = `${ep('str')} → 攻撃 ×${(1 + S.stats.str*0.15).toFixed(2)}`;
+  $('#rInt').textContent = `${ep('int')} → 速さ ×${intBoost().toFixed(2)}`;
+  $('#rVit').textContent = `${ep('vit')} → ⚡ ×${fmt(Math.pow(VIT_K, S.stats.vit))}`;
   // 経験値がちゃんと主人公へ戻っているか
   const srcs = S.nodes.filter(n=>TYPES[n.type].src);
   const backs = S.links.filter(l=>STAT_OF[l.item] && srcs.some(n=>n.id===l.to)).length;
