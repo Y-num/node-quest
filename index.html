@@ -141,6 +141,8 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
   pointer-events:none;display:none}
 body.lasso #stage{cursor:crosshair}
 .tbtn.lassoon{border-color:var(--pw);color:var(--pw);background:rgba(180,135,245,.14)}
+.node.port{border-color:var(--acc2);border-style:dashed}
+.node.port .nm{color:var(--acc2)}
 .node.lay{border-color:var(--pw);box-shadow:0 0 0 1px var(--pw),0 0 18px rgba(180,135,245,.25)}
 .node.lay .nm{color:var(--pw)}
 .node.won{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 26px rgba(242,193,78,.45);
@@ -1103,6 +1105,10 @@ const TYPES = {
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
           d:'自宅にしまってあるものを工房へ出す。開封所の逆。出すものはひとつ選ぶ'},
+  lin   :{n:'入口',      i:'🔌', cost:0, up:0, time:0.1, ins:{}, outs:{}, lin:true, port:true,
+          d:'レイヤーの外から届いたものが、ここから出てくる'},
+  lout  :{n:'出口',      i:'🚪', cost:0, up:0, time:0.1, ins:{}, outs:{}, lout:true, port:true,
+          d:'ここに入れたものが、レイヤーの外へ出ていく'},
   layer :{n:'レイヤー',  i:'🧩', cost:0, up:0, time:0.1, ins:{}, outs:{}, layer:true,
           d:'囲んだノードをひとまとめにしたもの。外から見える出口はひとつだけ。'
            +'ほどけば元に戻る'},
@@ -1323,6 +1329,8 @@ function insOf(n){
   if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
     return n.item ? modIns(n, {[n.item]:4}) : {};
   }
+  if(T.lout){ const L=N(n.layer); return (L && L.out) ? {[L.out]:1} : {}; }
+  if(T.lin)  return {};
   if(T.layer) return layerNeeds(n);
   if(T.chain==='hout'){                        // 自宅から1つ取り出す（⚡だけ要る）
     return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(3*e*COST_K))}));
@@ -1431,6 +1439,8 @@ function outsOf(n){
     if(T.chain!=='atk') for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
   }
+  if(T.lin){ const L=N(n.layer); return L ? layerNeeds(L) : {}; }
+  if(T.lout) return {};
   if(T.layer) return n.out ? {[n.out]:1} : {};
   if(T.loot){ const o = {[lootItem(n)]:1};
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
@@ -1546,7 +1556,7 @@ const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].chain==='sell' 
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
 const BYP_CAP  = 1e12;                    // 副産物は上限なく溜まる。詰まらせない代わりに汚染が広がる
 const isByp    = k => BYP.some(b=>b.k===k);
-const capOut  = (n,item) => TYPES[n.type].layer ? CAP*8
+const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? CAP*8
                           : (TYPES[n.type].src && item==='sta') ? maxSta()
                           : isByp(item) ? BYP_CAP
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
@@ -1972,6 +1982,9 @@ function sellPick(n){
 function spaceIn(n,item){
   const T = TYPES[n.type];
   if(T.layer) return layerNeeds(n)[item] ? Math.max(0, CAP*8 - (n.inBuf[item]||0)) : 0;
+  if(T.lout){ const L=N(n.layer);
+    return (L && L.out === item) ? Math.max(0, CAP*8 - (n.inBuf[item]||0)) : 0; }
+  if(T.lin) return 0;
   if(T.store){                                      // 貯蔵：種類の上限と1種あたりの量で決まる
     const held = n.inBuf[item]||0;
     if(held <= 0 && wareKinds(n).length >= (T.kinds||8)) return 0;
@@ -2008,6 +2021,7 @@ function tick(dt,fast){
       }
     }
     if(T.layer){ n.stall=false; n.why=''; layerFlow(n); continue; }
+    if(T.port){ n.stall=false; n.why=''; continue; }   // 入口・出口はただの受け渡し口
     if(T.raid && n.clear){ n.stall=false; n.why=''; continue; }   // 受け取り待ちは⚡を食わない
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store){                                 // 貯蔵：しまって、選んだものだけ外へ出す
@@ -2165,11 +2179,13 @@ function exTotal(){
 /* 出口の候補としての good さ。動力や副産物より、作ったものを先に選ぶ */
 const outRank = k => (POW_ITEM[k] ? 0 : isByp(k) ? 1 : 2) * 1e12 + itemVal(k);
 const isLayer  = n => !!(n && TYPES[n.type].layer);
+const isPort   = n => !!(n && TYPES[n.type].port);       // レイヤーの入口・出口
 const inLayer  = n => !!(n && n.layer);
 /* いま見ている盤面。null＝いちばん外側。レイヤーに入るとその中の盤面になる */
 const atNow    = () => S.at || null;
 const onBoard  = n => (n.layer || null) === atNow();
 function enterLayer(L){
+  ensurePorts(L);
   const cur = N(atNow());
   if(cur) cur.view = Object.assign({}, S.view);      // いまの見え方を覚えておく
   S.at = L.id;
@@ -2200,7 +2216,7 @@ const memOf    = L => (L.members||[]).map(N).filter(Boolean);
 /* 外から入れてもらう必要があるもの（中で作れないもの） */
 function layerNeeds(L){
   if(L._needs) return L._needs;
-  const mem = memOf(L), made = new Set();
+  const mem = memOf(L).filter(m => !isPort(m)), made = new Set();
   for(const m of mem) for(const k in outsOf(m)) made.add(k);
   const need = {};
   for(const m of mem){ const ins = allIns(m);
@@ -2210,7 +2226,7 @@ function layerNeeds(L){
 const layerDirty = () => { for(const n of S.nodes) if(isLayer(n)) n._needs = null; };
 /* 中で作れて、中で使い切らないもの＝出口にできるもの */
 function layerOuts(L){
-  const mem = memOf(L), made = {}, used = new Set();
+  const mem = memOf(L).filter(m => !isPort(m)), made = {}, used = new Set();
   for(const m of mem){ for(const k in outsOf(m)) made[k] = 1;
                        for(const k in allIns(m)) used.add(k); }
   const rank = k => outRank(k);
@@ -2219,29 +2235,60 @@ function layerOuts(L){
 }
 /* 毎tick：入ってきたものを中へ配り、出口のものを外へ吸い上げる */
 function layerFlow(L){
+  const mem = memOf(L);
+  const lin  = mem.find(m => TYPES[m.type].lin);
+  const lout = mem.find(m => TYPES[m.type].lout);
+  // 外 → 入口ノード（無ければ中のノードへ直接配る）
   for(const k in L.inBuf){
     let q = L.inBuf[k]; if(q <= 0) continue;
-    for(const m of memOf(L)){
-      const sp = spaceIn(m, k); if(sp <= 0) continue;
-      const t = Math.min(q, sp);
-      m.inBuf[k] = (m.inBuf[k]||0) + t; q -= t;
-      if(q <= 0) break;
+    if(lin){
+      const room = capOut(lin, k) - (lin.outBuf[k]||0);
+      const t = Math.min(q, Math.max(0, room));
+      if(t > 0){ lin.outBuf[k] = (lin.outBuf[k]||0) + t; q -= t; }
+    }else{
+      for(const m of mem){
+        const sp = spaceIn(m, k); if(sp <= 0) continue;
+        const t = Math.min(q, sp);
+        m.inBuf[k] = (m.inBuf[k]||0) + t; q -= t;
+        if(q <= 0) break;
+      }
     }
     L.inBuf[k] = q;
   }
+  // 出口ノード → 外（無ければ中のノードから吸い上げる）
   const k = L.out; if(!k) return;
-  const room = capOut(L, k) - (L.outBuf[k]||0); if(room <= 0) return;
-  let left = room;
-  for(const m of memOf(L)){
+  let left = capOut(L, k) - (L.outBuf[k]||0); if(left <= 0) return;
+  const pull = src => { const have = src.inBuf ? (src.inBuf[k]||0) : 0; return have; };
+  if(lout){
+    const have = Math.min(left, lout.inBuf[k]||0);
+    if(have > 0){ lout.inBuf[k] -= have; L.outBuf[k] = (L.outBuf[k]||0) + have; }
+    return;
+  }
+  for(const m of mem){
     const have = m.outBuf[k]||0; if(have <= 0) continue;
     const t = Math.min(left, have);
     m.outBuf[k] -= t; L.outBuf[k] = (L.outBuf[k]||0) + t; left -= t;
     if(left <= 0) break;
   }
 }
+/* 入口・出口のノードを用意する */
+function ensurePorts(L){
+  const mem = memOf(L);
+  let lin  = mem.find(m => TYPES[m.type].lin);
+  let lout = mem.find(m => TYPES[m.type].lout);
+  const xs = mem.filter(m=>!isPort(m));
+  const x0 = xs.length ? Math.min(...xs.map(m=>m.x)) : 0;
+  const x1 = xs.length ? Math.max(...xs.map(m=>m.x)) : 0;
+  const y0 = xs.length ? Math.min(...xs.map(m=>m.y)) : 0;
+  const was = S.at; S.at = L.id;
+  if(!lin){  lin  = addNode('lin',  x0 - 260, y0); lin.layer = L.id;  L.members.push(lin.id); }
+  if(!lout){ lout = addNode('lout', x1 + 260, y0); lout.layer = L.id; L.members.push(lout.id); }
+  S.at = was; reindex();
+  return {lin, lout};
+}
 /* まとめる */
 function makeLayer(ids){
-  const mem = ids.map(N).filter(n => n && !isLayer(n) && (n.layer||null) === atNow());
+  const mem = ids.map(N).filter(n => n && !isLayer(n) && !isPort(n) && (n.layer||null) === atNow());
   if(mem.length < 2) return toast('2つ以上のノードを囲んでください');
   const inside = new Set(mem.map(n=>n.id));
   const cx = mem.reduce((a,n)=>a+n.x,0)/mem.length;
@@ -2275,6 +2322,7 @@ function makeLayer(ids){
   layerDirty();
   for(const m of mem) rebuildNodeEl(m);
   rebuildNodeEl(L);
+  ensurePorts(L);
   sel = L.id; renderInsp(); renderBoard();
   toast(`${mem.length}個をまとめました（ダブルタップで中を開けます）`);
   if(outItems.size > 1){
@@ -2292,7 +2340,11 @@ function breakLayer(L){
     if(l.to === L.id){ if(ids.has(l.inTo)) { l.to = l.inTo; delete l.inTo; } else removeLink(l.id); }
     else if(l.from === L.id){ if(ids.has(l.inFrom)) { l.from = l.inFrom; delete l.inFrom; } else removeLink(l.id); }
   }
-  for(const m of memOf(L)){ m.layer = L.layer || null; rebuildNodeEl(m); }
+  for(const m of memOf(L)){
+    if(isPort(m)){ removeNode(m.id); continue; }
+    m.layer = L.layer || null; rebuildNodeEl(m);
+  }
+  reindex();
   const n = memOf(L).length;
   if(sel === L.id) sel = null;
   removeNode(L.id); reindex(); layerDirty();
@@ -2829,6 +2881,7 @@ function render(){
     if(e.lastTier!==tr.t){ e.lastTier=tr.t; e.ic.textContent=tr.i; e.nm.textContent=tr.n; }
     e.lv.textContent = T.layer ? `${(n.members||[]).length}個` : 'Lv.'+n.level;
     e.root.classList.toggle('lay', !!T.layer);
+    e.root.classList.toggle('port', !!T.port);
     const need=insOf(n), give=outsOf(n), shown=portIns(n);
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
@@ -2869,6 +2922,10 @@ function render(){
       : T.store ? (storeItems(n).length
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
+      : T.lin  ? '外から届いたものがここに出る'
+      : T.lout ? (()=>{ const L=N(n.layer);
+          return L && L.out ? `ここに入れると外へ出る（${ITEMS[L.out].i}${ITEMS[L.out].n}）`
+                            : '出口の素材が未設定'; })()
       : T.layer ? `${(n.members||[]).length}個をまとめている` + (n.out ? `／出口 ${ITEMS[n.out].i}${ITEMS[n.out].n}` : '／出口なし')
       : T.chain==='hout' ? (n.item
           ? `🏠${ITEMS[n.item].n}を搬出中（自宅に ${fmt(Math.floor(homeOf()[n.item]||0))}）`
@@ -3009,6 +3066,8 @@ function ioText(T){
 
   if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
+  if(T.lin)  return `レイヤーの外から<span class="ar">→</span>中へ`;
+  if(T.lout) return `中から<span class="ar">→</span>レイヤーの外へ`;
   if(T.layer) return `まとめたノードのかたまり<span class="ar">→</span>出口はひとつだけ`;
   if(T.chain==='hout')   return `🏠自宅から1つ ⚡<span class="ar">→</span>工房へ`;
   if(T.chain==='open')   return `宝箱×1 ⚡<span class="ar">→</span>🏠自宅へ（素材・装備・ゴールド）`;
@@ -3299,7 +3358,11 @@ function renderInsp(){
       const k=sl.value||null;
       for(const l of [...S.links]) if(l.from===n.id) removeLink(l.id);
       if(n.out) delete n.outBuf[n.out];
-      n.out=k; rebuildNodeEl(n); renderInsp();
+      n.out=k;
+      const lo = memOf(n).find(m=>TYPES[m.type].lout);
+      if(lo){ for(const l of [...S.links]) if(l.to===lo.id) removeLink(l.id);
+              lo.inBuf={}; rebuildNodeEl(lo); }
+      rebuildNodeEl(n); renderInsp(); renderBoard();
     };
     box.querySelector('.lmem').textContent = memOf(n).map(m=>tierOf(m).i).join(' ') || '—';
     box.querySelector('.lbreak').onclick=()=>breakLayer(n);
@@ -3340,6 +3403,7 @@ function renderInsp(){
   box.querySelector('.pp').onclick=()=>{ n.prio=Math.min(9,prioOf(n)+1); };
   box.querySelector('.del').onclick=()=>{
     if(TYPES[n.type].layer) return breakLayer(n);
+    if(TYPES[n.type].port) return toast('入口と出口は外せません');
     if(TYPES[n.type].unique) return toast('勇者は撤去できません');
     const rp = scrapRp(n.type, n.level, n.grade||0);
     let msg;
@@ -3419,7 +3483,7 @@ function renderInspLive(){
     box.querySelector('.del').textContent='ほどいて撤去'; }
   up.textContent=`強化 ${fmt(c)} G ／ +${((lvPow(n.level+1)/lvPow(n.level)-1)*100).toFixed(1)}%（いま ${lvGen(n.level).toFixed(2)}時代ぶん）`;
   up.disabled=S.gold<c;
-  box.querySelector('.del').disabled=!!TYPES[n.type].unique;
+  box.querySelector('.del').disabled=!!(TYPES[n.type].unique || TYPES[n.type].port);
 }
 
 /* ========================= チュートリアル =========================
@@ -3680,7 +3744,7 @@ stage.addEventListener('pointerup', e=>{
   }else if(drag.mode==='lasso'){
     const pts=drag.pts; $('#lasso').style.display='none'; $('#lasso').setAttribute('d','');
     if(pts.length > 4){
-      const ids = S.nodes.filter(n => onBoard(n) && !isLayer(n)
+      const ids = S.nodes.filter(n => onBoard(n) && !isLayer(n) && !isPort(n)
         && inPoly(pts, n.x + NW/2, n.y + 45)).map(n=>n.id);
       if(ids.length) makeLayer(ids); else toast('ノードが囲まれていません');
     }
