@@ -1087,8 +1087,8 @@ const TYPES = {
           d:'地金2つを部品1つに加工する。副産物も多い'},
   anvil :{n:'鍛錬台',    i:'🔨', cost:9000, up:11000, time:2.6, ins:{}, outs:{}, chain:'anvil', effect:'anvil',
           d:'持ち物から装備をひとつ選んでセットし、合金を打ち込んで鍛える。打つほど伸びは鈍る'},
-  equip :{n:'装備工房',  i:'🎽', cost:9000, up:11000, time:5.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
-          d:'部品1つと合金1つで装備を作る。できた装備は出力に積まれ、鍛錬台で鍛えられる'},
+  equip :{n:'装備工房',  i:'🎽', cost:9000, up:11000, time:24.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
+          d:'部品1つと地金2つで装備を1つ作る。手間も⚡も大きいぶん、できた装備は長く使える'},
   tool  :{n:'道具',      i:'🪵', cost:800,  up:1100, time:2.5, tool:true, mul:1.5, take:4, sta:3,
           d:'間に挟むと通した素材が増える増幅器'},
   box   :{n:'木箱',      i:'📦', cost:400,  up:500,  time:0.4, store:true, slots:1, cap:200,
@@ -1305,7 +1305,7 @@ const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 // 訓練は鍛えるほど1回の体力消費が増える → 放置ゲームらしい対数的な伸びになる
 const storeItems = n => (n.items||[]).filter(Boolean);
 // 系統ノードの体力コスト（段階ごとの倍率）
-const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, equip:1.5, alloy:1.4, anvil:2.2};
+const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, equip:3.5, alloy:1.4, anvil:2.2};
 // 部品でも合金でも段位を返す（合金の段位i は CHAIN[i] と CHAIN[i+1] の混合）
 function matTier(k){ const b=baseOf(k||'');
   const m=/^aly(\d)$/.exec(b); if(m) return +m[1]-1;
@@ -1351,17 +1351,17 @@ function insOf(n){
   }
   if(T.chain==='alloy'){                       // 地金2つ＋1つ上の地金1つ → 合金
     const i = tierIdx(n.item); if(i<0) return {};
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*1.4*e*COST_K)),
+    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*CHAIN_STA.alloy*e*COST_K)),
       [CHAIN[i].ingot]:2, [CHAIN[i+1].ingot]:1}));
   }
   if(T.chain==='equip'){                       // 部品1つ＋同じ段位の地金2つ → 装備1つ
     const i = tierIdx(n.item); if(i<0) return {};
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*1.5*e*COST_K)),
+    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*CHAIN_STA.equip*e*COST_K)),
       [CHAIN[i].part]:1, [CHAIN[i].ingot]:2}));
   }
   if(T.chain==='anvil'){                       // 装備1つ＋合金2つ → 一段鍛えた装備1つ
     const i = matTier(n.item); if(i<0 || !isEqp(n.item)) return {};
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*2.2*e*COST_K)),
+    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*CHAIN_STA.anvil*e*COST_K)),
       [n.item]:1, [alyFor(i)]:2}));
   }
   if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
