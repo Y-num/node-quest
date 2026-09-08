@@ -1159,8 +1159,9 @@ const ERA_EXTRA = {
   boost:  g => ({aura:{k:'speed', v:+(0.5+g*0.25).toFixed(2), r:250+g*12}}),
   tool: g => ({mul: 1.5 + g*0.45, sta: 3 + g}),
   // 貯蔵はどんな素材でも受け取る。外へ出す口の数と、しまえる種類・量が時代で伸びる
+  // 第5時代からは「倉庫」。専用のインベントリで中身を見られる
   box:  g => ({slots: 1 + Math.floor(g/2), kinds: 4 + g*4,
-               cap: Math.round(200 * Math.pow(2.4, g))}),
+               cap: Math.round(200 * Math.pow(2.4, g)), ware: g >= 4}),
   shop: g => ({slots: 2 + Math.floor(g*0.8)}),
 };
 
@@ -2837,9 +2838,10 @@ function renderBag(){
     const n = bagWare!=null ? N(bagWare) : null;
     if(!n || !TYPES[n.type].ware){ bagTab='gear'; return renderBag(); }
     const T=TYPES[n.type], ks=wareKinds(n).sort((a,b)=>(n.inBuf[b]||0)-(n.inBuf[a]||0));
-    $('#bagNote').textContent = `${tierOf(n).n}の中身。${storeItems(n).length}/${T.slots}種・`
+    $('#bagNote').textContent = `${tierOf(n).n}の中身。${wareKinds(n).length}/${T.kinds||8}種・`
       + `合計 ${fmt(wareTotal(n))}個（1種あたり ${fmt(capIn(n,'x'))}個まで）。`
-      + '扱う素材はインスペクタか、配線を「＋」へ引くと増えます。ここからは売却と廃棄ができます。';
+      + `外へ出す口は ${storeItems(n).length}/${T.slots} 本。`
+      + '出すものはインスペクタで選べます。ここからは売却と廃棄ができます。';
     if(!ks.length){ box.innerHTML = `<div class="bempty">まだ何も入っていません。素材の配線をこの倉庫へ引くと貯まります。</div>`; return; }
     const outs = storeItems(n);
     box.innerHTML = ks.map(k=>{
@@ -3010,7 +3012,8 @@ function render(){
           return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
-      : T.ware ? `倉庫 ${storeItems(n).length}/${T.slots}種 ${fmt(wareTotal(n))}個`
+      : T.ware ? `倉庫 ${wareKinds(n).length}/${T.kinds||8}種 ${fmt(wareTotal(n))}個`
+                 + `（出す口 ${storeItems(n).length}/${T.slots}）`
       : T.store ? (storeItems(n).length
           ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
           : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
@@ -3192,7 +3195,7 @@ function ioText(T){
   if(T.aura) return T.aura.k==='clean'
     ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
     : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
-  if(T.ware)  return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
+  if(T.ware)  return `${T.kinds||8}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
   if(T.store) return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
   if(T.tool) return `素材×${T.take} ⚡×${T.sta}<span class="ar">→</span>素材×${Math.round(T.take*T.mul)}`;
   const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='equip'?'🎽装備':T.effect==='lab'?'🔬研究力':'—');
