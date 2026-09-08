@@ -1093,7 +1093,7 @@ const TYPES = {
           d:'素材を貯めておける。詰まりを防げる'},
   comp  :{n:'圧縮機',    i:'🗜️', cost:2000, up:2600, time:2.0, chain:'comp',
           d:'下位の素材5つを、1つ上の密度にまとめる'},
-  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:30, chain:'sell', pk:2.4,
+  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:20, chain:'sell', pk:2.4,
           d:'素材を売ってゴールドにする。加工・合成したものほど高く売れる。'
            +'1つ目は安いが、増やすほど値が張る'},
   fuel  :{n:'再利用',    i:'🪱', cost:1500, up:2000, time:2.0, chain:'fuel',
@@ -2169,6 +2169,7 @@ function tick(dt,fast){
           if(sp>0){
             const q=Math.min(n.outBuf[item], chunk, sp);
             n.outBuf[item]-=q; st[i]-=wtot;
+            n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
             if(fast||packetCount>280) dst.inBuf[item]=(dst.inBuf[item]||0)+q;
             else { const p={item,t:0,q}; mkPacketEl(p); l.packets.push(p); }
             sent=true; break;
@@ -2192,11 +2193,25 @@ function tick(dt,fast){
   }
   if(!S.enemy) spawnEnemy();
   polTick(dt);
+  rateTick(dt);
   raidTick(dt);
   exTick(dt);
   histTick(dt);
 }
 /* 主人公へ戻ってきた経験値の勢い。10秒ぶんをならして「1分あたり」で見せる */
+let rateT = 0;
+function rateTick(dt){
+  rateT += dt; if(rateT < 1) return;
+  const w = rateT; rateT = 0;
+  for(const n of S.nodes){
+    if(!n.sent) continue;
+    n.rate = n.rate || {};
+    for(const k in n.sent){
+      n.rate[k] = (n.rate[k]||0)*0.5 + (n.sent[k]/w*60)*0.5;
+      n.sent[k] = 0;
+    }
+  }
+}
 const exAcc = {str:0, int:0, vit:0};
 const exRate = {str:0, int:0, vit:0};
 let exWin = 0;
@@ -2813,6 +2828,13 @@ let bagTab = 'gear', bagWare = null;
 const gearSell = k => Math.max(1, Math.round(sellPrice(k,1) * 0.6));
 const dropSell = d => Math.max(1, Math.round(TYPES[d.type].cost * 0.5 * (1 + (d.grade||0)*0.35)));
 const homeCount = () => Object.values(homeOf()).reduce((a,b)=>a+b,0);
+/* 装備タブに並ぶもの＝外した装備・装備中・工房の在庫、の種類 */
+function gearKeys(){
+  const P = homeOf(), worn = new Set();
+  for(const n of S.nodes) for(const g of gearOf(n)) if(g.item) worn.add(g.item);
+  return [...new Set(Object.keys(P).concat([...worn], equipOpts()))]
+    .filter(k => isEqp(k)).sort((a,b)=>itemVal(b)-itemVal(a));
+}
 function bagCount(){ return homeCount() + S.drops.length; }
 function sellHome(k, all){
   const P=homeOf(), q = all ? (P[k]||0) : Math.min(1, P[k]||0);
@@ -2837,7 +2859,7 @@ function tossDrop(id){ const i=S.drops.findIndex(d=>d.id===id); if(i<0) return;
 
 function renderBag(){
   const box = $('#bagList'); if(!box) return;
-  const nG = homeCount(), nD = S.drops.length;
+  const nG = gearKeys().length, nD = S.drops.length;
   $('#bCount').textContent = bagCount();
   $('#bcGear').textContent = nG; $('#bcDrop').textContent = nD+' / '+DROP_MAX;
   const wt2=$('#bcHome');
@@ -2912,8 +2934,7 @@ function renderBag(){
     const P = homeOf();
     const worn = {};
     for(const n of S.nodes) for(const g of gearOf(n)) if(g.item) (worn[g.item]=worn[g.item]||[]).push(tierOf(n).n);
-    const keys = [...new Set(Object.keys(P).concat(Object.keys(worn), equipOpts()))]
-      .filter(k=>isEqp(k)).sort((a,b)=>itemVal(b)-itemVal(a));
+    const keys = gearKeys();
     if(!keys.length){ box.innerHTML = `<div class="bempty">まだ装備がありません。🛡️装備工房を建てると作れます。</div>`; return; }
     box.innerHTML = keys.map(k=>{
       const held = P[k]||0, st = stockOf(k), on = worn[k];
@@ -2981,6 +3002,9 @@ function applyView(){
 }
 function render(){
   let jam = null;
+  // 送り先のある口は、溜まった数ではなく流れている勢いを見せる
+  const flowing = new Set();
+  for(const l of S.links) flowing.add(l.from+':'+l.item);
   for(const n of S.nodes){
     const T=TYPES[n.type];
     // 口の顔ぶれが変わることがある（レイヤーの中身を増やした、枠を割り当てた等）
@@ -3007,8 +3031,11 @@ function render(){
     for(const k in give){
       const s=e.slots['out-'+k]; if(!s) continue;
       const c=n.outBuf[k]||0;
+      const r=(n.rate&&n.rate[k])||0;
       s.querySelector('b').textContent=fmt(c);
-      s.querySelector('.q').textContent = (isByp(k) || T.layer || T.port) ? '' : '/'+fmt(capOut(n,k));
+      s.querySelector('.q').textContent = flowing.has(n.id+':'+k)
+          ? (r>=0.05 ? fmt(r)+'/分' : '待ち')                 // 流している最中は勢いで見せる
+          : (isByp(k) || T.layer || T.port) ? '' : '/'+fmt(capOut(n,k));
       s.classList.toggle('full', c+give[k]>capOut(n,k));
     }
     e.bar.style.width=(n.crafting?Math.min(100,n.prog/n.need*100):0)+'%';
@@ -4083,7 +4110,7 @@ function migrate(d){
 function save(){
   if(resetting) return false;                      // リセット中は書き戻さない
   try{ S.savedAt=Date.now();
-    localStorage.setItem(KEY, JSON.stringify(S,(k,v)=> (k==='el'||k==='G'||k==='_needs')?undefined:v));
+    localStorage.setItem(KEY, JSON.stringify(S,(k,v)=> (k==='el'||k==='G'||k==='_needs'||k==='sent')?undefined:v));
     return true;
   }catch(_){ return false; }
 }
@@ -4138,7 +4165,7 @@ function b64dec(c){
   for(let i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i);
   return new TextDecoder().decode(b);
 }
-const dumpState = () => JSON.stringify(S,(k,v)=> (k==='el'||k==='G'||k==='_needs')?undefined:v);
+const dumpState = () => JSON.stringify(S,(k,v)=> (k==='el'||k==='G'||k==='_needs'||k==='sent')?undefined:v);
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
 $('#tClose').onclick=()=>$('#tree').classList.remove('on');
 $('#bStats').onclick=()=>{ renderStats(); $('#stats').classList.add('on'); };
