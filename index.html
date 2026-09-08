@@ -318,8 +318,14 @@ body.tut #offscr{display:none}
 #bag .bbox{width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;
   background:var(--panel);border:1px solid var(--pw);border-radius:12px;overflow:hidden;
   box-shadow:0 20px 60px rgba(0,0,0,.6)}
-#bag .bhead{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
+#bag .bhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--line)}
 #bag .bt{font-weight:700;font-size:14px;color:var(--pw)}
+#bag .bon{font-size:10px;color:var(--acc);font-weight:600}
+#bag .btabs{display:flex;gap:6px;margin-left:14px}
+#bag .btabs button{background:#0c111b;border:1px solid var(--line);border-radius:7px;
+  padding:4px 10px;font-size:11px;color:var(--dim)}
+#bag .btabs button.on{border-color:var(--pw);color:var(--pw)}
+#bag .btabs b{font-variant-numeric:tabular-nums}
 #bag .bhead button{margin-left:auto;background:#0c111b;border:1px solid var(--line);
   border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600}
 #bag .bnote{margin:0;padding:10px 16px;font-size:11px;color:var(--dim);line-height:1.6;
@@ -511,7 +517,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <button class="tbtn" id="bTidy">整列</button>
     <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
     <button class="tbtn" id="bStats">📈 記録</button>
-    <button class="tbtn bag" id="bBag" hidden>🎁 拾得品 <b id="bCount">0</b></button>
+    <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
     <button class="tbtn" id="bSave">保存</button>
@@ -637,12 +643,14 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
 <div id="bag">
   <div class="bbox">
     <div class="bhead">
-      <div class="bt">🎁 ダンジョンで拾った施設</div>
-      <button id="bClose">閉じる</button>
+      <div class="bt">🎒 持ち物</div>
+      <div class="btabs">
+        <button class="bt1 on" data-t="gear">🎽 装備 <b id="bcGear">0</b></button>
+        <button class="bt1" data-t="drop">🎁 クリア報酬 <b id="bcDrop">0</b></button>
+      </div>
+      <button id="bClose" style="margin-left:auto">閉じる</button>
     </div>
-    <p class="bnote">第50層から落ちます。撃破のほか、深くて倒せないときも潜り続ければ拾えます。
-       15層深くなるごとに等級が上がり、良い接辞も悪い接辞も混ざります。
-       いらないものは解体して研究ポイントに変えられます。</p>
+    <p class="bnote" id="bagNote"></p>
     <div id="bagList"></div>
   </div>
 </div>
@@ -860,14 +868,7 @@ function itemVal(k){
   return v;
 }
 const COMP_TAKE = 5, DECOMP_TAKE = 4, SELL_TAKE = 4, SELL_K = 3;
-/* 鍛錬。打つほど伸びは鈍る（合計は 打数^ANVIL_P に比例）。
-   頭打ちを破るには、より良い合金に持ち替えるしかない。
-     10打ちで 3.6倍 ／ 100打ちで 12.6倍 ／ 1,000打ちで 44.7倍 ／ 1万打ちで 158倍   */
-const ANVIL_K = 12, ANVIL_P = 0.55, ERA_ATK = 1.35;
-const anvilBase = n => itemVal(alloyOf(tierIdx(n.item)+1)) * ANVIL_K * lvPow(n.level)
-                     * Math.pow(ERA_ATK, (TYPES[n.type].era||1)-1);
-const anvilTot  = (n,k) => anvilBase(n) * Math.pow(Math.max(0,k), ANVIL_P);
-const anvilNext = n => Math.max(0, anvilTot(n,(n.eqLv||0)+1) - anvilTot(n,(n.eqLv||0)));
+const ERA_ATK = 1.35;
 // 副産物を燃やして得られる体力。厄介なものほど多い
 const bypVal = k => (BYP.find(b=>b.k===k)||{v:0}).v;
 const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(densStep(0), densOf(n.item))
@@ -890,19 +891,6 @@ const withDens = (arr, cap) => {
   return o;
 };
 /* 貯蔵に入れられるもの。厄介な副産物も貯めておける（片付ける手段が来るまでの緩衝） */
-/* 身につけられるもの＝部品と合金 */
-function gearOpts(){
-  const o=[];
-  for(let i=0;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i].part);
-  for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(alloyOf(i));
-  return o;
-}
-function setGear(n, idx, item){
-  const g=gearOf(n); if(g[idx].item===item) return;
-  for(const l of [...S.links]) if(l.to===n.id && l.item===g[idx].item) removeLink(l.id);
-  g[idx]={item:item||null, n:0};
-  gearDirty(); rebuildNodeEl(n);
-}
 function storeOpts(){
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   const aly  = []; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) aly.push(alloyOf(i));
@@ -917,7 +905,7 @@ function chainOpts(t){
   if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
   if(k==='decomp'||k==='sell') return withDens(['waste','toxic','rift'].concat(mats));
-  if(k==='atk')           return withDens(CHAIN.filter(chainOpen).map(c=>c.part));
+  if(k==='equip')         return CHAIN.filter(chainOpen).map(c=>c.part);
   return CHAIN.filter(chainOpen).map(c => k==='part' ? c.ingot : c.ore);
 }
 
@@ -948,10 +936,10 @@ const TYPES = {
           d:'2種類の地金を混ぜて合金にする。合金は加工と鍛錬の要になる'},
   forge :{n:'加工',      i:'🛠️', cost:6000, up:8000, time:4.0, ins:{}, outs:{}, chain:'part',
           d:'地金2つを部品1つに加工する。副産物も多い'},
-  armory:{n:'装備庫',    i:'🛡️', cost:3000, up:4000, time:1.8, ins:{}, outs:{}, chain:'atk', effect:'atk',
-          d:'部品を身につけて攻撃力を永久に上げる'},
+  armory:{n:'装備工房',  i:'🛡️', cost:3000, up:4000, time:1.8, ins:{}, outs:{}, chain:'equip', effect:'equip',
+          d:'部品と合金から装備をひとつ作る。できた装備は持ち物に入り、スロットで持たせる'},
   anvil :{n:'鍛錬台',    i:'🔨', cost:9000, up:11000, time:2.6, ins:{}, outs:{}, chain:'anvil', effect:'anvil',
-          d:'装備をセットし、合金を打ち込んで鍛える。1打ちごとに攻撃力が永久に上がる'},
+          d:'持ち物から装備をひとつ選んでセットし、合金を打ち込んで鍛える。打つほど伸びは鈍る'},
   tool  :{n:'道具',      i:'🪵', cost:800,  up:1100, time:2.5, tool:true, mul:1.5, take:4, sta:3,
           d:'間に挟むと通した素材が増える増幅器'},
   box   :{n:'木箱',      i:'📦', cost:400,  up:500,  time:0.4, store:true, slots:1, cap:200,
@@ -1143,7 +1131,11 @@ const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 // 訓練は鍛えるほど1回の体力消費が増える → 放置ゲームらしい対数的な伸びになる
 const storeItems = n => (n.items||[]).filter(Boolean);
 // 系統ノードの体力コスト（段階ごとの倍率）
-const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, atk:1.5, alloy:1.4, anvil:2.2};
+const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, equip:1.5, alloy:1.4, anvil:2.2};
+// 部品でも合金でも段位を返す（合金の段位i は CHAIN[i] と CHAIN[i+1] の混合）
+function matTier(k){ const b=baseOf(k||''); const m=/^aly(\d)$/.exec(b);
+  return m ? +m[1]-1 : tierIdx(b); }
+const alyFor = i => alloyOf(Math.min(CHAIN.length-1, Math.max(1, i+1)));
 // 素材から段位(0..5)を割り出す
 function tierIdx(k){ if(!k) return -1; const b=baseOf(k);
   for(let i=0;i<CHAIN.length;i++) if(CHAIN[i].ore===b||CHAIN[i].ingot===b||CHAIN[i].part===b) return i;
@@ -1176,10 +1168,16 @@ function insOf(n){
     return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*1.4*e*COST_K)),
       [CHAIN[i].ingot]:2, [CHAIN[i+1].ingot]:1}));
   }
-  if(T.chain==='anvil'){                       // 装備1つ＋同じ段位の合金2つ を打ち込む
+  if(T.chain==='equip'){                       // 部品1つ＋同じ段位の合金1つ → 装備
     const i = tierIdx(n.item); if(i<0) return {};
+    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*1.5*e*COST_K)),
+      [CHAIN[i].part]:1, [alyFor(i)]:1}));
+  }
+  if(T.chain==='anvil'){                       // セットした装備に、同じ段位の合金を打ち込む
+    const p = invGet(n.eqId); if(!p) return {};
+    const i = matTier(p.item); if(i<0) return {};
     return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*2.2*e*COST_K)),
-      [CHAIN[i].part]:1, [alloyOf(i+1)]:2}));
+      [alyFor(i)]:2}));
   }
   if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
     if(!n.item) return {};
@@ -1235,7 +1233,7 @@ function outsOf(n){
                         return to ? modOuts(n, {[to]:1}) : {}; }
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
-  if(T.chain==='decomp' || T.chain==='sell' || T.chain==='anvil') return {};
+  if(T.chain==='decomp' || T.chain==='sell' || T.chain==='anvil' || T.chain==='equip') return {};
   if(T.chain==='alloy'){
     const i = tierIdx(n.item); if(i<0) return {};
     const base = {[alloyOf(i+1)]:1, waste:1};
@@ -1261,24 +1259,34 @@ function outsOf(n){
 function softIns(n){
   const T=TYPES[n.type];
   if(T.matIn) return n.item ? {[n.item]:1} : {};   // 研究所：選んだ部品だけ受け取る
-  const o = Object.assign({}, T.soft || {});
-  for(const g of gearOf(n)) if(g.item) o[g.item] = 1;   // 装備スロットも受け口になる
-  return o;
+  return T.soft || {};
 }
-/* ===================== 装備スロット =====================
-   主人公は3つ、仲間は1つ。選んだ装備を配線で送り込むと身につく。
-   送り込むほど馴染むが、伸びは鈍る。効果は素材の特性で決まる。      */
-const GEAR_P = 0.4;                                  // 送り込むほど鈍る
+/* ===================== 装備 =====================
+   装備工房で作ったものが「持ち物」に入り、鍛錬台で鍛えられる。
+   主人公や仲間のノードには装備スロットがあり、そこに持ち物から選んで持たせる。
+   配線は要らない。効果は素材の特性と、鍛えた回数で決まる。          */
+const INV_MAX = 60;
+const GEAR_P  = 0.4;                                 // 鍛えるほど鈍る
+const invOf   = () => (S.inv = S.inv || []);
+const invGet  = id => invOf().find(p => p.id === id) || null;
 const gearSlots = n => TYPES[n.type].gear || 0;
 function gearOf(n){
   const k = gearSlots(n); if(!k) return [];
   if(!n.gear || n.gear.length !== k){
     const old = n.gear || [];
-    n.gear = Array.from({length:k}, (_,i)=> old[i] || {item:null, n:0});
+    n.gear = Array.from({length:k}, (_,i)=> (old[i] && typeof old[i]==='object') ? old[i] : {id:null});
   }
   return n.gear;
 }
-const gearPow = g => g.item && g.n ? Math.pow(itemVal(g.item), 0.34) * Math.pow(g.n, GEAR_P) : 0;
+const equippedIds = () => { const o=new Set();
+  for(const n of S.nodes) for(const g of gearOf(n)) if(g.id) o.add(g.id); return o; };
+// いま誰も持っていない装備（そのスロットの分は残す）
+function invFree(exceptId){
+  const used = equippedIds();
+  return invOf().filter(p => !used.has(p.id) || p.id === exceptId);
+}
+const gearName = p => p ? `${ITEMS[p.item].i}${ITEMS[p.item].n}${p.lv?` +${p.lv}`:''}` : '空き';
+const gearPow  = p => p ? Math.pow(itemVal(p.item), 0.34) * Math.pow(1 + p.lv, GEAR_P) : 0;
 /* 身につけているもの全部を合計した効き目 */
 let gearN = null;
 const gearDirty = () => { gearN = null; };
@@ -1286,9 +1294,9 @@ function gearBonus(){
   if(gearN) return gearN;
   const o = {cond:0, firm:0, pure:0, rich:0, arcane:0, astral:0};
   for(const n of S.nodes) for(const g of gearOf(n)){
-    const p = gearPow(g); if(!p) continue;
-    const tr = traitsOf(g.item);
-    for(const t in tr) o[t] += tr[t] * p;
+    const p = invGet(g.id); if(!p) continue;
+    const w = gearPow(p), tr = traitsOf(p.item);
+    for(const t in tr) o[t] += tr[t] * w;
   }
   return gearN = o;
 }
@@ -1441,7 +1449,7 @@ function freshState(){
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0,
-    era:1, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, inv:[], v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -1641,9 +1649,6 @@ function tick(dt,fast){
           const st=STAT_OF[k]; S.stats[st]+=c; n.gain=(n.gain||0)+c;
           n.ex=n.ex||{}; n.ex[st]=(n.ex[st]||0)+c; exAcc[st]+=c;
           if(!fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
-        }else if(gearSlots(n)){         // 装備スロット：送り込むほど馴染む
-          const g = gearOf(n).find(g=>g.item===k);
-          if(g){ g.n += c; gearDirty(); }
         }else if(T.matIn){              // 研究所：素材 → 研究資材（価値ぶん）
           S.stock=(S.stock||0)+itemVal(k)*c;
         }
@@ -1651,8 +1656,13 @@ function tick(dt,fast){
     }
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store && !storeItems(n).length){ n.stall=true; n.why='貯める素材が未設定'; continue; }
-    if(['comp','decomp','sell','clean','fuel'].includes(T.chain)){
+    if(T.chain==='anvil'){
+      if(!invGet(n.eqId)){ n.stall=true; n.why='鍛える装備が未設定'; continue; }
+    }else if(['comp','decomp','sell','clean','fuel'].includes(T.chain)){
       if(!n.item){ n.stall=true; n.why='扱うものが未設定'; continue; }
+    }else if(T.chain==='equip'){
+      if(!n.item){ n.stall=true; n.why='作る装備が未設定'; continue; }
+      if(invOf().length >= INV_MAX){ n.stall=true; n.why='持ち物がいっぱい'; continue; }
     }else if(T.chain && !chainOf(n)){ n.stall=true; n.why='扱う素材が未設定'; continue; }
     // 1回の更新で複数回ぶん進める（生産が速いノードがフレーム間隔で頭打ちにならないように）
     let budget=dt, guard=1000;
@@ -1675,12 +1685,13 @@ function tick(dt,fast){
         const d=densOf(k); if(d>(S.maxDens||0)) S.maxDens=d; }
       n.done++;
       // 訓練は経験値を産むだけ。主人公まで配線を戻して初めて能力になる
-      if(T.effect==='atk'){ const g=Math.round(itemVal(n.item)*lvPow(n.level)); S.atkBonus+=g; n.gain=(n.gain||0)+g; }
-      if(T.effect==='anvil'){                 // 打つほど装備が育つが、伸びは鈍っていく
-        n.eqLv=(n.eqLv||0)+1;
-        const tot=anvilTot(n, n.eqLv), add=Math.max(0, tot-(n.eqAtk||0));
-        n.eqAtk=Math.max(n.eqAtk||0, tot);
-        S.atkBonus+=add; n.gain=n.eqAtk;
+      if(T.effect==='equip'){                 // 装備をひとつ作って持ち物に入れる
+        invOf().push({id:S.nextId++, item:n.item, lv:0});
+        n.gain=(n.gain||0)+1; gearDirty();
+      }
+      if(T.effect==='anvil'){                 // セットした装備を1回鍛える
+        const p=invGet(n.eqId);
+        if(p){ p.lv=(p.lv||0)+1; n.gain=(n.gain||0)+1; gearDirty(); }
       }
       if(T.chain==='sell' && n.item){
         const g=sellPrice(n.item, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
@@ -1874,7 +1885,7 @@ function doDive(fast){
   spawnEnemy();
 }
 function tryDrop(f, fast){
-  if(S.drops.length >= 40) return;
+  // クリア報酬は上限なしで貯まる
   const d = rollDrop(f);
   if(!d) return;
   S.drops.push(d);
@@ -2026,12 +2037,66 @@ function scrapDrop(id){
   renderBag();
   toast(got ? `解体 → 研究ポイント +${fmt(rp)}` : '解体したが、研究できる対象がない');
 }
+/* ========================= 持ち物 =========================
+   装備工房で作った装備と、ダンジョンのクリア報酬。どちらも上限なしで貯まる。
+   いらないものは売ってゴールドに、または捨てられる。                */
+let bagTab = 'gear';
+const gearSell = p => Math.max(1, Math.round(sellPrice(p.item,1) * (1 + (p.lv||0)*0.15) * 0.6));
+const dropSell = d => Math.max(1, Math.round(TYPES[d.type].cost * 0.5 * (1 + (d.grade||0)*0.35)));
+function bagCount(){ return invOf().length + S.drops.length; }
+function sellGear(id){ const i=invOf().findIndex(p=>p.id===id); if(i<0) return;
+  const p=invOf()[i];
+  if(equippedIds().has(id)) return toast('身につけているものは売れません');
+  S.gold += gearSell(p); addLog(`${gearName(p)} を売った → +${fmt(gearSell(p))}G`,'w');
+  invOf().splice(i,1); gearDirty(); renderBag(); }
+function dropGear(id){ const i=invOf().findIndex(p=>p.id===id); if(i<0) return;
+  if(equippedIds().has(id)) return toast('身につけているものは捨てられません');
+  invOf().splice(i,1); gearDirty(); renderBag(); }
+function sellDrop(id){ const i=S.drops.findIndex(d=>d.id===id); if(i<0) return;
+  const d=S.drops[i]; S.gold += dropSell(d);
+  addLog(`${dropName(d)} を売った → +${fmt(dropSell(d))}G`,'w');
+  S.drops.splice(i,1); renderBag(); }
+function tossDrop(id){ const i=S.drops.findIndex(d=>d.id===id); if(i<0) return;
+  S.drops.splice(i,1); renderBag(); }
+
 function renderBag(){
-  const box = $('#bagList');
-  if(!box) return;
-  $('#bCount').textContent = S.drops.length;
-  $('#bBag').hidden = S.drops.length === 0;
-  if(!S.drops.length){ box.innerHTML = `<div class="bempty">まだ何も拾っていません。第${DROP_FROM}層から施設が落ちます。</div>`; return; }
+  const box = $('#bagList'); if(!box) return;
+  const nG = invOf().length, nD = S.drops.length;
+  $('#bCount').textContent = bagCount();
+  $('#bcGear').textContent = nG; $('#bcDrop').textContent = nD;
+  document.querySelectorAll('#bag .btabs button')
+    .forEach(b=>b.classList.toggle('on', b.dataset.t===bagTab));
+
+  if(bagTab==='gear'){
+    $('#bagNote').textContent = '装備工房で作り、鍛錬台で鍛えたもの。主人公や仲間のスロットに持たせると効きます。'
+      + '素材の特性がそのまま効果になります。上限なしで貯まります。';
+    if(!nG){ box.innerHTML = `<div class="bempty">まだ装備がありません。🛡️装備工房を建てると作れます。</div>`; return; }
+    const eq = equippedIds();
+    const holder = {};
+    for(const n of S.nodes) for(const g of gearOf(n)) if(g.id) holder[g.id]=tierOf(n).n;
+    box.innerHTML = invOf().slice().sort((a,b)=>gearPow(b)-gearPow(a)).map(p=>{
+      const on = eq.has(p.id);
+      return `<div class="bitem">
+        <div class="bmain">
+          <div class="bname">${gearName(p)}${on?`　<span class="bon">${holder[p.id]}が装備中</span>`:''}</div>
+          <div class="bsub">効き ${gearPow(p).toFixed(1)} ・ ${traitText(p.item)}</div>
+          <div class="beff">${Object.entries(traitsOf(p.item)).map(([t,w])=>
+            `<span>${TRAITS[t].i}${TRAITS[t].d}${w<1?`（${Math.round(w*100)}%）`:''}</span>`).join('')}</div>
+        </div>
+        <div class="bacts">
+          <button class="gsell" data-id="${p.id}" ${on?'disabled':''}>売却 +${fmt(gearSell(p))}G</button>
+          <button class="gtoss" data-id="${p.id}" ${on?'disabled':''}>廃棄</button>
+        </div>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('.gsell').forEach(b=>b.onclick=()=>sellGear(+b.dataset.id));
+    box.querySelectorAll('.gtoss').forEach(b=>b.onclick=()=>dropGear(+b.dataset.id));
+    return;
+  }
+
+  $('#bagNote').textContent = `第${DROP_FROM}層から落ちます。撃破のほか、深くて倒せないときも潜り続ければ拾えます。`
+    + '15層深くなるごとに等級が上がり、良い接辞も悪い接辞も混ざります。上限なしで貯まります。';
+  if(!nD){ box.innerHTML = `<div class="bempty">まだ何も拾っていません。第${DROP_FROM}層から施設が落ちます。</div>`; return; }
   box.innerHTML = S.drops.map(d=>{
     const m=d.mods, T=TYPES[d.type];
     const eff=[];
@@ -2051,11 +2116,15 @@ function renderBag(){
       <div class="bacts">
         <button class="put" data-id="${d.id}">設置</button>
         <button class="scrap" data-id="${d.id}">解体 +${fmt(scrapRp(d.type,1,d.grade))}🔬</button>
+        <button class="dsell" data-id="${d.id}">売却 +${fmt(dropSell(d))}G</button>
+        <button class="dtoss" data-id="${d.id}">廃棄</button>
       </div>
     </div>`;
   }).join('');
   box.querySelectorAll('.put').forEach(b=>b.onclick=()=>placeDrop(+b.dataset.id));
   box.querySelectorAll('.scrap').forEach(b=>b.onclick=()=>scrapDrop(+b.dataset.id));
+  box.querySelectorAll('.dsell').forEach(b=>b.onclick=()=>sellDrop(+b.dataset.id));
+  box.querySelectorAll('.dtoss').forEach(b=>b.onclick=()=>tossDrop(+b.dataset.id));
 }
 
 /* ========================= 描画 ========================= */
@@ -2096,20 +2165,22 @@ function render(){
       : T.stat ? (expRouted(n)
           ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}を戻している（累計 ${fmt(n.done||0)}）`
           : `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`)
-      : T.effect==='atk' ? '稼働中 → 攻撃力 +'+fmt(n.gain||0)
+      : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
       : T.effect==='dive'? '稼働中 → '+n.done+'回 潜った'
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
       : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
       : T.chain==='alloy' ? (n.item ? `${ITEMS[n.item].n}＋${ITEMS[CHAIN[tierIdx(n.item)+1].ingot].n} → ${ITEMS[alloyOf(tierIdx(n.item)+1)].n}` : '混ぜる地金を選んでください')
-      : T.chain==='anvil' ? (n.item ? `⚔️${ITEMS[n.item].n} ${n.eqLv||0}打　攻撃力 +${fmt(n.gain||0)}（次の1打ち +${fmt(anvilNext(n))}）` : '鍛える装備を選んでください')
+      : T.chain==='anvil' ? (()=>{ const p=invGet(n.eqId);
+          return p ? `⚔️${gearName(p)} を鍛錬中（${n.gain||0}打）` : '鍛える装備を選んでください'; })()
+      : T.chain==='equip' ? (n.item ? `${ITEMS[n.item].n}の装備を製作中（${n.gain||0}個）` : '作る装備を選んでください')
       : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
       : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
       : T.chain==='sell' ? (n.item ? `${ITEMS[n.item].n}を販売中 → 💰累計 ${fmt(n.gain||0)}` : '売る素材を選んでください')
       : T.chain==='clean' ? (n.item ? `${ITEMS[n.item].i}を処理中` : '片付ける副産物を選んでください')
       : T.chain==='fuel' ? (n.item ? `${ITEMS[n.item].i}を燃やして ⚡${fmt(fuelOut(n))}` : '燃やす副産物を選んでください')
       : T.chain ? (chainOf(n)
-          ? (T.chain==='atk' ? `装備中 → 攻撃力 +${fmt(n.gain||0)}` : `${ITEMS[n.item].i}${ITEMS[n.item].n} を処理中`)
+          ? `${ITEMS[n.item].i}${ITEMS[n.item].n} を処理中`
           : '扱う素材を選んでください')
       : T.aura ? (T.aura.k==='clean' ? `まわりの汚染を抑えている（強さ ${T.aura.v}）`
                                       : `まわりを速くしている（+${Math.round(T.aura.v*100)}%）`)
@@ -2207,7 +2278,7 @@ function render(){
   if(oc>0) ob.textContent=`⤢ ${oc}個のノードが画面外です — クリックで全体表示`;
   if($('#tree').classList.contains('on')) renderTree();
   $('#bCount').textContent=S.drops.length;
-  $('#bBag').hidden = S.drops.length===0;
+  $('#bCount').textContent = bagCount();
   renderShop(); renderInspLive(); tutRender();
 }
 
@@ -2224,9 +2295,9 @@ function ioText(T){
     const m={ore:'⚡<span class="ar">→</span>原鉱＋🗑️',
              ingot:'原鉱×2 ⚡<span class="ar">→</span>地金＋🗑️',
              part:'地金×2 ⚡<span class="ar">→</span>部品＋🗑️×2',
-             atk:'部品×1 ⚡<span class="ar">→</span>攻撃力↑',
+             equip:'部品×1 ＋ 合金×1<span class="ar">→</span>🎽装備をひとつ作る',
              alloy:'地金×2 ＋ 1つ上の地金×1<span class="ar">→</span>合金＋🗑️',
-             anvil:'装備×1 ＋ 合金×2<span class="ar">→</span>攻撃力↑（打つほど鈍る）'};
+             anvil:'合金×2<span class="ar">→</span>セットした装備を鍛える（打つほど鈍る）'};
     return m[T.chain] || '—';
   }
   if(T.aura) return T.aura.k==='clean'
@@ -2234,7 +2305,7 @@ function ioText(T){
     : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
   if(T.store) return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
   if(T.tool) return `素材×${T.take} ⚡×${T.sta}<span class="ar">→</span>素材×${Math.round(T.take*T.mul)}`;
-  const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='atk'?'攻撃力↑':T.effect==='lab'?'🔬研究力':'—');
+  const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='equip'?'🎽装備':T.effect==='lab'?'🔬研究力':'—');
   return `${a}<span class="ar">→</span>${b}`;
 }
 /* 建設リストは役割ごとに1枚。いま建てられる中でいちばん新しい版が並ぶ */
@@ -2410,14 +2481,14 @@ function renderInsp(){
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>
                 <div class="kv">研究在庫<b class="stk"></b></div>` : '') +
     (T.chain ? `<div class="kv">${{ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',atk:'身につける部品',comp:'圧縮する素材',decomp:'分解する素材',sell:'売る素材',clean:'片付ける副産物',fuel:'燃やす副産物'}[T.chain]}<select class="chn"></select></div>` : '') +
-    (T.chain==='atk'    ? `<div class="kv">1つあたり<b class="cval"></b></div>` : '') +
+    (T.chain==='anvil'  ? `<div class="kv">鍛える装備<select class="eqsel"></select></div>` : '') +
     (T.chain==='comp'   ? `<div class="kv">圧縮先<b class="cval"></b></div>` : '') +
     (T.chain==='decomp' ? `<div class="kv">1回あたり<b class="cval"></b></div>` : '') +
     (T.chain==='sell'   ? `<div class="kv">1回の売値<b class="cval"></b></div>` : '') +
     (T.chain==='fuel'   ? `<div class="kv">1回の産出<b class="cval"></b></div>` : '') +
     (T.chain==='alloy'  ? `<div class="kv">合成<b class="cval"></b></div>` : '') +
     (T.chain==='anvil'  ? `<div class="kv">鍛錬<b class="cval"></b></div>` : '') +
-    (T.chain && T.chain!=='clean' && T.chain!=='fuel'
+    (T.chain && T.chain!=='clean' && T.chain!=='fuel' && T.chain!=='anvil'
        ? `<div class="kv">素材の特性<b class="trt"></b></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
     (T.store ? `<div class="kv">貯める素材<div class="slotsel"></div></div>` : '') +
@@ -2455,13 +2526,23 @@ function renderInsp(){
       const row=document.createElement('div'); row.className='grow';
       const sl=document.createElement('select');
       sl.innerHTML=`<option value="">— 空き —</option>`+
-        gearOpts().map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
-      sl.value=g.item||'';
-      sl.onchange=()=>{ setGear(n,i,sl.value||null); renderInsp(); };
+        invFree(g.id).map(p=>`<option value="${p.id}">${gearName(p)}</option>`).join('');
+      sl.value=g.id||'';
+      sl.onchange=()=>{ g.id = sl.value ? +sl.value : null; gearDirty(); renderInsp(); };
       const info=document.createElement('div'); info.className='ginfo';
-      info.textContent = g.item ? `${g.n}個 馴染み ${traitText(g.item)}` : '装備を選んで配線で送り込む';
+      const p=invGet(g.id);
+      info.textContent = p ? `${traitText(p.item)}　効き ${gearPow(p).toFixed(1)}`
+                           : (invFree(null).length ? '持ち物から選ぶ' : '装備工房で作ると選べる');
       row.appendChild(sl); row.appendChild(info); w.appendChild(row);
     });
+  }
+  if(T.chain==='anvil'){
+    const sl=box.querySelector('.eqsel');
+    sl.innerHTML=`<option value="">— 未設定 —</option>`+
+      invFree(n.eqId).map(p=>`<option value="${p.id}">${gearName(p)}</option>`).join('');
+    sl.value=n.eqId||'';
+    sl.onchange=()=>{ n.eqId = sl.value ? +sl.value : null;
+      n.crafting=false; n.prog=0; n.inBuf={}; rebuildNodeEl(n); renderInsp(); };
   }
   if(T.store){
     const w=box.querySelector('.slotsel'); w.innerHTML='';
@@ -2563,10 +2644,8 @@ function renderInspLive(){
         ? `${ITEMS[CHAIN[i].ingot].n}×2 ＋ ${ITEMS[CHAIN[i+1].ingot].n}×1 → ${ITEMS[alloyOf(i+1)].n}`
           + `（価値 ${fmt(itemVal(alloyOf(i+1)))} / ${traitText(alloyOf(i+1))}）`
         : '—'; }
-    else if(TY.chain==='anvil'){ const i=tierIdx(n.item);
-      cv.textContent = i>=0
-        ? `${n.eqLv||0}打／累計 +${fmt(n.eqAtk||0)}　次の1打ち +${fmt(anvilNext(n))}（${ITEMS[alloyOf(i+1)].n}を打ち込み中）`
-        : '—'; }
+    else if(TY.chain==='anvil'){ const p=invGet(n.eqId);
+      cv.textContent = p ? `${gearName(p)}　効き ${gearPow(p).toFixed(1)} → 1打ちで ${gearPow({item:p.item,lv:p.lv+1}).toFixed(1)}` : '—'; }
     else { cv.textContent = n.item ? '攻撃力 +'+fmt(itemVal(n.item)*lvPow(n.level)) : '—'; }
   }
   box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
@@ -2791,7 +2870,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=8;
+const SAVE_V=9;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -2866,6 +2945,22 @@ function migrate(d){
     // 旧「汚染」は放射性廃棄物ではなく汚染のまま。歪みもそのまま
     d.v = 8;
   }
+  if(d.v < 9){
+    // 装備を「配線で送り込む」から「持ち物から選ぶ」に変えた
+    d.inv = d.inv || [];
+    let id = (d.nextId || 1000);
+    for(const n of d.nodes||[]){
+      if(!Array.isArray(n.gear)) { delete n.gear; continue; }
+      n.gear = n.gear.map(g=>{
+        if(!g || !g.item) return {id:null};
+        const p = {id:++id, item:g.item, lv:Math.max(0,(g.n||1)-1)};
+        d.inv.push(p); return {id:p.id};
+      });
+      delete n.eqLv; delete n.eqAtk;
+    }
+    d.nextId = Math.max(d.nextId||1, id+1);
+    d.v = 9;
+  }
   d.v = SAVE_V;
   return d;
 }
@@ -2929,6 +3024,8 @@ $('#sClose').onclick=()=>$('#stats').classList.remove('on');
 $('#stats').onclick=e=>{ if(e.target===$('#stats')) $('#stats').classList.remove('on'); };
 $('#tree').onclick=e=>{ if(e.target===$('#tree')) $('#tree').classList.remove('on'); };
 $('#bBag').onclick=()=>{ renderBag(); $('#bag').classList.add('on'); };
+document.querySelectorAll('#bag .btabs button').forEach(b=>
+  b.onclick=()=>{ bagTab=b.dataset.t; renderBag(); });
 $('#bClose').onclick=()=>$('#bag').classList.remove('on');
 $('#bag').onclick=e=>{ if(e.target===$('#bag')) $('#bag').classList.remove('on'); };
 $('#bCode').onclick=()=>{
@@ -2995,7 +3092,7 @@ function kindOf(t){
   if(T.stat)   return '訓練';
   if(T.effect==='dive') return '探索';
   if(T.effect==='lab')  return '研究';
-  if(T.effect==='atk')  return '強化';
+  if(T.effect==='equip') return '装備';
   return Object.keys(T.outs||{}).length ? '生産' : '処理';
 }
 function ioCell(t){
@@ -3004,7 +3101,7 @@ function ioCell(t){
   const f=o=>Object.keys(o||{}).map(k=>`${ITEMS[k].i}${o[k]>1?'×'+o[k]:''}`).join(' ');
   if(T.tool)  return `素材×${T.take} ⚡×${T.sta} → 素材×${Math.round(T.take*T.mul)}`;
   const out = f(T.outs) || (T.stat ? statName(T.stat)
-            : T.effect==='dive' ? '⚔️攻撃' : T.effect==='atk' ? '攻撃力↑'
+            : T.effect==='dive' ? '⚔️攻撃' : T.effect==='equip' ? '🎽装備'
             : T.effect==='lab'  ? '🔬研究力' : '—');
   return `${f(T.ins)||'—'} → ${out}`;
 }
