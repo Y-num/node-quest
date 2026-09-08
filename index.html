@@ -851,10 +851,18 @@ const baseOf = k => { const i=k.indexOf('@'); return i<0 ? k : k.slice(0,i); };
 const densKey= (k,d) => d<=0 ? baseOf(k) : baseOf(k)+'@'+d;
 // 密度d→d+1 で価値が何倍になるか。5倍(まとめただけ)＋上乗せぶん
 const densStep = d => COMP_TAKE * (1 + COMP_EDGE * Math.pow(COMP_FADE, d));
-const DENS_MARK = ['','²','³','⁴','⁵','⁶','⁷','⁸','⁹','¹⁰','¹¹','¹²','¹³','¹⁴','¹⁵'];
+const SUPER = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const densName = d => d ? String(d+1).split('').map(c=>SUPER[+c]).join('') : '';
+/* 段は上限なく増やせる。使うときに作る */
+function ensureItem(k){
+  if(ITEMS[k]) return ITEMS[k];
+  const b = baseOf(k), d = densOf(k);
+  if(!d || !ITEMS[b]) return null;
+  return ITEMS[k] = {n: ITEMS[b].n + densName(d), i: ITEMS[b].i, c: ITEMS[b].c, dens:d};
+}
 /* 圧縮したもの・鍛えたものは、絵文字だけだと素のものと見分けが付かない。
    ノードの口には段数のしるしを添える */
-const densTag = k => { const d=densOf(k); return d ? `<i class="dm">${DENS_MARK[d]}</i>` : ''; };
+const densTag = k => { const d=densOf(k); return d ? `<i class="dm">${densName(d)}</i>` : ''; };
 const EXP_OF  = {str:'exs', int:'exi', vit:'exv'};
 const STAT_OF = {exs:'str', exi:'int', exv:'vit'};
 
@@ -894,12 +902,15 @@ function traitsOf(k){
 const traitText = k => Object.entries(traitsOf(k))
   .map(([t,w])=>`${TRAITS[t].i}${TRAITS[t].n}${w<1?Math.round(w*100)+'%':''}`).join(' ');
 
-// 圧縮の行き先＝1つ上の密度。古い時代の圧縮機は浅い密度までしか扱えない
-const densCap = era => Math.min(DENS_MAX, 2 + Math.floor((era||1)*1.3));
+/* 圧縮の行き先＝1つ上の段。古い時代の圧縮機は浅い段までしか扱えない。
+   最後の時代のものだけは上限なし */
+const densCap = era => (era||1) >= ERA_MAX ? Infinity : Math.min(DENS_MAX, 2 + Math.floor((era||1)*1.3));
 function nextTier(k, cap){
   const d = densOf(k);
   if(d >= (cap===undefined ? DENS_MAX : cap)) return null;
-  return densKey(k, d+1);
+  const to = densKey(k, d+1);
+  ensureItem(to);
+  return to;
 }
 // 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
 const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30};
@@ -954,12 +965,13 @@ const chainOf = n => { if(!n.item) return null; const b=baseOf(n.item);
 const chainOpen = c => S.best >= c.floor;
 // そのノードの素材セレクタに並べる選択肢
 // 圧縮で作ったことのある密度までを選択肢に出す（無闇に長くしない）
-const seenDens = () => Math.max(0, Math.min(DENS_MAX, S.maxDens||0));
+const seenDens = () => Math.max(0, S.maxDens||0);
 const seenEqp  = () => Math.max(0, Math.min(DENS_MAX, S.maxEqp||0));
 // 作ったことのある段＋1つ先まで出す。先に受け手を用意しておけるように
 const withDens = (arr, cap) => {
-  const d = Math.min(seenDens() + 1, cap===undefined ? DENS_MAX : cap), o=[];
-  for(const k of arr) for(let i=0;i<=d;i++) o.push(densKey(k,i));
+  const lim = (cap===undefined || !isFinite(cap)) ? DENS_MAX : cap;
+  const d = Math.min(seenDens() + 1, lim), o=[];
+  for(const k of arr) for(let i=0;i<=d;i++){ const key=densKey(k,i); ensureItem(key); o.push(key); }
   return o;
 };
 /* 貯蔵に入れられるもの。厄介な副産物も貯めておける（片付ける手段が来るまでの緩衝） */
@@ -1194,7 +1206,7 @@ const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',a
   for(const b of base){
     if(b==='sta') continue;
     for(let d=1; d<=DENS_MAX; d++){
-      ITEMS[densKey(b,d)] = {n: ITEMS[b].n + DENS_MARK[d], i: ITEMS[b].i, c: ITEMS[b].c, dens:d};
+      ITEMS[densKey(b,d)] = {n: ITEMS[b].n + densName(d), i: ITEMS[b].i, c: ITEMS[b].c, dens:d};
     }
   }
 })();
@@ -2612,7 +2624,9 @@ function render(){
 const shopEls={};
 function ioText(T){
   const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
-  if(T.chain==='comp')   return `素材×${COMP_TAKE} ⚡<span class="ar">→</span>1つ上の素材×1`;
+
+  if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1`
+    + `（${isFinite(densCap(T.era)) ? densCap(T.era)+'段まで' : '段の上限なし'}）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
   if(T.chain==='sell')   return `受け入れた素材×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
@@ -2972,7 +2986,7 @@ function renderInspLive(){
   if(cv){
     if(TY.chain==='comp'){ const nx=n.item&&nextTier(n.item, densCap(TY.era));
       cv.textContent = nx ? `${ITEMS[n.item].n}×${COMP_TAKE} → ${ITEMS[nx].n}×1（価値 ×${(itemVal(nx)/Math.max(1e-9,itemVal(n.item))).toFixed(2)}）`
-        : (n.item ? `この時代では密度${densCap(TY.era)}まで` : '—'); }
+        : (n.item ? (isFinite(densCap(TY.era)) ? `この時代では ${densCap(TY.era)} 段まで` : '—') : '—'); }
     else if(TY.chain==='fuel'){
       cv.textContent = n.item ? `⚡ ${fmt(fuelOut(n))}` : '—'; }
     else if(TY.chain==='sell'){ const k=n.sellK||n.item;
