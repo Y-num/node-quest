@@ -972,7 +972,8 @@ const TYPES = {
   mate  :{n:'仲間',      i:'🧑‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1,
           d:'もう一つの体力の源。装備スロットが1つある。増やすほど工房を広げられる'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
-          d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出るので、売り先へ配線する'},
+          d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
+           +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore',
           d:'原鉱を掘る。掘る鉱石は選ぶ。かならず副産物が出る'},
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean',
@@ -1762,7 +1763,7 @@ function tick(dt,fast){
     let budget=dt, guard=1000;
     for(;;){
       if(!n.crafting){
-        const need=insOf(n), give=outsOf(n);
+        const need=insOf(n), give=T.loot ? {} : outsOf(n);   // 戦利品は満杯でも止めない
         let ok=true;
         for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
         if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){ ok=false; n.why=`${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`; }
@@ -2272,7 +2273,8 @@ function render(){
           ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}を戻している（累計 ${fmt(n.done||0)}）`
           : `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`)
       : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
-      : T.effect==='dive'? `稼働中 → ${n.done}回 潜った（${ITEMS[lootItem(n)].i}${fmt(n.outBuf[lootItem(n)]||0)}/${fmt(capOut(n,lootItem(n)))}）`
+      : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
+          return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
       : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
@@ -2406,7 +2408,7 @@ function ioText(T){
              anvil:'装備×1 ＋ 合金×2<span class="ar">→</span>一段鍛えた装備×1（伸びは鈍る）'};
     return m[T.chain] || '—';
   }
-  if(T.loot) return `⚡<span class="ar">→</span>⚔️攻撃 ＋🎁戦利品（${LOOT_CAP}個まで積める）`;
+  if(T.loot) return `⚡<span class="ar">→</span>⚔️攻撃 ＋🎁戦利品（${LOOT_CAP}個まで。あふれたぶんは消える）`;
   if(T.aura) return T.aura.k==='clean'
     ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
     : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
@@ -2805,9 +2807,9 @@ const TUT = [
     check:()=> linkFrom('hero','sta','mine') },
 
   { t:'戦利品を売る',
-    d:'ダンジョンは撃破のたびに <b>🎁戦利品</b> を出します。自分の中には5個までしか積めないので、'
-     +'いっぱいになると潜れなくなります。<b>🏪 露店</b>を建て、<b>主人公の⚡</b> と '
-     +'<b>洞窟の入口の🎁</b> の2本を繋いでください。',
+    d:'ダンジョンは撃破のたびに <b>🎁戦利品</b> を出します。自分の中には5個までしか積めず、'
+     +'あふれたぶんは手に入りません（潜るのは続きます）。<b>🏪 露店</b>を建て、'
+     +'<b>主人公の⚡</b> と <b>洞窟の入口の🎁</b> の2本を繋いでください。',
     pane:'shop', hi:()=> shopEls.shop.root,
     check:()=> linkFrom('hero','sta','shop') && linkFrom('dive','lot1','shop') },
 
