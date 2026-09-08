@@ -1172,7 +1172,8 @@ const ERA_EXTRA = {
 const FAC = {
   mine:  [{e:1,n:'石のつるはし',i:'🪓'},{e:3,n:'鉄のつるはし',i:'⛏️'},{e:5,n:'蒸気掘削機',i:'🚂'},
           {e:7,n:'自動採掘場',i:'🤖'},{e:9,n:'量子採掘機',i:'🧿'},{e:10,n:'次元採掘',i:'🌌'}],
-  smelt: [{e:1,n:'焚き火',i:'🔥'},{e:2,n:'るつぼ',i:'🏺'},{e:3,n:'炉',i:'🧱'},{e:5,n:'高炉',i:'🏭'},
+  smelt: [{e:1,n:'焚き火',i:'🔥',eff:1.25,d:'原鉱2つを地金1つにする。素朴なので⚡を余計に食う'},
+          {e:2,n:'るつぼ',i:'🏺'},{e:3,n:'炉',i:'🧱'},{e:5,n:'高炉',i:'🏭'},
           {e:6,n:'電気炉',i:'⚡'},{e:8,n:'核融合炉',i:'☢️'},{e:10,n:'恒星炉',i:'🌞'}],
   alloy: [{e:3,n:'合金炉',i:'⚗️'},{e:6,n:'電気合成炉',i:'🧪'},{e:8,n:'中性子合成炉',i:'☢️'},
           {e:10,n:'次元合成',i:'🌌'}],
@@ -1238,7 +1239,7 @@ function tierOf(n){
   if(list){ const f = list.find(x => x.e > (T.era||0)); if(f) next = [f.e, f.n]; }
   return {t:T.era||1, n:nm, i:T.i, max:ERA_MAX, next};
 }
-const effOf   = n => Math.pow(ERA_EFF, (TYPES[n.type].era||1)-1);
+const effOf   = n => (TYPES[n.type].eff || 1) * Math.pow(ERA_EFF, (TYPES[n.type].era||1)-1);
 const baseName= t => TYPES[t].i + TYPES[t].n;
 
 const ORDER = ['hero'];
@@ -1253,6 +1254,7 @@ function buildFac(){
         cost: Math.round(base.cost * Math.pow(ERA_COST, g)),
         up:   Math.max(1, Math.round(base.cost * UP_RATE * Math.pow(ERA_UP, g))),
       });
+      if(f.eff)  T.eff  = f.eff;               // ⚡の食いぶちの上乗せ
       if(f.ins)  T.ins  = f.ins;
       if(f.outs) T.outs = f.outs;
       if(f.hd)   T.hd   = f.hd;
