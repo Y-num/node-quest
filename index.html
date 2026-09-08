@@ -902,12 +902,13 @@ function traitsOf(k){
 const traitText = k => Object.entries(traitsOf(k))
   .map(([t,w])=>`${TRAITS[t].i}${TRAITS[t].n}${w<1?Math.round(w*100)+'%':''}`).join(' ');
 
-/* 圧縮の行き先＝1つ上の段。古い時代の圧縮機は浅い段までしか扱えない。
-   最後の時代のものだけは上限なし */
-const densCap = era => (era||1) >= ERA_MAX ? Infinity : Math.min(DENS_MAX, 2 + Math.floor((era||1)*1.3));
+/* 圧縮の行き先＝1つ上の段。段そのものに上限はない。
+   （深く圧縮するほど1段あたりの上乗せが減るので、そこが自然な頭打ちになる）
+   時代の差は速さと動力に出る                                            */
+const densCap = () => Infinity;
 function nextTier(k, cap){
   const d = densOf(k);
-  if(d >= (cap===undefined ? DENS_MAX : cap)) return null;
+  if(cap !== undefined && d >= cap) return null;
   const to = densKey(k, d+1);
   ensureItem(to);
   return to;
@@ -968,8 +969,9 @@ const chainOpen = c => S.best >= c.floor;
 const seenDens = () => Math.max(0, S.maxDens||0);
 const seenEqp  = () => Math.max(0, Math.min(DENS_MAX, S.maxEqp||0));
 // 作ったことのある段＋1つ先まで出す。先に受け手を用意しておけるように
+// 作ったことのある段＋1つ先まで出す。先に受け手を用意しておけるように
 const withDens = (arr, cap) => {
-  const lim = (cap===undefined || !isFinite(cap)) ? DENS_MAX : cap;
+  const lim = (cap===undefined) ? Infinity : cap;
   const d = Math.min(seenDens() + 1, lim), o=[];
   for(const k of arr) for(let i=0;i<=d;i++){ const key=densKey(k,i); ensureItem(key); o.push(key); }
   return o;
@@ -991,17 +993,16 @@ function chainOpts(t){
   if(T.loot) return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filter(Boolean);
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   if(k==='alloy'){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i-1].ingot); return o; }
-  if(k==='anvil'){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i-1].part); return o; }
-  if(k==='comp')          return withDens(mats, densCap(g)-1);
+  if(k==='comp')          return withDens(mats);
   if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
   if(k==='decomp'||k==='sell')
     return withDens(['waste','toxic','rad','rift'].concat(mats))
       .concat(lotList(), eqpList(), alyList());
   if(k==='equip')         return CHAIN.filter(chainOpen).map(c=>c.part);
-  if(k==='anvil'){ const o=[];
+  if(k==='anvil'){ const o=[];           // 鍛える装備。作ったことのある段＋1つ先まで
     for(let i=0;i<CHAIN.length;i++) if(chainOpen(CHAIN[i]))
-      for(let d=0; d<Math.min(seenEqp()+1, densCap(g)); d++) o.push(densKey(eqpOf(i), d));
+      for(let d=0; d<=seenEqp()+1; d++){ const key=densKey(eqpOf(i), d); ensureItem(key); o.push(key); }
     return o; }
   return CHAIN.filter(chainOpen).map(c => k==='part' ? c.ingot : c.ore);
 }
@@ -2625,8 +2626,7 @@ const shopEls={};
 function ioText(T){
   const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
 
-  if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1`
-    + `（${isFinite(densCap(T.era)) ? densCap(T.era)+'段まで' : '段の上限なし'}）`;
+  if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
   if(T.chain==='sell')   return `受け入れた素材×${SELL_TAKE} ⚡<span class="ar">→</span>💰ゴールド`;
   if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
@@ -2986,7 +2986,7 @@ function renderInspLive(){
   if(cv){
     if(TY.chain==='comp'){ const nx=n.item&&nextTier(n.item, densCap(TY.era));
       cv.textContent = nx ? `${ITEMS[n.item].n}×${COMP_TAKE} → ${ITEMS[nx].n}×1（価値 ×${(itemVal(nx)/Math.max(1e-9,itemVal(n.item))).toFixed(2)}）`
-        : (n.item ? (isFinite(densCap(TY.era)) ? `この時代では ${densCap(TY.era)} 段まで` : '—') : '—'); }
+        : '—'; }
     else if(TY.chain==='fuel'){
       cv.textContent = n.item ? `⚡ ${fmt(fuelOut(n))}` : '—'; }
     else if(TY.chain==='sell'){ const k=n.sellK||n.item;
@@ -3001,7 +3001,7 @@ function renderInspLive(){
     else if(TY.chain==='anvil'){ const to=n.item?nextTier(n.item, densCap(TY.era)):null;
       cv.textContent = to
         ? `${gearName(n.item)}（効き ${gearPow(n.item).toFixed(1)}）→ ${gearName(to)}（効き ${gearPow(to).toFixed(1)}）`
-        : (n.item ? `この時代では ${densCap(TY.era)}段まで` : '—'); }
+        : '—'; }
     else { cv.textContent = n.item ? '攻撃力 +'+fmt(itemVal(n.item)*lvPow(n.level)) : '—'; }
   }
   box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
