@@ -1085,7 +1085,7 @@ const TYPES = {
           d:'地金2つを部品1つに加工する。副産物も多い'},
   anvil :{n:'鍛錬台',    i:'🔨', cost:9000, up:11000, time:2.6, ins:{}, outs:{}, chain:'anvil', effect:'anvil',
           d:'持ち物から装備をひとつ選んでセットし、合金を打ち込んで鍛える。打つほど伸びは鈍る'},
-  equip :{n:'装備工房',  i:'🎽', cost:12000, up:15000, time:5.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
+  equip :{n:'装備工房',  i:'🎽', cost:9000, up:11000, time:5.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
           d:'部品1つと合金1つで装備を作る。できた装備は出力に積まれ、鍛錬台で鍛えられる'},
   tool  :{n:'道具',      i:'🪵', cost:800,  up:1100, time:2.5, tool:true, mul:1.5, take:4, sta:3,
           d:'間に挟むと通した素材が増える増幅器'},
@@ -1174,12 +1174,12 @@ const FAC = {
           {e:6,n:'電気炉',i:'⚡'},{e:8,n:'核融合炉',i:'☢️'},{e:10,n:'恒星炉',i:'🌞'}],
   alloy: [{e:3,n:'合金炉',i:'⚗️'},{e:6,n:'電気合成炉',i:'🧪'},{e:8,n:'中性子合成炉',i:'☢️'},
           {e:10,n:'次元合成',i:'🌌'}],
-  forge: [{e:2,n:'金床',i:'🔨'},{e:4,n:'水車鍛造',i:'💧'},{e:5,n:'蒸気ハンマー',i:'🚂'},
+  forge: [{e:1,n:'金床',i:'🔨'},{e:4,n:'水車鍛造',i:'💧'},{e:5,n:'蒸気ハンマー',i:'🚂'},
           {e:6,n:'旋盤',i:'⚙️'},{e:7,n:'ロボット加工',i:'🦾'},{e:9,n:'ナノ組立',i:'🦠'},
           {e:10,n:'次元鍛造',i:'🌀'}],
-  equip: [{e:3,n:'装備工房',i:'🎽'},{e:5,n:'兵装工房',i:'⚔️'},{e:7,n:'装甲組立',i:'🦾'},
+  equip: [{e:2,n:'装備工房',i:'🎽'},{e:5,n:'兵装工房',i:'⚔️'},{e:7,n:'装甲組立',i:'🦾'},
           {e:9,n:'生体装備炉',i:'🧬'},{e:10,n:'次元装備',i:'🌌'}],
-  anvil: [{e:2,n:'鍛錬台',i:'🔨'},{e:5,n:'強化炉',i:'🛠️'},{e:8,n:'改造槽',i:'🧫'},
+  anvil: [{e:3,n:'鍛錬台',i:'🔨'},{e:5,n:'強化炉',i:'🛠️'},{e:8,n:'改造槽',i:'🧫'},
           {e:10,n:'次元強化',i:'🌌'}],
   dive:  [{e:1,n:'洞窟の入口',i:'🕳️'},{e:3,n:'ダンジョン',i:'🚪'},{e:5,n:'深層門',i:'🌀'},
           {e:7,n:'転移門',i:'🔷'},{e:9,n:'星間門',i:'🌠'},{e:10,n:'時空門',i:'⏳'}],
@@ -1350,10 +1350,10 @@ function insOf(n){
     return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*1.4*e*COST_K)),
       [CHAIN[i].ingot]:2, [CHAIN[i+1].ingot]:1}));
   }
-  if(T.chain==='equip'){                       // 部品1つ＋同じ段位の合金1つ → 装備1つ
+  if(T.chain==='equip'){                       // 部品1つ＋同じ段位の地金2つ → 装備1つ
     const i = tierIdx(n.item); if(i<0) return {};
     return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*1.5*e*COST_K)),
-      [CHAIN[i].part]:1, [alyFor(i)]:1}));
+      [CHAIN[i].part]:1, [CHAIN[i].ingot]:2}));
   }
   if(T.chain==='anvil'){                       // 装備1つ＋合金2つ → 一段鍛えた装備1つ
     const i = matTier(n.item); if(i<0 || !isEqp(n.item)) return {};
@@ -1547,7 +1547,7 @@ function craftTime(n){
    チュートリアルで触る役割はとくに安くしてある */
 // 採掘だけは割り引かない（最初の「待っていればゴールドが貯まる」を見せる段のため）
 const FIRST = {dump:0.35, shop:0.5, lab:0.5, tstr:0.6, tint:0.6, tvit:0.6, box:0.5,
-               smelt:0.5, forge:0.5, comp:0.5, fuel:0.5, purify:0.5, armory:0.5, boost:0.5};
+               smelt:0.5, forge:0.5, comp:0.5, fuel:0.5, purify:0.5, equip:0.5, boost:0.5};
 const buyCost = t => {
   const T = TYPES[t], c = S.counts[t]||0;
   const base = (c===0 && FIRST[T.line]) ? T.cost * FIRST[T.line] : T.cost;
@@ -1640,13 +1640,17 @@ const OFF_SIM_MAX = 48 * 3600;                              // 一度に計算�
 /* 研究ポイントは共通のプール。時代を上げるのに使う */
 /* 施設は「その時代に達していれば建てられる」。個別の研究はもう無い */
 const isDev  = t => (TYPES[t].era || 1) <= (S.era || 1);
+/* その役割の施設が、いまの時代にひとつでもあるか */
+const devHas = role => !!FAC[role] && FAC[role].some(f => f.e <= (S.era||1));
 const isSeen = t => (TYPES[t].era || 1) <= (S.era || 1) + 1;   // 次の時代のぶんまで覗ける
 const gotRp  = () => Math.floor(S.rp || 0);
 const gotMat = () => Math.floor(S.stock || 0);
 /* 時代を1つ上げるのに要るもの。桁は時代ごとに大きく変わる */
 const ERA_RP0 = 2500, ERA_RPK = 6;
 const ERA_MAT_FROM = 4, ERA_MATK = 3.5;
-const eraRp  = e => e<=1 ? 0 : Math.round(ERA_RP0 * Math.pow(ERA_RPK, e-2));
+const ERA_RP_EARLY = {2:800, 3:5000};      // 装備に触れるまでは軽く
+const eraRp  = e => e<=1 ? 0
+  : (ERA_RP_EARLY[e] || Math.round(ERA_RP0 * Math.pow(ERA_RPK, e-2)));
 const eraMat = e => e < ERA_MAT_FROM ? 0 : Math.round(150 * Math.pow(ERA_MATK, e-ERA_MAT_FROM));
 const canEra = () => (S.era||1) < ERA_MAX
   && gotRp() >= eraRp((S.era||1)+1) && gotMat() >= eraMat((S.era||1)+1);
@@ -2465,7 +2469,9 @@ function openBox(n, fast){
   const add  = (k,q)=>{ ensureItem(k); got[k]=(got[k]||0)+q; };
   for(let i=0;i<b.num;i++){
     const t = Math.min(top, lo + Math.floor(Math.random()*3));
-    const pool = [CHAIN[t].ore, CHAIN[t].ingot, CHAIN[t].part];
+    const pool = [CHAIN[t].ore, CHAIN[t].ingot];
+    if(devHas('forge')) pool.push(CHAIN[t].part);           // 加工があるなら部品も
+    if(devHas('alloy') && t >= 1) pool.push(alloyOf(t));    // 合金炉があるなら鍛錬の材料も
     add(pool[Math.floor(Math.random()*pool.length)], 1 + Math.floor(rank/4));
   }
   if(Math.random() < b.eq) add(eqpOf(Math.min(top, lo)), 1);          // 装備
@@ -3683,6 +3689,14 @@ const TUT = [
      +'<b>🛍 ゴミ袋</b>を建て、そこへ <b>主人公の⚡</b> と <b>採掘の🗑</b> の2本を繋いでください。',
     pane:'shop', hi:()=> shopEls.dump.root,
     check:()=> linkFrom('hero','sta','dump') && linkFrom('mine','waste','dump') },
+
+  { t:'宝箱を開ける',
+    d:'ダンジョンは <b>🥉宝箱</b> も落とします。<b>📦 開封所</b>を建てて、'
+     +'<b>主人公の⚡</b> と <b>洞窟の入口の🥉</b> を繋いでください。'
+     +'中身は<b>自宅</b>に入り、🎒持ち物の〈自宅〉から見られます。'
+     +'自宅の素材は <b>🏠搬出口</b> を建てると工房へ送り出せます。',
+    pane:'shop', hi:()=> shopEls.open.root,
+    check:()=> linkFrom('hero','sta','open') && linkFrom('dive','bxc','open') },
 
   { t:'あとは自由に',
     d:'基本はこれだけです。🏋️訓練の経験値は<b>主人公に配線を戻す</b>と能力になります。'
