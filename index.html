@@ -3689,36 +3689,65 @@ stage.addEventListener('pointerdown', e=>{
   }
   try{stage.setPointerCapture(e.pointerId)}catch(_){}
 });
-stage.addEventListener('pointermove', e=>{
-  if(!ptrs.has(e.pointerId) && e.target.closest(OVERLAY_SEL)) return;
-  if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(ptrs.size>=2){ doPinch(); return; }
+/* 端まで引っ張ったら、その向きに盤面が動く */
+let edgePtr = null;
+const EDGE_W = 84, EDGE_SPD = 900;
+function edgeScroll(dt){
+  if(!drag || !edgePtr) return;
+  if(!['link','node','lasso','wire'].includes(drag.mode)) return;
+  const r = stage.getBoundingClientRect();
+  const l = edgePtr.x - r.left, rr = r.right - edgePtr.x;
+  const t = edgePtr.y - r.top,  b = r.bottom - edgePtr.y;
+  let dx = 0, dy = 0;
+  if(l  < EDGE_W) dx =  (EDGE_W - Math.max(0,l))  / EDGE_W;
+  if(rr < EDGE_W) dx = -(EDGE_W - Math.max(0,rr)) / EDGE_W;
+  if(t  < EDGE_W) dy =  (EDGE_W - Math.max(0,t))  / EDGE_W;
+  if(b  < EDGE_W) dy = -(EDGE_W - Math.max(0,b))  / EDGE_W;
+  if(!dx && !dy) return;
+  S.view.x += dx * EDGE_SPD * dt;
+  S.view.y += dy * EDGE_SPD * dt;
+  applyView();
+  dragTo(edgePtr.x, edgePtr.y);     // 動いたぶん、掴んでいるものも追わせる
+}
+/* いまの指の位置にあわせて、掴んでいるものを更新する */
+function dragTo(cx, cy){
   if(!drag) return;
-  if(drag.mode==='pan'){
-    S.view.x=drag.vx+(e.clientX-drag.sx); S.view.y=drag.vy+(e.clientY-drag.sy); applyView();
-  }else if(drag.mode==='node'){
-    const n=N(drag.id), w=toWorld(e.clientX,e.clientY);
+  if(drag.mode==='node'){
+    const n=N(drag.id); if(!n) return;
+    const w=toWorld(cx,cy);
     const nx=Math.round((w.x-drag.ox)/10)*10, ny=Math.round((w.y-drag.oy)/10)*10;
     drag.moved+=Math.abs(nx-n.x)+Math.abs(ny-n.y);
     n.x=nx; n.y=ny; n.el.root.style.left=nx+'px'; n.el.root.style.top=ny+'px';
   }else if(drag.mode==='wire'){
     const l=S.links.find(x=>x.id===drag.id); if(!l) return;
-    drag.moved=Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy);
     if(drag.handle||drag.moved>5){
-      const w=toWorld(e.clientX,e.clientY);
+      const w=toWorld(cx,cy);
       l.wp={x:Math.round(w.x/10)*10, y:Math.round(w.y/10)*10};
     }
   }else if(drag.mode==='lasso'){
-    const w=toWorld(e.clientX,e.clientY), last=drag.pts[drag.pts.length-1];
+    const w=toWorld(cx,cy), last=drag.pts[drag.pts.length-1];
     if(Math.hypot(w.x-last.x, w.y-last.y) > 6) drag.pts.push(w);
     $('#lasso').setAttribute('d', lassoD(drag.pts));
   }else if(drag.mode==='link'){
-    const a=N(drag.from), w=toWorld(e.clientX,e.clientY);
+    const a=N(drag.from); if(!a) return;
+    const w=toWorld(cx,cy);
     $('#temp').setAttribute('d', dStr(bez(portPos(a,drag.item,'out'), w)));
-    // 候補の表示は消さず、いま指しているものだけを強調する
-    const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
+    const el=document.elementFromPoint(cx,cy), tn=el&&el.closest('.node');
     document.querySelectorAll('.node.over').forEach(x=>x.classList.remove('over'));
     if(tn && tn.classList.contains('tgt')) tn.classList.add('over');
+  }
+}
+stage.addEventListener('pointermove', e=>{
+  if(!ptrs.has(e.pointerId) && e.target.closest(OVERLAY_SEL)) return;
+  edgePtr = {x:e.clientX, y:e.clientY};
+  if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size>=2){ doPinch(); return; }
+  if(!drag) return;
+  if(drag.mode==='pan'){
+    S.view.x=drag.vx+(e.clientX-drag.sx); S.view.y=drag.vy+(e.clientY-drag.sy); applyView();
+  }else{
+    if(drag.mode==='wire') drag.moved=Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy);
+    dragTo(e.clientX, e.clientY);
   }
 });
 /* 受け取れるノードと、その中の受け取り口を光らせる */
@@ -3741,6 +3770,7 @@ function clearTargets(){
 }
 function endPointer(e){
   ptrs.delete(e.pointerId);
+  if(ptrs.size===0) edgePtr=null;
   if(ptrs.size<2) pinch=null;
 }
 stage.addEventListener('pointercancel', e=>{ endPointer(e); drag=null; stage.classList.remove('panning'); });
@@ -4167,7 +4197,9 @@ checkSeen(true);
 let last=performance.now(), accS=0;
 let SPEED = 1;                      // デバッグ時だけ変えられる進行速度
 function loop(now){
-  const dt=Math.min(0.1,(now-last)/1000) * SPEED; last=now;
+  const raw=Math.min(0.1,(now-last)/1000);
+  const dt=raw * SPEED; last=now;
+  edgeScroll(raw);
   tick(dt,false); render();
   accS+=dt; if(accS>5){ accS=0; save(); }
   requestAnimationFrame(loop);
