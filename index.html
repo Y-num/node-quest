@@ -122,6 +122,19 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
   background:rgba(17,22,35,.97);border:1px solid var(--line);border-radius:11px;
   backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.5);display:none}
 #insp.on{display:block}
+#insp .more[hidden]{display:none}
+#insp .mtog{width:100%;margin-top:7px;background:#0c111b;border:1px solid var(--line);
+  border-radius:7px;padding:5px;font-size:10.5px;color:var(--dim)}
+#insp .mtog:hover{border-color:var(--acc2);color:var(--acc2)}
+@media (max-width:860px), (max-height:520px){
+  /* 縦画面では下から出る小さなシートにして、盤面を隠しすぎないようにする */
+  #insp{left:6px;right:6px;bottom:6px;width:auto;max-height:44vh;overflow-y:auto;
+    padding:9px 10px;border-radius:12px;-webkit-overflow-scrolling:touch}
+  #insp .kv{margin-top:4px;font-size:10.5px}
+  #insp .t{font-size:12.5px}
+  #insp .btns{margin-top:7px;position:sticky;bottom:-9px;
+    background:linear-gradient(180deg,transparent,rgba(17,22,35,.97) 40%);padding-top:5px}
+}
 #insp .t{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px}
 #insp .t .lv{margin-left:auto;font-size:10px;color:var(--acc)}
 #insp .kv{display:flex;font-size:11px;color:var(--dim);margin-top:5px;gap:8px}
@@ -769,6 +782,13 @@ const ITEMS = {
   aly3 :{n:'白金鋼', i:'⚪', c:'#e8f0fa'},
   aly4 :{n:'魔導合金',i:'🟪', c:'#c79bff'},
   aly5 :{n:'星辰合金',i:'💫', c:'#8ff7e6'},
+  // 戦利品。ダンジョンが撃破のたびに出す。売るか、分解して研究に回す
+  lot1 :{n:'戦利品',       i:'🎁', c:'#c98a55'},
+  lot2 :{n:'上等な戦利品', i:'🎀', c:'#aeb8c2'},
+  lot3 :{n:'希少な戦利品', i:'💼', c:'#dde5ee'},
+  lot4 :{n:'貴重な戦利品', i:'🧳', c:'#f2ce55'},
+  lot5 :{n:'魔性の戦利品', i:'🎇', c:'#c79bff'},
+  lot6 :{n:'星霊の戦利品', i:'🌠', c:'#7ff2dd'},
   // 装備。装備工房で作り、鍛錬台で鍛える。ふつうのアイテムとして流れて積める
   eqp1 :{n:'銅の装備',   i:'🎽', c:'#c98a55'},
   eqp2 :{n:'鉄の装備',   i:'🦺', c:'#aeb8c2'},
@@ -837,8 +857,8 @@ function traitsOf(k){
   const b = baseOf(k||'');
   const m = /^aly(\d)$/.exec(b);
   if(m){ const i=+m[1]-1; const o={}; o[CHAIN_TRAIT[i]]=0.67; o[CHAIN_TRAIT[i+1]]=0.33; return o; }
-  const q = /^eqp(\d)$/.exec(b);
-  if(q) return {[CHAIN_TRAIT[+q[1]-1]]:1};
+  const q = /^(eqp|lot)(\d)$/.exec(b);
+  if(q) return {[CHAIN_TRAIT[+q[2]-1]]:1};
   const i = tierIdx(b);
   return i>=0 ? {[CHAIN_TRAIT[i]]:1} : {};
 }
@@ -854,6 +874,9 @@ function nextTier(k, cap){
 }
 // 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
 const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30};
+const LOOT_K  = 0.6;                        // 戦利品の値打ち
+const lotOf   = i => 'lot'+(i+1);           // 段位i(0..5)の戦利品
+const isLot   = k => /^lot\d$/.test(baseOf(k||''));
 const EQP_K   = 1.5;                        // 装備は元の部品より少し価値が高い
 const EQP_STEP= (d) => 1 + 0.45 * Math.pow(0.85, d);   // 鍛錬1回の伸び。すぐ鈍る
 const eqpOf   = i => 'eqp'+(i+1);           // 段位i(0..5)の装備
@@ -868,6 +891,7 @@ function baseVal(b){
   if(BYP_VAL[b]!==undefined) return BYP_VAL[b];
   const m=/^aly(\d)$/.exec(b); if(m) return alloyVal(+m[1]);
   const q=/^eqp(\d)$/.exec(b); if(q) return CHAIN[+q[1]-1].val * EQP_K;
+  const r=/^lot(\d)$/.exec(b); if(r) return CHAIN[+r[1]-1].val * LOOT_K;
   for(const c of CHAIN){
     if(c.ore===b)   return c.val*0.1;
     if(c.ingot===b) return c.val*0.3;
@@ -894,6 +918,8 @@ const SELL_CLASS = k => { const b=baseOf(k);
 function sellPrice(k, lv){
   return Math.max(1, Math.round(itemVal(k) * SELL_CLASS(k) * SELL_TAKE * SELL_K * lvPow(lv) * gearMul('rich')));
 }
+// ダンジョンが出す戦利品。深さで選べる等級が増える
+const lootItem = n => (n.item && isLot(n.item)) ? n.item : 'lot1';
 const chainOf = n => { if(!n.item) return null; const b=baseOf(n.item);
   return CHAIN.find(c=>c.ore===b||c.ingot===b||c.part===b) || null; };
 const chainOpen = c => S.best >= c.floor;
@@ -913,12 +939,14 @@ function eqpList(){ const o=[];
   for(let i=0;i<CHAIN.length;i++) if(chainOpen(CHAIN[i]))
     for(let d=0; d<=seenEqp(); d++) o.push(densKey(eqpOf(i), d));
   return o; }
+function lotList(){ return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filter(Boolean); }
 function storeOpts(){
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
-  return ['coal','power','nfl'].concat(alyList(), eqpList(), BYP.map(b=>b.k), withDens(mats));
+  return ['coal','power','nfl'].concat(lotList(), alyList(), eqpList(), BYP.map(b=>b.k), withDens(mats));
 }
 function chainOpts(t){
   const T = TYPES[t], k = T.chain, g = T.era||1;
+  if(T.loot) return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filter(Boolean);
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   if(k==='alloy'){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i-1].ingot); return o; }
   if(k==='anvil'){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(CHAIN[i-1].part); return o; }
@@ -927,7 +955,7 @@ function chainOpts(t){
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
   if(k==='decomp'||k==='sell')
     return withDens(['waste','toxic','rad','rift'].concat(mats))
-      .concat(eqpList(), alyList());
+      .concat(lotList(), eqpList(), alyList());
   if(k==='equip')         return CHAIN.filter(chainOpen).map(c=>c.part);
   if(k==='anvil'){ const o=[];
     for(let i=0;i<CHAIN.length;i++) if(chainOpen(CHAIN[i]))
@@ -943,8 +971,8 @@ const TYPES = {
           d:'すべての行動の源。装備スロットが3つある。ここから伸ばす配線の本数が体力の配分になる。経験値もここへ戻す'},
   mate  :{n:'仲間',      i:'🧑‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1,
           d:'もう一つの体力の源。装備スロットが1つある。増やすほど工房を広げられる'},
-  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive',
-          d:'体力を大きく消費して1回攻撃する。ゴールドと階層はここから'},
+  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
+          d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出るので、売り先へ配線する'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore',
           d:'原鉱を掘る。掘る鉱石は選ぶ。かならず副産物が出る'},
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean',
@@ -1162,7 +1190,7 @@ const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, equip:1.5, alloy:1.4, anvil:2.2
 // 部品でも合金でも段位を返す（合金の段位i は CHAIN[i] と CHAIN[i+1] の混合）
 function matTier(k){ const b=baseOf(k||'');
   const m=/^aly(\d)$/.exec(b); if(m) return +m[1]-1;
-  const q=/^eqp(\d)$/.exec(b); if(q) return +q[1]-1;
+  const q=/^(eqp|lot)(\d)$/.exec(b); if(q) return +q[2]-1;
   return tierIdx(b); }
 const alyFor = i => alloyOf(Math.min(CHAIN.length-1, Math.max(1, i+1)));
 // 素材から段位(0..5)を割り出す
@@ -1289,6 +1317,7 @@ function outsOf(n){
     if(T.chain!=='atk') for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
   }
+  if(T.loot) return modOuts(n, {[lootItem(n)]:1});
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
   return modOuts(n, T.outs);
@@ -1387,7 +1416,9 @@ const capMul  = n => n.mods ? n.mods.cap : 1;
 const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].store
                           ? TYPES[n.type].cap * lvPow(n.level)
                           : Math.max(CAP, (allIns(n)[item]||0) * 2)));
+const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
 const capOut  = (n,item) => (TYPES[n.type].src && item==='sta') ? maxSta()
+                          : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
 
 /* ========== トレハン：第100層から施設がドロップする ==========
@@ -1743,7 +1774,7 @@ function tick(dt,fast){
       const rest=n.need-n.prog;
       if(budget < rest){ n.prog+=budget; break; }
       budget-=rest;
-      const give=outsOf(n);
+      const give = T.loot ? {} : outsOf(n);     // 戦利品は撃破したときだけ積む
       for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k];
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d; }
@@ -1758,7 +1789,7 @@ function tick(dt,fast){
         const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(n.level) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
-      if(T.effect==='dive') doDive(fast);
+      if(T.effect==='dive') doDive(fast, n);
       if(T.effect==='lab')  { const g=rpGain(n); n.gain=(n.gain||0)+g; grantRp(g); }
       n.crafting=false; n.prog=0;
       if(--guard<=0) break;
@@ -1918,7 +1949,7 @@ function srcFace(n){
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
   return `⚡供給中／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}`;
 }
-function doDive(fast){
+function doDive(fast, node){
   if(!S.enemy) spawnEnemy();
   // 撃破できない深さで止まっても、潜り続ければ拾える
   if(S.floor >= DROP_FROM){
@@ -1929,6 +1960,10 @@ function doDive(fast){
   if(S.enemy.hp>0) return;
   const f=S.floor, g=enemyGold(f), wasTier=depthTier(), wasZone=zoneOf(f);
   S.gold += g;
+  if(node){                                  // 撃破すると戦利品がひとつ出る
+    const k = lootItem(node);
+    node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
+  }
   if(!fast) addLog(`第${f}層 ${S.enemy.name} 撃破 → +${fmt(g)}G`,'w');
   S.floor++;
   if(S.floor > S.best){
@@ -2237,7 +2272,7 @@ function render(){
           ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}を戻している（累計 ${fmt(n.done||0)}）`
           : `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`)
       : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
-      : T.effect==='dive'? '稼働中 → '+n.done+'回 潜った'
+      : T.effect==='dive'? `稼働中 → ${n.done}回 潜った（${ITEMS[lootItem(n)].i}${fmt(n.outBuf[lootItem(n)]||0)}/${fmt(capOut(n,lootItem(n)))}）`
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
       : T.store ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
@@ -2371,6 +2406,7 @@ function ioText(T){
              anvil:'装備×1 ＋ 合金×2<span class="ar">→</span>一段鍛えた装備×1（伸びは鈍る）'};
     return m[T.chain] || '—';
   }
+  if(T.loot) return `⚡<span class="ar">→</span>⚔️攻撃 ＋🎁戦利品（${LOOT_CAP}個まで積める）`;
   if(T.aura) return T.aura.k==='clean'
     ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
     : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
@@ -2538,21 +2574,34 @@ function destText(item){
 }
 
 /* ========================= インスペクタ ========================= */
+let inspMore = false;                       // 詳しい行を開いているか
 function renderInsp(){
   const box=$('#insp'), n=sel?N(sel):null;
   if(!n){ box.classList.remove('on'); box.innerHTML=''; return; }
   const T=TYPES[n.type], isLab=T.effect==='lab', tr=tierOf(n);
-  box.innerHTML=
-    `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>
-     ${n.type==='hero' ? `<div class="kv">名前<button class="ren"></button></div>` : ''}
-     <div class="kv">時代<b class="tier"></b></div>
+  const selLabel = T.loot ? '狙う戦利品'
+    : ({ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',equip:'作る装備の素',
+        anvil:'鍛える装備',alloy:'混ぜる地金',comp:'圧縮する素材',decomp:'分解する素材',
+        sell:'売る素材',clean:'片付ける副産物',fuel:'燃やす副産物'}[T.chain] || '扱うもの');
+
+  // ── いつも出す。狭い画面でも触れるように短くまとめる ──
+  const head =
+    `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>` +
+    (n.type==='hero' ? `<div class="kv">名前<button class="ren"></button></div>` : '') +
+    (T.chain||T.loot ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
+    (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
+    (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
+    (T.store ? `<div class="kv">貯める素材<div class="slotsel"></div></div>` : '') +
+    (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
+    `<div class="kv">状態<b class="st2"></b></div>`;
+
+  // ── たたんでおく詳しい行 ──
+  const more =
+    `<div class="kv">時代<b class="tier"></b></div>
      <div class="kv">入出力<b style="font-size:10.5px">${ioText(T)}</b></div>
      <div class="kv">1回あたり<b class="rate"></b></div>
      <div class="kv">体力効率<b class="eff"></b></div>` +
-    (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>
-                <div class="kv">研究在庫<b class="stk"></b></div>` : '') +
-    (T.chain ? `<div class="kv">${{ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',atk:'身につける部品',comp:'圧縮する素材',decomp:'分解する素材',sell:'売る素材',clean:'片付ける副産物',fuel:'燃やす副産物'}[T.chain]}<select class="chn"></select></div>` : '') +
-
+    (T.matIn ? `<div class="kv">研究在庫<b class="stk"></b></div>` : '') +
     (T.chain==='comp'   ? `<div class="kv">圧縮先<b class="cval"></b></div>` : '') +
     (T.chain==='decomp' ? `<div class="kv">1回あたり<b class="cval"></b></div>` : '') +
     (T.chain==='sell'   ? `<div class="kv">1回の売値<b class="cval"></b></div>` : '') +
@@ -2561,19 +2610,19 @@ function renderInsp(){
     (T.chain==='anvil'  ? `<div class="kv">鍛錬<b class="cval"></b></div>` : '') +
     (T.chain && T.chain!=='clean' && T.chain!=='fuel'
        ? `<div class="kv">素材の特性<b class="trt"></b></div>` : '') +
-    (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
-    (T.store ? `<div class="kv">貯める素材<div class="slotsel"></div></div>` : '') +
-    (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     `<div class="kv">受け取る優先度
        <span class="prio"><button class="pm">−</button><b class="pv">1</b><button class="pp">＋</button></span></div>` +
     Object.keys(outsOf(n)).map(k=>
       `<div class="kv">${ITEMS[k].i}${ITEMS[k].n}の行き先<b class="dst" data-i="${k}"></b></div>` +
       `<div class="kv">${ITEMS[k].i}が届く割合<b class="alc" data-i="${k}"></b></div>`).join('') +
-
     `<div class="kv">まわりの影響<b class="env"></b></div>
-     <div class="kv">状態<b class="st2"></b></div>
-     <div class="kv">解体で戻る研究<b class="srp"></b></div>
-     <div class="btns"><button class="up"></button><button class="del">撤去</button></div>`;
+     <div class="kv">解体で戻る研究<b class="srp"></b></div>`;
+
+  box.innerHTML = head
+    + `<div class="more" ${inspMore?'':'hidden'}>${more}</div>`
+    + `<button class="mtog">${inspMore?'詳しい数字を閉じる':'詳しい数字を見る'}</button>`
+    + `<div class="btns"><button class="up"></button><button class="del">撤去</button></div>`;
+  box.querySelector('.mtog').onclick=()=>{ inspMore=!inspMore; renderInsp(); };
   box.classList.add('on');
   if(T.matIn){
     const ml=box.querySelector('.mat');
@@ -2582,13 +2631,14 @@ function renderInsp(){
     ml.value=n.item||'';
     ml.onchange=()=>{ setChainItem(n, ml.value||null); renderInsp(); };
   }
-  if(T.chain){
+  if(T.chain || T.loot){
     const cl=box.querySelector('.chn');
     const opts=chainOpts(n.type);
     cl.innerHTML = opts.length
-      ? `<option value="">— 未設定 —</option>`+opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('')
+      ? (T.loot ? '' : `<option value="">— 未設定 —</option>`)
+        + opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('')
       : `<option value="">深く潜ると増えます</option>`;
-    cl.value=n.item||'';
+    cl.value = T.loot ? lootItem(n) : (n.item||'');
     cl.onchange=()=>{ setChainItem(n, cl.value||null); renderInsp(); };
   }
   if(gearSlots(n)){
@@ -2753,6 +2803,13 @@ const TUT = [
      +'<b>石のつるはしの左にある青い角</b>まで運んでください。',
     pane:'stage', hi:()=> { const h=heroNode(); return h && h.el.root.querySelector('.pout'); },
     check:()=> linkFrom('hero','sta','mine') },
+
+  { t:'戦利品を売る',
+    d:'ダンジョンは撃破のたびに <b>🎁戦利品</b> を出します。自分の中には5個までしか積めないので、'
+     +'いっぱいになると潜れなくなります。<b>🏪 露店</b>を建て、<b>主人公の⚡</b> と '
+     +'<b>洞窟の入口の🎁</b> の2本を繋いでください。',
+    pane:'shop', hi:()=> shopEls.shop.root,
+    check:()=> linkFrom('hero','sta','shop') && linkFrom('dive','lot1','shop') },
 
   { t:'廃材を片付ける',
     d:'採掘は <b>🗑廃材</b> も出します。捨て先がないと満杯になって採掘が止まります。'
