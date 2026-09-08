@@ -58,6 +58,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .card .rq{font-size:10px;color:var(--warn);margin-top:2px}
 .card.unknown .nm{color:var(--dim);letter-spacing:.22em}
 .card.unknown .io,.card.unknown .d{visibility:hidden}
+.card .rq.warn{color:var(--warn)}
 .card.unknown .rq{color:var(--dim)}
 #insp select{background:#0c111b;border:1px solid var(--line);border-radius:6px;
   color:var(--fg);font:inherit;font-size:10.5px;padding:2px 4px;max-width:158px;margin-left:auto}
@@ -956,7 +957,6 @@ const BOXES = [
   {k:'bxg', n:'金箱', w:6,   num:8, gold:80, eq:1.00, up:2},
 ];
 const BOX_VAL = {bxc:6, bxs:26, bxg:110};
-const isBox   = k => !!BOX_VAL[baseOf(k||'')];
 const LOOT_K  = 0.6;                        // 戦利品の値打ち
 const lotOf   = i => 'lot'+(i+1);           // 段位i(0..5)の戦利品
 const isLot   = k => /^lot\d$/.test(baseOf(k||''));
@@ -1003,7 +1003,6 @@ const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(n.level) * gearM
 /* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
    間隔が長いぶん、1個の値段は高い                                        */
 const SELL_TAKE = 1, SELL_K = 200;
-const ERA_ATK = 1.35;
 // 副産物を燃やして得られる体力。厄介なものほど多い
 const bypVal = k => (BYP.find(b=>b.k===k)||{v:0}).v;
 const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(densStep(0), densOf(n.item))
@@ -1116,8 +1115,8 @@ const TYPES = {
           d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になる'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
-  wood  :{n:'薪割り小屋', i:'🪓', cost:900, up:1100, time:2.4, ins:{sta:6, waste:2}, outs:{wood:2},
-          d:'廃材を割って薪にする。第2〜第4の施設は⚡ではなく薪で動く'},
+  wood  :{n:'薪割り小屋', i:'🪓', cost:900, up:1100, time:2.4, ins:{sta:7}, outs:{wood:2},
+          d:'⚡体力を薪に変える。第2〜第4の施設は⚡では動かず、薪が要る'},
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
   power :{n:'発電所',    i:'🔌', cost:500, up:600, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
@@ -1349,15 +1348,17 @@ const TOOL_REF = 8;                                   // 基準になる素材�
 const toolWeight = n => n.item ? Math.max(1, itemVal(n.item)/TOOL_REF) : 1;
 const toolMul  = n => 1 + (TYPES[n.type].mul - 1) / Math.pow(toolWeight(n), 0.22);
 const toolLoad = n => Math.pow(toolWeight(n), 0.30);
+/* その施設が1回に食う⚡。時代の効率と全体の倍率をかけて切り上げる */
+const staCost = (x, e) => Math.max(1, Math.ceil(x * e * COST_K));
 function insOf(n){
   const T = TYPES[n.type], e = effOf(n), o = {};
   if(T.chain==='clean'){                       // 副産物を片付ける
     if(!n.item) return {};
     // 厄介なものほど片付けるのに体力が要る
-    return modIns(n, {sta:Math.max(1,Math.ceil(3*(1+bypVal(baseOf(n.item))/6)*e*COST_K)), [n.item]:3});
+    return modIns(n, {sta:staCost(3*(1+bypVal(baseOf(n.item))/6), e), [n.item]:3});
   }
   if(T.chain==='fund'){                        // ゴールドを研究に変える（要るのは⚡だけ）
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(8*e*COST_K))}));
+    return modIns(n, eraIn(T, {sta:staCost(8, e)}));
   }
   if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
     return n.item ? modIns(n, {[n.item]:4}) : {};
@@ -1366,31 +1367,31 @@ function insOf(n){
   if(T.lin)  return {};
   if(T.layer) return layerNeeds(n);
   if(T.chain==='hout'){                        // 自宅から1つ取り出す（⚡だけ要る）
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(3*e*COST_K))}));
+    return modIns(n, eraIn(T, {sta:staCost(3, e)}));
   }
   if(T.chain==='open'){                        // 宝箱1つ＋⚡ → 中身は自宅へ
     if(!n.item) return {};
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(4*e*COST_K)), [n.item]:1}));
+    return modIns(n, eraIn(T, {sta:staCost(4, e), [n.item]:1}));
   }
   if(T.chain==='alloy'){                       // 地金2つ＋1つ上の地金1つ → 合金
     const i = tierIdx(n.item); if(i<0) return {};
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*CHAIN_STA.alloy*e*COST_K)),
+    return modIns(n, eraIn(T, {sta:staCost(CHAIN[i].sta*CHAIN_STA.alloy, e),
       [CHAIN[i].ingot]:2, [CHAIN[i+1].ingot]:1}));
   }
   if(T.chain==='equip'){                       // 部品1つ＋同じ段位の地金2つ → 装備1つ
     const i = tierIdx(n.item); if(i<0) return {};
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*CHAIN_STA.equip*e*COST_K)),
+    return modIns(n, eraIn(T, {sta:staCost(CHAIN[i].sta*CHAIN_STA.equip, e),
       [CHAIN[i].part]:1, [CHAIN[i].ingot]:2}));
   }
   if(T.chain==='anvil'){                       // 装備1つ＋合金2つ → 一段鍛えた装備1つ
     const i = matTier(n.item); if(i<0 || !isEqp(n.item)) return {};
-    return modIns(n, eraIn(T, {sta:Math.max(1,Math.ceil(CHAIN[i].sta*CHAIN_STA.anvil*e*COST_K)),
+    return modIns(n, eraIn(T, {sta:staCost(CHAIN[i].sta*CHAIN_STA.anvil, e),
       [n.item]:1, [alyFor(i)]:2}));
   }
   if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
     if(!n.item && T.chain!=='sell') return {};
     const take = T.chain==='comp' ? COMP_TAKE : T.chain==='sell' ? SELL_TAKE : DECOMP_TAKE;
-    const st = Math.max(1, Math.ceil((T.chain==='comp'?3:T.chain==='sell'?0.6:2) * e * COST_K));
+    const st = staCost((T.chain==='comp'?3:T.chain==='sell'?0.6:2), e);
     const k  = T.chain==='sell' ? (n.sellK || n.item) : n.item;
     if(!k) return modIns(n, eraIn(T, {sta:st}));
     return modIns(n, eraIn(T, {sta:st, [k]:take}));
@@ -1398,26 +1399,22 @@ function insOf(n){
   if(T.chain){
     const c = chainOf(n);
     if(!c) return {};
-    const st = Math.max(1, Math.ceil(c.sta * CHAIN_STA[T.chain] * e * COST_K));
-    if(1){ const base = T.chain==='ore'   ? {sta:st}
-               : T.chain==='ingot' ? {sta:st, [c.ore]:2}
-               : T.chain==='part'  ? {sta:st, [c.ingot]:2}
-               :                     {sta:st, [c.part]:1};
-      return modIns(n, eraIn(T, base)); }
+    const st = staCost(c.sta * CHAIN_STA[T.chain], e);
     const base = T.chain==='ore'   ? {sta:st}
                : T.chain==='ingot' ? {sta:st, [c.ore]:2}
                : T.chain==='part'  ? {sta:st, [c.ingot]:2}
                :                     {sta:st, [c.part]:1};
-    return modIns(n, base);
+    return modIns(n, eraIn(T, base));
   }
   if(T.store) return {};                       // 貯蔵は何でも受け取る（口は共通のひとつ）
   if(T.tool){
     if(n.item) o[n.item] = T.take;
-    o.sta = Math.max(1, Math.ceil(T.sta * toolLoad(n) * e * COST_K));
+    o.sta = staCost(T.sta * toolLoad(n), e);
     return modIns(n, eraIn(T, o));
   }
   const k = T.stat ? trainMul(S.stats[T.stat]) : 1;   // 訓練は鍛えるほど重くなる（後半ほど急に）
-  for(const i in T.ins) o[i] = Math.max(1, Math.ceil(T.ins[i] * k * (i==='sta' ? e*COST_K : 1)));
+  for(const i in T.ins) o[i] = i==='sta' ? staCost(T.ins[i]*k, e)
+                                       : Math.max(1, Math.ceil(T.ins[i]*k));
   return modIns(n, o);
 }
 /* 拾った施設の接辞を入出力に反映する */
@@ -1696,10 +1693,6 @@ function doEra(){
   addLog(`【${E.i}${E.n}の時代へ】${E.d}`, 'b');
   return true;
 }
-/* 建設リストや拾得品が参照する互換の口 */
-const needRp  = t => eraRp(TYPES[t].era || 1);
-const needMat = t => eraMat(TYPES[t].era || 1);
-
 /* 無限ダンジョン。潜った深さがそのままスコアで、10層ごとの踏破が恒久的な力になる */
 const ZONES = [
   {f:1,   n:'苔むした洞窟',  i:'🕳️', c:'#8a9bb5', e:['スライム','コウモリ','大ネズミ','ゴブリン']},
@@ -2285,7 +2278,6 @@ function exTotal(){
 const outRank = k => (POW_ITEM[k] ? 0 : isByp(k) ? 1 : 2) * 1e12 + itemVal(k);
 const isLayer  = n => !!(n && TYPES[n.type].layer);
 const isPort   = n => !!(n && TYPES[n.type].port);       // レイヤーの入口・出口
-const inLayer  = n => !!(n && n.layer);
 /* いま見ている盤面。null＝いちばん外側。レイヤーに入るとその中の盤面になる */
 const atNow    = () => S.at || null;
 const onBoard  = n => (n.layer || null) === atNow();
@@ -2737,7 +2729,6 @@ function grantRp(amount){
   S.rp = (S.rp||0) + amount;
   return amount;
 }
-function checkSeen(){}
 
 /* ========================= 研究ツリー ========================= */
 /* その時代で新しく建てられるようになるもの */
@@ -3328,9 +3319,24 @@ function renderShop(){
     const cost=buyCost(t);
     e.name.textContent=T.n;
     e.price.textContent = uniq ? '設置済' : fmt(cost)+' G';
-    e.rq.textContent = T.era ? `${eraName(T.era).i}第${T.era}時代` : '';
+    const w = powerWarn(t);
+    e.rq.textContent = (LINE_LABEL[r] ? LINE_LABEL[r] + '　' : '')
+      + (T.era ? `${eraName(T.era).i}第${T.era}時代` : '')
+      + (w ? `　⚠ ${w}` : '');
+    e.rq.classList.toggle('warn', !!w);
     e.root.classList.toggle('off', uniq || S.gold<cost);
   }
+}
+/* その動力を工房のどこかで作れているか */
+const makesItem = k => S.nodes.some(n => outsOf(n)[k]);
+/* 動力の作り手が居ないまま、それを要る施設を建てようとしていないか */
+function powerWarn(t){
+  const x = eraPow(TYPES[t]); if(!x) return null;
+  for(const k in x) if(!makesItem(k)){
+    const src = Object.keys(TYPES).find(u => isDev(u) && outsOf({type:u,level:1,item:null,inBuf:{},outBuf:{}})[k]);
+    return `${ITEMS[k].i}${ITEMS[k].n}が要ります` + (src ? `（${TYPES[src].i}${TYPES[src].n}を建ててください）` : '');
+  }
+  return null;
 }
 function buy(t){
   const T=TYPES[t];
@@ -3341,6 +3347,8 @@ function buy(t){
   S.gold-=cost; S.counts[t]=(S.counts[t]||0)+1;
   const p=freeSpot();
   sel=addNode(t,p.x,p.y).id; renderInsp();
+  const w = powerWarn(t);
+  if(w){ toast('⚠ '+w); addLog(`⚠ ${TYPES[t].n}は${w}`,'u'); }
 }
 
 /* ========================= 配置と視点 ========================= */
@@ -4385,7 +4393,7 @@ if(DEBUG){
   document.querySelectorAll('#dbg .dtools button').forEach(b=>b.onclick=()=>{
     const a=b.dataset.do;
     if(a==='gold'){ S.gold+=1e6; toast('ゴールド +100万'); }
-    if(a==='stats'){ S.stats.str+=10; S.stats.int+=10; S.stats.vit+=10; checkSeen(true); toast('能力値 +10'); }
+    if(a==='stats'){ S.stats.str+=10; S.stats.int+=10; S.stats.vit+=10; toast('能力値 +10'); }
     if(a==='dev'){ S.era=ERA_MAX; devDirty(); buildShop(); renderShop(); toast('最終時代まで解放'); }
     renderDbg();
   });
@@ -4410,7 +4418,6 @@ for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が�
 }
 buildShop();                       // 建設リストは研究の進み具合を見るので S を作ってから
 if(!S.enemy) spawnEnemy();
-checkSeen(true);
 
 let last=performance.now(), accS=0;
 let SPEED = 1;                      // デバッグ時だけ変えられる進行速度
