@@ -263,7 +263,8 @@ body.tut #offscr{display:none}
 }
 
 @media (max-width:860px), (max-height:520px){
-  #tut{left:8px;right:8px;top:8px;grid-template-columns:auto 1fr;padding:10px 11px}
+  #tut{left:8px;right:8px;top:8px;width:auto;transform:none;
+       grid-template-columns:auto 1fr;padding:10px 11px}
   #tut.on{grid-template-columns:auto 1fr}
   #tut .tacts{grid-column:1 / -1;justify-content:stretch}
   #tut .tacts button{flex:1}
@@ -1862,6 +1863,10 @@ function setToolItem(n, item){
   for(const l of [...S.links]) if(l.from===n.id || l.to===n.id) removeLink(l.id);
   n.item = item || null; n.inBuf = {}; n.outBuf = {}; n.crafting = false; n.prog = 0;
   rebuildNodeEl(n);
+}
+function clearBoardEls(){
+  for(const el of [...world.querySelectorAll('.node')]) el.remove();
+  gwL.innerHTML=''; gwP.innerHTML=''; packetCount=0;
 }
 function mkLinkEl(l){
   const c = ITEMS[l.item].c;
@@ -4078,6 +4083,7 @@ function load(){
     const d=migrate(JSON.parse(raw)); if(!d||!Array.isArray(d.nodes)||!d.nodes.length) return false;
     S=Object.assign(freshState(),d); reindex(); devDirty(); gearDirty();
     if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
+    clearBoardEls();
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
     for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
     S.at = null; applyView(); renderLog(); renderBoard();
@@ -4267,6 +4273,7 @@ if(DEBUG){
 
 /* ========================= 起動 ========================= */
 function newGame(){
+  clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty();
   const h=addNode('hero',80,150), d=addNode('dive1',420,150);
   S.counts={hero:1,dive1:1};
