@@ -1777,6 +1777,8 @@ function portIns(n){
     return o; }
   return allIns(n);
 }
+/* いま出ている口の組み合わせ。変わったらノードを作り直す目印にする */
+const portSig = (ik, ok) => ik.join(',') + '|' + ok.join(',');
 function mkNodeEl(n){
   const ins = portIns(n), outs = outsOf(n);      // 任意の入力（経験値など）も口を作る
   const ik = Object.keys(ins), ok = Object.keys(outs);
@@ -1815,7 +1817,7 @@ function mkNodeEl(n){
   el.querySelectorAll('.slot[data-s]').forEach(s=>slots[s.dataset.s]=s);
   n.el = {root:el, ic:el.querySelector('.ic'), nm:el.querySelector('.nm'),
           lv:el.querySelector('.lv'), bar:el.querySelector('.bar i'),
-          nf:el.querySelector('.nf'), slots};
+          nf:el.querySelector('.nf'), slots, sig: portSig(ik, ok)};
   el.style.left = n.x+'px'; el.style.top = n.y+'px';
   world.appendChild(el);
 }
@@ -1856,6 +1858,7 @@ function setStoreItem(n, idx, item){
     else { delete n.inBuf[old]; delete n.outBuf[old]; }
   }
   n.crafting=false; n.prog=0; n.stall=false; n.why='';
+  layerDirty();
   rebuildNodeEl(n);
 }
 function setToolItem(n, item){
@@ -1897,13 +1900,15 @@ function addNode(type,x,y){
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
     const o=chainOpts(type); if(o.length) n.item=o[0];
   }
-  S.nodes.push(n); reindex(); mkNodeEl(n); return n;
+  S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n); return n;
 }
 function removeNode(id){
   gearDirty();
   for(const l of [...S.links]) if(l.from===id||l.to===id) removeLink(l.id);
   const i=S.nodes.findIndex(n=>n.id===id); if(i<0) return;
+  const wasIn = S.nodes[i].layer;
   S.nodes[i].el.root.remove(); S.nodes.splice(i,1); reindex();
+  if(wasIn) layerDirty();
   if(sel===id){ sel=null; renderInsp(); }
 }
 /* 貯蔵は空きスロットがあれば、どんな素材でも受け取れる。
@@ -2975,7 +2980,10 @@ function applyView(){
 function render(){
   let jam = null;
   for(const n of S.nodes){
-    const T=TYPES[n.type], e=n.el;
+    const T=TYPES[n.type];
+    // 口の顔ぶれが変わることがある（レイヤーの中身を増やした、枠を割り当てた等）
+    if(n.el.sig !== portSig(Object.keys(portIns(n)), Object.keys(outsOf(n)))) rebuildNodeEl(n);
+    const e=n.el;
     const tr=tierOf(n);
     if(e.lastTier!==tr.t){ e.lastTier=tr.t; e.ic.textContent=tr.i; e.nm.textContent=tr.n; }
     e.lv.textContent = T.layer ? `${memCount(n)}個` : 'Lv.'+n.level;
@@ -2995,7 +3003,8 @@ function render(){
       s.classList.toggle('full', c >= capIn(n,k));
     }
     for(const k in give){
-      const s=e.slots['out-'+k], c=n.outBuf[k]||0;
+      const s=e.slots['out-'+k]; if(!s) continue;
+      const c=n.outBuf[k]||0;
       s.querySelector('b').textContent=fmt(c);
       s.querySelector('.q').textContent = (isByp(k) || T.layer || T.port) ? '' : '/'+fmt(capOut(n,k));
       s.classList.toggle('full', c+give[k]>capOut(n,k));
@@ -4297,12 +4306,18 @@ checkSeen(true);
 
 let last=performance.now(), accS=0;
 let SPEED = 1;                      // デバッグ時だけ変えられる進行速度
+let loopErr = 0;
 function loop(now){
   const raw=Math.min(0.1,(now-last)/1000);
   const dt=raw * SPEED; last=now;
-  edgeScroll(raw);
-  tick(dt,false); render();
-  accS+=dt; if(accS>5){ accS=0; save(); }
+  try{
+    edgeScroll(raw);
+    tick(dt,false); render();
+    accS+=dt; if(accS>5){ accS=0; save(); }
+  }catch(e){
+    // ここで止まると盤面が丸ごと動かなくなる。次のコマへ進めて生き延びる
+    if(loopErr++ < 3){ console.error(e); toast('表示でつまずきました（進行は続いています）'); }
+  }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
