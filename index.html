@@ -1084,6 +1084,8 @@ const TYPES = {
           d:'地金2つを部品1つに加工する。副産物も多い'},
   anvil :{n:'鍛錬台',    i:'🔨', cost:9000, up:11000, time:2.6, ins:{}, outs:{}, chain:'anvil', effect:'anvil',
           d:'持ち物から装備をひとつ選んでセットし、合金を打ち込んで鍛える。打つほど伸びは鈍る'},
+  equip :{n:'装備工房',  i:'🎽', cost:12000, up:15000, time:5.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
+          d:'部品1つと合金1つで装備を作る。できた装備は出力に積まれ、鍛錬台で鍛えられる'},
   tool  :{n:'道具',      i:'🪵', cost:800,  up:1100, time:2.5, tool:true, mul:1.5, take:4, sta:3,
           d:'間に挟むと通した素材が増える増幅器'},
   box   :{n:'木箱',      i:'📦', cost:400,  up:500,  time:0.4, store:true, slots:1, cap:200,
@@ -1173,6 +1175,8 @@ const FAC = {
   forge: [{e:2,n:'金床',i:'🔨'},{e:4,n:'水車鍛造',i:'💧'},{e:5,n:'蒸気ハンマー',i:'🚂'},
           {e:6,n:'旋盤',i:'⚙️'},{e:7,n:'ロボット加工',i:'🦾'},{e:9,n:'ナノ組立',i:'🦠'},
           {e:10,n:'次元鍛造',i:'🌀'}],
+  equip: [{e:3,n:'装備工房',i:'🎽'},{e:5,n:'兵装工房',i:'⚔️'},{e:7,n:'装甲組立',i:'🦾'},
+          {e:9,n:'生体装備炉',i:'🧬'},{e:10,n:'次元装備',i:'🌌'}],
   anvil: [{e:2,n:'鍛錬台',i:'🔨'},{e:5,n:'強化炉',i:'🛠️'},{e:8,n:'改造槽',i:'🧫'},
           {e:10,n:'次元強化',i:'🌌'}],
   dive:  [{e:1,n:'洞窟の入口',i:'🕳️'},{e:3,n:'ダンジョン',i:'🚪'},{e:5,n:'深層門',i:'🌀'},
@@ -1257,7 +1261,7 @@ function buildFac(){
 buildFac();
 /* 役割の並び順（建設リストと研究ツリーで使う） */
 const LINE_ORDER = Object.keys(FAC);
-const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',anvil:'鍛錬',
+const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
   coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
@@ -2459,8 +2463,10 @@ function raidTick(dt){
   if(S.best < RAID_FROM) return;
   if(S.nodes.some(n => TYPES[n.type].raid)) return;
   if(Math.random() >= 1 - Math.exp(-dt / RAID_MEAN)) return;
+  const was = S.at; S.at = null;          // 裂け目はいちばん外の盤面に出す
   const p = freeSpot();
   const n = addNode('raid', p.x, p.y);
+  S.at = was; n.layer = null; layerDirty();
   n.hp = n.hpMax = raidHp();
   addLog(`【突発】裂け目が現れた。⚡を送り込んで閉じよう`, 'b');
   toast('🌀 突発ダンジョンが現れた');
