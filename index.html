@@ -180,7 +180,9 @@ body.lasso #stage{cursor:crosshair}
 #insp .btns{display:flex;gap:6px;margin-top:9px}
 #insp button{flex:1;border-radius:7px;padding:6px;font-size:11px;font-weight:600;
   background:#0c111b;border:1px solid var(--line)}
-#insp .up:hover:not(:disabled){border-color:var(--acc);color:var(--acc)}
+#insp .up:hover:not(:disabled),
+#insp .up10:hover:not(:disabled){border-color:var(--acc);color:var(--acc)}
+#insp .up10{flex:0 0 auto;padding-left:9px;padding-right:9px}
 #insp .del:hover{border-color:var(--bad);color:var(--bad)}
 #insp button:disabled{opacity:.4;cursor:not-allowed}
 #hint{position:absolute;right:12px;top:12px;font-size:10.5px;color:var(--dim);
@@ -998,7 +1000,7 @@ const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(de
                      * (1 + ((TYPES[n.type].era||1)-1)*0.12) * lvPow(n.level)));
 /* 売値。原鉱のままではほとんど値が付かず、加工・圧縮するほど跳ね上がる */
 const SELL_CLASS = k => { const b=baseOf(k);
-  return /^ore/.test(b) ? 0.5 : /^ing/.test(b) ? 1.2 : /^prt/.test(b) ? 3.0 : 1; };
+  return /^ore/.test(b) ? 0.5 : /^ing/.test(b) ? 1.2 : /^prt/.test(b) ? 1.8 : 1; };
 function sellPrice(k, lv){
   return Math.max(1, Math.round(itemVal(k) * SELL_CLASS(k) * SELL_TAKE * SELL_K * lvPow(lv) * gearMul('rich')));
 }
@@ -1554,6 +1556,13 @@ const buyCost = t => {
   return Math.max(1, Math.floor(base * Math.pow(T.pk || PRICE_K, c)));
 };
 const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
+/* まとめて強化するときの合計。1回ずつの値段を足し上げる */
+function upCostN(n, k){
+  const T = TYPES[n.type]; let c = 0;
+  for(let i=0;i<k;i++) c += Math.floor(T.up * Math.pow(UP_K, n.level-1+i));
+  return c;
+}
+const UP_BULK = 10;
 const capMul  = n => n.mods ? n.mods.cap : 1;
 const capIn   = (n,item) => Math.ceil(capMul(n) * (TYPES[n.type].chain==='sell' ? CAP*4
                           : (TYPES[n.type].store||TYPES[n.type].ware)
@@ -3465,7 +3474,8 @@ function renderInsp(){
   box.innerHTML = head
     + `<div class="more" ${inspMore?'':'hidden'}>${more}</div>`
     + `<button class="mtog">${inspMore?'詳しい数字を閉じる':'詳しい数字を見る'}</button>`
-    + `<div class="btns"><button class="up"></button><button class="del">撤去</button></div>`;
+    + `<div class="btns"><button class="up"></button><button class="up10"></button>`
+    + `<button class="del">撤去</button></div>`;
   box.querySelector('.mtog').onclick=()=>{ inspMore=!inspMore; renderInsp(); };
   box.classList.add('on');
   if(T.matIn){
@@ -3549,6 +3559,12 @@ function renderInsp(){
     const c=upCost(n);
     if(S.gold<c) return toast('ゴールドが足りません');
     S.gold-=c; n.level++;
+  };
+  box.querySelector('.up10').onclick=()=>{
+    const c=upCostN(n, UP_BULK);
+    if(S.gold<c) return toast(`まとめて強化するには ${fmt(c)} G 要ります`);
+    S.gold-=c; n.level+=UP_BULK;
+    toast(`${tierOf(n).n} を Lv.${n.level} まで強化しました`);
   };
   const rn=box.querySelector('.ren');
   if(rn) rn.onclick=()=>{
@@ -3636,11 +3652,19 @@ function renderInspLive(){
   }
   box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
   box.querySelectorAll('.alc').forEach(el=>{ el.textContent=allocText(n, el.dataset.i); });
-  const up=box.querySelector('.up'), c=upCost(n);
-  if(TYPES[n.type].layer){ up.textContent='—'; up.disabled=true;
-    box.querySelector('.del').textContent='ほどいて撤去'; }
-  up.textContent=`強化 ${fmt(c)} G ／ +${((lvPow(n.level+1)/lvPow(n.level)-1)*100).toFixed(1)}%（いま ${lvGen(n.level).toFixed(2)}時代ぶん）`;
-  up.disabled=S.gold<c;
+  const up=box.querySelector('.up'), up10=box.querySelector('.up10');
+  const c=upCost(n), c10=upCostN(n, UP_BULK);
+  if(TYPES[n.type].layer){
+    up.textContent='—'; up.disabled=true; up10.hidden=true;
+    box.querySelector('.del').textContent='ほどいて撤去';
+  }else{
+    up.textContent=`強化 ${fmt(c)} G ／ +${((lvPow(n.level+1)/lvPow(n.level)-1)*100).toFixed(1)}%`;
+    up.disabled=S.gold<c;
+    up10.hidden=false;
+    up10.textContent=`×${UP_BULK} ${fmt(c10)} G ／ +${((lvPow(n.level+UP_BULK)/lvPow(n.level)-1)*100).toFixed(1)}%`;
+    up10.disabled=S.gold<c10;
+    up10.title=`Lv.${n.level} → Lv.${n.level+UP_BULK}（いま ${lvGen(n.level).toFixed(2)}時代ぶん）`;
+  }
   box.querySelector('.del').disabled=!!(TYPES[n.type].unique || TYPES[n.type].port);
 }
 
