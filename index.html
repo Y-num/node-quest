@@ -116,6 +116,10 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 .node .aura{position:absolute;border-radius:50%;pointer-events:none;z-index:-1}
 .port.any{border-style:dashed;color:var(--dim);font-size:11px;line-height:1}
 .slot.anyslot{color:var(--dim);border-style:dashed;font-size:9.5px;letter-spacing:.02em}
+/* 圧縮・鍛錬の段数。素のものと見分けるための小さなしるし */
+.slot .dm{font-style:normal;font-size:9px;color:var(--acc);font-weight:700;margin:0 1px 0 -1px;
+  vertical-align:super;line-height:1}
+.slot.o .dm{margin:0 0 0 1px}
 .node .aura.clean{border:1px dashed rgba(94,224,192,.30);
   background:radial-gradient(circle,rgba(94,224,192,.09),transparent 70%)}
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
@@ -848,6 +852,9 @@ const densKey= (k,d) => d<=0 ? baseOf(k) : baseOf(k)+'@'+d;
 // 密度d→d+1 で価値が何倍になるか。5倍(まとめただけ)＋上乗せぶん
 const densStep = d => COMP_TAKE * (1 + COMP_EDGE * Math.pow(COMP_FADE, d));
 const DENS_MARK = ['','²','³','⁴','⁵','⁶','⁷','⁸','⁹','¹⁰','¹¹','¹²','¹³','¹⁴','¹⁵'];
+/* 圧縮したもの・鍛えたものは、絵文字だけだと素のものと見分けが付かない。
+   ノードの口には段数のしるしを添える */
+const densTag = k => { const d=densOf(k); return d ? `<i class="dm">${DENS_MARK[d]}</i>` : ''; };
 const EXP_OF  = {str:'exs', int:'exi', vit:'exv'};
 const STAT_OF = {exs:'str', exi:'int', exv:'vit'};
 
@@ -1663,10 +1670,10 @@ function mkNodeEl(n){
   for(let i=0;i<rowsOf(n);i++){
     const a = ik[i], b = ok[i];
     rows += `<div class="rowio">`+
-      (a ? `<div class="slot i" data-s="in-${a}">${ITEMS[a].i}<b>0</b><span class="q">/0</span></div>`
+      (a ? `<div class="slot i" data-s="in-${a}" title="${ITEMS[a].n}">${ITEMS[a].i}${densTag(a)}<b>0</b><span class="q">/0</span></div>`
          : i===anyRow ? `<div class="slot i anyslot">＋ ${TYPES[n.type].chain==='sell'?'なんでも':'空き'}</div>`
          : `<div class="slot e"></div>`)+
-      (b ? `<div class="slot o" data-s="out-${b}"><span class="q">/0</span><b>0</b>${ITEMS[b].i}</div>`
+      (b ? `<div class="slot o" data-s="out-${b}" title="${ITEMS[b].n}"><span class="q">/0</span><b>0</b>${ITEMS[b].i}${densTag(b)}</div>`
          : `<div class="slot e"></div>`)+
       `</div>`;
     if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
