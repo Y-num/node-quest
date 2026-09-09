@@ -3984,13 +3984,18 @@ function inPoly(pts, x, y){
 }
 stage.addEventListener('pointerdown', e=>{
   if(e.target.closest(OVERLAY_SEL)) return;
-  if(placing){ placeAt(e.clientX, e.clientY); return; }   // 置く場所を決めているところ
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptrs.size>=2){                       // 2本目が触れたらドラッグを中止してピンチへ
     drag=null; pinch=null; stage.classList.remove('panning');
     $('#temp').setAttribute('d','');
     showTapLink();                        // 待ち受け中なら光は残す
     return;
+  }
+  if(placing){                            // 置く場所を決めている最中
+    drag={mode:'pan', sx:e.clientX, sy:e.clientY, vx:S.view.x, vy:S.view.y, place:true};
+    stage.classList.add('panning');
+    try{stage.setPointerCapture(e.pointerId)}catch(_){}
+    return;                               // 動かせば盤面が動く。動かさず離したらそこに置く
   }
   const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
   if(wph||hit){                                   // 配線を掴む：動かせば整理、動かさなければ切断
@@ -4176,8 +4181,10 @@ stage.addEventListener('pointerup', e=>{
     }
     setLasso(false);
   }else if(drag.mode==='pan'){
-    // 盤面を動かしたなら待ち受けは続ける。動かさずに離した＝取り消し
-    if(tapLink && Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy) < 8) clearTapLink();
+    const still = Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy) < 8;
+    // 動かさずに離した＝タップ。置く場所を決める／待ち受けを取り消す
+    if(drag.place){ if(still && placing) placeAt(e.clientX, e.clientY); }
+    else if(tapLink && still) clearTapLink();
   }else if(drag.mode==='node'&&drag.moved<6){
     const t=N(drag.id);
     if(t && TYPES[t.type].raid && t.clear) raidClaim(t);        // クリア済みはタップで受け取り
