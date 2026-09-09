@@ -138,6 +138,18 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 .node.pol{box-shadow:0 0 0 1px rgba(180,135,245,calc(.25 + var(--pol) * .5)),
                      0 0 calc(10px + var(--pol) * 22px) rgba(180,135,245,calc(var(--pol) * .45))}
 .node.hid{display:none}
+/* 置く場所を決めているときの案内 */
+#place{position:absolute;left:50%;transform:translateX(-50%);top:12px;z-index:34;display:none;
+  align-items:center;gap:12px;white-space:nowrap;
+  background:rgba(15,21,32,.97);border:1px solid var(--acc);border-radius:10px;
+  padding:7px 12px;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#place.on{display:flex}
+#place b{color:var(--acc)}
+#place button{border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;
+  background:#0c111b;border:1px solid var(--line);color:var(--dim)}
+body.placing #stage{cursor:copy}
+body.placing #stage::after{content:'';position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 0 2px var(--acc);border-radius:4px;opacity:.5}
 #board{position:absolute;left:12px;top:12px;display:none;align-items:center;gap:10px;
   background:rgba(17,22,35,.97);border:1px solid var(--pw);border-radius:10px;padding:6px 10px;
   z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.45)}
@@ -623,6 +635,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         </div>
       </div>
       <div id="board"></div><div id="insp"></div>
+      <div id="place"></div>
       <div id="toast"></div>
       <button id="offscr"></button>
     </div>
@@ -3362,7 +3375,7 @@ function buildShop(){
     b.className='card';
     b.innerHTML=`<div class="r1"><span class="ic">${T.i}</span><span class="nm">${T.n}</span><span class="price"></span></div>
                  <div class="io"></div><div class="d">${T.d}</div><div class="rq"></div>`;
-    b.onclick=()=>buy(shopEls[r].cur);
+    b.onclick=()=>startPlace(shopEls[r].cur);
     box.appendChild(b);
     shopEls[r]={root:b, cur:rowType(r), ic:b.querySelector('.ic'), name:b.querySelector('.nm'),
                 price:b.querySelector('.price'), io:b.querySelector('.io'), rq:b.querySelector('.rq')};
@@ -3396,6 +3409,41 @@ function powerWarn(t){
     return `${ITEMS[k].i}${ITEMS[k].n}が要ります` + (src ? `（${TYPES[src].i}${TYPES[src].n}を建ててください）` : '');
   }
   return null;
+}
+/* 建てるものを選んでから、置く場所をタップして決める */
+let placing = null;
+function startPlace(t){
+  if(placing === t) return cancelPlace();          // もう一度押したら取り消し
+  const T = TYPES[t];
+  if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
+  if(!isDev(t)) return toast(`${eraName(T.era).n}の時代に上げると建てられます`);
+  if(S.gold < buyCost(t)) return toast('ゴールドが足りません');
+  placing = t; document.body.classList.add('placing');
+  setPane('stage'); renderPlaceBar();
+}
+function cancelPlace(){ placing = null; document.body.classList.remove('placing'); renderPlaceBar(); }
+function renderPlaceBar(){
+  const el = $('#place'); if(!el) return;
+  el.classList.toggle('on', !!placing);
+  if(!placing){ el.innerHTML=''; return; }
+  const T = TYPES[placing];
+  el.innerHTML = `<span>${T.i} <b>${T.n}</b> を置く場所をタップ</span><button id="pCancel">やめる</button>`;
+  el.querySelector('#pCancel').onclick = cancelPlace;
+}
+function placeAt(cx, cy){
+  const t = placing; if(!t) return;
+  const cost = buyCost(t);
+  if(S.gold < cost){ cancelPlace(); return toast('ゴールドが足りません'); }
+  const w = toWorld(cx, cy);
+  let x = Math.round((w.x - NW/2)/10)*10, y = Math.round((w.y - 45)/10)*10;
+  for(let i=0; i<48 && taken(x,y); i++){        // 重なったら近くの空きへずらす
+    x += 40; if(i % 5 === 4){ x -= 200; y += 46; }
+  }
+  S.gold -= cost; S.counts[t] = (S.counts[t]||0)+1;
+  const n = addNode(t, x, y);
+  sel = n.id; cancelPlace(); renderInsp();
+  const wv = powerWarn(t);
+  if(wv){ toast('⚠ '+wv); addLog(`⚠ ${TYPES[t].n}は${wv}`,'u'); }
 }
 function buy(t){
   const T=TYPES[t];
@@ -3806,14 +3854,15 @@ const TUT = [
     check:()=> S.gold >= buyCost('mine1') },
 
   { t:'採掘を建てる',
-    d:'左の一覧（スマホでは下の〈建設〉タブ）から <b>🪓 石のつるはし</b> を建ててください。'
-     +'素材が手に入るようになります。',
+    d:'左の一覧（スマホでは下の〈建設〉タブ）から <b>🪓 石のつるはし</b> を選び、'
+     +'<b>盤面の置きたい場所をタップ</b>してください。素材が手に入るようになります。',
     pane:'shop', hi:()=> shopEls.mine.root,
     check:()=> S.nodes.some(n=>roleOf(n.type)==='mine') },
 
   { t:'体力を分ける',
-    d:'建てただけでは動きません。<b>主人公の右にある緑の丸</b>をドラッグして、'
-     +'<b>石のつるはしの左にある青い角</b>まで運んでください。',
+    d:'建てただけでは動きません。<b>主人公の右にある緑の丸</b>から、'
+     +'<b>石のつるはし</b>まで線を引いてください。'
+     +'（そのままドラッグしても、丸をタップしてから相手をタップしても引けます）',
     pane:'stage', hi:()=> { const h=heroNode(); return h && h.el.root.querySelector('.pout'); },
     check:()=> linkFrom('hero','sta','mine') },
 
@@ -3935,6 +3984,7 @@ function inPoly(pts, x, y){
 }
 stage.addEventListener('pointerdown', e=>{
   if(e.target.closest(OVERLAY_SEL)) return;
+  if(placing){ placeAt(e.clientX, e.clientY); return; }   // 置く場所を決めているところ
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptrs.size>=2){                       // 2本目が触れたらドラッグを中止してピンチへ
     drag=null; pinch=null; stage.classList.remove('panning');
@@ -3949,8 +3999,18 @@ stage.addEventListener('pointerdown', e=>{
     return;
   }
   const port=e.target.closest('.pout'), nodeEl=e.target.closest('.node');
+  // 口をタップして待っている最中：相手をタップしたら繋ぐ
+  if(tapLink && nodeEl && +nodeEl.dataset.id !== tapLink.from){
+    finishLink(N(tapLink.from), tapLink.item, N(+nodeEl.dataset.id));
+    clearTapLink(); drag=null; return;
+  }
   if(port&&nodeEl){
-    drag={mode:'link', from:+nodeEl.dataset.id, item:port.dataset.item};
+    const from=+nodeEl.dataset.id, item=port.dataset.item;
+    if(tapLink && tapLink.from===from && tapLink.item===item){   // 同じ口をもう一度＝取り消し
+      clearTapLink(); drag=null; return;
+    }
+    clearTapLink();
+    drag={mode:'link', from, item, sx:e.clientX, sy:e.clientY, moved:0};
     document.body.classList.add('linking'); nodeEl.classList.add('src');
     markTargets(N(drag.from), drag.item);      // 受け取れる口を光らせておく
   }
@@ -3963,6 +4023,7 @@ stage.addEventListener('pointerdown', e=>{
     $('#lasso').style.display='block';
     try{stage.setPointerCapture(e.pointerId)}catch(_){}
   }else{
+    if(tapLink) clearTapLink();
     drag={mode:'pan', sx:e.clientX, sy:e.clientY, vx:S.view.x, vy:S.view.y};
     stage.classList.add('panning');
     if(sel!==null){ sel=null; renderInsp(); }
@@ -4026,10 +4087,35 @@ stage.addEventListener('pointermove', e=>{
   if(drag.mode==='pan'){
     S.view.x=drag.vx+(e.clientX-drag.sx); S.view.y=drag.vy+(e.clientY-drag.sy); applyView();
   }else{
-    if(drag.mode==='wire') drag.moved=Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy);
+    if(drag.mode==='wire'||drag.mode==='link')
+      drag.moved=Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy);
     dragTo(e.clientX, e.clientY);
   }
 });
+/* 配線をつなぐ。ドラッグでもタップでもここを通る */
+let tapLink = null;
+function clearTapLink(){ tapLink = null; clearTargets(); $('#temp').setAttribute('d',''); }
+function finishLink(a, item, b){
+  if(!a || !b) return false;
+  if(canLink(a, item, b)){
+    if(canSetExit(b, item)){
+      setLayerOut(N(b.layer), item);
+      toast(`${ITEMS[item].n} を外へ出すようにしました`);
+    }
+    else if(storeCanTake(b,item)) storeAssign(b, item);
+    else if(canAutoSet(b,item)){
+      setChainItem(b, item);
+      toast(`${TYPES[b.type].n}を ${ITEMS[item].n} に合わせました`);
+    }
+    if(!S.links.some(l=>l.from===a.id && l.to===b.id && l.item===item)) addLink(a.id,item,b.id);
+    return true;
+  }
+  const T=TYPES[b.type];
+  if((T.store||T.ware||T.chain==='sell') && storeItems(b).length >= T.slots)
+    toast(`${TYPES[b.type].n}は ${T.slots}種類まで。インスペクタで入れ替えるか、いらない線を切ってください`);
+  else toast(`${TYPES[b.type].n}に ${ITEMS[item].n} の入力口はありません`);
+  return false;
+}
 /* 受け取れるノードと、その中の受け取り口を光らせる */
 function markTargets(a, item){
   for(const m of S.nodes){
@@ -4060,25 +4146,15 @@ stage.addEventListener('pointerup', e=>{
   if(drag.mode==='link'){
     const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
     const a=N(drag.from), b=tn?N(+tn.dataset.id):null;
-    if(b&&canLink(a,drag.item,b)){
-      if(canSetExit(b, drag.item)){                              // 出口は繋いだものを外へ出す
-        setLayerOut(N(b.layer), drag.item);
-        toast(`${ITEMS[drag.item].n} を外へ出すようにしました`);
-      }
-      else if(storeCanTake(b,drag.item)) storeAssign(b, drag.item);   // 空きスロットに自動で割り当て
-      else if(canAutoSet(b,drag.item)){                          // 扱う素材を繋いだものに合わせる
-        setChainItem(b, drag.item);
-        toast(`${TYPES[b.type].n}を ${ITEMS[drag.item].n} に合わせました`);
-      }
-      if(!S.links.some(l=>l.from===a.id && l.to===b.id && l.item===drag.item))
-        addLink(a.id,drag.item,b.id);
+    // 動かさずに離した＝タップ。相手をタップするまで待つ
+    if((drag.moved||0) < 8 && (!b || b.id===a.id)){
+      tapLink = {from:a.id, item:drag.item};
+      $('#temp').setAttribute('d','');
+      toast(`${ITEMS[drag.item].i}${ITEMS[drag.item].n} の届け先をタップ（同じ口をもう一度で取り消し）`);
+      drag=null; stage.classList.remove('panning');
+      return;                                   // 光らせたままにする
     }
-    else if(b){
-      const T=TYPES[b.type];
-      if((T.store||T.ware||T.chain==='sell') && storeItems(b).length >= T.slots)
-        toast(`${TYPES[b.type].n}は ${T.slots}種類まで。インスペクタで入れ替えるか、いらない線を切ってください`);
-      else toast(`${TYPES[b.type].n}に ${ITEMS[drag.item].n} の入力口はありません`);
-    }
+    if(b) finishLink(a, drag.item, b);
     $('#temp').setAttribute('d','');
     clearTargets();
   }else if(drag.mode==='wire'){
