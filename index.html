@@ -3989,7 +3989,7 @@ stage.addEventListener('pointerdown', e=>{
   if(ptrs.size>=2){                       // 2本目が触れたらドラッグを中止してピンチへ
     drag=null; pinch=null; stage.classList.remove('panning');
     $('#temp').setAttribute('d','');
-    clearTargets();
+    showTapLink();                        // 待ち受け中なら光は残す
     return;
   }
   const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
@@ -4023,7 +4023,6 @@ stage.addEventListener('pointerdown', e=>{
     $('#lasso').style.display='block';
     try{stage.setPointerCapture(e.pointerId)}catch(_){}
   }else{
-    if(tapLink) clearTapLink();
     drag={mode:'pan', sx:e.clientX, sy:e.clientY, vx:S.view.x, vy:S.view.y};
     stage.classList.add('panning');
     if(sel!==null){ sel=null; renderInsp(); }
@@ -4095,6 +4094,15 @@ stage.addEventListener('pointermove', e=>{
 /* 配線をつなぐ。ドラッグでもタップでもここを通る */
 let tapLink = null;
 function clearTapLink(){ tapLink = null; clearTargets(); $('#temp').setAttribute('d',''); }
+/* 口をタップして待っている最中の光。盤面を動かしても消えないよう、必要なら出し直す */
+function showTapLink(){
+  if(!tapLink) return clearTargets();
+  const a = N(tapLink.from); if(!a) return clearTapLink();
+  clearTargets();
+  document.body.classList.add('linking');
+  a.el.root.classList.add('src');
+  markTargets(a, tapLink.item);
+}
 function finishLink(a, item, b){
   if(!a || !b) return false;
   if(canLink(a, item, b)){
@@ -4167,6 +4175,9 @@ stage.addEventListener('pointerup', e=>{
       if(ids.length) makeLayer(ids); else toast('ノードが囲まれていません');
     }
     setLasso(false);
+  }else if(drag.mode==='pan'){
+    // 盤面を動かしたなら待ち受けは続ける。動かさずに離した＝取り消し
+    if(tapLink && Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy) < 8) clearTapLink();
   }else if(drag.mode==='node'&&drag.moved<6){
     const t=N(drag.id);
     if(t && TYPES[t.type].raid && t.clear) raidClaim(t);        // クリア済みはタップで受け取り
