@@ -296,7 +296,7 @@ body.tut #offscr{display:none}
 }
 /* ---------- デバッグ：ノード一覧と設置 ---------- */
 .tbtn.dbg{border-color:var(--warn);color:var(--warn)}
-.tbtn.dbg.fast{background:rgba(242,193,78,.18);color:var(--acc);border-color:var(--acc)}
+.tbtn.fast{background:rgba(242,193,78,.18);color:var(--acc);border-color:var(--acc)}
 .tbtn.dbg:hover{background:var(--warn);color:#0a0d14}
 /* ---------- 研究ツリー ---------- */
 .tbtn.tree{border-color:var(--acc2);color:var(--acc2)}
@@ -594,13 +594,13 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <div class="stat r"><span class="k">🔬<em>研究</em></span><span class="v num" id="tRp">0</span></div>
     <div class="stat m"><span class="k">🧱<em>資材</em></span><span class="v num" id="tMat">0</span></div>
     <span class="sp"></span>
+    <button class="tbtn" id="bSpeed">⏩ ×1</button>
     <button class="tbtn" id="bFit">全体表示</button>
     <button class="tbtn" id="bTidy">整列</button>
     <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
     <button class="tbtn" id="bStats">📈 記録</button>
     <button class="tbtn" id="bLasso">🧩 まとめる</button>
     <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
-    <button class="tbtn dbg" id="bSpeed" hidden>⏩ ×1</button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
     <button class="tbtn" id="bSave">保存</button>
@@ -4524,26 +4524,24 @@ $('#bReset').onclick=()=>{
 /* ========================= デバッグ：ノード一覧と設置 =========================
    ?debug=1 が付いているときだけ開ける。通常プレイではボタンごと出さない */
 const DEBUG = /(^|[?&])debug=1(&|$)/.test(location.search) || location.hash === '#debug';
+/* 進行速度。いまはテスト中なので、ふだんのメニューからも切り替えられるようにしている */
 const SPEEDS = [1, 2, 3, 5];
 function setSpeed(v){
   SPEED = v;
   const b=$('#bSpeed'), sp=$('#dSpeed'), sv=$('#dSpeedV');
-  if(b) b.textContent = '⏩ ×' + (Number.isInteger(v) ? v : v.toFixed(1));
-  if(b) b.classList.toggle('fast', v > 1);
+  if(b){ b.textContent = '⏩ ×' + (Number.isInteger(v) ? v : v.toFixed(1));
+         b.classList.toggle('fast', v > 1); }
   if(sp) sp.value = v;
   if(sv) sv.textContent = '×' + v.toFixed(1);
 }
+$('#bSpeed').onclick = () => {            // 押すたびに ×1→×2→×3→×5→×1
+  const i = SPEEDS.indexOf(SPEED);
+  setSpeed(SPEEDS[(i < 0 ? 0 : i + 1) % SPEEDS.length]);
+  toast(`進行速度 ×${SPEED}`);
+};
 if(DEBUG){
-  const sp=$('#dSpeed'), sv=$('#dSpeedV');
+  const sp=$('#dSpeed');
   if(sp) sp.oninput=()=>{ setSpeed(+sp.value); toast(`進行速度 ×${SPEED.toFixed(1)}`); };
-  const b=$('#bSpeed');
-  if(b){ b.hidden=false;
-    b.onclick=()=>{                       // 押すたびに ×1→×2→×3→×5→×1
-      const i=SPEEDS.indexOf(SPEED);
-      setSpeed(SPEEDS[(i<0?0:i+1) % SPEEDS.length]);
-      toast(`進行速度 ×${SPEED}（テスト用）`);
-    };
-  }
 }
 
 function kindOf(t){
