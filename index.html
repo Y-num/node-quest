@@ -2582,7 +2582,9 @@ function raidClaim(n){
 /* ========================= 汚染とピン =========================
    汚染系のものを出す／持っている場所のまわりは汚れる。
    汚れた施設は仕事が遅くなる。清浄の装備と、置いたピンで抑えられる。   */
-const POL_ITEM = {waste:0.25, toxic:1, rad:4, rift:10, slud:6};
+/* 抱えていると汚染する量。桁で効くので、重みが3倍でも汚染は3倍にはならない。
+   目安（廃材）：200個で約40%、1000個で約55%、放っておけば100%まで行く */
+const POL_ITEM = {waste:0.9, toxic:1.6, rad:3.5, rift:8, slud:5};
 const POL_R    = 280;      // 汚染が届く距離
 const POL_SLOW = 1.6;      // 汚染1.0でどれだけ遅くなるか
 let polT = 0;
@@ -2593,7 +2595,7 @@ function polSource(n){
   }
   let v=0; const out=outsOf(n);
   for(const k in POL_ITEM){
-    if(out[k]) v += POL_ITEM[k]*0.5;                       // 出す施設そのもの
+    if(out[k]) v += POL_ITEM[k]*0.15;                      // 出しているだけなら軽い
     const held = (n.outBuf[k]||0) + (n.inBuf[k]||0);       // 溜め込んでいる量
     if(held > 0) v += POL_ITEM[k] * Math.log10(1+held) * 0.9;
   }
