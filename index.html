@@ -1368,7 +1368,7 @@ function insOf(n){
   if(T.chain==='clean'){                       // 副産物を片付ける
     if(!n.item) return {};
     // 厄介なものほど片付けるのに体力が要る
-    return modIns(n, {sta:staCost(3*(1+bypVal(baseOf(n.item))/6), e), [n.item]:3});
+    return modIns(n, {sta:staCost(1.6*(1+bypVal(baseOf(n.item))/6), e), [n.item]:3});
   }
   if(T.chain==='fund'){                        // ゴールドを研究に変える（要るのは⚡だけ）
     return modIns(n, eraIn(T, {sta:staCost(8, e)}));
