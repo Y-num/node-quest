@@ -817,6 +817,8 @@ function applyCurve(){
   ENEMY_K = 1 + 0.26 * (100 / CURVE.depth);         // 敵HPの階層あたりの伸び（指標260で 1.10）
 }
 const trainMul = lv => Math.pow(TRAIN_K, Math.pow(Math.max(0, lv), TRAIN_P));
+/* 訓練施設を強化すると、1回で入る経験が増える（20レベルごとに+1） */
+const trainYield = n => 1 + Math.floor((n.level - 1) / 20);
 /* 能力を1つ上げるのに要る経験値。1回の訓練で1つ出るので、そのまま回数になる。
    序盤から少しずつ回数が増えるので、体力の重さと合わせて伸びが落ち着く */
 const EXP_STEP = 2;
@@ -907,9 +909,12 @@ const bypFix = era => BYP.filter(b => (era||1) >= b.fix);    // 片付けられ�
    価値は 5倍より少しだけ多く増える。ただしその上乗せは圧縮するほど小さくなる。   */
 const DENS_MAX  = 15;
 const COMP_EDGE = 0.60, COMP_FADE = 0.85;      // 上乗せの初期値と、その減り方
-const densOf = k => { const i=k.indexOf('@'); return i<0 ? 0 : +k.slice(i+1); };
-const baseOf = k => { const i=k.indexOf('@'); return i<0 ? k : k.slice(0,i); };
-const densKey= (k,d) => d<=0 ? baseOf(k) : baseOf(k)+'@'+d;
+const densOf = k => { const m=/@(\d+)/.exec(k||''); return m ? +m[1] : 0; };
+const compOf = k => { const m=/\+(\d+)/.exec(k||''); return m ? +m[1] : 0; };
+const baseOf = k => (k||'').replace(/[@+]\d+/g, '');
+const densKey= (k,d) => (d<=0 ? baseOf(k) : baseOf(k)+'@'+d) + (compOf(k) ? '+'+compOf(k) : '');
+const compKey= (k,c) => { const d=densOf(k), b=baseOf(k);
+  return (d ? b+'@'+d : b) + (c>0 ? '+'+c : ''); };
 // 密度d→d+1 で価値が何倍になるか。5倍(まとめただけ)＋上乗せぶん
 const densStep = d => COMP_TAKE * (1 + COMP_EDGE * Math.pow(COMP_FADE, d));
 const SUPER = '⁰¹²³⁴⁵⁶⁷⁸⁹';
@@ -917,13 +922,15 @@ const densName = d => d ? String(d+1).split('').map(c=>SUPER[+c]).join('') : '';
 /* 段は上限なく増やせる。使うときに作る */
 function ensureItem(k){
   if(ITEMS[k]) return ITEMS[k];
-  const b = baseOf(k), d = densOf(k);
-  if(!d || !ITEMS[b]) return null;
-  return ITEMS[k] = {n: ITEMS[b].n + densName(d), i: ITEMS[b].i, c: ITEMS[b].c, dens:d};
+  const b = baseOf(k), d = densOf(k), c = compOf(k);
+  if((!d && !c) || !ITEMS[b]) return null;
+  return ITEMS[k] = {n: ITEMS[b].n + densName(d) + (c ? '＋'.repeat(Math.min(3,c)) + (c>3?c:'') : ''),
+                     i: ITEMS[b].i, c: ITEMS[b].c, dens:d, comp:c};
 }
 /* 圧縮したもの・鍛えたものは、絵文字だけだと素のものと見分けが付かない。
    ノードの口には段数のしるしを添える */
-const densTag = k => { const d=densOf(k); return d ? `<i class="dm">${densName(d)}</i>` : ''; };
+const densTag = k => { const d=densOf(k), c=compOf(k);
+  return (d ? `<i class="dm">${densName(d)}</i>` : '') + (c ? `<i class="dm">+${c}</i>` : ''); };
 const EXP_OF  = {str:'exs', int:'exi', vit:'exv'};
 const STAT_OF = {exs:'str', exi:'int', exv:'vit'};
 
@@ -988,6 +995,9 @@ const lotOf   = i => 'lot'+(i+1);           // 段位i(0..5)の戦利品
 const isLot   = k => /^lot\d$/.test(baseOf(k||''));
 const EQP_K   = 1.5;                        // 装備は元の部品より少し価値が高い
 const EQP_STEP= (d) => 1 + 0.45 * Math.pow(0.85, d);   // 鍛錬1回の伸び。すぐ鈍る
+/* 装備も圧縮機に通せる。5つを1つにまとめるたびに価値が跳ね上がり、
+   鍛錬のゆるやかな伸びとは別の道になる（密度は「＋」で表す）        */
+const EQP_COMP = (d) => COMP_TAKE * (1 + 0.9 * Math.pow(0.92, d));
 const eqpOf   = i => 'eqp'+(i+1);           // 段位i(0..5)の装備
 const isEqp   = k => /^eqp\d$/.test(baseOf(k||''));
 const ALLOY_K = 1.6;                        // 合成すると価値が少し上乗せされる
@@ -1013,7 +1023,9 @@ function itemVal(k){
   const b = baseOf(k), eq = isEqp(b);
   let v = baseVal(b);
   const d = densOf(k);
+  const c = compOf(k);                                        // 圧縮した回数
   for(let i=0;i<d;i++) v *= eq ? EQP_STEP(i) : densStep(i);   // 装備の鍛錬はごく緩やか
+  for(let i=0;i<c;i++) v *= eq ? EQP_COMP(i) : densStep(i);   // 圧縮ぶんは大きく効く
   return v;
 }
 const COMP_TAKE = 5, DECOMP_TAKE = 4;
@@ -1062,6 +1074,16 @@ const withDens = (arr, cap) => {
 /* 貯蔵に入れられるもの。厄介な副産物も貯めておける（片付ける手段が来るまでの緩衝） */
 // 合金と装備の一覧（鍛えた段も出す）
 function alyList(){ const o=[]; for(let i=1;i<CHAIN.length;i++) if(chainOpen(CHAIN[i])) o.push(alloyOf(i)); return o; }
+/* 圧縮できる装備の一覧。作ったことのある密度＋圧縮段まで出す */
+function compList(){
+  const o=[];
+  for(let i=0;i<CHAIN.length;i++) if(chainOpen(CHAIN[i]))
+    for(let d=0; d<=seenEqp(); d++)
+      for(let c=0; c<=Math.max(0,(S.maxComp||0)); c++){
+        const key = compKey(densKey(eqpOf(i), d), c); ensureItem(key); o.push(key);
+      }
+  return o;
+}
 function eqpList(){ const o=[];
   for(let i=0;i<CHAIN.length;i++) if(chainOpen(CHAIN[i]))
     for(let d=0; d<=seenEqp(); d++) o.push(densKey(eqpOf(i), d));
@@ -1081,7 +1103,7 @@ function chainOpts(t){
   if(k==='open')          return BOXES.map(b=>b.k);
   if(k==='hout'){ const H=homeOf();
     return Object.keys(H).filter(k=>H[k]>0).sort((a,b)=>itemVal(b)-itemVal(a)); }
-  if(k==='comp')          return withDens(mats);
+  if(k==='comp')          return withDens(mats).concat(compList());
   if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
   if(k==='decomp'||k==='sell')
@@ -1115,11 +1137,12 @@ const TYPES = {
           d:'ゴールドを研究ポイントに変える。割はとても悪いが、余ったゴールドの使い道になる'},
   lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12}, outs:{}, effect:'lab', matIn:true,
           d:'体力を研究力に変える。素材を1種類だけ受け取れて、送り込むと研究在庫になる'},
-  tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
-          d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増える'},
-  tint  :{n:'読書',      i:'📖', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int',
-          d:'🧠知力+1。研究も生産も速くなる'},
-  tvit  :{n:'走り込み',  i:'🏃', cost:200,  up:300,  time:8.0, ins:{sta:6}, outs:{exv:1}, stat:'vit',
+  tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
+          d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増えるが、'
+           +'この施設を強化すると1回で得られる経験が増える'},
+  tint  :{n:'読書',      i:'📖', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int',
+          d:'🧠知力+1。研究も生産も速くなる。強化すると1回で得られる経験が増える'},
+  tvit  :{n:'走り込み',  i:'🏃', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exv:1}, stat:'vit',
           d:'❤️体力+1。体力の生成と上限が指数的に伸びる'},
   smelt :{n:'精錬',      i:'🔥', cost:900,  up:1200, time:3.2, ins:{}, outs:{}, chain:'ingot',
           d:'原鉱2つを地金1つにする'},
@@ -1194,7 +1217,9 @@ const ERAS = [
 const ERA_MAX  = ERAS.length;
 const eraName  = e => ERAS[Math.max(0,Math.min(ERA_MAX-1, e-1))];
 /* 時代が上がるほど、速く・省エネになるかわりに建設費と強化費は指数で増える */
-const ERA_SPD = 0.86, ERA_EFF = 0.87, ERA_COST = 3.2, ERA_UP = 4.0;
+/* 世代がひとつ上がるごとに、速さは1/0.78＝約1.28倍、⚡の食いぶちは0.80倍。
+   第10世代の施設は第1世代の 約8.9倍速く、⚡は 約0.13倍で動く                */
+const ERA_SPD = 0.78, ERA_EFF = 0.80, ERA_COST = 3.2, ERA_UP = 4.0;
 const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
 /* その時代の施設が⚡のほかに要るもの */
 const ERA_POW = {2:{wood:1}, 3:{wood:1}, 4:{wood:2},
@@ -1302,7 +1327,7 @@ function buildFac(){
         n:f.n, i:f.i, line:role, era:f.e, d:f.d || base.d,
         time: +(base.time * Math.pow(ERA_SPD, g)).toFixed(4),
         cost: Math.round(base.cost * Math.pow(ERA_COST, g)),
-        up:   Math.max(1, Math.round(base.cost * UP_RATE * Math.pow(ERA_UP, g))),
+        up:   Math.max(1, Math.round(base.cost * UP_RATE * (base.upK||1) * Math.pow(ERA_UP, g))),
       });
       if(f.eff)  T.eff  = f.eff;               // ⚡の食いぶちの上乗せ
       if(f.payRp){ T.payRp = f.payRp; delete T.pay; }   // 研究で動く仲間
@@ -1468,8 +1493,11 @@ function modOuts(n, o){
 }
 function outsOf(n){
   const T = TYPES[n.type];
-  if(T.chain==='comp'){ const to = n.item ? nextTier(n.item, densCap(T.era)) : null;
-                        return to ? modOuts(n, {[to]:1}) : {}; }
+  if(T.chain==='comp'){
+    const to = !n.item ? null
+      : isEqp(n.item) ? (ensureItem(compKey(n.item, compOf(n.item)+1)), compKey(n.item, compOf(n.item)+1))
+      : nextTier(n.item, densCap(T.era));
+    return to ? modOuts(n, {[to]:1}) : {}; }
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
   if(T.chain==='decomp' || T.chain==='sell' || T.chain==='open' || T.chain==='fund') return {};
@@ -1504,6 +1532,9 @@ function outsOf(n){
   if(T.lin){ const L=N(n.layer); return L ? layerNeeds(L) : {}; }
   if(T.lout) return {};
   if(T.layer) return n.out ? {[n.out]:1} : {};
+  if(T.stat){                                   // 訓練：強化すると1回の経験が増える
+    return modOuts(n, {[EXP_OF[T.stat]]: trainYield(n)});
+  }
   if(T.loot){ const o = {[lootItem(n)]:1};
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
     return modOuts(n, o); }
@@ -1641,14 +1672,14 @@ const dropGrade = f => Math.max(1, Math.floor((f - DROP_FROM) / 15) + 1);
 
 const AFFIX = [
   // key,       表示,        良,  重み, 適用
-  {k:'spd+', grp:'spd', n:'高速',   good:1, w:10, f:(m,g)=>m.spd*=Math.max(.62, 0.90-0.02*g)},
-  {k:'spd-', grp:'spd', n:'鈍重',   good:0, w:9,  f:(m,g)=>m.spd*=1.15+0.04*g},
-  {k:'sta+', grp:'sta', n:'省エネ', good:1, w:10, f:(m,g)=>m.sta*=Math.max(.55, 0.90-0.022*g)},
-  {k:'sta-', grp:'sta', n:'大食い', good:0, w:10, f:(m,g)=>m.sta*=1.2+0.06*g},
-  {k:'yld+', grp:'yld', n:'多産',   good:1, w:7,  f:(m)  =>m.yld+=1},
+  {k:'spd+', grp:'spd', n:'高速',   good:1, w:10, f:(m,g)=>m.spd*=Math.max(.30, 0.86-0.035*g)},
+  {k:'spd-', grp:'spd', n:'鈍重',   good:0, w:9,  f:(m,g)=>m.spd*=1.20+0.05*g},
+  {k:'sta+', grp:'sta', n:'省エネ', good:1, w:10, f:(m,g)=>m.sta*=Math.max(.25, 0.85-0.040*g)},
+  {k:'sta-', grp:'sta', n:'大食い', good:0, w:10, f:(m,g)=>m.sta*=1.25+0.08*g},
+  {k:'yld+', grp:'yld', n:'多産',   good:1, w:7,  f:(m,g)=>m.yld+=1+Math.floor(g/5)},
   {k:'wst-', grp:'wst', n:'清潔',   good:1, w:6,  f:(m)  =>m.clean=1},
   {k:'wst+', grp:'wst', n:'汚い',   good:0, w:8,  f:(m,g)=>m.wst+=1+Math.floor(g/8)},
-  {k:'cap+', grp:'cap', n:'大容量', good:1, w:6,  f:(m,g)=>m.cap*=1.8+g*0.12},
+  {k:'cap+', grp:'cap', n:'大容量', good:1, w:6,  f:(m,g)=>m.cap*=2.2+g*0.25},
   {k:'cap-', grp:'cap', n:'脆い',   good:0, w:6,  f:(m)  =>m.cap*=0.5},
   {k:'need', grp:'need',n:'要整備', good:0, w:8,  f:(m,g,rnd)=>{ const c=CHAIN[Math.min(CHAIN.length-1, Math.floor(rnd()*Math.min(6,1+g/3)))];
                                                           m.need[c.part]=(m.need[c.part]||0)+1; }},
@@ -1778,7 +1809,7 @@ function freshState(){
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, home:{}, maxEqp:0, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, maxEqp:0, maxComp:0, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -2204,7 +2235,8 @@ function tick(dt,fast){
       }
       for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k];
         const d=densOf(k); if(!d) continue;
-        if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d; }
+        if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
+          const c=compOf(k); if(c>(S.maxComp||0)) S.maxComp=c; }
         else if(d>(S.maxDens||0)) S.maxDens=d; }
       n.done++;
       // 訓練は経験値を産むだけ。主人公まで配線を戻して初めて能力になる
