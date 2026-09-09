@@ -296,6 +296,7 @@ body.tut #offscr{display:none}
 }
 /* ---------- デバッグ：ノード一覧と設置 ---------- */
 .tbtn.dbg{border-color:var(--warn);color:var(--warn)}
+.tbtn.dbg.fast{background:rgba(242,193,78,.18);color:var(--acc);border-color:var(--acc)}
 .tbtn.dbg:hover{background:var(--warn);color:#0a0d14}
 /* ---------- 研究ツリー ---------- */
 .tbtn.tree{border-color:var(--acc2);color:var(--acc2)}
@@ -599,6 +600,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <button class="tbtn" id="bStats">📈 記録</button>
     <button class="tbtn" id="bLasso">🧩 まとめる</button>
     <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
+    <button class="tbtn dbg" id="bSpeed" hidden>⏩ ×1</button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
     <button class="tbtn" id="bSave">保存</button>
@@ -2274,9 +2276,11 @@ function tick(dt,fast){
       if(!ls.length) continue;
       const big = TYPES[n.type].layer || TYPES[n.type].port;   // 口はまとめて流す
       const chunk = big ? Infinity : Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8));
-      // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る
-      let left = big ? 400 : Math.min(200, 1+Math.floor(-n.cd[item]/SENDCD));
-      n.cd[item]=SENDCD;
+      // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る。
+      // 使ったぶんだけ間隔を戻す（余りを捨てると、コマが粗いほど流れが細くなる）
+      const canSend = 1 + Math.floor(-n.cd[item]/SENDCD);
+      let left = big ? 400 : Math.min(200, canSend);
+      n.cd[item] += SENDCD * canSend;
       // 優先度つきの分配（数字の大きい送り先ほど多く回る）
       n.wrr = n.wrr || {};
       let st = n.wrr[item];
@@ -4520,10 +4524,26 @@ $('#bReset').onclick=()=>{
 /* ========================= デバッグ：ノード一覧と設置 =========================
    ?debug=1 が付いているときだけ開ける。通常プレイではボタンごと出さない */
 const DEBUG = /(^|[?&])debug=1(&|$)/.test(location.search) || location.hash === '#debug';
+const SPEEDS = [1, 2, 3, 5];
+function setSpeed(v){
+  SPEED = v;
+  const b=$('#bSpeed'), sp=$('#dSpeed'), sv=$('#dSpeedV');
+  if(b) b.textContent = '⏩ ×' + (Number.isInteger(v) ? v : v.toFixed(1));
+  if(b) b.classList.toggle('fast', v > 1);
+  if(sp) sp.value = v;
+  if(sv) sv.textContent = '×' + v.toFixed(1);
+}
 if(DEBUG){
   const sp=$('#dSpeed'), sv=$('#dSpeedV');
-  if(sp) sp.oninput=()=>{ SPEED=+sp.value; sv.textContent='×'+SPEED.toFixed(1);
-    toast(`進行速度 ×${SPEED.toFixed(1)}`); };
+  if(sp) sp.oninput=()=>{ setSpeed(+sp.value); toast(`進行速度 ×${SPEED.toFixed(1)}`); };
+  const b=$('#bSpeed');
+  if(b){ b.hidden=false;
+    b.onclick=()=>{                       // 押すたびに ×1→×2→×3→×5→×1
+      const i=SPEEDS.indexOf(SPEED);
+      setSpeed(SPEEDS[(i<0?0:i+1) % SPEEDS.length]);
+      toast(`進行速度 ×${SPEED}（テスト用）`);
+    };
+  }
 }
 
 function kindOf(t){
