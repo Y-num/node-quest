@@ -79,10 +79,13 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
 
 /* ---------- ノード ---------- */
-.node{position:absolute;width:176px;padding:7px 9px;pointer-events:auto;
+.node{--pol:0;position:absolute;width:176px;padding:7px 9px;pointer-events:auto;
   background:var(--panel2);border:1px solid var(--line);border-radius:11px;
   user-select:none;cursor:grab;box-shadow:0 8px 22px rgba(0,0,0,.45);
-  transition:border-color .15s,box-shadow .15s}
+  transition:border-color .15s,box-shadow .15s,background-color .6s}
+/* 汚染が進むほど紫に沈む。数字を読まなくても盤面のどこが汚れているか分かる */
+.node{background-color:color-mix(in srgb, var(--pw) calc(var(--pol) * 42%), var(--panel2))}
+.node .nh, .node .rowio{position:relative}
 .node.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 8px 24px rgba(0,0,0,.5)}
 .node.stall{border-color:#6d3a45}
 .node.run{border-color:#2f6b60}
@@ -126,7 +129,8 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
 .node.stall .aura{opacity:.25}
-.node.pol{box-shadow:0 0 0 1px rgba(154,209,74,.5), 0 0 18px rgba(154,209,74,.25)}
+.node.pol{box-shadow:0 0 0 1px rgba(180,135,245,calc(.25 + var(--pol) * .5)),
+                     0 0 calc(10px + var(--pol) * 22px) rgba(180,135,245,calc(var(--pol) * .45))}
 .node.hid{display:none}
 #board{position:absolute;left:12px;top:12px;display:none;align-items:center;gap:10px;
   background:rgba(17,22,35,.97);border:1px solid var(--pw);border-radius:10px;padding:6px 10px;
@@ -3171,6 +3175,8 @@ function render(){
     if((n.pol||0) > 0.05) e.nf.textContent += `　☣汚染${Math.round(n.pol*100)}%`;
     else if((n.spd||1) > 1.01) e.nf.textContent += `　⚡加速+${Math.round((n.spd-1)*100)}%`;
     if(prioOf(n)>1) e.nf.textContent += `　優先${prioOf(n)}`;
+    const pv = Math.round((n.pol||0)*20)/20;          // 5%きざみで書き換える
+    if(e.lastPol !== pv){ e.lastPol = pv; e.root.style.setProperty('--pol', pv); }
     e.root.classList.toggle('pol', (n.pol||0) > 0.05);
     e.root.classList.toggle('won', !!(T.raid && n.clear));
     e.root.classList.toggle('hid', !onBoard(n));
