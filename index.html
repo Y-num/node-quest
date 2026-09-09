@@ -1583,7 +1583,7 @@ function gearBonus(){
   }
   return gearN = o;
 }
-const GEAR_K = {cond:0.020, firm:0.050, pure:0.050, rich:0.040, arcane:0.040};
+const GEAR_K = {cond:0.020, firm:0.080, pure:0.050, rich:0.040, arcane:0.040};
 /* 特性ごとの倍率。星辰はすべてに薄く乗る */
 function gearMul(t){
   const b = gearBonus();
@@ -1719,7 +1719,7 @@ const isSeen = t => (TYPES[t].era || 1) <= (S.era || 1) + 1;   // 次の時代�
 const gotRp  = () => Math.floor(S.rp || 0);
 const gotMat = () => Math.floor(S.stock || 0);
 /* 時代を1つ上げるのに要るもの。桁は時代ごとに大きく変わる */
-const ERA_RP0 = 2500, ERA_RPK = 6;
+const ERA_RP0 = 2500, ERA_RPK = 4.5;
 const ERA_MAT_FROM = 4, ERA_MATK = 3.5;
 const ERA_RP_EARLY = {2:400, 3:3000};      // 装備に触れるまでは軽く
 const eraRp  = e => e<=1 ? 0
@@ -1748,9 +1748,10 @@ const ZONES = [
 const zoneOf = f => { let z=ZONES[0]; for(const q of ZONES) if(f>=q.f) z=q; return z; };
 const BOSS_EVERY = 10;
 const isBoss = f => f % BOSS_EVERY === 0;
-// 踏破報酬：10層ごとに攻撃力が恒久的に +8%（潜った深さがそのまま力になる）
+// 踏破報酬：10層ごとに攻撃力が恒久的に ×1.09（複利。潜った深さがそのまま力になる）
+const DEPTH_K    = 1.09;
 const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
-const depthBonus = () => 1 + depthTier() * 0.08;
+const depthBonus = () => Math.pow(DEPTH_K, depthTier());
 const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
