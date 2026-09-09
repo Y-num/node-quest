@@ -1748,10 +1748,14 @@ const ZONES = [
 const zoneOf = f => { let z=ZONES[0]; for(const q of ZONES) if(f>=q.f) z=q; return z; };
 const BOSS_EVERY = 10;
 const isBoss = f => f % BOSS_EVERY === 0;
-// 踏破報酬：10層ごとに攻撃力が恒久的に ×1.09（複利。潜った深さがそのまま力になる）
+/* 踏破報酬：10層ごとに攻撃力が恒久的に伸びる。
+   伸び幅そのものが段とともに増えるので、深く潜るほど加速する（後半で効く曲線）
+     3段(30層) ×1.4 ／ 6段 ×2.0 ／ 12段(120層) ×6.1 ／ 17段(175層) ×18.7 ／ 25段 ×230  */
 const DEPTH_K    = 1.09;
+const DEPTH_Q    = 16;
 const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
-const depthBonus = () => Math.pow(DEPTH_K, depthTier());
+const depthBonus = () => { const t = depthTier();
+  return Math.pow(DEPTH_K, t + t*t/DEPTH_Q); };
 const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
