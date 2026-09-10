@@ -1207,7 +1207,7 @@ function chainOpts(t){
 const TYPES = {
   hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3,
           d:'すべての行動の源。装備スロットが3つある。ここから伸ばす配線の本数が体力の配分になる。経験値もここへ戻す'},
-  mate  :{n:'仲間',      i:'🧑‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:6,
+  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:6,
           d:'ゴールドを払って働いてもらう、もう一つの体力の源。装備スロットが1つある。'
            +'給料が払えなくなると手が止まる'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
@@ -1417,9 +1417,9 @@ const FAC = {
           {e:7,n:'図書館',i:'📚'},{e:9,n:'神経接続',i:'🧠'},{e:10,n:'悟り',i:'♾️'}],
   tvit:  [{e:1,n:'散歩',i:'🚶'},{e:3,n:'走り込み',i:'🏃'},{e:5,n:'山ごもり',i:'⛰️'},
           {e:7,n:'体質改善',i:'🫀'},{e:9,n:'生体改造',i:'🧬'},{e:10,n:'不死の泉',i:'⛲'}],
-  mate:  [{e:3,n:'村人',i:'🧑‍🌾'},{e:6,n:'職人',i:'🧑‍🔧'},{e:8,n:'試作体',i:'🧪'},
-          {e:9,n:'ホムンクルス',i:'🧬',payRp:0.012,d:'研究ポイントを食べて働く人工の仲間。ゴールドは要らない'},
-          {e:10,n:'オートマタ',i:'🤖',payRp:0.012,d:'研究ポイントで動く自動人形。ゴールドは要らない'}],
+  mate:  [{e:3,n:'村人',i:'👩‍🌾'},{e:6,n:'職人',i:'👩‍🔧'},{e:8,n:'試作体',i:'👩‍🔬'},
+          {e:9,n:'ホムンクルス',i:'🧝‍♀️',payRp:0.012,d:'研究ポイントを食べて働く人工の仲間。ゴールドは要らない'},
+          {e:10,n:'オートマタ',i:'🧞‍♀️',payRp:0.012,d:'研究ポイントで動く自動人形。ゴールドは要らない'}],
   wood:  [{e:2,n:'薪割り小屋',i:'🪓'},{e:4,n:'製材所',i:'🪚',outs:{wood:3}}],
   coal:  [{e:4,n:'炭窯',i:'🪵'}],
   open:  [{e:1,n:'開封所',i:'📦'},{e:4,n:'開封場',i:'🏗'},{e:7,n:'自動開封機',i:'🤖'},
@@ -2151,7 +2151,9 @@ function linkGeom(l){
    毎コマ作り直すと、線の数がそのまま重さになる                      */
 function geomOf(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
-  const gk = a.x+','+a.y+','+b.x+','+b.y+','+(l.wp?l.wp.x+'_'+l.wp.y:'-');
+  // 位置だけでなく「口の顔ぶれ」も見る。口が増減すると端点の高さが変わる
+  const gk = a.x+','+a.y+','+b.x+','+b.y+','+(l.wp?l.wp.x+'_'+l.wp.y:'-')
+           + '|' + (a.el&&a.el.sig||'') + '|' + (b.el&&b.el.sig||'');
   if(l._gk !== gk || !l.G){ l._gk = gk; l.G = linkGeom(l); }
   return l.G;
 }
@@ -3857,10 +3859,13 @@ function render(){
       if(hid) l.el.wph.style.display='none';
     }
     if(hid) continue;
-    // 端点が動いていなければ、曲線を引き直す必要はない
+    // 端点が動いていなければ、曲線を引き直す必要はない。
+    // ただし作りたての見た目には必ず1回描く（目印だけ合っていて線が無い状態を作らない）
     const G=geomOf(l); if(!G) continue;
-    if(l._dk !== l._gk){
-      l._dk = l._gk;
+    // 5コマに1回は「本当に線が入っているか」を DOM に直接聞く。
+    // 目印まわりで取りこぼしても、見えない線が居座り続けないようにする
+    if(l._dk !== l._gk || !l.el.drawn || (slow && !l.el.wire.getAttribute('d'))){
+      l._dk = l._gk; l.el.drawn = true;
       l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d); l.el.flow.setAttribute('d',G.d);
       if(l.wp){ l.el.wph.setAttribute('cx',l.wp.x); l.el.wph.setAttribute('cy',l.wp.y); l.el.wph.style.display=''; }
       else l.el.wph.style.display='none';
