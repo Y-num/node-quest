@@ -103,7 +103,22 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 @keyframes hotp{0%,100%{box-shadow:0 0 0 3px rgba(122,162,255,.35)}
                 50%{box-shadow:0 0 0 7px rgba(122,162,255,.12)}}
 .nh{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;height:22px}
-.nh .ic{font-size:14px}
+.nh .ic{font-size:14px;flex:none}
+.nh .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* 通し番号。どのノードとどのノードが繋がっているかを、番号で言い表せる */
+.nh .no{font-size:9.5px;font-weight:700;color:var(--dim);
+  background:#0b1119;border:1px solid var(--line);padding:0 4px;border-radius:4px;
+  font-variant-numeric:tabular-nums;flex:none}
+.node.sel .nh .no{color:var(--acc);border-color:var(--acc)}
+/* 選んだノードと、その相手だけを残して、ほかは沈める */
+.node.dim{opacity:.16;filter:saturate(.35)}
+/* 配線を伸ばしている最中や、置き場所を決めている最中は沈めない */
+body.linking .node.dim, body.placing .node.dim{opacity:1;filter:none}
+body.linking path.wire.dim, body.placing path.wire.dim{stroke-opacity:.32}
+.node.near{border-color:var(--acc2)}
+path.wire.dim{stroke-opacity:.05}
+path.flow.dim{stroke-opacity:.05}
+circle.wph.dim{opacity:.15}
 .nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
   background:#0b1119;border:1px solid var(--line);padding:0 5px;border-radius:4px}
 /* 素材ごとに1行＝1ポート。左が入力、右が出力 */
@@ -455,6 +470,24 @@ table.dtbl tr.warn td{background:rgba(224,87,107,.08)}
 .dsk.off{opacity:.55}
 .dsk.off .sw{color:var(--warn)}
 .dtag{font-size:10px;border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--dim)}
+/* インスペクタの「つながり」。番号を押すとその相手へ飛ぶ */
+#insp .kv.wrow{align-items:flex-start}
+#insp .wno{font-style:normal;font-weight:700;color:var(--acc);margin-left:5px;
+  font-variant-numeric:tabular-nums}
+#insp .wire2{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:72%}
+#insp .wgo{background:#0b1119;border:1px solid var(--line);border-radius:6px;
+  padding:1px 6px;font-size:10.5px;color:var(--fg);font-variant-numeric:tabular-nums}
+#insp .wgo.i{border-color:#2f4a6b} #insp .wgo.o{border-color:#2f6b60}
+#insp .wnone{font-size:11px;color:var(--dim)}
+#insp .wsub{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:5px}
+#insp .kvb{margin-top:6px}
+#insp .kb{font-size:11px;color:var(--dim);margin-bottom:3px}
+#insp .nflow{display:grid;gap:2px;font-size:11px;font-variant-numeric:tabular-nums}
+#insp .nflow .fr{display:grid;grid-template-columns:1fr auto auto auto;gap:7px;
+  align-items:baseline;white-space:nowrap}
+#insp .nflow .fnm{overflow:hidden;text-overflow:ellipsis}
+#insp .nflow .fi{color:var(--acc)} #insp .nflow .fo{color:var(--bad)}
+#insp .nflow .fn{font-weight:700;min-width:54px;text-align:right;color:var(--fg)}
 #bag{position:fixed;inset:0;background:rgba(6,9,14,.82);z-index:105;display:none;
   align-items:center;justify-content:center;padding:16px}
 #bag.on{display:flex}
@@ -2089,7 +2122,7 @@ const SVG = 'http://www.w3.org/2000/svg';
 
 function freshState(){
   return {
-    gold:40, nextId:1, counts:{}, nodes:[], links:[],
+    gold:40, nextId:1, nextNo:0, counts:{}, nodes:[], links:[],
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
@@ -2229,7 +2262,8 @@ function mkNodeEl(n){
         : TYPES[n.type].ware ? 'どんな素材でもここへ繋げます'
         : '空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）'}">＋</div>`;
   el.innerHTML = auraEl +
-    `<div class="nh"><span class="ic">${tr.i}</span><span class="nm">${tr.n}</span>`+
+    `<div class="nh"><span class="no">#${n.no||'-'}</span>`+
+    `<span class="ic">${tr.i}</span><span class="nm">${tr.n}</span>`+
     `<span class="sk"></span><span class="lv">Lv.${n.level}</span></div>`+
     rows + `<div class="bar"><i></i></div><div class="nf"></div>` + ports;
 
@@ -2237,7 +2271,7 @@ function mkNodeEl(n){
   el.querySelectorAll('.slot[data-s]').forEach(s=>slots[s.dataset.s]=s);
   n.el = {root:el, ic:el.querySelector('.ic'), nm:el.querySelector('.nm'),
           lv:el.querySelector('.lv'), bar:el.querySelector('.bar i'),
-          nf:el.querySelector('.nf'), sk:el.querySelector('.sk'),
+          nf:el.querySelector('.nf'), sk:el.querySelector('.sk'), no:el.querySelector('.no'),
           polr:el.querySelector('.polr'), slots, sig: portSig(ik, ok)};
   el.style.left = n.x+'px'; el.style.top = n.y+'px';
   world.appendChild(el);
@@ -2324,6 +2358,7 @@ function addNode(type,x,y){
     const o=chainOpts(type); if(o.length) n.item=o[0];
   }
   if(TYPES[type].src && type!=='hero') n.pname = randPerson();
+  n.no = S.nextNo = (S.nextNo || 0) + 1;      // 見分けるための通し番号（一度ついたら変わらない）
   S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n); return n;
 }
 function removeNode(id){
@@ -2473,7 +2508,7 @@ function tick(dt,fast){
     if(Object.keys(soft).length){      // 届いたものをその場で受け取る
       for(const k in soft){
         const c=Math.floor(n.inBuf[k]||0); if(c<=0) continue;
-        n.inBuf[k]-=c; flowOut(k, c);
+        n.inBuf[k]-=c; flowOut(k, c); nodeFlow(n, k, c, 'o');
         if(STAT_OF[k]){                 // 主人公・仲間：経験値 → 能力
           const st=STAT_OF[k]; n.gain=(n.gain||0)+c;
           n.ex=n.ex||{}; n.ex[st]=(n.ex[st]||0)+c; exAcc[st]+=c;
@@ -2534,7 +2569,7 @@ function tick(dt,fast){
         if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`研究ポイントが足りない（${fmt(payRpOf(n))}）`; }
 
         if(!ok){ n.stall=true; break; }
-        for(const k in need){ n.inBuf[k]-=need[k]; flowOut(k, need[k]); }
+        for(const k in need){ n.inBuf[k]-=need[k]; flowOut(k, need[k]); nodeFlow(n, k, need[k], 'o'); }
         if(T.pay)   S.gold -= payOf(n);
         if(T.payRp) S.rp = (S.rp||0) - payRpOf(n);
         n.crafting=true; n.prog=0; n.need=Math.max(1e-6, craftTime(n));
@@ -2550,7 +2585,7 @@ function tick(dt,fast){
       }
       const dbl = hasPerk(T,'twin') && Math.random() < 0.25;   // 複製・覚醒・並列
       if(dbl){ const g2={}; for(const k in give) g2[k]=give[k]*2; give=g2; }
-      for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k]; flowIn(k, give[k]);
+      for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k]; flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
           const c=compOf(k); if(c>(S.maxComp||0)) S.maxComp=c; }
@@ -2661,6 +2696,13 @@ const flowRate = {};                   // {キー:{i:1分あたり, o:1分あた
 const flowTot  = {};                   // {キー:{i,o}} 遊びはじめてからの合計
 /* 留守ぶんの早送りは数えない。数時間ぶんが一瞬で入ると勢いが嘘になる */
 let flowOff = false;
+/* 施設ごとの出入り。dir は 'i'=作った / 'o'=使った。
+   セーブには残さないよう「_」で始める                                  */
+function nodeFlow(n, k, q, dir){
+  if(flowOff || !(q > 0)) return;
+  const f = n._fl || (n._fl = {});
+  (f[k] || (f[k] = {i:0, o:0}))[dir] += q;
+}
 function flowIn (k,q){ if(q>0 && !flowOff){ (FLOW[k]=FLOW[k]||{i:0,o:0}).i += q;
                                 (flowTot[k]=flowTot[k]||{i:0,o:0}).i += q; } }
 function flowOut(k,q){ if(q>0 && !flowOff){ (FLOW[k]=FLOW[k]||{i:0,o:0}).o += q;
@@ -2719,6 +2761,15 @@ function rateTick(dt){
   rateT += dt; if(rateT < 1) return;
   const w = rateT; rateT = 0;
   for(const n of S.nodes){
+    if(n._fl){                        // 施設ごとの「作った／使った」
+      const r = n._fr || (n._fr = {});
+      for(const k in n._fl){
+        const f = n._fl[k], e = r[k] || (r[k] = {i:0, o:0});
+        e.i = e.i*0.5 + (f.i/w*60)*0.5;
+        e.o = e.o*0.5 + (f.o/w*60)*0.5;
+        f.i = 0; f.o = 0;
+      }
+    }
     if(!n.sent) continue;
     n.rate = n.rate || {};
     for(const k in n.sent){
@@ -3722,6 +3773,29 @@ function viewRect(){
 }
 const inRect = (n,R) => n.x+NW >= R.x0 && n.x <= R.x1 && n.y+180 >= R.y0 && n.y <= R.y1;
 let frameN = 0, flowSet = null, flowVer = -1;
+/* 選んでいるノードと、線でつながっている相手。ここに居ないものは沈める */
+let focusSet = null, focusKey = '';
+function focusOf(){
+  const key = (sel||0) + '|' + linkVer;
+  if(focusKey === key) return focusSet;
+  focusKey = key;
+  if(!sel || !N(sel)) return focusSet = null;
+  const o = new Set([sel]);
+  for(const l of S.links){
+    if(l.from === sel) o.add(l.to);
+    if(l.to   === sel) o.add(l.from);
+  }
+  return focusSet = o;
+}
+/* そのノードに出入りしている線を、番号つきで言葉にする */
+function wiresOf(n){
+  const inn = [], out = [];
+  for(const l of S.links){
+    if(l.to === n.id){   const a=N(l.from); if(a) inn.push(`#${a.no||'-'} ${tierOf(a).n}（${ITEMS[l.item].i}${ITEMS[l.item].n}）`); }
+    if(l.from === n.id){ const b=N(l.to);   if(b) out.push(`#${b.no||'-'} ${tierOf(b).n}（${ITEMS[l.item].i}${ITEMS[l.item].n}）`); }
+  }
+  return {inn, out};
+}
 function render(){
   frameN++;
   let jam = null;
@@ -3732,6 +3806,7 @@ function render(){
   if(flowVer !== linkVer){ flowVer = linkVer;
     flowSet = new Set(); for(const l of S.links) flowSet.add(l.from+':'+l.item); }
   const flowing = flowSet;
+  const F = focusOf();
   for(const n of S.nodes){
     const T=TYPES[n.type];
     // 見えていなくても、詰まりの知らせだけは拾っておく
@@ -3866,6 +3941,9 @@ function render(){
     setCls(e.root,'stall',n.stall);
     setCls(e.root,'run',!n.stall);
     setCls(e.root,'sel',sel===n.id);
+    setCls(e.root,'dim',  !!F && !F.has(n.id));
+    setCls(e.root,'near', !!F && n.id!==sel && F.has(n.id));
+    setTxt(e.no, '#'+(n.no||'-'));
   }
   for(const l of S.links){
     // レイヤーの中に隠れた端点を持つ線は見せない
@@ -3889,6 +3967,8 @@ function render(){
       if(l.wp){ l.el.wph.setAttribute('cx',l.wp.x); l.el.wph.setAttribute('cy',l.wp.y); l.el.wph.style.display=''; }
       else l.el.wph.style.display='none';
     }
+    const off = !!F && l.from!==sel && l.to!==sel;
+    setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off); setCls(l.el.wph,'dim',off);
     // 流れている線は向きの印を濃くする（点滅させずに、動いていることを見せる）
     if(slow){
       const r = (a.rate && a.rate[l.item]) || 0;
@@ -4156,6 +4236,16 @@ function uiBlocked(wx,wy){
   return false;
 }
 // 表示倍率を保ったまま、画面中央を基準に拡大縮小する
+/* そのノードが画面の真ん中に来るように寄せる（別の盤面なら移動もする） */
+function centerOn(n){
+  if(!n) return;
+  const want = n.layer || null;
+  if(atNow() !== want){ if(want) enterLayer(N(want)); else leaveLayer(); }
+  const v=S.view, W=stage.clientWidth||800, H=stage.clientHeight||600;
+  v.x = W/2 - (n.x + NW/2) * v.s;
+  v.y = H/2 - (n.y + 45)   * v.s;
+  applyView();
+}
 function zoomTo(ns){
   const v=S.view, cx=stage.clientWidth/2, cy=stage.clientHeight/2;
   v.x = cx-(cx-v.x)*(ns/v.s);
@@ -4309,6 +4399,9 @@ function renderInsp(){
   const head =
     `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>` +
     (canRename(n) ? `<div class="kv">名前<button class="ren"></button></div>` : '') +
+    `<div class="kv wrow"><span>つながり<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>` +
+    `<div class="kvb"><div class="kb">この施設の収支<i class="wsub">1分あたり</i></div>`
+    + `<div class="nflow"></div></div>` +
     ((T.chain && T.chain!=='sell' && T.chain!=='fund')||T.loot
         ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
@@ -4460,6 +4553,7 @@ function renderInsp(){
     S.gold-=c; n.level+=UP_BULK;
     toast(`${tierOf(n).n} を Lv.${n.level} まで強化しました`);
   };
+  box._wv = linkVer; renderWires(box, n);
   const rn=box.querySelector('.ren');
   if(rn) rn.onclick=()=>renameNode(n);
   box.querySelector('.pm').onclick=()=>{ n.prio=Math.max(1,prioOf(n)-1); };
@@ -4475,9 +4569,44 @@ function renderInsp(){
   };
   renderInspLive();
 }
+/* つながりの一覧。線の顔ぶれが変わったときだけ作り直す（押せるように） */
+function renderWires(box, n){
+  const w = box.querySelector('.wire2'); if(!w) return;
+  const chip = (m, item, dir) =>
+    `<button class="wgo ${dir}" data-id="${m.id}" title="${dir==='i'?'ここへ入れている':'ここへ出している'}`
+    + ` ${tierOf(m).n}／${ITEMS[item].n}">${dir==='i'?'←':'→'}#${m.no||'-'}${ITEMS[item].i}</button>`;
+  const inn = [], out = [];
+  for(const l of S.links){
+    if(l.to === n.id){   const a=N(l.from); if(a) inn.push(chip(a, l.item, 'i')); }
+    if(l.from === n.id){ const b=N(l.to);   if(b) out.push(chip(b, l.item, 'o')); }
+  }
+  w.innerHTML = (inn.length||out.length) ? inn.join('')+out.join('')
+              : `<span class="wnone">まだ何ともつながっていません</span>`;
+  w.querySelectorAll('.wgo').forEach(b=>b.onclick=()=>{
+    const m=N(+b.dataset.id); if(!m) return;
+    sel=m.id; centerOn(m); renderInsp();
+  });
+}
+/* この施設が1分あたり何を作って何を使っているか */
+function renderNodeFlow(box, n){
+  const w = box.querySelector('.nflow'); if(!w) return;
+  const fr = n._fr || {};
+  const ks = Object.keys(fr).filter(k => ITEMS[k] && (fr[k].i > 0.005 || fr[k].o > 0.005))
+                            .sort((a,b)=> itemRank(a) - itemRank(b));
+  if(!ks.length){ w.innerHTML = `<span class="wnone">まだ動いていません</span>`; return; }
+  w.innerHTML = ks.map(k=>{
+    const f = fr[k], net = f.i - f.o;
+    return `<span class="fr"><span class="fnm">${ITEMS[k].i}${ITEMS[k].n}</span>`
+      + `<span class="fi">${f.i>0.005 ? '+'+fmtR(f.i) : ''}</span>`
+      + `<span class="fo">${f.o>0.005 ? '-'+fmtR(f.o) : ''}</span>`
+      + `<span class="fn ${netCls(net)}">${sign(net)}</span></span>`;
+  }).join('');
+}
 function renderInspLive(){
   const box=$('#insp'); if(!box.classList.contains('on')) return;
   const n=sel?N(sel):null; if(!n) return;
+  if(box._wv !== linkVer){ box._wv = linkVer; renderWires(box, n); }
+  renderNodeFlow(box, n);
   const tr=tierOf(n);
   const rnb=box.querySelector('.ren');
   if(rnb) rnb.textContent = nameOf(n) + ' ✎';
@@ -5010,7 +5139,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=13;
+const SAVE_V=14;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -5163,6 +5292,14 @@ function migrate(d){
       if(n.pname) used.add(n.pname);
     }
     d.v = 13;
+  }
+  if(d.v < 14){
+    // ノードに通し番号をつけた。古いデータには id の若い順に配る
+    const ns = [...(d.nodes||[])].sort((a,b)=>(a.id||0)-(b.id||0));
+    let i = 0;
+    for(const n of ns) if(!n.no) n.no = ++i;
+    d.nextNo = Math.max(i, ...(d.nodes||[]).map(n=>n.no||0), 0);
+    d.v = 14;
   }
   d.v = SAVE_V;
   return d;
