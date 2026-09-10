@@ -72,8 +72,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
 path.hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:move}
 path.wire{fill:none;stroke-width:3.5;stroke-linecap:round}
-path.flow{fill:none;stroke-width:2;stroke-linecap:round;stroke-dasharray:5 13;animation:dash 1s linear infinite}
-@keyframes dash{to{stroke-dashoffset:-18}}
+/* 線の向き。動きっぱなしの点線はやめ、真ん中に「>」を1つ置くだけにした。
+   実際に物が動いたときは粒が走るので、そちらで流れが分かる            */
+path.flow{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+  stroke-opacity:.35}
+path.flow.on{stroke-width:3;stroke-opacity:1}   /* いま流れている線だけ濃く */
+#gw.far path.flow{display:none}        /* 引きの絵では細かい印は出さない */
 path.hit:hover + .wire{stroke-width:6;stroke-opacity:.85}
 circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
@@ -2157,6 +2161,19 @@ function geomOf(l){
   if(l._gk !== gk || !l.G){ l._gk = gk; l.G = linkGeom(l); }
   return l.G;
 }
+/* 曲線の真ん中に置く、進む向きの「>」。端点が動いたときだけ作り直す */
+function arrowD(G){
+  const a = geomPt(G, 0.46), b = geomPt(G, 0.54);
+  let dx = b.x-a.x, dy = b.y-a.y;
+  const len = Math.hypot(dx,dy) || 1;
+  dx /= len; dy /= len;
+  const px = -dy, py = dx;                       // 進む向きに垂直
+  const m = geomPt(G, 0.5), h = 5.5, w = 4.5;    // 先の長さ・羽の広がり
+  const tx = m.x + dx*h, ty = m.y + dy*h;
+  const b1x = tx - dx*h*2 + px*w, b1y = ty - dy*h*2 + py*w;
+  const b2x = tx - dx*h*2 - px*w, b2y = ty - dy*h*2 - py*w;
+  return `M${b1x.toFixed(1)} ${b1y.toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}L${b2x.toFixed(1)} ${b2y.toFixed(1)}`;
+}
 function geomPt(G,t){
   let d = t*G.total;
   for(let i=0;i<G.segs.length;i++){
@@ -3688,6 +3705,7 @@ function renderBag(){
 /* ========================= 描画 ========================= */
 function applyView(){
   const v=S.view;
+  gw.classList.toggle('far', v.s < 0.45);
   world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.s})`;
   gw.setAttribute('transform',`translate(${v.x},${v.y}) scale(${v.s})`);
   stage.style.backgroundSize=`${40*v.s}px ${40*v.s}px`;
@@ -3866,9 +3884,15 @@ function render(){
     // 目印まわりで取りこぼしても、見えない線が居座り続けないようにする
     if(l._dk !== l._gk || !l.el.drawn || (slow && !l.el.wire.getAttribute('d'))){
       l._dk = l._gk; l.el.drawn = true;
-      l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d); l.el.flow.setAttribute('d',G.d);
+      l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d);
+      l.el.flow.setAttribute('d',arrowD(G));
       if(l.wp){ l.el.wph.setAttribute('cx',l.wp.x); l.el.wph.setAttribute('cy',l.wp.y); l.el.wph.style.display=''; }
       else l.el.wph.style.display='none';
+    }
+    // 流れている線は向きの印を濃くする（点滅させずに、動いていることを見せる）
+    if(slow){
+      const r = (a.rate && a.rate[l.item]) || 0;
+      setCls(l.el.flow, 'on', l.packets.length > 0 || r > 0.05);
     }
     if(!l.packets.length) continue;
     // 画面の外を流れている粒は、動かして見せる相手がいない
