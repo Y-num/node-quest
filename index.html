@@ -169,6 +169,8 @@ body.placing #stage::after{content:'';position:absolute;inset:0;pointer-events:n
   pointer-events:none;display:none}
 body.lasso #stage{cursor:crosshair}
 .tbtn.lassoon{border-color:var(--pw);color:var(--pw);background:rgba(180,135,245,.14)}
+.tbtn.scrapon{border-color:var(--bad);color:var(--bad);background:rgba(224,87,107,.14)}
+#lasso.del{fill:rgba(224,87,107,.14);stroke:var(--bad)}
 .node.port{border-color:var(--acc2);border-style:dashed}
 .node.port .nm{color:var(--acc2)}
 .node.lay{border-color:var(--pw);box-shadow:0 0 0 1px var(--pw),0 0 18px rgba(180,135,245,.25)}
@@ -422,6 +424,12 @@ body.tut #offscr{display:none}
 .dcard .k{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:5px}
 .dcard .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;margin:2px 0 1px}
 .dcard .io{font-size:10.5px;font-variant-numeric:tabular-nums;color:var(--dim)}
+.dcard .io.now{opacity:.75;margin-top:2px}
+.dspan{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dspan button{background:#0c111b;border:1px solid var(--line);border-radius:7px;
+  padding:4px 12px;font-size:11px;color:var(--dim)}
+.dspan button.on{border-color:var(--acc);color:var(--acc);font-weight:700}
+.dsn{font-size:10.5px;color:var(--dim);margin-left:auto}
 .dcard .io .up{color:var(--acc)} .dcard .io .dn{color:var(--bad)}
 .dnet{font-size:11.5px;font-variant-numeric:tabular-nums;font-weight:700}
 .dnet.up{color:var(--acc)} .dnet.dn{color:var(--bad)} .dnet.flat{color:var(--dim)}
@@ -654,6 +662,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <button class="tbtn" id="bDash">📊 収支</button>
     <button class="tbtn" id="bStats">📈 記録</button>
     <button class="tbtn" id="bLasso">🧩 まとめる</button>
+    <button class="tbtn" id="bScrap">🗑 まとめて撤去</button>
     <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
@@ -785,7 +794,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
   <div class="dbox2">
     <div class="dh2">
       <div class="dt2">📊 ダッシュボード</div>
-      <div class="dsub">1分あたりの出入り。入りが緑、出が赤</div>
+      <div class="dsub">選んだ期間の出入りと、いまの勢い。入りが緑、出が赤</div>
       <button id="dashClose">閉じる</button>
     </div>
     <div id="dashBody"></div>
@@ -2436,6 +2445,7 @@ function spaceIn(n,item){
 
 /* ========================= シミュレーション ========================= */
 function tick(dt,fast){
+  flowOff = !!fast;
   for(const n of S.nodes){
     const T=TYPES[n.type];
     n.stall=false; n.why='';
@@ -2613,7 +2623,7 @@ function tick(dt,fast){
   }
   if(!S.enemy) spawnEnemy();
   polTick(dt);
-  flowTick(dt);
+  flowTick(dt, fast);
   rateTick(dt);
   raidTick(dt);
   exTick(dt);
@@ -2627,9 +2637,38 @@ const hmsShort = sec => sec >= 3600 ? Math.round(sec/3600)+'時間'
    ゴールド・研究ポイント・研究資材は毎コマの増減を拾う（どこで増えても漏れない）。
    1分あたりに直し、なまして見せる。                                        */
 const FLOW = {};                       // {キー:{i:入った量, o:出た量}} 直近1秒ぶん
-const flowRate = {};                   // {キー:{i:1分あたり, o:1分あたり}}
-function flowIn (k,q){ if(q>0) (FLOW[k]=FLOW[k]||{i:0,o:0}).i += q; }
-function flowOut(k,q){ if(q>0) (FLOW[k]=FLOW[k]||{i:0,o:0}).o += q; }
+const flowRate = {};                   // {キー:{i:1分あたり, o:1分あたり}} なました今の勢い
+const flowTot  = {};                   // {キー:{i,o}} 遊びはじめてからの合計
+/* 留守ぶんの早送りは数えない。数時間ぶんが一瞬で入ると勢いが嘘になる */
+let flowOff = false;
+function flowIn (k,q){ if(q>0 && !flowOff){ (FLOW[k]=FLOW[k]||{i:0,o:0}).i += q;
+                                (flowTot[k]=flowTot[k]||{i:0,o:0}).i += q; } }
+function flowOut(k,q){ if(q>0 && !flowOff){ (FLOW[k]=FLOW[k]||{i:0,o:0}).o += q;
+                                (flowTot[k]=flowTot[k]||{i:0,o:0}).o += q; } }
+/* 「この10分でいくら増えたか」を出すために、合計を10秒ごとに写し取っておく。
+   窓ぶんの収支＝いまの合計 − 窓のはじめの合計。1時間ぶん持つ            */
+const SNAP_STEP = 10, SNAP_MAX = 361;
+const flowSnap = [];                   // [{t, tot:{キー:[i,o]}}] 古い順
+let flowClock = 0, snapAt = 0;
+function flowSnapshot(){
+  const tot = {};
+  for(const k in flowTot) tot[k] = [flowTot[k].i, flowTot[k].o];
+  flowSnap.push({t:flowClock, tot});
+  if(flowSnap.length > SNAP_MAX) flowSnap.shift();
+}
+/* 窓（秒）ぶんの出入り。窓より短くしか遊んでいなければ、遊んだぶんだけ返す */
+function flowWindow(k, sec){
+  const now = flowTot[k] || {i:0,o:0};
+  if(!sec) return {i:now.i, o:now.o, span:flowClock};       // 0＝最初から
+  let base = null;
+  for(let j=flowSnap.length-1; j>=0; j--){
+    base = flowSnap[j];
+    if(flowClock - base.t >= sec) break;
+  }
+  if(!base) return {i:now.i, o:now.o, span:flowClock};
+  const b = base.tot[k] || [0,0];
+  return {i:now.i - b[0], o:now.o - b[1], span:Math.max(1, flowClock - base.t)};
+}
 let flowT = 0, flowLast = null;
 function flowScalars(){                // ゴールド・研究・資材は差分で拾う
   const cur = {gold:S.gold||0, rp:S.rp||0, mat:S.stock||0};
@@ -2640,8 +2679,11 @@ function flowScalars(){                // ゴールド・研究・資材は差�
   }
   flowLast = cur;
 }
-function flowTick(dt){
+function flowTick(dt, fast){
+  if(fast){ flowLast = {gold:S.gold||0, rp:S.rp||0, mat:S.stock||0}; return; }
   flowScalars();
+  flowClock += dt;
+  if(flowClock >= snapAt){ snapAt = flowClock + SNAP_STEP; flowSnapshot(); }
   flowT += dt; if(flowT < 1) return;
   const w = flowT; flowT = 0;
   for(const k in FLOW){
@@ -3334,6 +3376,13 @@ function scrapDrop(id){
    数字を追いかけなくても、詰まっているところが目で分かるようにする。      */
 const dashOpen = () => $('#dash').classList.contains('on');
 const rateOf = k => flowRate[k] || {i:0,o:0};
+/* 見る期間。行の並びは勢いで入れ替わらないよう、素材の登録順で固定する */
+const DASH_SPAN = [[60,'1分'],[600,'10分'],[3600,'1時間'],[0,'最初から']];
+let dashSpan = 600;
+const ITEM_ORDER = {};
+(function(){ let i=0; for(const k in ITEMS) ITEM_ORDER[k] = i++; })();
+const itemRank = k => (ITEM_ORDER[k] !== undefined ? ITEM_ORDER[k] : 9e6);
+const spanName = () => (DASH_SPAN.find(x=>x[0]===dashSpan)||[0,'—'])[1];
 /* 勢いは小さい数もつぶさずに見せる（0.04/分 を「0」と書かない） */
 const fmtR = v => { v = Number(v)||0;
   if(v === 0) return '0';
@@ -3350,10 +3399,13 @@ function heldOf(k){
 }
 function dashCard(icon, name, val, k, unit){
   const r = rateOf(k), net = r.i - r.o;
+  const w = flowWindow(k, dashSpan), wnet = w.i - w.o;
   return `<div class="dcard"><div class="k">${icon} ${name}</div>`
     + `<div class="v">${fmt(val)}${unit||''}</div>`
-    + `<div class="io"><span class="up">+${fmtR(r.i)}</span> / <span class="dn">-${fmtR(r.o)}</span> 毎分</div>`
-    + `<div class="dnet ${netCls(net)}">差し引き ${sign(net)}/分</div></div>`;
+    + `<div class="dnet ${netCls(wnet)}">${spanName()}で ${sign(wnet)}</div>`
+    + `<div class="io"><span class="up">+${fmtR(w.i)}</span> / <span class="dn">-${fmtR(w.o)}</span></div>`
+    + `<div class="io now">いま <span class="up">+${fmtR(r.i)}</span>/<span class="dn">-${fmtR(r.o)}</span> 毎分`
+    + `　<span class="${netCls(net)}">${sign(net)}</span></div></div>`;
 }
 function renderDash(){
   const body = $('#dashBody'); if(!body) return;
@@ -3361,30 +3413,37 @@ function renderDash(){
   const sta  = hero ? (hero.outBuf.sta||0) : 0;
 
   // ── 1. おおもとの4つ ──
-  let h = `<div class="dsec">ぜんたいの収支</div><div class="dcards">`
+  let h = `<div class="dsec">ぜんたいの収支（${spanName()}）</div>`
+    + `<div class="dspan">`
+    + DASH_SPAN.map(([v,n])=>`<button data-sp="${v}" class="${v===dashSpan?'on':''}">${n}</button>`).join('')
+    + `<span class="dsn">この起動から ${hmsShort(flowClock)}ぶんを数えています</span></div>`
+    + `<div class="dcards">`
     + dashCard('💰','ゴールド', S.gold, 'gold')
     + dashCard('🔬','研究ポイント', gotRp(), 'rp')
     + dashCard('🧱','研究資材', gotMat(), 'mat')
     + dashCard('⚡','体力（勇者の手持ち）', sta, 'sta')
     + `</div>`;
 
-  // ── 2. 素材ごとの出入り ──
+  // ── 2. 素材ごとの出入り。並びは素材の登録順で固定（勢いで入れ替わらない）──
   const keys = new Set();
-  for(const k in flowRate){ if(ITEMS[k] && k!=='sta') keys.add(k); }
+  for(const k in flowTot) if(ITEMS[k] && k!=='sta') keys.add(k);
   const rows = [...keys].map(k=>{
-    const r = rateOf(k);
-    return {k, i:r.i, o:r.o, net:r.i-r.o, held:heldOf(k)};
-  }).filter(r => r.i>0.01 || r.o>0.01 || r.held>0)
-    .sort((a,b)=> (b.i+b.o) - (a.i+a.o));
-  h += `<div class="dsec">素材の出入り（${rows.length}種）</div>`;
+    const r = rateOf(k), w = flowWindow(k, dashSpan);
+    return {k, ri:r.i, ro:r.o, rnet:r.i-r.o, wi:w.i, wo:w.o, wnet:w.i-w.o, held:heldOf(k)};
+  }).filter(r => r.wi>0 || r.wo>0 || r.held>0)
+    .sort((a,b)=> itemRank(a.k) - itemRank(b.k));
+  h += `<div class="dsec">素材の出入り（${rows.length}種・${spanName()}）</div>`;
   h += rows.length ? `<table class="dtbl"><thead><tr>`
-      + `<th>素材</th><th>作った/分</th><th>使った/分</th><th>差し引き</th><th>盤面の在庫</th></tr></thead><tbody>`
+      + `<th>素材</th><th>作った</th><th>使った</th><th>差し引き</th>`
+      + `<th>いま/分</th><th>盤面の在庫</th></tr></thead><tbody>`
     + rows.map(r=>{
-        // 使っているのに作れていない＝詰まりの元
-        const bad = r.o > 0.01 && r.net < -0.01 && r.held < 1;
+        // 使っているのに作れていない＝詰まりの元。
+        // 一瞬の揺れで赤くしないよう、期間ぶんの合計で見る
+        const bad = r.wo > 0 && r.wnet < -Math.max(1, r.wo*0.05) && r.held < 1;
         return `<tr class="${bad?'warn':''}"><td>${ITEMS[r.k].i} ${ITEMS[r.k].n}</td>`
-          + `<td>${fmtR(r.i)}</td><td>${fmtR(r.o)}</td>`
-          + `<td class="dnet ${netCls(r.net)}">${sign(r.net)}</td>`
+          + `<td>${fmtR(r.wi)}</td><td>${fmtR(r.wo)}</td>`
+          + `<td class="dnet ${netCls(r.wnet)}">${sign(r.wnet)}</td>`
+          + `<td class="dnet ${netCls(r.rnet)}">${sign(r.rnet)}</td>`
           + `<td>${fmt(r.held)}</td></tr>`;
       }).join('') + `</tbody></table>`
     : `<div class="bempty">まだ動いていません</div>`;
@@ -3420,6 +3479,8 @@ function renderDash(){
     + `</div>`;
 
   body.innerHTML = h;
+  body.querySelectorAll('.dspan button').forEach(b=>
+    b.onclick=()=>{ dashSpan = +b.dataset.sp; renderDash(); });
 }
 
 /* ========================= 持ち物 =========================
@@ -4155,6 +4216,26 @@ function destText(item){
   return kinds.length ? kinds.join(' ・ ') + '（未建設）' : 'まだ無い';
 }
 
+/* 撤去1台ぶんの処理。返ってくるのは戻ってきたもの */
+function canScrap(n){
+  const T = TYPES[n.type];
+  return !T.layer && !T.port && !T.unique;
+}
+function scrapNode(n){
+  const pol = n.pol || 0;
+  const rp  = scrapRp(n.type, n.level, n.grade||0) + polScrapRp(n, pol);
+  const sl  = polScrapItems(n, pol);
+  let g = 0;
+  if(!n.drop){                                 // 拾った施設は買っていないので返金なし
+    S.counts[n.type] = Math.max(0, (S.counts[n.type]||1) - 1);
+    g = Math.floor(buyCost(n.type) * 0.5); S.gold += g;
+  }
+  if(sl){ homeOf().slud = (homeOf().slud||0) + sl;
+    addLog(`☣汚染${Math.round(pol*100)}%の${tierOf(n).n}を解体 → 研究 +${fmt(rp)}／🫙汚染塊×${sl}`,'w'); }
+  grantRp(rp, false);
+  removeNode(n.id);
+  return {g, rp, sl};
+}
 /* ========================= インスペクタ ========================= */
 /* 名前をつけ替えられるもの：主人公・まとめた区画・仲間 */
 const canRename = n => n.type==='hero' || TYPES[n.type].layer
@@ -4357,22 +4438,10 @@ function renderInsp(){
     if(TYPES[n.type].layer) return breakLayer(n);
     if(TYPES[n.type].port) return toast('入口と出口は外せません');
     if(TYPES[n.type].unique) return toast('勇者は撤去できません');
-    const pol = n.pol || 0;
-    const rp  = scrapRp(n.type, n.level, n.grade||0) + polScrapRp(n, pol);
-    const sl  = polScrapItems(n, pol);
-    let msg;
-    if(n.drop){                                  // 拾った施設は買っていないので返金なし
-      msg = `解体しました（研究ポイント +${fmt(rp)}）`;
-    }else{
-      S.counts[n.type]=Math.max(0,(S.counts[n.type]||1)-1);
-      const g=Math.floor(buyCost(n.type)*0.5); S.gold+=g;
-      msg = `撤去しました（+${fmt(g)}G / 研究ポイント +${fmt(rp)}）`;
-    }
-    if(sl){ homeOf().slud = (homeOf().slud||0) + sl;
-      msg += ` ＋🫙汚染塊×${sl}`;
-      addLog(`☣汚染${Math.round(pol*100)}%の${tierOf(n).n}を解体 → 研究 +${fmt(rp)}／🫙汚染塊×${sl}`,'w'); }
-    grantRp(rp, false);
-    removeNode(n.id); toast(msg); renderBag();
+    const r = scrapNode(n);
+    toast(r.g ? `撤去しました（+${fmt(r.g)}G / 研究ポイント +${fmt(r.rp)}）${r.sl?' ＋🫙汚染塊×'+r.sl:''}`
+              : `解体しました（研究ポイント +${fmt(r.rp)}）${r.sl?' ＋🫙汚染塊×'+r.sl:''}`);
+    renderBag();
   };
   renderInspLive();
 }
@@ -4594,13 +4663,59 @@ function doPinch(){
 // 渡すと背景クリック扱いで選択が解除され、renderInsp() がボタンごと消してしまう
 const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast,#board';
 /* ========================= 投げ縄でまとめる ========================= */
-let lassoOn = false;
-function setLasso(v){
+let lassoOn = false, lassoMode = 'group';   // group=まとめる / del=まとめて撤去
+function setLasso(v, mode){
   lassoOn = v;
+  if(v) lassoMode = mode || 'group';
   document.body.classList.toggle('lasso', v);
-  $('#bLasso').classList.toggle('lassoon', v);
-  if(v) toast('囲みたいノードをぐるっとなぞってください');
+  $('#lasso').classList.toggle('del', v && lassoMode==='del');
+  $('#bLasso').classList.toggle('lassoon', v && lassoMode==='group');
+  $('#bScrap').classList.toggle('scrapon', v && lassoMode==='del');
+  if(v) toast(lassoMode==='del' ? '撤去したいノードをぐるっと囲んでください'
+                                : '囲みたいノードをぐるっとなぞってください');
   else $('#lasso').style.display='none';
+}
+/* 囲みのなかに区画があれば、その中身もまとめて撤去の対象にする */
+function expandScrap(ids){
+  const out = [], seen = new Set(), lays = [];
+  for(const id of ids){
+    const n = N(id); if(!n || seen.has(id)) continue;
+    if(TYPES[n.type].layer){
+      seen.add(id); lays.push(n);
+      for(const m of memOf(n)) if(!isPort(m) && canScrap(m) && !seen.has(m.id)){
+        seen.add(m.id); out.push(m); }
+    }else if(canScrap(n)){ seen.add(id); out.push(n); }
+  }
+  return {ns:out, lays};
+}
+/* 囲んだぶんをまとめて撤去する。数が多いので、戻ってくる量を見せてから聞く */
+function scrapMany(ids){
+  const {ns, lays} = expandScrap(ids);
+  if(!ns.length && !lays.length) return toast('撤去できるノードが囲まれていません');
+  let g = 0, rp = 0;
+  for(const n of ns){
+    const pol = n.pol || 0;
+    rp += scrapRp(n.type, n.level, n.grade||0) + polScrapRp(n, pol);
+    if(!n.drop) g += Math.floor(buyCost(n.type) * 0.5);
+  }
+  const kinds = new Set(ns.map(n=>tierOf(n).n));
+  const list = [...kinds].slice(0,6).join('・') + (kinds.size > 6 ? ' ほか' : '');
+  const lay  = lays.length ? `\n（区画 ${lays.map(L=>tierOf(L).n).join('・')} も中身ごと外します）` : '';
+  if(!confirm(`${ns.length}個をまとめて撤去します。\n${list}${lay}\n\n`
+            + `戻ってくるもの： +${fmt(g)}G ／ 研究ポイント +${fmt(rp)}\nよろしいですか？`)) return;
+  let sl = 0;
+  for(const n of ns){ const r = scrapNode(n); sl += r.sl || 0; }
+  for(const L of lays){                       // 空になった区画は口ごと片付ける
+    if(atNow() === L.id) leaveLayer();
+    for(const m of [...memOf(L)]) removeNode(m.id);
+    if(sel === L.id) sel = null;
+    removeNode(L.id);
+  }
+  if(lays.length){ reindex(); layerDirty(); }
+  const total = ns.length + lays.length;
+  addLog(`${total}個をまとめて撤去 → +${fmt(g)}G／研究 +${fmt(rp)}`,'b');
+  toast(`${total}個を撤去しました（+${fmt(g)}G / 研究 +${fmt(rp)}${sl?' ＋🫙×'+sl:''}）`);
+  renderInsp(); renderBag();
 }
 const lassoD = pts => pts.length<2 ? '' :
   'M'+pts.map(p=>`${p.x.toFixed(0)} ${p.y.toFixed(0)}`).join('L')+'Z';
@@ -4824,9 +4939,12 @@ stage.addEventListener('pointerup', e=>{
   }else if(drag.mode==='lasso'){
     const pts=drag.pts; $('#lasso').style.display='none'; $('#lasso').setAttribute('d','');
     if(pts.length > 4){
-      const ids = S.nodes.filter(n => onBoard(n) && !isLayer(n) && !isPort(n)
+      const del = lassoMode === 'del';
+      const ids = S.nodes.filter(n => onBoard(n) && !isPort(n)
+        && (del ? (canScrap(n) || isLayer(n)) : !isLayer(n))
         && inPoly(pts, n.x + NW/2, n.y + 45)).map(n=>n.id);
-      if(ids.length) makeLayer(ids); else toast('ノードが囲まれていません');
+      if(!ids.length) toast('ノードが囲まれていません');
+      else if(del) scrapMany(ids); else makeLayer(ids);
     }
     setLasso(false);
   }else if(drag.mode==='pan'){
@@ -5083,7 +5201,8 @@ const dumpState = () => JSON.stringify(S,(k,v)=>
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
 $('#tClose').onclick=()=>$('#tree').classList.remove('on');
 $('#bStats').onclick=()=>{ renderStats(); $('#stats').classList.add('on'); };
-$('#bLasso').onclick=()=>setLasso(!lassoOn);
+$('#bLasso').onclick=()=>setLasso(!(lassoOn && lassoMode==='group'), 'group');
+$('#bScrap').onclick=()=>setLasso(!(lassoOn && lassoMode==='del'), 'del');
 $('#sClose').onclick=()=>$('#stats').classList.remove('on');
 $('#stats').onclick=e=>{ if(e.target===$('#stats')) $('#stats').classList.remove('on'); };
 $('#tree').onclick=e=>{ if(e.target===$('#tree')) $('#tree').classList.remove('on'); };
