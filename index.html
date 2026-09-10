@@ -2286,6 +2286,7 @@ function mkLinkEl(l){
   hit.dataset.link=l.id; wph.dataset.wp=l.id;
   gwL.append(hit,wire,flow,wph);
   l.el={hit,wire,flow,wph};
+  l._gk = null; l._dk = null; l.G = null;   // 作り直したら必ず引き直す
 }
 function mkPacketEl(p){
   const c=document.createElementNS(SVG,'circle');
@@ -5140,7 +5141,7 @@ function migrate(d){
 function save(){
   if(resetting) return false;                      // リセット中は書き戻さない
   try{ S.savedAt=Date.now();
-    localStorage.setItem(KEY, JSON.stringify(S,(k,v)=> (k==='el'||k==='G'||k==='_needs'||k==='sent'||k==='_psrc')?undefined:v));
+    localStorage.setItem(KEY, JSON.stringify(S, saveSkip));
     return true;
   }catch(_){ return false; }
 }
@@ -5196,8 +5197,12 @@ function b64dec(c){
   for(let i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i);
   return new TextDecoder().decode(b);
 }
-const dumpState = () => JSON.stringify(S,(k,v)=>
-  (k==='el'||k==='G'||k==='_needs'||k==='sent'||k==='_psrc')?undefined:v);
+/* セーブに残さないもの：DOM への参照と、数え直せる作業用の値。
+   「_」で始まるキーはすべて作業用（描き直しの目印・キャッシュ）なので外す。
+   ここに漏れがあると、読み込んだあとに「もう描いた」と誤解して線が消える */
+const saveSkip = (k,v) => (k==='el' || k==='G' || k==='sent' || k.charAt(0)==='_')
+                          ? undefined : v;
+const dumpState = () => JSON.stringify(S, saveSkip);
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
 $('#tClose').onclick=()=>$('#tree').classList.remove('on');
 $('#bStats').onclick=()=>{ renderStats(); $('#stats').classList.add('on'); };
