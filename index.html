@@ -237,6 +237,13 @@ body.lasso #stage{cursor:crosshair}
 .row{display:flex;font-size:11px;color:var(--dim);padding:1.5px 0}
 .row b{margin-left:auto;color:var(--fg);font-weight:600}
 .row.s1 b{color:var(--str)} .row.s2 b{color:var(--int)} .row.s3 b{color:var(--vit)}
+/* 次の+1までの溜まり具合 */
+.xbar{height:4px;background:#0b1119;border-radius:3px;overflow:hidden;margin:3px 0 2px;
+  border:1px solid var(--line)}
+.xbar i{display:block;height:100%;width:0;transition:width .3s}
+.xbar.s1 i{background:var(--str)} .xbar.s2 i{background:var(--int)} .xbar.s3 i{background:var(--vit)}
+.xnote{font-size:9.5px;color:var(--dim);margin-bottom:6px;line-height:1.5}
+.xnote b{color:var(--fg)} .xnote .no{color:var(--warn)}
 .row .rt{font-style:normal;color:var(--faint,#5d6d7e);font-size:10px;margin-left:6px}
 #insp .gearhd{margin-top:2px}
 #insp .gearsel{display:flex;flex-direction:column;gap:5px;margin:3px 0 5px}
@@ -655,9 +662,12 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         <div class="rows">
           <div class="row">体力の生成<b class="num" id="hRegen">0 /秒</b></div>
           <div class="row">攻撃力<b class="num" id="hAtk">0</b></div>
-          <div class="row s1"><span>💪 筋力<i class="rt" id="rStr"></i></span><b class="num" id="sStr">0</b></div>
-          <div class="row s2"><span>🧠 知力<i class="rt" id="rInt"></i></span><b class="num" id="sInt">0</b></div>
-          <div class="row s3"><span>❤️ 体力<i class="rt" id="rVit"></i></span><b class="num" id="sVit">0</b></div>
+          <div class="row s1"><span>💪 筋力<i class="rt" id="eStr"></i></span><b class="num" id="sStr">0</b></div>
+          <div class="xbar s1"><i id="xStr"></i></div><div class="xnote" id="rStr"></div>
+          <div class="row s2"><span>🧠 知力<i class="rt" id="eInt"></i></span><b class="num" id="sInt">0</b></div>
+          <div class="xbar s2"><i id="xInt"></i></div><div class="xnote" id="rInt"></div>
+          <div class="row s3"><span>❤️ 体力<i class="rt" id="eVit"></i></span><b class="num" id="sVit">0</b></div>
+          <div class="xbar s3"><i id="xVit"></i></div><div class="xnote" id="rVit"></div>
           <div class="row" id="rowEx">経験値の戻り<b class="num" id="hExIn">—</b></div>
         </div>
       </div>
@@ -1146,7 +1156,8 @@ const TYPES = {
   fund  :{n:'出資窓口',  i:'💱', cost:5000, up:6000, time:8.0, ins:{}, outs:{}, chain:'fund',
           d:'ゴールドを研究ポイントに変える。割はとても悪いが、余ったゴールドの使い道になる'},
   lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12}, outs:{}, effect:'lab', matIn:true,
-          d:'体力を研究力に変える。素材を1種類だけ受け取れて、送り込むと研究在庫になる'},
+          d:'体力を研究力に変える。素材を1種類だけ受け取れて、送り込むと🧱研究資材になる。'
+           +'世代とレベルが上がるほど、同じ素材から取れる資材が増える'},
   tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
           d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増えるが、'
            +'この施設を強化すると1回で得られる経験が増える'},
@@ -1383,6 +1394,8 @@ const intBoost = () => 1 + S.stats.int * 0.02;
 const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15)
                        * depthBonus() * gearMul('firm') * skillMul('atk'));
 const rpGain   = n  => lvPow(n.level) * (1 + S.stats.int * 0.15) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
+/* 素材を研究資材に変えるときの取り分。研究所の世代とレベルで増える */
+const matMul   = n  => lvPow(n.level) * Math.pow(2.2, (TYPES[n.type].era||1)-1) * gearMul('arcane');
 const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1));
 const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
 const enemyGold= f  => Math.floor(10 * Math.pow(1.12, f-1) * (f%10===0 ? 5 : 1));
@@ -2261,8 +2274,8 @@ function tick(dt,fast){
           let up=0;
           while(S.exp[st] >= expNeed(S.stats[st])){ S.exp[st] -= expNeed(S.stats[st]); S.stats[st]++; up++; }
           if(up && !fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
-        }else if(T.matIn){              // 研究所：素材 → 研究資材（価値ぶん）
-          S.stock=(S.stock||0)+itemVal(k)*c;
+        }else if(T.matIn){              // 研究所：素材 → 研究資材（価値×取り分）
+          S.stock=(S.stock||0)+itemVal(k)*c*matMul(n);
         }
       }
     }
@@ -2343,6 +2356,8 @@ function tick(dt,fast){
           n.gain=(n.gain||0)+rp; grantRp(rp, fast); }
       }
       if(T.chain==='decomp' && n.item){
+        S.stock = (S.stock||0) + itemVal(n.item) * DECOMP_TAKE * 0.5
+                  * lvPow(n.level) * Math.pow(2.2, (TYPES[n.type].era||1)-1);
         const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(n.level) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
@@ -2416,6 +2431,9 @@ function tick(dt,fast){
   exTick(dt);
   histTick(dt);
 }
+const hmsShort = sec => sec >= 3600 ? Math.round(sec/3600)+'時間'
+                      : sec >= 60   ? Math.round(sec/60)+'分'
+                      :               Math.max(1, Math.round(sec))+'秒';
 /* 主人公へ戻ってきた経験値の勢い。10秒ぶんをならして「1分あたり」で見せる */
 let rateT = 0;
 function rateTick(dt){
@@ -3312,7 +3330,8 @@ function render(){
               return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })())
       : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
           return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
-      : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}` + (n.item?`／${ITEMS[n.item].i}を回収中`:'')
+      : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}`
+          + (n.item?`／${ITEMS[n.item].i}1つ→🧱${fmt(itemVal(n.item)*matMul(n))}`:'／素材を選ぶと🧱も貯まる')
       : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
       : T.ware ? `倉庫 ${wareKinds(n).length}/${T.kinds||8}種 ${fmt(wareTotal(n))}個`
                  + `（出す口 ${storeItems(n).length}/${T.slots}）`
@@ -3424,11 +3443,22 @@ function render(){
   $('#hRegen').textContent=hero?(1/staRate(hero)).toFixed(2)+' /秒':'—';
   $('#hAtk').textContent=fmt(atk());
   $('#sStr').textContent=S.stats.str; $('#sInt').textContent=S.stats.int; $('#sVit').textContent=S.stats.vit;
-  // 能力値が何に効いているかを数字で添える
-  const ep = st => { const e=(S.exp&&S.exp[st])||0, nd=expNeed(S.stats[st]); return `${e}/${nd}`; };
-  $('#rStr').textContent = `${ep('str')} → 攻撃 ×${(1 + S.stats.str*0.15).toFixed(2)}`;
-  $('#rInt').textContent = `${ep('int')} → 速さ ×${intBoost().toFixed(2)}`;
-  $('#rVit').textContent = `${ep('vit')} → ⚡ ×${fmt(Math.pow(VIT_K, S.stats.vit))}`;
+  // 能力値がどう溜まっているか。棒＋「次の+1まで」＋いまの入り
+  $('#eStr').textContent = `攻撃 ×${(1 + S.stats.str*0.15).toFixed(2)}`;
+  $('#eInt').textContent = `速さ ×${intBoost().toFixed(2)}`;
+  $('#eVit').textContent = `⚡ ×${fmt(Math.pow(VIT_K, S.stats.vit))}`;
+  const exRow = (st, bar, note) => {
+    const e = (S.exp && S.exp[st]) || 0, nd = expNeed(S.stats[st]);
+    const r = exRate[st] || 0;                     // 1分あたりの入り
+    $(bar).style.width = Math.min(100, e/nd*100) + '%';
+    const per = r > 0 ? (r>=10 ? Math.round(r) : r.toFixed(1)) : 0;
+    const eta = r > 0 ? `／あと ${hmsShort((nd - e) / (r/60))}` : '';
+    $(note).innerHTML = `次の+1まで <b>${e}/${nd}</b>`
+      + (r > 0 ? `　+${per}/分${eta}` : `　<span class="no">入ってきていない</span>`);
+  };
+  exRow('str', '#xStr', '#rStr');
+  exRow('int', '#xInt', '#rInt');
+  exRow('vit', '#xVit', '#rVit');
   // 経験値がちゃんと主人公へ戻っているか
   const srcs = S.nodes.filter(n=>TYPES[n.type].src);
   const backs = S.links.filter(l=>STAT_OF[l.item] && srcs.some(n=>n.id===l.to)).length;
@@ -3490,7 +3520,7 @@ function ioText(T){
   const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
 
   if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
-  if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント`;
+  if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント＋🧱研究資材`;
   if(T.lin)  return `レイヤーの外から<span class="ar">→</span>中へ`;
   if(T.lout) return `中から<span class="ar">→</span>レイヤーの外へ`;
   if(T.layer) return `まとめたノードのかたまり<span class="ar">→</span>出口はひとつだけ`;
@@ -3974,7 +4004,8 @@ function renderInspLive(){
   }
   const TY=TYPES[n.type];
   const stk=box.querySelector('.stk');
-  if(stk) stk.textContent = '🧱 '+fmt(gotMat()) + (n.item?`（${ITEMS[n.item].i}1つで +${fmt(itemVal(n.item))}）`:'');
+  if(stk) stk.textContent = '🧱 '+fmt(gotMat())
+    + (n.item?`（${ITEMS[n.item].i}1つで +${fmt(itemVal(n.item)*matMul(n))}）`:'');
   const cv=box.querySelector('.cval');
   if(cv){
     if(TY.chain==='comp'){ const nx=n.item&&nextTier(n.item, densCap(TY.era));
