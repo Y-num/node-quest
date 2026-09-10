@@ -460,6 +460,8 @@ table.dtbl td{padding:4px 7px;border-bottom:1px solid rgba(35,44,64,.5);
   text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 table.dtbl td:first-child{text-align:left;white-space:normal}
 table.dtbl tr.warn td{background:rgba(224,87,107,.08)}
+table.dtbl td.up{color:var(--acc)} table.dtbl td.dn{color:var(--bad)}
+table.dtbl td .dn{color:var(--bad)}
 .dwho{display:grid;gap:6px}
 .dsk{display:flex;align-items:center;gap:8px;background:var(--panel2);
   border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:11.5px}
@@ -2163,26 +2165,38 @@ function portPos(n, item, dir){
   const i = Math.max(0, keys.indexOf(item));
   return {x: n.x + (dir==='in' ? 0 : NW), y: n.y + portY(i)};
 }
-function bez(a,b){
-  const dx = Math.max(50, Math.abs(b.x-a.x)*0.5);
-  return {p0:a, p1:{x:a.x+dx,y:a.y}, p2:{x:b.x-dx,y:b.y}, p3:b};
-}
-function bezPt(B,t){
-  const u=1-t, a=u*u*u, b=3*u*u*t, c=3*u*t*t, d=t*t*t;
-  return {x:a*B.p0.x+b*B.p1.x+c*B.p2.x+d*B.p3.x, y:a*B.p0.y+b*B.p1.y+c*B.p2.y+d*B.p3.y};
-}
-function bezLen(B){ let L=0,p=B.p0; for(let i=1;i<=8;i++){const q=bezPt(B,i/8);L+=Math.hypot(q.x-p.x,q.y-p.y);p=q;} return L; }
-const dStr = B => `M${B.p0.x} ${B.p0.y}C${B.p1.x} ${B.p1.y} ${B.p2.x} ${B.p2.y} ${B.p3.x} ${B.p3.y}`;
 
 // 配線は中継点(waypoint)を1つ持てる → 引っ張って経路を整理できる
-function linkGeom(l){
+/* ── 配線は直角の折れ線（エクセルのカギ線と同じ考え方）──
+   相手が右にいれば「横→縦→横」の3本。
+   相手が左や真横にいれば、いったん外へ出て回り込む5本。
+   曲がる位置は l.wp が持つ。x が縦棒の左右、y が横棒の上下      */
+const ELB = 26;                        // ノードの口から、まっすぐ出す長さ
+function linkPts(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
   const P=portPos(a,l.item,'out'), Q=portPos(b,l.item,'in');
-  const segs = l.wp ? [bez(P,l.wp), bez(l.wp,Q)] : [bez(P,Q)];
-  const lens = segs.map(bezLen);
-  const total = Math.max(1, lens.reduce((x,y)=>x+y,0));
-  const d = `M${P.x} ${P.y}` + segs.map(B=>`C${B.p1.x} ${B.p1.y} ${B.p2.x} ${B.p2.y} ${B.p3.x} ${B.p3.y}`).join('');
-  return {segs,lens,total,d};
+  const w = l.wp || null;
+  if(Q.x - P.x >= ELB*2){                         // 素直に右へ流せる
+    let x = (w && w.x != null) ? w.x : (P.x + Q.x)/2;
+    x = Math.min(Math.max(x, P.x + ELB), Q.x - ELB);
+    return {pts:[P, {x, y:P.y}, {x, y:Q.y}, Q], kind:3, P, Q};
+  }
+  // 相手が左（または近すぎる）。上か下へ逃がしてから回り込む
+  const dy = Q.y - P.y;
+  const def = (Math.abs(dy) < 60) ? P.y + 90 : (P.y + Q.y)/2;
+  const y = (w && w.y != null) ? w.y : def;
+  return {pts:[P, {x:P.x+ELB, y:P.y}, {x:P.x+ELB, y}, {x:Q.x-ELB, y}, {x:Q.x-ELB, y:Q.y}, Q], kind:5, P, Q};
+}
+function linkGeom(l){
+  const r = linkPts(l); if(!r) return null;
+  const pts = r.pts, lens = [];
+  let total = 0;
+  for(let i=1;i<pts.length;i++){
+    const v = Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y);
+    lens.push(v); total += v;
+  }
+  const d = 'M' + pts.map(p=>`${Math.round(p.x)} ${Math.round(p.y)}`).join('L');
+  return {pts, lens, total:Math.max(1,total), d, kind:r.kind};
 }
 /* 曲線は端点が動いたときだけ引き直す。
    毎コマ作り直すと、線の数がそのまま重さになる                      */
@@ -2196,24 +2210,37 @@ function geomOf(l){
 }
 /* 曲線の真ん中に置く、進む向きの「>」。端点が動いたときだけ作り直す */
 function arrowD(G){
-  const a = geomPt(G, 0.46), b = geomPt(G, 0.54);
+  // いちばん長い棒の真ん中に置く。角の上に載って向きがぶれないように
+  let bi = 0; for(let i=1;i<G.lens.length;i++) if(G.lens[i] > G.lens[bi]) bi = i;
+  const a = G.pts[bi], b = G.pts[bi+1];
   let dx = b.x-a.x, dy = b.y-a.y;
   const len = Math.hypot(dx,dy) || 1;
   dx /= len; dy /= len;
   const px = -dy, py = dx;                       // 進む向きに垂直
-  const m = geomPt(G, 0.5), h = 5.5, w = 4.5;    // 先の長さ・羽の広がり
+  const m = {x:(a.x+b.x)/2, y:(a.y+b.y)/2}, h = 5.5, w = 4.5;   // 先の長さ・羽の広がり
   const tx = m.x + dx*h, ty = m.y + dy*h;
   const b1x = tx - dx*h*2 + px*w, b1y = ty - dy*h*2 + py*w;
   const b2x = tx - dx*h*2 - px*w, b2y = ty - dy*h*2 - py*w;
   return `M${b1x.toFixed(1)} ${b1y.toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}L${b2x.toFixed(1)} ${b2y.toFixed(1)}`;
 }
 function geomPt(G,t){
-  let d = t*G.total;
-  for(let i=0;i<G.segs.length;i++){
-    if(d<=G.lens[i] || i===G.segs.length-1)
-      return bezPt(G.segs[i], Math.max(0,Math.min(1, d/Math.max(1,G.lens[i]))));
+  let d = Math.max(0, Math.min(1, t)) * G.total;
+  for(let i=0;i<G.lens.length;i++){
+    if(d <= G.lens[i] || i === G.lens.length-1){
+      const u = G.lens[i] > 0 ? Math.max(0, Math.min(1, d/G.lens[i])) : 0;
+      const a = G.pts[i], b = G.pts[i+1];
+      return {x:a.x + (b.x-a.x)*u, y:a.y + (b.y-a.y)*u};
+    }
     d -= G.lens[i];
   }
+  return G.pts[G.pts.length-1];
+}
+/* 掴んで動かせる棒。3本なら真ん中の縦棒（左右に動く）、
+   5本なら真ん中の横棒（上下に動く）。その中点に取っ手を出す        */
+function grabSeg(G){
+  const i = G.kind === 3 ? 1 : 2;
+  const a = G.pts[i], b = G.pts[i+1];
+  return {i, a, b, mid:{x:(a.x+b.x)/2, y:(a.y+b.y)/2}, vert: G.kind === 3};
 }
 
 /* ========================= DOM ========================= */
@@ -3519,7 +3546,26 @@ function renderDash(){
       }).join('') + `</tbody></table>`
     : `<div class="bempty">まだ動いていません</div>`;
 
-  // ── 3. スキル：誰が持っていて、いま何が効いているか ──
+  // ── 3. 施設ごとの収支。並びは通し番号で固定 ──
+  const ns = S.nodes.filter(n => !TYPES[n.type].port && n._fr && Object.keys(n._fr).length)
+                    .sort((a,b)=>(a.no||0)-(b.no||0));
+  h += `<div class="dsec">施設ごとの収支（${ns.length}台・いまの1分あたり）</div>`;
+  h += ns.length ? `<table class="dtbl"><thead><tr>`
+      + `<th>#</th><th>施設</th><th>作っている</th><th>使っている</th><th>状態</th></tr></thead><tbody>`
+    + ns.map(n=>{
+        const fr = n._fr, ks = Object.keys(fr).filter(k=>ITEMS[k])
+          .sort((a,b)=>itemRank(a)-itemRank(b));
+        const made = ks.filter(k=>fr[k].i>0.005).map(k=>`${ITEMS[k].i}${fmtR(fr[k].i)}`).join(' ');
+        const used = ks.filter(k=>fr[k].o>0.005).map(k=>`${ITEMS[k].i}${fmtR(fr[k].o)}`).join(' ');
+        const st = n.stall ? `<span class="dn">止 ${n.why||''}</span>` : '稼働';
+        return `<tr class="${n.stall?'warn':''}"><td>#${n.no||'-'}</td>`
+          + `<td>${tierOf(n).i} ${tierOf(n).n}</td>`
+          + `<td class="up">${made||'—'}</td><td class="dn">${used||'—'}</td>`
+          + `<td>${st}</td></tr>`;
+      }).join('') + `</tbody></table>`
+    : `<div class="bempty">まだ動いていません</div>`;
+
+  // ── 4. スキル：誰が持っていて、いま何が効いているか ──
   const own = SKILLS.filter(x=>hasSkill(x.k));
   const where = {};
   for(const n of S.nodes) for(const k of skillOf(n)) if(k) where[k] = n;
@@ -3532,7 +3578,7 @@ function renderDash(){
     }).join('') + `</div>`
     : `<div class="bempty">まだスキルを覚えていません（🎒持ち物 → ✨スキル）</div>`;
 
-  // ── 4. いま効いている倍率（スキルと装備をまとめて） ──
+  // ── 5. いま効いている倍率（スキルと装備をまとめて） ──
   const EFF = [
     ['⚔️ 攻撃力',        skillMul('atk')  * gearMul('firm')],
     ['⚙️ 施設の速さ',    skillMul('spd')  * intBoost()],
@@ -3964,8 +4010,8 @@ function render(){
       l._dk = l._gk; l.el.drawn = true;
       l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d);
       l.el.flow.setAttribute('d',arrowD(G));
-      if(l.wp){ l.el.wph.setAttribute('cx',l.wp.x); l.el.wph.setAttribute('cy',l.wp.y); l.el.wph.style.display=''; }
-      else l.el.wph.style.display='none';
+      const g = grabSeg(G);
+      l.el.wph.setAttribute('cx',g.mid.x); l.el.wph.setAttribute('cy',g.mid.y);
     }
     const off = !!F && l.from!==sel && l.to!==sel;
     setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off); setCls(l.el.wph,'dim',off);
@@ -3973,6 +4019,9 @@ function render(){
     if(slow){
       const r = (a.rate && a.rate[l.item]) || 0;
       setCls(l.el.flow, 'on', l.packets.length > 0 || r > 0.05);
+      // 曲がりの取っ手は、ノードを選んでいるあいだだけ出す
+      const show = !!F && !off;
+      if(l.el.wpOn !== show){ l.el.wpOn = show; l.el.wph.style.display = show ? '' : 'none'; }
     }
     if(!l.packets.length) continue;
     // 画面の外を流れている粒は、動かして見せる相手がいない
@@ -4971,7 +5020,12 @@ function dragTo(cx, cy){
     const l=S.links.find(x=>x.id===drag.id); if(!l) return;
     if(drag.handle||drag.moved>5){
       const w=toWorld(cx,cy);
-      l.wp={x:Math.round(w.x/10)*10, y:Math.round(w.y/10)*10};
+      const G=geomOf(l); if(!G) return;
+      // 縦棒は左右へ、横棒は上下へ。掴んだ向きだけを動かす
+      const vert = grabSeg(G).vert;
+      const wp = l.wp = l.wp || {};
+      if(vert) wp.x = Math.round(w.x/10)*10;
+      else     wp.y = Math.round(w.y/10)*10;
     }
   }else if(drag.mode==='lasso'){
     const w=toWorld(cx,cy), last=drag.pts[drag.pts.length-1];
@@ -4980,7 +5034,8 @@ function dragTo(cx, cy){
   }else if(drag.mode==='link'){
     const a=N(drag.from); if(!a) return;
     const w=toWorld(cx,cy);
-    $('#temp').setAttribute('d', dStr(bez(portPos(a,drag.item,'out'), w)));
+    const P = portPos(a,drag.item,'out');
+    $('#temp').setAttribute('d', `M${P.x} ${P.y}L${Math.round(w.x)} ${Math.round(w.y)}`);
     const el=document.elementFromPoint(cx,cy), tn=el&&el.closest('.node');
     document.querySelectorAll('.node.over').forEach(x=>x.classList.remove('over'));
     if(tn && tn.classList.contains('tgt')) tn.classList.add('over');
