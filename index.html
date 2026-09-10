@@ -814,7 +814,8 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
    ── 初期構成（主人公→洞窟の入口のみ）で何分後に何が買えるか ────────
      初撃破 9秒 / 石のつるはし 15秒 / ゴミ袋 1分31秒 / 家の机 4分40秒
    ────────────────────────────────────────────────
-   時代を上げる費用は ERA_RP0 × ERA_RPK^(時代-2) と、🧱研究資材。
+   時代を上げる費用は ERA_RP0 × ERA_RPK^(時代-2＋終盤の上乗せ) と、🧱研究資材。
+   終盤の上乗せ（ERA_LATE）は第8から効きはじめ、第10は約9.6倍まで重くなる。
    時代を進めるのは研究、施設を建てて強くするのはゴールド、という住み分け。
    第4以降は研究資材も要るので、研究所に素材を送り込む工房が必要になる。
    ※ 指標を変えると既存のセーブデータの難易度もその場で変わります
@@ -1070,6 +1071,8 @@ const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(de
 /* 売値。原鉱のままではほとんど値が付かず、加工・圧縮するほど跳ね上がる */
 const SELL_CLASS = k => { const b=baseOf(k);
   return /^ore/.test(b) ? 0.5 : /^ing/.test(b) ? 1.2 : /^prt/.test(b) ? 1.8 : 1; };
+/* 目利き（第5以降の売り場）：売値が5割増しになる */
+const sellMul = n => hasPerk(TYPES[n.type],'rich') ? 1.5 : 1;
 function sellPrice(k, lv){
   return Math.max(1, Math.round(itemVal(k) * SELL_CLASS(k) * SELL_TAKE * SELL_K * lvPow(lv)
                                 * gearMul('rich') * skillMul('gold')));
@@ -1222,6 +1225,14 @@ const TYPES = {
    時代（技術レベル）。世代は施設ごとではなく、工房全体の技術レベル。
    時代を1つ上げると、その時代にしかない施設が建てられるようになる。
    古い施設はそのまま動くので、乗り換えるかどうかは自分で決める。
+
+   新しい時代の施設は、速くなるだけではない。系統ごとに「できること」が増える。
+     生産  第5 選別（材料が半分）→ 第7 無廃（廃材なし）→ 第8 共鳴（まわりが速く）
+           → 第10 複製（4回に1回、出来上がりが倍）
+     訓練  第5 省力 → 第7 複合（ほかの経験値も出る＝配線が3本要る）→ 第9 覚醒
+     研究  第4 集中 → 第7 並列 → 第9 知の場（共鳴）
+     販売  第5 目利き（売値5割増し）→ 第7 流通 → 第9 活気（共鳴）
+     探索  第5 手練 → 第7 宝探し（拾い物2.5倍）→ 第9 凱旋（共鳴）
    ========================================================================= */
 const ERAS = [
   {n:'石器',   i:'🪨', d:'手と石だけ。⚡のほかに要るものはない'},
@@ -1238,9 +1249,10 @@ const ERAS = [
 const ERA_MAX  = ERAS.length;
 const eraName  = e => ERAS[Math.max(0,Math.min(ERA_MAX-1, e-1))];
 /* 時代が上がるほど、速く・省エネになるかわりに建設費と強化費は指数で増える */
-/* 世代がひとつ上がるごとに、速さは1/0.78＝約1.28倍、⚡の食いぶちは0.80倍。
-   第10世代の施設は第1世代の 約8.9倍速く、⚡は 約0.13倍で動く                */
-const ERA_SPD = 0.78, ERA_EFF = 0.80, ERA_COST = 3.2, ERA_UP = 4.0;
+/* 世代がひとつ上がるごとに、速さ 1/0.72＝約1.39倍・⚡の食いぶち 0.72倍。
+   かけ合わせると「1世代でおよそ2倍」＝世代を x としたときの 2^x の曲線になる。
+   第10世代の施設は第1世代の 約19倍速く、⚡は 約0.05倍で動く                 */
+const ERA_SPD = 0.72, ERA_EFF = 0.72, ERA_COST = 3.2, ERA_UP = 4.0;
 const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
 /* その時代の施設が⚡のほかに要るもの */
 const ERA_POW = {2:{wood:1}, 3:{wood:1}, 4:{wood:2},
@@ -1249,6 +1261,43 @@ const ERA_POW = {2:{wood:1}, 3:{wood:1}, 4:{wood:2},
    逆に廃棄と再利用は最後まで⚡で動く（動力が止まっても工房を立て直せるように） */
 const POW_ROLE = {ore:1, ingot:1, part:1, alloy:1, atk:1, anvil:1, comp:1, decomp:1, sell:1, tool:1};
 const eraPow = T => (POW_ROLE[T.chain || T.line] && ERA_POW[T.era]) || null;
+/* 世代ごとの「できること」。数字が伸びるだけでなく、振る舞いそのものが変わる。
+   生産・訓練・研究・販売・探索の5系統それぞれに別の伸び方があり、
+   その世代以降の施設に付いて、上の世代ほど重ねて持つ                        */
+const ERA_PERK = {
+  make: [{e:5,  k:'sift',   n:'選別',   d:'材料が半分で済む（圧縮は除く）'},
+         {e:7,  k:'clean',  n:'無廃',   d:'廃材を出さなくなる'},
+         {e:8,  k:'aura',   n:'共鳴',   d:'まわりの施設を速くする'},
+         {e:10, k:'twin',   n:'複製',   d:'4回に1回、出来上がりが倍'}],
+  train:[{e:5,  k:'thrift', n:'省力',   d:'体力が半分で済む'},
+         {e:7,  k:'cross',  n:'複合',   d:'ほかの経験値も少し出る'},
+         {e:9,  k:'twin',   n:'覚醒',   d:'4回に1回、経験値が倍'}],
+  lab:  [{e:4,  k:'thrift', n:'集中',   d:'体力が半分で済む'},
+         {e:7,  k:'twin',   n:'並列',   d:'4回に1回、研究力が倍'},
+         {e:9,  k:'aura',   n:'知の場', d:'まわりの施設を速くする'}],
+  trade:[{e:5,  k:'rich',   n:'目利き', d:'売値が5割増し'},
+         {e:7,  k:'thrift', n:'流通',   d:'体力が半分で済む'},
+         {e:9,  k:'aura',   n:'活気',   d:'まわりの施設を速くする'}],
+  dive: [{e:5,  k:'thrift', n:'手練',   d:'体力が半分で済む'},
+         {e:7,  k:'find',   n:'宝探し', d:'拾い物が出やすい'},
+         {e:9,  k:'aura',   n:'凱旋',   d:'まわりの施設を速くする'}],
+};
+const PERK_MAKE = {ore:1, ingot:1, part:1, alloy:1, equip:1, anvil:1, comp:1};
+const FAM_LABEL = {make:'生産', train:'訓練', lab:'研究', trade:'販売', dive:'探索'};
+/* その時代に入ると、どの系統に何が付くか */
+const perkNews = e => { const o=[];
+  for(const f in ERA_PERK) for(const p of ERA_PERK[f])
+    if(p.e === e) o.push(`${FAM_LABEL[f]}の施設に【${p.n}】${p.d}`);
+  return o; };
+/* その施設がどの系統か。系統ごとに、伸びていく「できること」がちがう */
+const famOf = T => T.stat            ? 'train'
+               : T.effect==='lab'    ? 'lab'
+               : T.effect==='dive'   ? 'dive'
+               : T.chain==='sell'    ? 'trade'
+               : PERK_MAKE[T.chain]  ? 'make' : null;
+const perksOf = T => { const f = famOf(T);
+  return f ? ERA_PERK[f].filter(p => (T.era||1) >= p.e) : []; };
+const hasPerk = (T, k) => perksOf(T).some(p => p.k === k);
 const ERA_EXTRA = {
   purify: g => ({aura:{k:'clean', v:+(1.0*Math.pow(1.55,g)).toFixed(2), r:280+g*14}}),
   boost:  g => ({aura:{k:'speed', v:+(0.5+g*0.25).toFixed(2), r:250+g*12}}),
@@ -1357,6 +1406,11 @@ function buildFac(){
       if(f.outs) T.outs = f.outs;
       if(f.hd)   T.hd   = f.hd;
       if(ERA_EXTRA[role]) Object.assign(T, ERA_EXTRA[role](g));
+      // 共鳴：第8以降。世代が上がるほど強く届く
+      if(hasPerk(T,'aura') && !T.aura)
+        T.aura = {k:'speed', v:+(0.15 + 0.05*((T.era||8)-8)).toFixed(2), r:300};
+      const pk = perksOf(T);
+      if(pk.length) T.d = T.d + '｜' + pk.map(p=>`${p.n}（${p.d}）`).join('・');
       TYPES[key] = T;
       ORDER.push(key);
     }
@@ -1455,25 +1509,27 @@ function insOf(n){
     if(!n.item) return {};
     return modIns(n, eraIn(T, {sta:staCost(4, e), [n.item]:1}));
   }
+  const sift = q => hasPerk(T,'sift') ? Math.max(1, Math.ceil(q/2)) : q;  // 選別
   if(T.chain==='alloy'){                       // 地金2つ＋1つ上の地金1つ → 合金
     const i = tierIdx(n.item); if(i<0) return {};
     return modIns(n, eraIn(T, {sta:staCost(CHAIN[i].sta*CHAIN_STA.alloy, e),
-      [CHAIN[i].ingot]:2, [CHAIN[i+1].ingot]:1}));
+      [CHAIN[i].ingot]:sift(2), [CHAIN[i+1].ingot]:1}));
   }
   if(T.chain==='equip'){                       // 部品1つ＋同じ段位の地金2つ → 装備1つ
     const i = tierIdx(n.item); if(i<0) return {};
     return modIns(n, eraIn(T, {sta:staCost(CHAIN[i].sta*CHAIN_STA.equip, e),
-      [CHAIN[i].part]:1, [CHAIN[i].ingot]:2}));
+      [CHAIN[i].part]:1, [CHAIN[i].ingot]:sift(2)}));
   }
   if(T.chain==='anvil'){                       // 装備1つ＋合金2つ → 一段鍛えた装備1つ
     const i = matTier(n.item); if(i<0 || !isEqp(n.item)) return {};
     return modIns(n, eraIn(T, {sta:staCost(CHAIN[i].sta*CHAIN_STA.anvil, e),
-      [n.item]:1, [alyFor(i)]:2}));
+      [n.item]:1, [alyFor(i)]:sift(2)}));
   }
   if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
     if(!n.item && T.chain!=='sell') return {};
     const take = T.chain==='comp' ? COMP_TAKE : T.chain==='sell' ? SELL_TAKE : DECOMP_TAKE;
-    const st = staCost((T.chain==='comp'?3:T.chain==='sell'?0.6:2), e);
+    const st = staCost((T.chain==='comp'?3:T.chain==='sell'?0.6:2)
+                       * (hasPerk(T,'thrift') ? 0.5 : 1), e);
     const k  = T.chain==='sell' ? (n.sellK || n.item) : n.item;
     if(!k) return modIns(n, eraIn(T, {sta:st}));
     return modIns(n, eraIn(T, {sta:st, [k]:take}));
@@ -1482,9 +1538,10 @@ function insOf(n){
     const c = chainOf(n);
     if(!c) return {};
     const st = staCost(c.sta * CHAIN_STA[T.chain], e);
+    const half = hasPerk(T,'sift') ? 1 : 2;      // 選別：材料が半分で済む
     const base = T.chain==='ore'   ? {sta:st}
-               : T.chain==='ingot' ? {sta:st, [c.ore]:2}
-               : T.chain==='part'  ? {sta:st, [c.ingot]:2}
+               : T.chain==='ingot' ? {sta:st, [c.ore]:half}
+               : T.chain==='part'  ? {sta:st, [c.ingot]:half}
                :                     {sta:st, [c.part]:1};
     return modIns(n, eraIn(T, base));
   }
@@ -1495,7 +1552,8 @@ function insOf(n){
     return modIns(n, eraIn(T, o));
   }
   const k = T.stat ? trainMul(S.stats[T.stat]) : 1;   // 訓練は鍛えるほど重くなる（後半ほど急に）
-  for(const i in T.ins) o[i] = i==='sta' ? staCost(T.ins[i]*k, e)
+  const th = hasPerk(T,'thrift') ? 0.5 : 1;          // 省力：体力が半分で済む
+  for(const i in T.ins) o[i] = i==='sta' ? staCost(T.ins[i]*k*th, e)
                                        : Math.max(1, Math.ceil(T.ins[i]*k));
   return modIns(n, o);
 }
@@ -1530,6 +1588,7 @@ function outsOf(n){
   if(T.chain==='equip'){                       // できた装備はふつうに出力へ積まれる
     const i = tierIdx(n.item); if(i<0) return {};
     const base = {[eqpOf(i)]:1, waste:1};
+    if(hasPerk(T,'clean')) delete base.waste;   // 無廃
     for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
   }
@@ -1540,6 +1599,7 @@ function outsOf(n){
   if(T.chain==='alloy'){
     const i = tierIdx(n.item); if(i<0) return {};
     const base = {[alloyOf(i+1)]:1, waste:1};
+    if(hasPerk(T,'clean')) delete base.waste;   // 無廃
     for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
   }
@@ -1550,6 +1610,7 @@ function outsOf(n){
                : T.chain==='ingot' ? {[c.ingot]:1, waste:1}
                : T.chain==='part'  ? {[c.part]:1,  waste:2}
                :                     {};
+    if(hasPerk(T,'clean')) delete base.waste;    // 無廃：廃材を出さない
     // 進んだ時代の施設は、必ず新しい厄介物も出す
     if(T.chain!=='atk') for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
     return modOuts(n, base);
@@ -1558,7 +1619,10 @@ function outsOf(n){
   if(T.lout) return {};
   if(T.layer) return n.out ? {[n.out]:1} : {};
   if(T.stat){                                   // 訓練：強化すると1回の経験が増える
-    return modOuts(n, {[EXP_OF[T.stat]]: trainYield(n)});
+    const y = trainYield(n), ex = {[EXP_OF[T.stat]]: y};
+    if(hasPerk(T,'cross'))                      // 複合：ほかの経験値も少しだけ出る
+      for(const st in EXP_OF) if(st!==T.stat) ex[EXP_OF[st]] = Math.max(1, Math.round(y*0.25));
+    return modOuts(n, ex);
   }
   if(T.loot){ const o = {[lootItem(n)]:1};
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
@@ -1858,8 +1922,10 @@ const gotMat = () => Math.floor(S.stock || 0);
 const ERA_RP0 = 2500, ERA_RPK = 4.5;
 const ERA_MAT_FROM = 4, ERA_MATK = 3.5;
 const ERA_RP_EARLY = {2:400, 3:3000};      // 装備に触れるまでは軽く
+/* 終盤の3世代だけ、さらに重くする。序盤は軽いまま、最後のひと押しに時間がかかる */
+const ERA_LATE = e => Math.pow(Math.max(0, e-7), 2) / 6;
 const eraRp  = e => e<=1 ? 0
-  : (ERA_RP_EARLY[e] || Math.round(ERA_RP0 * Math.pow(ERA_RPK, e-2)));
+  : (ERA_RP_EARLY[e] || Math.round(ERA_RP0 * Math.pow(ERA_RPK, e-2 + ERA_LATE(e))));
 const eraMat = e => e < ERA_MAT_FROM ? 0 : Math.round(150 * Math.pow(ERA_MATK, e-ERA_MAT_FROM));
 const canEra = () => (S.era||1) < ERA_MAX
   && gotRp() >= eraRp((S.era||1)+1) && gotMat() >= eraMat((S.era||1)+1);
@@ -1869,6 +1935,7 @@ function doEra(){
   S.rp -= eraRp(e); S.stock -= eraMat(e); S.era = e; devDirty();
   const E = eraName(e);
   addLog(`【${E.i}${E.n}の時代へ】${E.d}`, 'b');
+  for(const t of perkNews(e)) addLog(`　└ ${t}`, 'b');
   return true;
 }
 /* 無限ダンジョン。潜った深さがそのままスコアで、10層ごとの踏破が恒久的な力になる */
@@ -1886,9 +1953,9 @@ const BOSS_EVERY = 10;
 const isBoss = f => f % BOSS_EVERY === 0;
 /* 踏破報酬：10層ごとに攻撃力が恒久的に伸びる。
    伸び幅そのものが段とともに増えるので、深く潜るほど加速する（後半で効く曲線）
-     3段(30層) ×1.4 ／ 6段 ×2.0 ／ 12段(120層) ×6.1 ／ 17段(175層) ×18.7 ／ 25段 ×230  */
+     3段(30層) ×1.4 ／ 6段 ×2.3 ／ 12段(120層) ×9.4 ／ 17段(175層) ×47 ／ 25段 ×1,300 */
 const DEPTH_K    = 1.09;
-const DEPTH_Q    = 16;
+const DEPTH_Q    = 11;
 const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
 const depthBonus = () => { const t = depthTier();
   return Math.pow(DEPTH_K, t + t*t/DEPTH_Q); };
@@ -2338,6 +2405,8 @@ function tick(dt,fast){
         if(have < 1) give = {};
         else { H[n.item]=have-1; if(H[n.item]<=0) delete H[n.item]; }
       }
+      const dbl = hasPerk(T,'twin') && Math.random() < 0.25;   // 複製・覚醒・並列
+      if(dbl){ const g2={}; for(const k in give) g2[k]=give[k]*2; give=g2; }
       for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k];
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
@@ -2348,7 +2417,7 @@ function tick(dt,fast){
       if(T.effect==='equip' || T.effect==='anvil') n.gain=(n.gain||0)+1;
       if(T.chain==='open') openBox(n, fast);
       if(T.chain==='sell' && n.sellK){
-        const g=sellPrice(n.sellK, n.level); S.gold+=g; n.gain=(n.gain||0)+g;
+        const g=sellPrice(n.sellK, n.level)*sellMul(n); S.gold+=g; n.gain=(n.gain||0)+g;
       }
       if(T.chain==='fund'){                     // ゴールドを払って研究に変える
         const g = fundGold(n);
@@ -2366,7 +2435,7 @@ function tick(dt,fast){
         n.hp = (n.hp || raidHp()) - atk();     // 階層の装甲は関係しない
         if(n.hp <= 0){ raidDone(n); break; }
       }
-      if(T.effect==='lab')  { const g=rpGain(n); n.gain=(n.gain||0)+g; grantRp(g); }
+      if(T.effect==='lab')  { const g=rpGain(n)*(dbl?2:1); n.gain=(n.gain||0)+g; grantRp(g); }
       n.crafting=false; n.prog=0;
       if(--guard<=0) break;
     }
@@ -2786,13 +2855,16 @@ const nodeCx = n => n.x + NW/2, nodeCy = n => n.y + 45;
 /* 中身が空で、入る線も出る線も無い枠は手放す。
    線を切ったあとだけでなく、読み込んだデータにも効くよう定期的に見る */
 function freeIdleSlots(){
+  let used = null;                       // 「このノードのこの素材に線がある」の一覧
   for(const n of S.nodes){
     const T = TYPES[n.type];
     if(!(T.store || T.ware || T.chain==='sell') || !n.items) continue;
+    if(!used){ used = new Set();
+      for(const l of S.links){ used.add(l.to+'|'+l.item); used.add(l.from+'|'+l.item); } }
     for(let i=0;i<n.items.length;i++){
       const k = n.items[i]; if(!k) continue;
       if((n.inBuf[k]||0) > 0 || (n.outBuf[k]||0) > 0) continue;
-      if(S.links.some(l => (l.to===n.id || l.from===n.id) && l.item===k)) continue;
+      if(used.has(n.id+'|'+k)) continue;
       n.items[i] = null;
       delete n.inBuf[k]; delete n.outBuf[k];
       n.crafting=false; n.prog=0; n.stall=false; n.why='';
@@ -2813,24 +2885,44 @@ function polTick(dt){
   }
   const pure = gearMul('pure') * skillMul('pure');
   const bd = n => n.layer || 0;
+  /* 盤面が広がると総当たりでは重くなるので、マス目に振り分けて近所だけ見る。
+     マスの一辺は「いちばん遠くまで届くもの」に合わせる                     */
+  let CELL = POL_R;
+  for(const [,a] of cl) if(a.r > CELL) CELL = a.r;
+  for(const [,a] of sp) if(a.r > CELL) CELL = a.r;
+  const cellOf = n => (Math.floor(nodeCx(n)/CELL)) + ',' + (Math.floor(nodeCy(n)/CELL));
+  const bucket = list => { const g = new Map();
+    for(const e of list){ const k = cellOf(e[0]); let a = g.get(k); if(!a) g.set(k, a=[]); a.push(e); }
+    return g; };
+  const gSrc = bucket(src), gCl = bucket(cl), gSp = bucket(sp);
+  /* 自分のマスと隣の8マスぶんだけを集めて渡す */
+  function near(g, n){
+    const cx = Math.floor(nodeCx(n)/CELL), cy = Math.floor(nodeCy(n)/CELL), out = [];
+    for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){
+      const a = g.get((cx+i)+','+(cy+j)); if(a) for(const e of a) out.push(e);
+    }
+    return out;
+  }
   /* 同じ盤面のものだけが届く。近いほど強い */
   function around(n, skipSelf){
     let v = 0, boost = 0, clean = 0;
-    for(const [m,p] of src){
+    for(const [m,p] of near(gSrc, n)){
       if(m===n){ if(!skipSelf) v += p; continue; }
       if(bd(m)!==bd(n)) continue;
       const dist = Math.hypot(nodeCx(m)-nodeCx(n), nodeCy(m)-nodeCy(n));
       if(dist < POL_R) v += p * (1 - dist/POL_R);
     }
-    for(const [c,a] of cl){
+    /* ピンの効きは中心の近くを厚めに。すぐ隣なら、ほぼそのままの強さで届く */
+    const fall = (dist, r) => 1 - (dist/r)*(dist/r);
+    for(const [c,a] of near(gCl, n)){
       if(bd(c)!==bd(n)) continue;
       const dist = Math.hypot(nodeCx(c)-nodeCx(n), nodeCy(c)-nodeCy(n));
-      if(dist < a.r) clean += a.v * (1 - dist/a.r);
+      if(dist < a.r) clean += a.v * fall(dist, a.r);
     }
-    for(const [c,a] of sp){
+    for(const [c,a] of near(gSp, n)){
       if(bd(c)!==bd(n)) continue;
       const dist = Math.hypot(nodeCx(c)-nodeCx(n), nodeCy(c)-nodeCy(n));
-      if(dist < a.r) boost += a.v * (1 - dist/a.r);
+      if(dist < a.r) boost += a.v * fall(dist, a.r);
     }
     return {v, boost, clean};
   }
@@ -2845,8 +2937,10 @@ function polTick(dt){
     // 上がる速さは溜め込み具合、下がる速さは自然回復＋清浄ピン＋清浄の装備
     const up   = Math.max(0, v) * POL_UP;
     const down = (POL_HEAL + Math.max(0, a.clean + (e ? e.clean : 0)) * POL_CLEAN) * pure;
-    n.pol = Math.max(0, Math.min(1, (n.pol||0) + (up - down) * d));
-    if(n.pol < 0.001) n.pol = 0;
+    const nv = Math.max(0, Math.min(1, (n.pol||0) + (up - down) * d));
+    // 端数を0に丸めるのは「薄まっているとき」だけ。
+    // 上がっている最中に丸めると、じわじわ進む汚染がいつまでも0のままになる
+    n.pol = (nv < 0.001 && up <= down) ? 0 : nv;
   }
 }
 
@@ -2869,9 +2963,15 @@ function histTick(dt){
   }
 }
 const statName = s => ({str:'💪筋力',int:'🧠知力',vit:'❤️体力'})[s];
-/* 訓練の経験値が、どこかへ送り出されているか */
-const expRouted = n => { const k=EXP_OF[TYPES[n.type].stat];
-  return !!k && S.links.some(l=>l.from===n.id && l.item===k); };
+/* 訓練の経験値が、どこかへ送り出されているか。
+   複合を持つ施設は3種類とも配線しないと、そのうち詰まって止まる */
+const expMiss = n => {
+  if(!TYPES[n.type].stat) return null;
+  for(const k in outsOf(n))
+    if(!S.links.some(l=>l.from===n.id && l.item===k)) return k;
+  return null;
+};
+const expRouted = n => !!TYPES[n.type].stat && !expMiss(n);
 /* 主人公・仲間のノードに出す一行。受け取った経験値を数字で見せる */
 function srcFace(n){
   const e=n.ex||{}, got=(e.str||0)+(e.int||0)+(e.vit||0);
@@ -2887,7 +2987,8 @@ function doDive(fast, node){
   // 撃破できない深さで止まっても、潜り続ければ拾える
   if(S.floor >= DROP_FROM){
     S.dives = (S.dives||0) + 1;
-    if(S.dives >= DROP_PER){ S.dives = 0; tryDrop(S.floor, fast); }
+    const per = (node && hasPerk(TYPES[node.type],'find')) ? DROP_PER/2.5 : DROP_PER;
+    if(S.dives >= per){ S.dives = 0; tryDrop(S.floor, fast); }
   }
   S.enemy.hp -= dmg();
   if(S.enemy.hp>0) return;
@@ -2912,7 +3013,8 @@ function doDive(fast, node){
   }
   // 撃破でのドロップ（ボス層は確定、通常層は8%）
   // 施設と仲間は低確率。ボス層だけは確定で落ちる
-  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * skillMul('drop'))) tryDrop(f, fast);
+  const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;   // 宝探し
+  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * skillMul('drop') * findK)) tryDrop(f, fast);
   spawnEnemy();
 }
 function tryDrop(f, fast){
@@ -3315,14 +3417,14 @@ function render(){
     }
     e.bar.style.width=(n.crafting?Math.min(100,n.prog/n.need*100):0)+'%';
     e.nf.textContent = n.stall
-        ? (T.stat && !expRouted(n) ? `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`
+        ? (T.stat && expMiss(n) ? `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（主人公へ配線）`
            : (T.outs && T.outs.wood && /廃材/.test(n.why||'')
               ? '停止：'+n.why+'（⚡で動く第1世代の施設を残すと廃材が出ます）'
               : '停止：'+n.why))
       : T.src ? srcFace(n)
       : T.stat ? (expRouted(n)
           ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（次の+1まで あと${Math.max(1, expNeed(S.stats[T.stat]) - ((S.exp&&S.exp[T.stat])||0))}回）`
-          : `⚠ ${ITEMS[EXP_OF[T.stat]].i}の戻し先がない（主人公へ配線）`)
+          : `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（主人公へ配線）`)
       : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
       : T.effect==='raid'? (n.clear
           ? `✨ クリア！ タップで受け取る（+${fmt((n.reward||{}).g||0)}G ほか）`
@@ -3793,6 +3895,7 @@ function renderInsp(){
     (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     (skillSlots(n) ? `<div class="kv gearhd">スキル<b class="ksum"></b></div><div class="skillsel"></div>` : '') +
+    (perksOf(T).length ? `<div class="kv">世代の特性<b class="perk"></b></div>` : '') +
     `<div class="kv">状態<b class="st2"></b></div>`;
 
   // ── たたんでおく詳しい行 ──
@@ -3984,6 +4087,8 @@ function renderInspLive(){
       + (b?`${p?'　':''}⚡加速 +${b}%`:'') || 'なし'; }
   const tt=box.querySelector('.trt');
   if(tt) tt.textContent = n.item ? (traitText(n.item) || '特性なし') : '—';
+  const pk=box.querySelector('.perk');
+  if(pk) pk.textContent = perksOf(TYPES[n.type]).map(p=>`${p.n}（${p.d}）`).join('　');
   const ks=box.querySelector('.ksum');
   if(ks){ const on=skillOf(n).filter(Boolean);
     ks.textContent = `${on.length}/${skillSlots(n)}` + (on.length ? '　'+on.map(k=>SKILL[k].i).join('') : ''); }
@@ -4014,7 +4119,7 @@ function renderInspLive(){
     else if(TY.chain==='fuel'){
       cv.textContent = n.item ? `⚡ ${fmt(fuelOut(n))}` : '—'; }
     else if(TY.chain==='sell'){ const k=n.sellK||n.item;
-      cv.textContent = k ? `${ITEMS[k].i}${ITEMS[k].n} ×${SELL_TAKE} → 💰${fmt(sellPrice(k,n.level))}` : '届いたものを売ります'; }
+      cv.textContent = k ? `${ITEMS[k].i}${ITEMS[k].n} ×${SELL_TAKE} → 💰${fmt(sellPrice(k,n.level)*sellMul(n))}` : '届いたものを売ります'; }
     else if(TY.chain==='decomp'){
       cv.textContent = n.item ? `🔬 +${fmt(itemVal(n.item)*DECOMP_TAKE*lvPow(n.level)*Math.pow(2.6,(TY.era||1)-1))}` : '—'; }
     else if(TY.chain==='alloy'){ const i=tierIdx(n.item);
