@@ -135,6 +135,11 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
 .node.stall .aura{opacity:.25}
+/* ダンジョンで拾った施設。性能がばらついているので色で見分ける */
+.node.drop{border-color:#4fb0d8;
+  background-color:color-mix(in srgb, #4fb0d8 10%, var(--panel2))}
+.node.drop .nm{color:#7fd0f0}
+.node.drop .nh::before{content:'⛏';font-size:10px;opacity:.9;margin-right:1px}
 .node.pol{box-shadow:0 0 0 1px rgba(180,135,245,calc(.25 + var(--pol) * .5)),
                      0 0 calc(10px + var(--pol) * 22px) rgba(180,135,245,calc(var(--pol) * .45))}
 .node.hid{display:none}
@@ -731,6 +736,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="btabs">
         <button class="bt1 on" data-t="gear">🎽 装備 <b id="bcGear">0</b></button>
         <button class="bt1" data-t="home">🏠 自宅 <b id="bcHome">0</b></button>
+        <button class="bt1" data-t="skill">✨ スキル <b id="bcSkill">0</b></button>
         <button class="bt1" data-t="drop">🎁 クリア報酬 <b id="bcDrop">0</b></button>
         <button class="bt1" data-t="ware" id="bcWareTab" hidden>📦 倉庫</button>
       </div>
@@ -1038,7 +1044,8 @@ const FUND_G    = 4000;
 /* 仲間の給料。1回働くごとに払う。時代が進むほど金額も大きくなる。
    第9以降の人工の仲間は、ゴールドではなく研究ポイントで動く */
 const payOf   = n => { const T=TYPES[n.type];
-  return T.pay ? Math.round(T.pay * Math.pow(2.6, (T.era||1)-1)) : 0; };
+  return T.pay ? Math.max(1, Math.round(T.pay * Math.pow(2.6, (T.era||1)-1)
+                                        * ((n.mods && n.mods.payK) || 1))) : 0; };
 const payRpOf = n => { const T=TYPES[n.type];
   return T.payRp ? Math.max(1, Math.round(T.payRp * Math.pow(2.6, (T.era||1)-1))) : 0; };
 const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
@@ -1054,7 +1061,8 @@ const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(de
 const SELL_CLASS = k => { const b=baseOf(k);
   return /^ore/.test(b) ? 0.5 : /^ing/.test(b) ? 1.2 : /^prt/.test(b) ? 1.8 : 1; };
 function sellPrice(k, lv){
-  return Math.max(1, Math.round(itemVal(k) * SELL_CLASS(k) * SELL_TAKE * SELL_K * lvPow(lv) * gearMul('rich')));
+  return Math.max(1, Math.round(itemVal(k) * SELL_CLASS(k) * SELL_TAKE * SELL_K * lvPow(lv)
+                                * gearMul('rich') * skillMul('gold')));
 }
 // ダンジョンが出す戦利品。深さで選べる等級が増える
 const lootItem = n => (n.item && isLot(n.item)) ? n.item : 'lot1';
@@ -1310,7 +1318,8 @@ const FAC = {
 /* 施設の見た目と名前は「時代」で決まる。レベルは効きだけを上げる */
 function tierOf(n){
   const T = TYPES[n.type];
-  const nm = (n.type==='hero' && S.name) ? S.name : T.n;
+  let nm = (n.type==='hero' && S.name) ? S.name : T.n;
+  if(n.drop) nm += `〈${(n.mods && n.mods.tags || []).join('・') || '無印'}〉`;
   const list = T.line ? FAC[T.line] : null;
   let next = null;
   if(list){ const f = list.find(x => x.e > (T.era||0)); if(f) next = [f.e, f.n]; }
@@ -1371,7 +1380,8 @@ const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP); 
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
 const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / lvPow(n.level) / (1 + (tierOf(n).t-1)*0.5);
 const intBoost = () => 1 + S.stats.int * 0.02;
-const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15) * depthBonus() * gearMul('firm'));
+const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15)
+                       * depthBonus() * gearMul('firm') * skillMul('atk'));
 const rpGain   = n  => lvPow(n.level) * (1 + S.stats.int * 0.15) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
 const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1));
 const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
@@ -1408,7 +1418,7 @@ const toolWeight = n => n.item ? Math.max(1, itemVal(n.item)/TOOL_REF) : 1;
 const toolMul  = n => 1 + (TYPES[n.type].mul - 1) / Math.pow(toolWeight(n), 0.22);
 const toolLoad = n => Math.pow(toolWeight(n), 0.30);
 /* その施設が1回に食う⚡。時代の効率と全体の倍率をかけて切り上げる */
-const staCost = (x, e) => Math.max(1, Math.ceil(x * e * COST_K));
+const staCost = (x, e) => Math.max(1, Math.ceil(x * e * COST_K / skillMul('cost')));
 function insOf(n){
   const T = TYPES[n.type], e = effOf(n), o = {};
   if(T.chain==='clean'){                       // 副産物を片付ける
@@ -1550,6 +1560,74 @@ function softIns(n){
   if(T.matIn) return n.item ? {[n.item]:1} : {};   // 研究所：選んだ部品だけ受け取る
   return T.soft || {};
 }
+/* ===================== スキル =====================
+   💪筋力・🧠知力を「使い切って」覚える。覚えたスキルはノードのスロットに
+   セットして初めて効く。主人公3枠、仲間1枠（拾った仲間はもっと多いことも）。 */
+const SKILLS = [
+  {k:'atk1', n:'剛力',     i:'💥', str:8,  int:0,  kind:'atk',  v:0.25, d:'攻撃力 +25%'},
+  {k:'atk2', n:'一撃',     i:'⚔️', str:25, int:5,  kind:'atk',  v:0.60, d:'攻撃力 +60%'},
+  {k:'atk3', n:'覇気',     i:'🔥', str:45, int:15, kind:'atk',  v:1.50, d:'攻撃力 +150%'},
+  {k:'spd1', n:'手際',     i:'⚙️', str:5,  int:8,  kind:'spd',  v:0.15, d:'すべての施設が 15% 速い'},
+  {k:'spd2', n:'流れ作業', i:'🏭', str:12, int:25, kind:'spd',  v:0.35, d:'すべての施設が 35% 速い'},
+  {k:'cst1', n:'省力',     i:'🪶', str:0,  int:12, kind:'cost', v:0.15, d:'⚡の消費が 15% 減る'},
+  {k:'cst2', n:'効率化',   i:'📐', str:0,  int:30, kind:'cost', v:0.30, d:'⚡の消費が 30% 減る'},
+  {k:'sta1', n:'活力',     i:'❤️', str:10, int:10, kind:'sta',  v:0.30, d:'⚡の生成が 30% 増える'},
+  {k:'rp1',  n:'洞察',     i:'🔎', str:0,  int:18, kind:'rp',   v:0.50, d:'研究の入りが 50% 増える'},
+  {k:'gld1', n:'商才',     i:'💰', str:6,  int:14, kind:'gold', v:0.40, d:'売値が 40% 上がる'},
+  {k:'pur1', n:'清廉',     i:'💧', str:8,  int:8,  kind:'pure', v:0.40, d:'汚染を受けにくくなる'},
+  {k:'drp1', n:'幸運',     i:'🍀', str:20, int:20, kind:'drop', v:1.50, d:'ダンジョンの拾い物が出やすい'},
+];
+const SKILL = {}; for(const s2 of SKILLS) SKILL[s2.k] = s2;
+const hasSkill = k => !!(S.skills && S.skills[k]);
+/* そのノードに載るスキルの数。主人公3・仲間1（拾い物は増減する） */
+const skillSlots = n => {
+  const T = TYPES[n.type];
+  if(!T.src) return 0;
+  return Math.max(0, (n.type==='hero' ? 3 : 1) + ((n.mods && n.mods.skill) || 0));
+};
+function skillOf(n){
+  const k = skillSlots(n); if(!k) return [];
+  if(!n.sk || n.sk.length !== k){
+    const old = n.sk || [];
+    n.sk = Array.from({length:k}, (_,i) => (old[i] && SKILL[old[i]]) ? old[i] : null);
+  }
+  return n.sk;
+}
+/* いまセットされているスキルの合計。同じスキルは1つしか効かない */
+let skillN = null;
+const skillDirty = () => { skillN = null; };
+function skillSum(){
+  if(skillN) return skillN;
+  const o = {atk:0, spd:0, cost:0, sta:0, rp:0, gold:0, pure:0, drop:0}, seen = new Set();
+  for(const n of S.nodes) for(const k of skillOf(n)){
+    if(!k || seen.has(k) || !SKILL[k]) continue;
+    seen.add(k); o[SKILL[k].kind] += SKILL[k].v;
+  }
+  return skillN = o;
+}
+const skillMul = kind => 1 + (skillSum()[kind] || 0);
+/* いま覚えられるか。能力値をそのぶん使い切る */
+function canLearn(k){
+  const s2 = SKILL[k]; if(!s2 || hasSkill(k)) return false;
+  return S.stats.str >= s2.str && S.stats.int >= s2.int;
+}
+function learnSkill(k){
+  const s2 = SKILL[k];
+  if(!s2 || hasSkill(k)) return;
+  if(!canLearn(k)) return toast(`💪${s2.str} 🧠${s2.int} が要ります`);
+  S.stats.str -= s2.str; S.stats.int -= s2.int;
+  S.skills = S.skills || {}; S.skills[k] = 1;
+  addLog(`【スキル】${s2.i}${s2.n} を覚えた（💪-${s2.str} 🧠-${s2.int}）`, 'b');
+  toast(`${s2.i}${s2.n} を覚えた`);
+  skillDirty(); renderBag(); renderInsp();
+}
+function setSkill(n, i, k){
+  const g = skillOf(n); if(!g) return;
+  if(k && !hasSkill(k)) return;
+  if(k) for(const m of S.nodes) for(let j=0;j<skillOf(m).length;j++)
+    if(m.sk[j] === k && !(m===n && j===i)) m.sk[j] = null;   // 同じスキルは1つだけ
+  n.sk[i] = k || null; skillDirty();
+}
 /* ===================== 装備 =====================
    装備工房で作ったものが「持ち物」に入り、鍛錬台で鍛えられる。
    主人公や仲間のノードには装備スロットがあり、そこに持ち物から選んで持たせる。
@@ -1557,7 +1635,7 @@ function softIns(n){
 /* 装備はふつうのアイテム。工房の出力に積まれ、配線で装備庫へ流せる。
    身につけるときは、工房のどこかにある在庫か「外した装備」から1つ取る。   */
 const homeOf = () => (S.home = S.home || {});   // 自宅のしまい場所
-const gearSlots = n => TYPES[n.type].gear || 0;
+const gearSlots = n => Math.max(0, (TYPES[n.type].gear || 0) + ((n.mods && n.mods.gear) || 0));
 function gearOf(n){
   const k = gearSlots(n); if(!k) return [];
   if(!n.gear || n.gear.length !== k){
@@ -1629,8 +1707,8 @@ function craftTime(n){
   const T = TYPES[n.type];
   const sp = n.mods ? n.mods.spd : 1;
   const env = (1 + (n.pol||0) * POL_SLOW) / (n.spd || 1);   // 汚染で遅く、ピンで速く
-  if(TYPES[n.type].src) return staRate(n) * sp * env;
-  return T.time / lvPow(n.level) / intBoost() * sp * env;
+  if(T.src) return staRate(n) * sp * env / skillMul('sta');
+  return T.time / lvPow(n.level) / intBoost() * sp * env / skillMul('spd');
 }
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
@@ -1667,9 +1745,9 @@ const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
 /* ========== トレハン：第100層から施設がドロップする ==========
    良い接辞ばかりではなく、体力を余計に食う・稼働に部品が要る といった悪い接辞も混ざる。
    10層深くなるごとに等級が1つ上がり、接辞の数と振れ幅が増える。 */
-const DROP_FROM = 50;                 // ここから施設が落ちる
-const DROP_MAX  = 40;                 // クリア報酬スタックに積める数
-const DROP_PER  = 12000;              // 撃破が止まっても、この回数潜るごとに1つ拾える
+const DROP_FROM = 5;                  // ここから施設が落ちる（浅いほど等級が低い）
+const DROP_MAX  = 60;                 // クリア報酬スタックに積める数
+const DROP_PER  = 6000;               // 撃破が止まっても、この回数潜るごとに1つ拾える
 const dropGrade = f => Math.max(1, Math.floor((f - DROP_FROM) / 15) + 1);
 
 const AFFIX = [
@@ -1686,7 +1764,16 @@ const AFFIX = [
   {k:'need', grp:'need',n:'要整備', good:0, w:8,  f:(m,g,rnd)=>{ const c=CHAIN[Math.min(CHAIN.length-1, Math.floor(rnd()*Math.min(6,1+g/3)))];
                                                           m.need[c.part]=(m.need[c.part]||0)+1; }},
 ];
-function newMods(){ return {spd:1, sta:1, yld:0, wst:0, cap:1, clean:0, need:{}, tags:[]}; }
+function newMods(){ return {spd:1, sta:1, yld:0, wst:0, cap:1, clean:0, need:{},
+                            gear:0, skill:0, payK:1, tags:[]}; }
+/* 仲間の拾い物にだけ付く接辞。装備枠・スキル枠・給料がばらつく */
+const MATE_AFFIX = [
+  {grp:'gear', n:'多才',   good:1, w:8,  f:(m,g)=>m.gear  += 1 + Math.floor(g/8)},
+  {grp:'skill',n:'閃き',   good:1, w:8,  f:(m,g)=>m.skill += 1 + Math.floor(g/10)},
+  {grp:'pay',  n:'安上がり',good:1, w:9, f:(m,g)=>m.payK  *= Math.max(.15, 0.75-0.045*g)},
+  {grp:'pay',  n:'高給取り',good:0, w:9, f:(m,g)=>m.payK  *= 1.6+0.12*g},
+  {grp:'gear', n:'不器用', good:0, w:6,  f:(m)  =>m.gear  -= 1},
+];
 function rollDrop(floor, rnd){
   rnd = rnd || Math.random;
   const g = dropGrade(floor);
@@ -1695,9 +1782,10 @@ function rollDrop(floor, rnd){
   if(!pool.length) return null;
   const type = pool[Math.floor(rnd()*pool.length)];
   const m = newMods();
-  const count = Math.min(4, 1 + Math.floor(g/4));
+  const count = Math.min(4, (g<3 ? 2 : 1) + Math.floor(g/4));   // 浅い層のものは癖が強い
   const bag = [];
-  for(const a of AFFIX){
+  const table = TYPES[type].src ? AFFIX.concat(MATE_AFFIX) : AFFIX;
+  for(const a of table){
     // 等級が上がるほど良い接辞がやや出やすい
     const w = a.w * (a.good ? 1 + g*0.04 : 1);
     for(let i=0;i<Math.round(w);i++) bag.push(a);
@@ -1705,12 +1793,14 @@ function rollDrop(floor, rnd){
   // 相反する接辞（高速と鈍重など）は同時に付かない。1つ目は必ず良い接辞にする
   const used = new Set();
   for(let i=0;i<count;i++){
-    const pool = (i===0 ? bag.filter(x=>x.good) : bag).filter(x=>!used.has(x.grp));
+    // 等級3以上なら1つ目は必ず当たり。浅い層のものは当たり外れがそのまま出る
+    const pool = (i===0 && g>=3 ? bag.filter(x=>x.good) : bag).filter(x=>!used.has(x.grp));
     if(!pool.length) break;
     const a = pool[Math.floor(rnd()*pool.length)];
     used.add(a.grp); a.f(m, g, rnd); m.tags.push(a.n);
   }
   m.spd=Math.max(.2, m.spd); m.sta=Math.max(.2, m.sta); m.cap=Math.max(.3, m.cap);
+  m.gear=Math.max(-1, m.gear); m.skill=Math.max(0, m.skill); m.payK=Math.max(.1, m.payK);
   return {id:S.nextId++, type, grade:g, mods:m, floor};
 }
 const dropName = d => `${baseName(d.type)}〈${d.mods.tags.join('・')||'無印'}〉`;
@@ -1811,7 +1901,7 @@ function freshState(){
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, home:{}, maxEqp:0, maxComp:0, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -2019,7 +2109,7 @@ function addNode(type,x,y){
   S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n); return n;
 }
 function removeNode(id){
-  gearDirty();
+  gearDirty(); skillDirty();
   for(const l of [...S.links]) if(l.from===id||l.to===id) removeLink(l.id);
   const i=S.nodes.findIndex(n=>n.id===id); if(i<0) return;
   const wasIn = S.nodes[i].layer;
@@ -2703,7 +2793,7 @@ function polTick(dt){
     const a = auraOf(n); if(!a) continue;
     (a.k==='clean' ? cl : sp).push([n,a]);
   }
-  const pure = gearMul('pure');
+  const pure = gearMul('pure') * skillMul('pure');
   const bd = n => n.layer || 0;
   /* 同じ盤面のものだけが届く。近いほど強い */
   function around(n, skipSelf){
@@ -2789,7 +2879,7 @@ function doDive(fast, node){
     const k = lootItem(node);
     node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
     const tot = BOXES.reduce((a,b)=>a+b.w, 0);
-    let r = Math.random() * (tot * 4);          // 4回に1回くらい箱が出る
+    let r = Math.random() * (tot * 1.6);        // 素材はよく出る（1.6回に1回くらい箱）
     for(const b of BOXES){ r -= b.w; if(r < 0){
       node.outBuf[b.k] = Math.min(capOut(node,b.k), (node.outBuf[b.k]||0) + 1); break; } }
   }
@@ -2803,7 +2893,8 @@ function doDive(fast, node){
     if(nz !== wasZone && !fast) addLog(`【新区域】${nz.i} ${nz.n} に到達`,'b');
   }
   // 撃破でのドロップ（ボス層は確定、通常層は8%）
-  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.08)) tryDrop(f, fast);
+  // 施設と仲間は低確率。ボス層だけは確定で落ちる
+  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * skillMul('drop'))) tryDrop(f, fast);
   spawnEnemy();
 }
 function tryDrop(f, fast){
@@ -2822,6 +2913,7 @@ function spawnEnemy(){
 /* 研究ポイントを、判明済みでまだ開発していない対象に均等に配る */
 function grantRp(amount){
   if(!(amount>0)) return 0;
+  amount *= skillMul('rp');
   S.rp = (S.rp||0) + amount;
   return amount;
 }
@@ -2999,6 +3091,8 @@ function renderBag(){
   const nG = gearKeys().length, nD = S.drops.length;
   $('#bCount').textContent = bagCount();
   $('#bcGear').textContent = nG; $('#bcDrop').textContent = nD+' / '+DROP_MAX;
+  const bs=$('#bcSkill');
+  if(bs) bs.textContent = SKILLS.filter(x=>hasSkill(x.k)).length+' / '+SKILLS.length;
   const wt2=$('#bcHome');
   if(wt2) wt2.textContent = Object.keys(homeOf()).filter(k=>!isEqp(k)).length;
   document.querySelectorAll('#bag .btabs button')
@@ -3035,6 +3129,29 @@ function renderBag(){
       if(n.inBuf[k]<=0) delete n.inBuf[k];
       addLog(`${ITEMS[k].n}×${lots*SELL_TAKE} を売った → +${fmt(g)}G`,'w'); renderBag(); });
     box.querySelectorAll('.wtoss').forEach(b=>b.onclick=()=>{ delete n.inBuf[b.dataset.k]; renderBag(); });
+    return;
+  }
+
+  if(bagTab==='skill'){
+    $('#bagNote').textContent = '💪筋力と🧠知力を使い切って覚えます（能力値はそのぶん減ります）。'
+      + '覚えたスキルは主人公や仲間のスロットにセットして初めて効きます。'
+      + `　いまの能力：💪${S.stats.str} 🧠${S.stats.int}`;
+    const setOn = new Set();
+    for(const n of S.nodes) for(const k of skillOf(n)) if(k) setOn.add(k);
+    box.innerHTML = SKILLS.map(x=>{
+      const got = hasSkill(x.k), on = setOn.has(x.k), ok = canLearn(x.k);
+      return `<div class="bitem">
+        <div class="bmain">
+          <div class="bname">${x.i}${x.n}${on?'　<span class="bon">セット中</span>':''}</div>
+          <div class="bsub">${x.d}　／　覚えるのに 💪${x.str} 🧠${x.int}</div>
+        </div>
+        <div class="bacts">
+          ${got ? '<button disabled>覚えている</button>'
+                : `<button class="klearn" data-k="${x.k}" ${ok?'':'disabled'}>覚える</button>`}
+        </div>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('.klearn').forEach(b=>b.onclick=()=>learnSkill(b.dataset.k));
     return;
   }
 
@@ -3109,6 +3226,9 @@ function renderBag(){
     if(m.wst)     eff.push(`廃材 +${m.wst}`);
     if(m.cap!==1) eff.push(`容量 ×${m.cap.toFixed(1)}`);
     for(const k in m.need) eff.push(`稼働に ${ITEMS[k].i}${ITEMS[k].n}×${m.need[k]}`);
+    if(m.gear)  eff.push(`装備枠 ${m.gear>0?'+':''}${m.gear}`);
+    if(m.skill) eff.push(`スキル枠 +${m.skill}`);
+    if(m.payK!==1) eff.push(`給料 ×${m.payK.toFixed(2)}`);
     return `<div class="bitem">
       <div class="bmain">
         <div class="bname">${dropName(d)}</div>
@@ -3253,6 +3373,7 @@ function render(){
         e.sk.title = sk ? `汚染 ${Math.round(pv*100)}%` : ''; }
     }
     e.root.classList.toggle('pol', (n.pol||0) > 0.05);
+    e.root.classList.toggle('drop', !!n.drop);
     // 汚染が届く範囲。溜め込んでいるノードだけ出す
     const ps = n._psrc || 0;
     const po = ps > 0 ? Math.min(0.95, 0.3 + ps * 0.5) : 0;
@@ -3641,6 +3762,7 @@ function renderInsp(){
     (T.ware  ? `<button class="wopen">📦 中身を見る</button>` : '') +
     (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
+    (skillSlots(n) ? `<div class="kv gearhd">スキル<b class="ksum"></b></div><div class="skillsel"></div>` : '') +
     `<div class="kv">状態<b class="st2"></b></div>`;
 
   // ── たたんでおく詳しい行 ──
@@ -3703,6 +3825,22 @@ function renderInsp(){
       const info=document.createElement('div'); info.className='ginfo';
       info.textContent = g.item ? `${traitText(g.item)}　効き ${gearPow(g.item).toFixed(1)}`
                                 : (opts.size ? '工房の在庫から選ぶ' : '装備工房で作ると選べる');
+      row.appendChild(sl); row.appendChild(info); w.appendChild(row);
+    });
+  }
+  if(skillSlots(n)){
+    const w=box.querySelector('.skillsel');
+    const have = SKILLS.filter(x=>hasSkill(x.k));
+    skillOf(n).forEach((k,i)=>{
+      const row=document.createElement('div'); row.className='grow';
+      const sl=document.createElement('select');
+      sl.innerHTML=`<option value="">— 外す —</option>`+
+        have.map(x=>`<option value="${x.k}">${x.i} ${x.n}</option>`).join('');
+      sl.value=k||'';
+      sl.onchange=()=>{ setSkill(n,i,sl.value||null); renderInsp(); };
+      const info=document.createElement('div'); info.className='ginfo';
+      info.textContent = k && SKILL[k] ? SKILL[k].d
+        : (have.length ? '覚えたスキルから選ぶ' : '🎒持ち物の〈スキル〉で覚えられます');
       row.appendChild(sl); row.appendChild(info); w.appendChild(row);
     });
   }
@@ -3816,6 +3954,9 @@ function renderInspLive(){
       + (b?`${p?'　':''}⚡加速 +${b}%`:'') || 'なし'; }
   const tt=box.querySelector('.trt');
   if(tt) tt.textContent = n.item ? (traitText(n.item) || '特性なし') : '—';
+  const ks=box.querySelector('.ksum');
+  if(ks){ const on=skillOf(n).filter(Boolean);
+    ks.textContent = `${on.length}/${skillSlots(n)}` + (on.length ? '　'+on.map(k=>SKILL[k].i).join('') : ''); }
   const gs=box.querySelector('.gsum');
   if(gs){ const bn=gearBonus();
     const t=Object.keys(TRAITS).filter(k=>bn[k]>0.01)
@@ -4422,7 +4563,8 @@ function load(){
   if(!raw) return false;
   try{
     const d=migrate(JSON.parse(raw)); if(!d||!Array.isArray(d.nodes)||!d.nodes.length) return false;
-    S=Object.assign(freshState(),d); reindex(); devDirty(); gearDirty();
+    S=Object.assign(freshState(),d); reindex(); devDirty(); gearDirty(); skillDirty();
+    S.skills = S.skills || {};
     if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
     clearBoardEls();
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
@@ -4622,7 +4764,7 @@ if(DEBUG){
 /* ========================= 起動 ========================= */
 function newGame(){
   clearBoardEls();
-  S=freshState(); reindex(); applyView(); devDirty(); gearDirty();
+  S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
   const h=addNode('hero',80,150), d=addNode('dive1',420,150);
   S.counts={hero:1,dive1:1};
   addLink(h.id,'sta',d.id);
