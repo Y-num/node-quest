@@ -2104,7 +2104,9 @@ function craftTime(n){
   const T = TYPES[n.type];
   const sp = n.mods ? n.mods.spd : 1;
   const env = (1 + (n.pol||0) * POL_SLOW) / (n.spd || 1);   // 汚染で遅く、ピンで速く
-  if(T.src) return staRate(n) * sp * env / skillMul('sta');
+  // 祝福は主人公・仲間にも効く。⚡を作る側と使う側が同じだけ速くなるので、
+  // 工房ぜんたいがそのぶん速くまわる（片方だけだと⚡が足りなくなる）
+  if(T.src) return staRate(n) * sp * env / skillMul('sta') / troMul();
   const base = n.comb ? combCalc(n).time : T.time;
   return base / lvPow(n.level) / intBoost() * sp * env / skillMul('spd') / troMul();
 }
@@ -2303,10 +2305,12 @@ const portY  = i => HEAD + i*ROWH + ROWH/2;
 /* ========================= state ========================= */
 const PKT_MAX = 420;                 // 同時に走らせる粒の上限
 let S, idx = new Map(), sel = null, selLink = null, packetCount = 0;
-/* id 引きは毎コマ何十回も走るので覚えておく（差し替えられたら引き直す） */
+/* id 引きは毎コマ何十回も走るので覚えておく（差し替えられたら引き直す）。
+   覚えるのは「#なまえ」だけ。中を探すセレクタは、毎回引き直す        */
 const _q = new Map();
+const ID_ONLY = /^#[\w-]+$/;
 const $ = s => {
-  if(s.charCodeAt(0) !== 35) return document.querySelector(s);
+  if(!ID_ONLY.test(s)) return document.querySelector(s);
   let e = _q.get(s);
   if(e && e.isConnected) return e;
   e = document.querySelector(s); if(e) _q.set(s, e); else _q.delete(s);
