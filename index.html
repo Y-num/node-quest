@@ -512,6 +512,32 @@ table.dtbl td .dn{color:var(--bad)}
 #insp .nflow .fnm{overflow:hidden;text-overflow:ellipsis}
 #insp .nflow .fi{color:var(--acc)} #insp .nflow .fo{color:var(--bad)}
 #insp .nflow .fn{font-weight:700;min-width:54px;text-align:right;color:var(--fg)}
+/* トロフィー */
+#tro{position:fixed;inset:0;background:rgba(6,9,14,.82);z-index:107;display:none;
+  align-items:center;justify-content:center;padding:16px}
+#tro.on{display:flex}
+#tro .tbox2{width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--gold);border-radius:12px;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#tro .th2{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+#tro .tt2{font-weight:700;font-size:14px;color:var(--gold)}
+#tro .tsum{font-size:11.5px;color:var(--acc);font-weight:700;font-variant-numeric:tabular-nums}
+#tro .th2 button{background:#0c111b;border:1px solid var(--line);border-radius:7px;
+  padding:6px 12px;font-size:11.5px;font-weight:600}
+#tro #troReset{margin-left:auto;border-color:#3a2630;color:var(--dim)}
+#tro #troReset:hover{border-color:var(--bad);color:var(--bad)}
+#tro .tnote2{margin:0;padding:10px 16px;font-size:11px;color:var(--dim);line-height:1.6;
+  border-bottom:1px solid var(--line);background:var(--panel2)}
+#troBody{overflow:auto;padding:8px 12px;display:grid;gap:5px}
+.trow{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;
+  background:var(--panel2);border:1px solid var(--line);font-size:11.5px;opacity:.45}
+.trow.on{opacity:1;border-color:rgba(242,193,78,.4)}
+.trow .ti{font-size:15px;width:20px;text-align:center;flex:none}
+.trow .tn{font-weight:700;min-width:7em;flex:none}
+.trow .td{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow .tp{margin-left:auto;font-weight:700;color:var(--acc);font-variant-numeric:tabular-nums;flex:none}
+.trow.on .tp{color:var(--gold)}
+.tbtn.tro b{color:var(--gold)}
 /* 3つまで選べる小さな確認ダイアログ */
 #ask{position:fixed;inset:0;background:rgba(6,9,14,.82);z-index:112;display:none;
   align-items:center;justify-content:center;padding:18px}
@@ -733,6 +759,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <button class="tbtn" id="bFit">全体表示</button>
     <button class="tbtn" id="bTidy">整列</button>
     <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
+    <button class="tbtn" id="bTro">🏆 <b id="troN">0</b></button>
     <button class="tbtn" id="bDash">📊 収支</button>
     <button class="tbtn" id="bStats">📈 記録</button>
     <button class="tbtn" id="bLasso">🧩 まとめる</button>
@@ -914,6 +941,20 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
   </div>
 </div>
 
+<div id="tro">
+  <div class="tbox2">
+    <div class="th2">
+      <div class="tt2">🏆 トロフィー</div>
+      <div class="tsum" id="troSum">0/0</div>
+      <button id="troReset">記録を消す</button>
+      <button id="troClose">閉じる</button>
+    </div>
+    <p class="tnote2">遊びの節目を永久に残します。ひとつにつき「祝福」がつき、重ねて効きます
+      （すべての施設がそのぶん速くなる）。<b>リセットしても消えません。</b></p>
+    <div id="troBody"></div>
+  </div>
+</div>
+
 <div id="ask">
   <div class="abox">
     <div class="at" id="askT"></div>
@@ -996,9 +1037,7 @@ const PSPEED = 380;   // 配線上を素材が流れる速さ px/s
 const PMAX   = 0.7;   // どんなに長い経路でも、渡りきるのにこれ以上はかけない（秒）
 const SENDCD = 0.10;  // 1回送り出すごとの間隔
 const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
-/* 強化コストの伸び（1レベルごと）。13レベルごとに値段が倍になる。
-   効きは逓減するので、後半あり余るゴールドを吸う場所としての役目が大きい */
-const UP_K   = 1.055;
+const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
 
 const ITEMS = {
   sta  :{n:'体力',   i:'⚡', c:'#f2c14e'},
@@ -1354,7 +1393,7 @@ const TYPES = {
           d:'自宅にしまってあるものを工房へ出す。開封所の逆。出すものはひとつ選ぶ'},
   lin   :{n:'入口',      i:'🔌', cost:0, up:0, time:0.1, ins:{}, outs:{}, lin:true, port:true,
           d:'レイヤーの外から届いたものが、ここから出てくる'},
-  lout  :{n:'出口',      i:'🚪', cost:0, up:2400, time:0.1, ins:{}, outs:{}, lout:true, port:true,
+  lout  :{n:'出口',      i:'🚪', cost:0, up:25000, upk:1.55, time:0.1, ins:{}, outs:{}, lout:true, port:true,
           d:'ここに入れたものが、レイヤーの外へ出ていく'},
   layer :{n:'レイヤー',  i:'🧩', cost:0, up:0, time:0.1, ins:{}, outs:{}, layer:true,
           d:'囲んだノードをひとまとめにしたもの。外から見える出口はひとつだけ。'
@@ -1403,7 +1442,7 @@ const eraName  = e => ERAS[Math.max(0,Math.min(ERA_MAX-1, e-1))];
    かけ合わせると「1世代でおよそ2倍」＝世代を x としたときの 2^x の曲線になる。
    第10世代の施設は第1世代の 約19倍速く、⚡は 約0.05倍で動く                 */
 const ERA_SPD = 0.72, ERA_EFF = 0.72, ERA_COST = 3.2, ERA_UP = 4.0;
-const UP_RATE = 0.035;                      // 強化1回の基準＝建設費の3.5%
+const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
 /* その時代の施設が⚡のほかに要るもの */
 const ERA_POW = {2:{wood:1}, 3:{wood:1}, 4:{wood:2},
                  5:{coal:1}, 6:{power:1}, 7:{power:2}, 8:{nfl:1}, 9:{power:3}, 10:{power:6}};
@@ -1711,8 +1750,7 @@ const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',e
 // ❤️体力は指数的に効く（生成も上限も）。だから数字はインフレするが、コストの伸びが上回るので成長は緩やか
 /* レベルによる強化は逓減する。
    レベル50でちょうど次の時代ぶん、レベル250でその次の時代ぶんに追いつく。
-   時代を進めるのは研究、施設そのものを強くするのはゴールドだけ、という住み分け。
-   強化は13レベルごとに値段が倍になる                                  */
+   時代を進めるのは研究、施設そのものを強くするのはゴールドだけ、という住み分け */
 const LV_STEP = 5, LV_BASE = 12.25;
 const lvPow = L => Math.pow(1/ERA_SPD, Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP));
 const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP);  // 何時代ぶんか
@@ -2068,7 +2106,7 @@ function craftTime(n){
   const env = (1 + (n.pol||0) * POL_SLOW) / (n.spd || 1);   // 汚染で遅く、ピンで速く
   if(T.src) return staRate(n) * sp * env / skillMul('sta');
   const base = n.comb ? combCalc(n).time : T.time;
-  return base / lvPow(n.level) / intBoost() * sp * env / skillMul('spd');
+  return base / lvPow(n.level) / intBoost() * sp * env / skillMul('spd') / troMul();
 }
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
@@ -2080,11 +2118,14 @@ const buyCost = t => {
   const base = (c===0 && FIRST[T.line]) ? T.cost * FIRST[T.line] : T.cost;
   return Math.max(1, Math.floor(base * Math.pow(T.pk || PRICE_K, c)));
 };
-const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(UP_K, n.level-1));
+/* 値上がり方は施設ごとに変えられる。
+   貨物口だけは「枠がひとつ増えるたびに桁が変わる」ほど急にしてある */
+const upKof   = n => TYPES[n.type].upk || UP_K;
+const upCost  = n => Math.floor(TYPES[n.type].up * Math.pow(upKof(n), n.level-1));
 /* まとめて強化するときの合計。1回ずつの値段を足し上げる */
 function upCostN(n, k){
-  const T = TYPES[n.type]; let c = 0;
-  for(let i=0;i<k;i++) c += Math.floor(T.up * Math.pow(UP_K, n.level-1+i));
+  const T = TYPES[n.type], q = upKof(n); let c = 0;
+  for(let i=0;i<k;i++) c += Math.floor(T.up * Math.pow(q, n.level-1+i));
   return c;
 }
 const UP_BULK = 10;
@@ -2956,6 +2997,7 @@ function tick(dt,fast){
   }
   if(!S.enemy) spawnEnemy();
   polTick(dt);
+  if(!fast) troTick(dt);
   flowTick(dt, fast);
   rateTick(dt);
   raidTick(dt);
@@ -3750,6 +3792,98 @@ function scrapDrop(id){
   renderBag();
   toast(got ? `解体 → 研究ポイント +${fmt(rp)}` : '解体したが、研究できる対象がない');
 }
+/* ========================= トロフィー =========================
+   遊びの節目を永久に記録する。良い節目も、汚染のような後ろ暗い節目も。
+   ひとつにつき 1〜5% の「祝福」がつき、重ねて効く（すべての施設が速くなる）。
+   リセットしても消えない。消したいときだけ、自分で消す。            */
+const TRO_KEY = 'nodequest.trophy';
+const TROPHY = [
+  // ── 攻撃力 ──
+  {k:'atk1', i:'🗡', n:'はじめの一撃',  d:'攻撃力 1,000 をこえた',        p:1, f:()=>atk()>=1e3},
+  {k:'atk2', i:'⚔️', n:'歴戦',          d:'攻撃力 10万 をこえた',         p:2, f:()=>atk()>=1e5},
+  {k:'atk3', i:'🔥', n:'一騎当千',      d:'攻撃力 1,000万 をこえた',      p:3, f:()=>atk()>=1e7},
+  {k:'atk4', i:'💥', n:'天災',          d:'攻撃力 10億 をこえた',         p:4, f:()=>atk()>=1e9},
+  {k:'atk5', i:'🌟', n:'神話',          d:'攻撃力 1兆 をこえた',          p:5, f:()=>atk()>=1e12},
+  // ── 深さ ──
+  {k:'dep1', i:'🕳', n:'洞窟を抜けて',  d:'ダンジョン 25層 をこえた',      p:1, f:()=>S.best>=25},
+  {k:'dep2', i:'💧', n:'水路の主',      d:'ダンジョン 50層 をこえた',      p:1, f:()=>S.best>=50},
+  {k:'dep3', i:'🏛', n:'遺跡の探索者',  d:'ダンジョン 100層 をこえた',     p:2, f:()=>S.best>=100},
+  {k:'dep4', i:'🌋', n:'溶岩を踏んで',  d:'ダンジョン 175層 をこえた',     p:3, f:()=>S.best>=175},
+  {k:'dep5', i:'❄️', n:'深淵の底',      d:'ダンジョン 275層 をこえた',     p:4, f:()=>S.best>=275},
+  {k:'dep6', i:'✴️', n:'極点到達',      d:'ダンジョン 400層 をこえた',     p:5, f:()=>S.best>=400},
+  // ── 時代 ──
+  {k:'era3', i:'⚒️', n:'鉄を知る',      d:'第3時代を解放した',            p:1, f:()=>(S.era||1)>=3},
+  {k:'era5', i:'🚂', n:'蒸気の轟き',    d:'第5時代を解放した',            p:2, f:()=>(S.era||1)>=5},
+  {k:'era7', i:'💻', n:'電子の世',      d:'第7時代を解放した',            p:3, f:()=>(S.era||1)>=7},
+  {k:'era9', i:'🧬', n:'生命を編む',    d:'第9時代を解放した',            p:4, f:()=>(S.era||1)>=9},
+  {k:'era10',i:'🌌', n:'次元の彼方',    d:'第10時代を解放した',           p:5, f:()=>(S.era||1)>=10},
+  // ── 規模 ──
+  {k:'mat1', i:'🧑‍🌾', n:'ひとり親方',  d:'仲間が 10人 になった',          p:1, f:()=>mateCount()>=10},
+  {k:'mat2', i:'🏢', n:'町工場',        d:'仲間が 50人 になった',          p:2, f:()=>mateCount()>=50},
+  {k:'mat3', i:'🏭', n:'事業所',        d:'仲間が 200人 になった',         p:3, f:()=>mateCount()>=200},
+  {k:'mat4', i:'🏙', n:'大企業',        d:'仲間が 500人 になった',         p:5, f:()=>mateCount()>=500},
+  {k:'nod1', i:'🔩', n:'工房らしく',    d:'施設が 50台 になった',          p:1, f:()=>devNodes()>=50},
+  {k:'nod2', i:'🏗', n:'工業地帯',      d:'施設が 200台 になった',         p:3, f:()=>devNodes()>=200},
+  {k:'nod3', i:'🌐', n:'一大生産網',    d:'施設が 500台 になった',         p:5, f:()=>devNodes()>=500},
+  // ── 汚染（後ろ暗い節目も、記録は記録） ──
+  {k:'pol1', i:'☣️', n:'汚染のはじまり',d:'どこかの施設が 50% 汚れた',     p:1, f:()=>S.nodes.some(n=>(n.pol||0)>=0.5)},
+  {k:'pol2', i:'☠️', n:'汚染の極み',    d:'施設を 100% まで汚した',        p:3, f:()=>S.nodes.some(n=>(n.pol||0)>=0.999)},
+  {k:'pol3', i:'🫙', n:'公害の代償',    d:'汚染塊を 100個 抱えた',         p:2, f:()=>(homeOf().slud||0)>=100},
+  {k:'pol4', i:'🌿', n:'清らかな地',    d:'施設 100台で、どこも汚れていない', p:4,
+   f:()=>devNodes()>=100 && !S.nodes.some(n=>(n.pol||0)>0.01)},
+  // ── 財と知 ──
+  {k:'gld1', i:'💰', n:'小金持ち',      d:'ゴールドを 100万 貯めた',       p:1, f:()=>S.gold>=1e6},
+  {k:'gld2', i:'💎', n:'資産家',        d:'ゴールドを 10億 貯めた',        p:2, f:()=>S.gold>=1e9},
+  {k:'gld3', i:'👑', n:'大富豪',        d:'ゴールドを 1兆 貯めた',         p:4, f:()=>S.gold>=1e12},
+  {k:'rp1',  i:'🔬', n:'研究の道',      d:'研究ポイントを 1億 貯めた',     p:2, f:()=>(S.rp||0)>=1e8},
+  {k:'rp2',  i:'🧿', n:'叡智',          d:'研究ポイントを 1兆 貯めた',     p:4, f:()=>(S.rp||0)>=1e12},
+  // ── 工夫 ──
+  {k:'skl1', i:'✨', n:'才能の芽',      d:'スキルを 6つ 覚えた',           p:2, f:()=>SKILLS.filter(x=>hasSkill(x.k)).length>=6},
+  {k:'skl2', i:'🌠', n:'万能',          d:'スキルを すべて 覚えた',        p:4, f:()=>SKILLS.every(x=>hasSkill(x.k))},
+  {k:'lay1', i:'🧩', n:'区画整理',      d:'区画をつくった',                p:1, f:()=>S.nodes.some(n=>TYPES[n.type].layer)},
+  {k:'lay2', i:'🏙', n:'都市計画',      d:'15台以上の「都市」を育てた',    p:3,
+   f:()=>S.nodes.some(n=>TYPES[n.type].layer && memCount(n)>=15)},
+  {k:'cmb1', i:'🔗', n:'一体化',        d:'複合施設をつくった',            p:2, f:()=>S.nodes.some(n=>n.comb)},
+  {k:'cmb2', i:'⛓', n:'十連鎖',        d:'10段の複合施設をつくった',      p:5,
+   f:()=>S.nodes.some(n=>n.comb && n.comb.length>=9)},
+  {k:'drp1', i:'⛏', n:'掘り出し物',    d:'ダンジョン産の施設を置いた',    p:1, f:()=>S.nodes.some(n=>n.drop)},
+  {k:'eqp1', i:'🎽', n:'名工',          d:'圧縮された装備をつくった',      p:3, f:()=>(S.maxComp||0)>=1},
+];
+const mateCount = () => S.nodes.filter(n=>TYPES[n.type].src && n.type!=='hero').length;
+const devNodes  = () => S.nodes.filter(n=>!TYPES[n.type].port && n.type!=='hero').length;
+let TRO = {};
+function troLoad(){ try{ TRO = JSON.parse(localStorage.getItem(TRO_KEY)||'{}') || {}; }catch(_){ TRO = {}; } }
+function troSave(){ try{ localStorage.setItem(TRO_KEY, JSON.stringify(TRO)); }catch(_){} }
+const troHas = k => !!TRO[k];
+const troSum = () => TROPHY.reduce((a,t)=>a + (TRO[t.k] ? t.p : 0), 0);
+const troMul = () => 1 + troSum()/100;          // すべての施設が、このぶん速くなる
+let troT = 0;
+function troTick(dt){
+  troT += dt; if(troT < 2) return; troT = 0;
+  let got = null;
+  for(const t of TROPHY){
+    if(TRO[t.k]) continue;
+    let ok = false; try{ ok = !!t.f(); }catch(_){}
+    if(!ok) continue;
+    TRO[t.k] = Date.now(); got = t;
+    addLog(`🏆【${t.n}】${t.d}（祝福 +${t.p}%）`, 'b');
+  }
+  if(got){ troSave();
+    toast(`🏆 ${got.i} ${got.n} を獲得（祝福 +${troSum()}%）`);
+    if($('#tro').classList.contains('on')) renderTro(); }
+}
+function renderTro(){
+  const body = $('#troBody'); if(!body) return;
+  const got = TROPHY.filter(t=>troHas(t.k));
+  $('#troSum').textContent = `${got.length}/${TROPHY.length} 個　祝福 +${troSum()}%`;
+  body.innerHTML = TROPHY.map(t=>{
+    const on = troHas(t.k);
+    return `<div class="trow ${on?'on':''}"><span class="ti">${on?t.i:'🔒'}</span>`
+      + `<span class="tn">${on?t.n:'？？？'}</span>`
+      + `<span class="td">${t.d}</span>`
+      + `<span class="tp">+${t.p}%</span></div>`;
+  }).join('');
+}
 /* ========================= ダッシュボード =========================
    何がどれだけ増えて減っているか、スキルは誰が持っていて何が効いているか。
    数字を追いかけなくても、詰まっているところが目で分かるようにする。      */
@@ -3810,6 +3944,7 @@ const EFF_ROWS = () => [
   ['💰 売値',          skillMul('gold') * gearMul('rich')],
   ['💧 汚染への強さ',  skillMul('pure') * gearMul('pure')],
   ['🍀 拾い物',        skillMul('drop')],
+  ['🏆 祝福',          troMul()],
 ];
 /* 骨組みを組む（顔ぶれが変わったときだけ走る） */
 function buildDash(body, R){
@@ -4423,6 +4558,8 @@ function render(){
     hEx.textContent = `💪${fmt(g.str)} 🧠${fmt(g.int)} ❤️${fmt(g.vit)}`
       + (tot>0 ? `　+${tot>=10?Math.round(tot):tot.toFixed(1)}/分` : '');
   }
+  $('#troN').textContent = TROPHY.filter(t=>troHas(t.k)).length;
+  setCls($('#bTro'),'tro', troSum()>0);
   // 複合化が使える時代になったら、ボタンを出す
   const bc = $('#bComb');
   if(bc){ const on = S.nodes.some(canComb); if(bc.hidden === on) bc.hidden = !on; }
@@ -5906,6 +6043,11 @@ function load(){
   if(!raw) return false;
   try{
     const d=migrate(JSON.parse(raw)); if(!d||!Array.isArray(d.nodes)||!d.nodes.length) return false;
+    if(d.tro && typeof d.tro==='object'){        // 引き継ぎコードに乗ってきた記録
+      for(const k in d.tro) if(!TRO[k]) TRO[k]=d.tro[k];
+      troSave();
+    }
+    delete d.tro;
     S=Object.assign(freshState(),d); reindex(); devDirty(); gearDirty(); skillDirty();
     S.skills = S.skills || {};
     if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
@@ -5945,7 +6087,7 @@ function b64dec(c){
    ここに漏れがあると、読み込んだあとに「もう描いた」と誤解して線が消える */
 const saveSkip = (k,v) => (k==='el' || k==='G' || k==='sent' || k.charAt(0)==='_')
                           ? undefined : v;
-const dumpState = () => JSON.stringify(S, saveSkip);
+const dumpState = () => JSON.stringify(Object.assign({}, S, {tro:TRO}), saveSkip);
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
 $('#tClose').onclick=()=>$('#tree').classList.remove('on');
 $('#bStats').onclick=()=>{ renderStats(); $('#stats').classList.add('on'); };
@@ -5955,6 +6097,15 @@ $('#bComb').onclick=()=>setLasso(!(lassoOn && lassoMode==='comb'), 'comb');
 $('#sClose').onclick=()=>$('#stats').classList.remove('on');
 $('#stats').onclick=e=>{ if(e.target===$('#stats')) $('#stats').classList.remove('on'); };
 $('#tree').onclick=e=>{ if(e.target===$('#tree')) $('#tree').classList.remove('on'); };
+$('#bTro').onclick=()=>{ renderTro(); $('#tro').classList.add('on'); };
+$('#troClose').onclick=()=>$('#tro').classList.remove('on');
+$('#tro').onclick=e=>{ if(e.target===$('#tro')) $('#tro').classList.remove('on'); };
+$('#troReset').onclick=()=>ask('トロフィーの記録を消す',
+  `いま ${TROPHY.filter(t=>troHas(t.k)).length}個・祝福 +${troSum()}% です。\n`
+  + 'これは工房をリセットしても残る記録です。消すと、祝福もゼロに戻ります。',
+  [{n:'消す', c:'bad', f:()=>{ TRO={}; troSave(); renderTro();
+      addLog('🏆 トロフィーの記録を消しました','u'); toast('トロフィーを消しました'); }},
+   {n:'やめる'}]);
 $('#bDash').onclick=()=>{ renderDash(); $('#dash').classList.add('on'); };
 $('#dashClose').onclick=()=>$('#dash').classList.remove('on');
 $('#dash').onclick=e=>{ if(e.target===$('#dash')) $('#dash').classList.remove('on'); };
@@ -6114,6 +6265,7 @@ if(DEBUG){
 }
 
 /* ========================= 起動 ========================= */
+troLoad();
 function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
