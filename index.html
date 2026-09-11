@@ -80,6 +80,11 @@ path.flow.on{stroke-width:3;stroke-opacity:1}   /* いま流れている線だ�
 #gw.far path.flow{display:none}        /* 引きの絵では細かい印は出さない */
 path.hit:hover + .wire{stroke-width:6;stroke-opacity:.85}
 circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
+.wadd{pointer-events:all;cursor:pointer}
+.wadd circle{fill:#0b1119;stroke:var(--acc);stroke-width:2}
+.wadd path{stroke:var(--acc);stroke-width:2;stroke-linecap:round;fill:none}
+.wadd:hover circle{fill:var(--acc)} .wadd:hover path{stroke:#08131a}
+path.wire.pick{stroke-opacity:1;stroke-width:4.5}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
 
 /* ---------- ノード ---------- */
@@ -481,6 +486,7 @@ table.dtbl td .dn{color:var(--bad)}
   padding:1px 6px;font-size:10.5px;color:var(--fg);font-variant-numeric:tabular-nums}
 #insp .wgo.i{border-color:#2f4a6b} #insp .wgo.o{border-color:#2f6b60}
 #insp .wnone{font-size:11px;color:var(--dim)}
+#insp .lnote{font-size:10.5px;color:var(--dim);line-height:1.5;margin-top:7px}
 #insp .wsub{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:5px}
 #insp .kvb{margin-top:6px}
 #insp .kb{font-size:11px;color:var(--dim);margin-bottom:3px}
@@ -719,14 +725,15 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="shopList"></div>
     </div>
     <div id="stage">
-      <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><path id="temp"></path><path id="lasso"></path></g></svg>
+      <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><g id="gwH"></g><path id="temp"></path><path id="lasso"></path></g></svg>
       <div id="world"></div>
       <div id="hint">
         <div class="ttl">ⓘ 操作方法</div>
         <div class="body">
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
-        配線を<b>ドラッグ</b>=経路を整理 / <b>クリック</b>=切断 / 中継点を<b>ダブルクリック</b>=直線に戻す<br>
+        配線を<b>タップ</b>=選ぶ（折れ点の足し引き・切断ができます）<br>
+        配線を<b>ドラッグ</b>=その棒を動かす（縦棒は左右・横棒は上下）/ <b>ダブルタップ</b>=まっすぐに戻す<br>
         <button id="tRestart">チュートリアルをやり直す</button>
         </div>
       </div>
@@ -946,7 +953,8 @@ const expNeed  = lv => 1 + Math.floor(Math.max(0, lv) / EXP_STEP);
 applyCurve();
 
 const CAP    = 10;    // バッファの基準値（必要数が大きいノードは自動で広がる）
-const PSPEED = 170;   // 配線上を素材が流れる速さ px/s
+const PSPEED = 380;   // 配線上を素材が流れる速さ px/s
+const PMAX   = 0.7;   // どんなに長い経路でも、渡りきるのにこれ以上はかけない（秒）
 const SENDCD = 0.10;  // 1回送り出すごとの間隔
 const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
 const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
@@ -2103,7 +2111,8 @@ const nodeH  = n => HEAD + rowsOf(n)*ROWH + 26;
 const portY  = i => HEAD + i*ROWH + ROWH/2;
 
 /* ========================= state ========================= */
-let S, idx = new Map(), sel = null, packetCount = 0;
+const PKT_MAX = 420;                 // 同時に走らせる粒の上限
+let S, idx = new Map(), sel = null, selLink = null, packetCount = 0;
 /* id 引きは毎コマ何十回も走るので覚えておく（差し替えられたら引き直す） */
 const _q = new Map();
 const $ = s => {
@@ -2119,7 +2128,8 @@ function setCls(el, name, on){
   if(c[name] === on) return;
   c[name] = on; el.classList.toggle(name, on);
 }
-const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'), gw = $('#gw');
+const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'),
+      gwH = $('#gwH'), gw = $('#gw');
 const SVG = 'http://www.w3.org/2000/svg';
 
 function freshState(){
@@ -2168,24 +2178,34 @@ function portPos(n, item, dir){
 
 // 配線は中継点(waypoint)を1つ持てる → 引っ張って経路を整理できる
 /* ── 配線は直角の折れ線（エクセルのカギ線と同じ考え方）──
-   相手が右にいれば「横→縦→横」の3本。
-   相手が左や真横にいれば、いったん外へ出て回り込む5本。
-   曲がる位置は l.wp が持つ。x が縦棒の左右、y が横棒の上下      */
+   折れ方は l.bend が持つ。[x1, y1, x2, y2, … , xk] の奇数個で、
+   奇数番目が縦棒の左右位置、偶数番目が横棒の上下位置。
+     [x1]           → 横・縦・横 の3本
+     [x1,y1,x2]     → 横・縦・横・縦・横 の5本
+   点を足すと2つずつ増えて、好きなだけ折れ曲がれる                */
 const ELB = 26;                        // ノードの口から、まっすぐ出す長さ
+function defaultBend(P, Q){
+  if(Q.x - P.x >= ELB*2) return [Math.round((P.x + Q.x)/2)];
+  // 相手が左（または近すぎる）。上か下へ逃がしてから回り込む
+  const y = (Math.abs(Q.y - P.y) < 60) ? P.y + 90 : Math.round((P.y + Q.y)/2);
+  return [P.x + ELB, y, Q.x - ELB];
+}
 function linkPts(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
   const P=portPos(a,l.item,'out'), Q=portPos(b,l.item,'in');
-  const w = l.wp || null;
-  if(Q.x - P.x >= ELB*2){                         // 素直に右へ流せる
-    let x = (w && w.x != null) ? w.x : (P.x + Q.x)/2;
-    x = Math.min(Math.max(x, P.x + ELB), Q.x - ELB);
-    return {pts:[P, {x, y:P.y}, {x, y:Q.y}, Q], kind:3, P, Q};
+  const bend = (Array.isArray(l.bend) && l.bend.length && l.bend.length%2===1)
+             ? l.bend : defaultBend(P, Q);
+  const pts = [P];
+  let cy = P.y;
+  for(let i=0;i<bend.length;i+=2){
+    const x = bend[i];
+    pts.push({x, y:cy});                       // 横棒の終わり＝縦棒のはじまり
+    const ny = (i+1 < bend.length) ? bend[i+1] : Q.y;
+    pts.push({x, y:ny});                       // 縦棒の終わり
+    cy = ny;
   }
-  // 相手が左（または近すぎる）。上か下へ逃がしてから回り込む
-  const dy = Q.y - P.y;
-  const def = (Math.abs(dy) < 60) ? P.y + 90 : (P.y + Q.y)/2;
-  const y = (w && w.y != null) ? w.y : def;
-  return {pts:[P, {x:P.x+ELB, y:P.y}, {x:P.x+ELB, y}, {x:Q.x-ELB, y}, {x:Q.x-ELB, y:Q.y}, Q], kind:5, P, Q};
+  pts.push(Q);
+  return {pts, P, Q};
 }
 function linkGeom(l){
   const r = linkPts(l); if(!r) return null;
@@ -2196,17 +2216,84 @@ function linkGeom(l){
     lens.push(v); total += v;
   }
   const d = 'M' + pts.map(p=>`${Math.round(p.x)} ${Math.round(p.y)}`).join('L');
-  return {pts, lens, total:Math.max(1,total), d, kind:r.kind};
+  return {pts, lens, total:Math.max(1,total), d};
+}
+/* いま実際に使っている折れ方（未設定なら既定のもの）を配列で返す */
+function bendOf(l){
+  const a=N(l.from), b=N(l.to); if(!a||!b) return [];
+  if(Array.isArray(l.bend) && l.bend.length && l.bend.length%2===1) return l.bend;
+  return defaultBend(portPos(a,l.item,'out'), portPos(b,l.item,'in'));
+}
+/* 動かせる棒＝端の2本をのぞいた、まん中の棒たち。
+   棒 j は bend[j-1] が決めている。奇数番なら縦（左右へ）、偶数番なら横（上下へ）*/
+function segsOf(G){
+  const o = [];
+  for(let j=1;j<=G.pts.length-3;j++){
+    const a=G.pts[j], b=G.pts[j+1];
+    o.push({j, bi:j-1, vert:(j%2===1), mid:{x:(a.x+b.x)/2, y:(a.y+b.y)/2},
+            len:Math.hypot(b.x-a.x, b.y-a.y)});
+  }
+  return o;
 }
 /* 曲線は端点が動いたときだけ引き直す。
    毎コマ作り直すと、線の数がそのまま重さになる                      */
 function geomOf(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
   // 位置だけでなく「口の顔ぶれ」も見る。口が増減すると端点の高さが変わる
-  const gk = a.x+','+a.y+','+b.x+','+b.y+','+(l.wp?l.wp.x+'_'+l.wp.y:'-')
+  const gk = a.x+','+a.y+','+b.x+','+b.y+','+(l.bend?l.bend.join('_'):'-')
            + '|' + (a.el&&a.el.sig||'') + '|' + (b.el&&b.el.sig||'');
   if(l._gk !== gk || !l.G){ l._gk = gk; l.G = linkGeom(l); }
   return l.G;
+}
+/* 折れ点を足す。端の棒の真ん中で2つぶん（縦＋横）増やす */
+function addBend(id, at){
+  const l = S.links.find(x=>x.id===id); if(!l) return;
+  const G = geomOf(l); if(!G) return;
+  const bend = bendOf(l).slice();
+  if(bend.length >= 11) return toast('折れ点はここまでです');
+  if(at === 'head'){
+    const a=G.pts[0], b=G.pts[1];
+    bend.unshift(Math.round((a.x+b.x)/2/10)*10, Math.round(a.y/10)*10);
+  }else{
+    const a=G.pts[G.pts.length-2], b=G.pts[G.pts.length-1];
+    bend.push(Math.round(b.y/10)*10, Math.round((a.x+b.x)/2/10)*10);
+  }
+  l.bend = bend; renderHandles(); renderInsp();
+  toast('折れ点を足しました（丸を掴んで動かせます）');
+}
+/* 折れ点を減らす。いちばん最後の2つぶんを取る */
+function delBend(id){
+  const l = S.links.find(x=>x.id===id); if(!l) return;
+  const bend = bendOf(l).slice();
+  if(bend.length <= 1){ l.bend = null; renderHandles(); renderInsp();
+    return toast('これ以上は減らせません（まっすぐに戻しました）'); }
+  bend.length -= 2;
+  l.bend = bend; renderHandles(); renderInsp();
+  toast('折れ点を減らしました');
+}
+/* 選んだ線の取っ手。棒の中点に丸、端の2本には「＋」を出す。
+   丸をドラッグ＝その棒を動かす／＋を押す＝そこに折れ点を足す        */
+function renderHandles(){
+  const l = selLink ? S.links.find(x=>x.id===selLink) : null;
+  if(!l || l.el.hidden){ if(gwH.childNodes.length) gwH.innerHTML=''; gwH._k=''; return; }
+  const G = geomOf(l); if(!G){ gwH.innerHTML=''; gwH._k=''; return; }
+  const segs = segsOf(G);
+  const k = selLink + '|' + G.d;
+  if(gwH._k === k) return;                       // 形が変わっていなければ触らない
+  gwH._k = k;
+  const c = ITEMS[l.item].c;
+  let h = '';
+  for(const g of segs) h += `<circle class="wph" r="7" cx="${g.mid.x}" cy="${g.mid.y}"`
+    + ` stroke="${c}" data-link="${l.id}" data-seg="${g.j}"></circle>`;
+  // 端の2本（口から出るところ／口へ入るところ）には、折れ点を足す「＋」
+  for(const j of [0, G.pts.length-2]){
+    const a=G.pts[j], b=G.pts[j+1];
+    if(Math.hypot(b.x-a.x, b.y-a.y) < 26) continue;
+    h += `<g class="wadd" data-link="${l.id}" data-at="${j===0?'head':'tail'}"`
+      + ` transform="translate(${(a.x+b.x)/2},${(a.y+b.y)/2})">`
+      + `<circle r="8"></circle><path d="M-4 0H4M0 -4V4"></path></g>`;
+  }
+  gwH.innerHTML = h;
 }
 /* 曲線の真ん中に置く、進む向きの「>」。端点が動いたときだけ作り直す */
 function arrowD(G){
@@ -2235,13 +2322,7 @@ function geomPt(G,t){
   }
   return G.pts[G.pts.length-1];
 }
-/* 掴んで動かせる棒。3本なら真ん中の縦棒（左右に動く）、
-   5本なら真ん中の横棒（上下に動く）。その中点に取っ手を出す        */
-function grabSeg(G){
-  const i = G.kind === 3 ? 1 : 2;
-  const a = G.pts[i], b = G.pts[i+1];
-  return {i, a, b, mid:{x:(a.x+b.x)/2, y:(a.y+b.y)/2}, vert: G.kind === 3};
-}
+
 
 /* ========================= DOM ========================= */
 /* 何でも受け取るものは、素材ごとの口を作らない */
@@ -2359,13 +2440,12 @@ function mkLinkEl(l){
   const hit =document.createElementNS(SVG,'path');  hit.setAttribute('class','hit');
   const wire=document.createElementNS(SVG,'path');  wire.setAttribute('class','wire');
   const flow=document.createElementNS(SVG,'path');  flow.setAttribute('class','flow');
-  const wph =document.createElementNS(SVG,'circle');wph.setAttribute('class','wph');
+
   wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','.32');
   flow.setAttribute('stroke',c); flow.setAttribute('stroke-opacity','.9');
-  wph.setAttribute('r',6); wph.setAttribute('stroke',c); wph.style.display='none';
-  hit.dataset.link=l.id; wph.dataset.wp=l.id;
-  gwL.append(hit,wire,flow,wph);
-  l.el={hit,wire,flow,wph};
+  hit.dataset.link=l.id;
+  gwL.append(hit,wire,flow);
+  l.el={hit,wire,flow};
   l._gk = null; l._dk = null; l.G = null;   // 作り直したら必ず引き直す
 }
 function mkPacketEl(p){
@@ -2438,7 +2518,8 @@ function removeLink(id){
   const i=S.links.findIndex(l=>l.id===id); if(i<0) return;
   linkVer++;
   const l=S.links[i]; while(l.packets.length) delPacket(l,0);
-  l.el.hit.remove(); l.el.wire.remove(); l.el.flow.remove(); l.el.wph.remove();
+  l.el.hit.remove(); l.el.wire.remove(); l.el.flow.remove();
+  if(selLink === l.id){ selLink = null; renderHandles(); }
   S.links.splice(i,1);
   // 送る線が無くなったら、空いている枠は手放す
   const to = N(l.to);
@@ -2682,7 +2763,7 @@ function tick(dt,fast){
             n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
             // レイヤーの口は「素通し」。粒を走らせると、まとめただけで
             // 一段ぶん遅くなってしまうので、口から先はその場で届ける
-            if(fast||big||packetCount>280) dst.inBuf[item]=(dst.inBuf[item]||0)+q;
+            if(fast||big||packetCount>PKT_MAX) dst.inBuf[item]=(dst.inBuf[item]||0)+q;
             else { const p={item,t:0,q}; mkPacketEl(p); l.packets.push(p); }
             sent=true; break;
           }
@@ -2699,7 +2780,9 @@ function tick(dt,fast){
     const G=geomOf(l); if(!G) continue;
     for(let i=l.packets.length-1;i>=0;i--){
       const p=l.packets[i];
-      p.t+=dt*PSPEED/G.total;
+      // 直角に曲がると経路が長くなる。速さを固定したままだと粒が這うので、
+      // 「長いほど速く」して、渡りきる時間が延びすぎないようにする
+      p.t += dt * Math.max(PSPEED / G.total, 1 / PMAX);
       if(p.t>=1){ b.inBuf[p.item]=(b.inBuf[p.item]||0)+(p.q||1); delPacket(l,i); }
     }
   }
@@ -3998,7 +4081,7 @@ function render(){
     if(l.el.hidden !== hid){
       l.el.hidden = hid;
       for(const k of ['hit','wire','flow']) l.el[k].style.display = hid ? 'none' : '';
-      if(hid) l.el.wph.style.display='none';
+
     }
     if(hid) continue;
     // 端点が動いていなければ、曲線を引き直す必要はない。
@@ -4010,24 +4093,21 @@ function render(){
       l._dk = l._gk; l.el.drawn = true;
       l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d);
       l.el.flow.setAttribute('d',arrowD(G));
-      const g = grabSeg(G);
-      l.el.wph.setAttribute('cx',g.mid.x); l.el.wph.setAttribute('cy',g.mid.y);
     }
     const off = !!F && l.from!==sel && l.to!==sel;
-    setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off); setCls(l.el.wph,'dim',off);
+    setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off);
+    setCls(l.el.wire,'pick', selLink===l.id);
     // 流れている線は向きの印を濃くする（点滅させずに、動いていることを見せる）
     if(slow){
       const r = (a.rate && a.rate[l.item]) || 0;
       setCls(l.el.flow, 'on', l.packets.length > 0 || r > 0.05);
-      // 曲がりの取っ手は、ノードを選んでいるあいだだけ出す
-      const show = !!F && !off;
-      if(l.el.wpOn !== show){ l.el.wpOn = show; l.el.wph.style.display = show ? '' : 'none'; }
     }
     if(!l.packets.length) continue;
     // 画面の外を流れている粒は、動かして見せる相手がいない
     if(!inRect(a,R) && !inRect(b,R)) continue;
     for(const p of l.packets){ if(!p.el) continue; const q=geomPt(G,p.t); p.el.setAttribute('cx',q.x); p.el.setAttribute('cy',q.y); }
   }
+  if(selLink!==null) renderHandles();
   // ── ここから下はパネルの数字。毎コマ書き換えても目には追えないので
   //    5コマに1回（およそ12回/秒）にまとめる。盤面の動きはそのまま60コマ ──
   if(!slow) return;
@@ -4434,9 +4514,40 @@ function renameNode(n){
   toast(`${n.pname} と名づけた`);
 }
 let inspMore = false;                       // 詳しい行を開いているか
+/* 線を選んでいるときのパネル。折れ点の足し引きと、切断はここから */
+function renderLinkInsp(){
+  const box=$('#insp');
+  const l = S.links.find(x=>x.id===selLink);
+  if(!l){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
+  const a=N(l.from), b=N(l.to);
+  if(!a||!b){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
+  const bend = bendOf(l), n = (bend.length-1)/2 + 1;
+  box.innerHTML =
+    `<div class="t"><span class="ic2">${ITEMS[l.item].i}</span>`
+    + `<span class="nm2">${ITEMS[l.item].n}の配線</span></div>`
+    + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
+    + `<div class="kv">流れ<b>${fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
+    + `<div class="kv">折れ点<b>${n}か所</b></div>`
+    + `<div class="lnote">丸を掴むと棒が動きます（縦棒は左右・横棒は上下）。`
+    + `線の端の「＋」でも折れ点を足せます</div>`
+    + `<div class="btns"><button class="badd">＋ 折れ点</button>`
+    + `<button class="bdel">− 折れ点</button>`
+    + `<button class="bstr">まっすぐ</button></div>`
+    + `<div class="btns"><button class="del">配線を切る</button></div>`;
+  box.classList.add('on');
+  box.querySelector('.badd').onclick=()=>addBend(l.id,'tail');
+  box.querySelector('.bdel').onclick=()=>delBend(l.id);
+  box.querySelector('.bstr').onclick=()=>{ l.bend=null; renderHandles(); renderInsp();
+    toast('配線をまっすぐに戻しました'); };
+  box.querySelector('.del').onclick=()=>{ removeLink(l.id); selLink=null;
+    renderHandles(); renderInsp(); toast('配線を切断しました'); };
+  return true;
+}
 function renderInsp(){
   const box=$('#insp'), n=sel?N(sel):null;
+  if(!n && selLink!==null) return void renderLinkInsp();
   if(!n){ box.classList.remove('on'); box.innerHTML=''; return; }
+  if(selLink!==null){ selLink=null; renderHandles(); }
   const T=TYPES[n.type], isLab=T.effect==='lab', tr=tierOf(n);
   const selLabel = T.loot ? '狙う戦利品'
     : ({ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',equip:'作る装備の素',
@@ -4950,9 +5061,15 @@ stage.addEventListener('pointerdown', e=>{
     try{stage.setPointerCapture(e.pointerId)}catch(_){}
     return;                               // 動かせば盤面が動く。動かさず離したらそこに置く
   }
+  const wadd=e.target.closest('.wadd');
+  if(wadd){                                       // ＋：そこに折れ点を足す
+    addBend(+wadd.dataset.link, wadd.dataset.at);
+    return;
+  }
   const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
-  if(wph||hit){                                   // 配線を掴む：動かせば整理、動かさなければ切断
-    drag={mode:'wire', id:+(wph?wph.dataset.wp:hit.dataset.link), sx:e.clientX, sy:e.clientY, moved:0, handle:!!wph};
+  if(wph||hit){                                   // 配線を掴む：動かせば整理、動かさなければ選ぶ
+    drag={mode:'wire', id:+(wph?wph.dataset.link:hit.dataset.link), sx:e.clientX, sy:e.clientY,
+          moved:0, handle:!!wph, seg: wph ? +wph.dataset.seg : null};
     try{stage.setPointerCapture(e.pointerId)}catch(_){}
     return;
   }
@@ -4983,7 +5100,7 @@ stage.addEventListener('pointerdown', e=>{
   }else{
     drag={mode:'pan', sx:e.clientX, sy:e.clientY, vx:S.view.x, vy:S.view.y};
     stage.classList.add('panning');
-    if(sel!==null){ sel=null; renderInsp(); }
+    if(sel!==null || selLink!==null){ sel=null; selLink=null; renderHandles(); renderInsp(); }
   }
   try{stage.setPointerCapture(e.pointerId)}catch(_){}
 });
@@ -5021,11 +5138,15 @@ function dragTo(cx, cy){
     if(drag.handle||drag.moved>5){
       const w=toWorld(cx,cy);
       const G=geomOf(l); if(!G) return;
-      // 縦棒は左右へ、横棒は上下へ。掴んだ向きだけを動かす
-      const vert = grabSeg(G).vert;
-      const wp = l.wp = l.wp || {};
-      if(vert) wp.x = Math.round(w.x/10)*10;
-      else     wp.y = Math.round(w.y/10)*10;
+      const segs = segsOf(G); if(!segs.length) return;
+      // 掴んだ棒（指定が無ければ指にいちばん近い棒）を、その向きに動かす
+      let g = drag.seg!=null ? segs.find(x=>x.j===drag.seg) : null;
+      if(!g){ let best=1e18; for(const x of segs){
+                const d=Math.hypot(x.mid.x-w.x, x.mid.y-w.y); if(d<best){best=d; g=x;} } }
+      if(!g) return;
+      drag.seg = g.j;
+      const bend = l.bend = bendOf(l).slice();
+      bend[g.bi] = Math.round((g.vert ? w.x : w.y)/10)*10;
     }
   }else if(drag.mode==='lasso'){
     const w=toWorld(cx,cy), last=drag.pts[drag.pts.length-1];
@@ -5149,7 +5270,11 @@ stage.addEventListener('pointerup', e=>{
     $('#temp').setAttribute('d','');
     clearTargets();
   }else if(drag.mode==='wire'){
-    if(!drag.handle&&drag.moved<5){ removeLink(drag.id); toast('配線を切断しました'); }
+    if(!drag.handle && drag.moved<5){            // 動かさずに離したら、その線を選ぶ
+      selLink = (selLink===drag.id) ? null : drag.id;
+      if(selLink!==null && sel!==null){ sel=null; }
+      renderHandles(); renderInsp();
+    }
   }else if(drag.mode==='lasso'){
     const pts=drag.pts; $('#lasso').style.display='none'; $('#lasso').setAttribute('d','');
     if(pts.length > 4){
@@ -5177,9 +5302,10 @@ stage.addEventListener('dblclick', e=>{
   if(e.target.closest(OVERLAY_SEL)) return;
   const nd=e.target.closest('.node');
   if(nd){ const n=N(+nd.dataset.id); if(n && isLayer(n)){ enterLayer(n); return; } }
-  const wph=e.target.closest('circle.wph'); if(!wph) return;
-  const l=S.links.find(x=>x.id===+wph.dataset.wp);
-  if(l){ l.wp=null; toast('配線をまっすぐに戻しました'); }
+  const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
+  if(!wph && !hit) return;
+  const l=S.links.find(x=>x.id===+(wph?wph.dataset.link:hit.dataset.link));
+  if(l){ l.bend=null; renderHandles(); toast('配線をまっすぐに戻しました'); }
 });
 stage.addEventListener('wheel', e=>{
   if(e.target.closest(OVERLAY_SEL)) return;   // パネル内はスクロールさせる
@@ -5194,7 +5320,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=14;
+const SAVE_V=15;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -5355,6 +5481,14 @@ function migrate(d){
     for(const n of ns) if(!n.no) n.no = ++i;
     d.nextNo = Math.max(i, ...(d.nodes||[]).map(n=>n.no||0), 0);
     d.v = 14;
+  }
+  if(d.v < 15){
+    // 配線を直角の折れ線にした。曲線のころの中継点は折れ点1つに読み替える
+    for(const l of d.links||[]){
+      if(l.wp && l.wp.x != null) l.bend = [Math.round(l.wp.x/10)*10];
+      delete l.wp;
+    }
+    d.v = 15;
   }
   d.v = SAVE_V;
   return d;
