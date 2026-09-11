@@ -501,6 +501,8 @@ table.dtbl td .dn{color:var(--bad)}
 #insp .wgo.i{border-color:#2f4a6b} #insp .wgo.o{border-color:#2f6b60}
 #insp .wnone{font-size:11px;color:var(--dim)}
 #insp .lnote{font-size:10.5px;color:var(--dim);line-height:1.5;margin-top:7px}
+#insp .exits{display:grid;gap:4px;margin-top:4px}
+#insp .exits select{width:100%}
 #insp .wsub{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:5px}
 #insp .kvb{margin-top:6px}
 #insp .kb{font-size:11px;color:var(--dim);margin-bottom:3px}
@@ -1350,7 +1352,7 @@ const TYPES = {
           d:'自宅にしまってあるものを工房へ出す。開封所の逆。出すものはひとつ選ぶ'},
   lin   :{n:'入口',      i:'🔌', cost:0, up:0, time:0.1, ins:{}, outs:{}, lin:true, port:true,
           d:'レイヤーの外から届いたものが、ここから出てくる'},
-  lout  :{n:'出口',      i:'🚪', cost:0, up:0, time:0.1, ins:{}, outs:{}, lout:true, port:true,
+  lout  :{n:'出口',      i:'🚪', cost:0, up:2400, time:0.1, ins:{}, outs:{}, lout:true, port:true,
           d:'ここに入れたものが、レイヤーの外へ出ていく'},
   layer :{n:'レイヤー',  i:'🧩', cost:0, up:0, time:0.1, ins:{}, outs:{}, layer:true,
           d:'囲んだノードをひとまとめにしたもの。外から見える出口はひとつだけ。'
@@ -1552,31 +1554,37 @@ function combCalc(n){
                       pol:n.pol, spd:n.spd});
   const A = st.map(c=>{ const v=shim(c);
     return {ins:insOf(v), outs:outsOf(v), t:TYPES[c.type].time}; });
-  // 段と段のあいだで受け渡す素材と、前の段が何回まわるか
-  const inner = [];                       // inner[i] = 段iの出を段i+1が使う素材
-  const mul = A.map(()=>1);
-  for(let i=A.length-1;i>0;i--){
-    let k = null;
-    for(const x in A[i].ins) if(A[i-1].outs[x] && !isByp(x) && x!=='sta'){ k = x; break; }
-    inner[i-1] = k;
-    mul[i-1] = mul[i] * (k ? A[i].ins[k] / Math.max(1e-9, A[i-1].outs[k]) : 1);
+  /* 最後の段から1回ぶんをさかのぼる。
+     「まだ足りていないもの(need)」を前の段が作れるだけ作り、
+     作りきれなかったぶんだけを外から入れてもらう。
+     前の段の出が余ったら、それは外へ出す                              */
+  const need = {}, sur = {}, mul = A.map(()=>1);
+  const last = A[A.length-1];
+  for(const k in last.ins)  need[k] = (need[k]||0) + last.ins[k];
+  for(const k in last.outs) sur[k]  = (sur[k]||0)  + last.outs[k];
+  for(let i=A.length-2;i>=0;i--){
+    let m = 0;
+    for(const k in A[i].outs){
+      if(isByp(k) || k==='sta') continue;
+      if((need[k]||0) > 0) m = Math.max(m, need[k] / A[i].outs[k]);
+    }
+    if(m <= 0) m = 1;                       // 誰も要らない段でも、1回ぶんは動く
+    mul[i] = m;
+    for(const k in A[i].outs){
+      const made = A[i].outs[k] * m;
+      const use  = Math.min(made, need[k] || 0);
+      if(use > 0) need[k] -= use;
+      if(made - use > 0) sur[k] = (sur[k]||0) + (made - use);
+    }
+    for(const k in A[i].ins) need[k] = (need[k]||0) + A[i].ins[k] * m;
   }
   const ins = {}, outs = {};
-  for(let i=0;i<A.length;i++){
-    for(const x in A[i].ins){
-      if(i>0 && inner[i-1] === x) continue;            // 中で受け渡すものは要らない
-      ins[x] = (ins[x]||0) + A[i].ins[x] * mul[i];
-    }
-    for(const x in A[i].outs){
-      if(inner[i] === x) continue;                     // 中で使い切るものは出さない
-      outs[x] = (outs[x]||0) + A[i].outs[x] * mul[i];
-    }
-  }
-  for(const x in ins) ins[x] = Math.max(1, Math.round(ins[x] * (x==='sta' ? COMB_STA : 1)));
-  for(const x in outs) outs[x] = Math.max(1, Math.round(outs[x]));
+  for(const k in need) if(need[k] > 1e-9)
+    ins[k] = Math.max(1, Math.round(need[k] * (k==='sta' ? COMB_STA : 1)));
+  for(const k in sur) if(sur[k] > 1e-9) outs[k] = Math.max(1, Math.round(sur[k]));
   let t = 0; for(let i=0;i<A.length;i++) t = Math.max(t, A[i].t * mul[i]);
   n._cbk = key;
-  return n._cb = {ins, outs, time: t * COMB_T, stages: st};
+  return n._cb = {ins, outs, time: t * COMB_T, stages: st, mul};
 }
 /* まとめられる並びか調べる。線でひとつながりになっている必要がある */
 function combChain(ids){
@@ -1755,7 +1763,8 @@ function insOf(n){
   if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
     return n.item ? modIns(n, {[n.item]:4}) : {};
   }
-  if(T.lout){ const L=N(n.layer); return (L && L.out) ? {[L.out]:1} : {}; }
+  if(T.lout){ const L=N(n.layer); if(!L) return {};
+    const o={}; for(const k of layerOutList(L)) o[k]=1; return o; }
   if(T.lin)  return {};
   if(T.layer) return layerNeeds(n);
   if(T.chain==='hout'){                        // 自宅から1つ取り出す（⚡だけ要る）
@@ -1874,7 +1883,7 @@ function outsOf(n){
   }
   if(T.lin){ const L=N(n.layer); return L ? layerNeeds(L) : {}; }
   if(T.lout) return {};
-  if(T.layer) return n.out ? {[n.out]:1} : {};
+  if(T.layer){ const o={}; for(const k of layerOutList(n)) o[k]=1; return o; }
   if(T.stat){                                   // 訓練：強化すると1回の経験が増える
     const y = trainYield(n), ex = {[EXP_OF[T.stat]]: y};
     if(hasPerk(T,'cross'))                      // 複合：ほかの経験値も少しだけ出る
@@ -2641,8 +2650,9 @@ function canAutoSet(b, item){
   if(S.links.some(l => l.to===b.id && !POW_ITEM[l.item])) return false;   // もう使っている
   return (chainOpts(b.type)||[]).includes(item);
 }
-const canSetExit = (b, item) => TYPES[b.type].lout && !POW_ITEM[item]
-  && (N(b.layer)||{}).out !== item;
+const canSetExit = (b, item) => { if(!TYPES[b.type].lout || POW_ITEM[item]) return false;
+  const L = N(b.layer); if(!L) return false;
+  return !isLayerOut(L, item) && layerOutList(L).length < loutSlots(L); };
 function canLink(a,item,b){
   if(!a||!b||a.id===b.id) return false;
   if(!outsOf(a)[item]) return false;
@@ -2730,7 +2740,7 @@ function spaceIn(n,item){
     return Math.max(0, sp);
   }
   // 出口は中から詰まらせないよう、いくらでも受ける
-  if(T.lout){ const L=N(n.layer); return (L && L.out === item) ? 1e12 : 0; }
+  if(T.lout){ const L=N(n.layer); return (L && isLayerOut(L, item)) ? 1e12 : 0; }
   if(T.lin) return 0;
   if(T.store){                                      // 貯蔵：種類の上限と1種あたりの量で決まる
     const held = n.inBuf[item]||0;
@@ -3084,10 +3094,25 @@ function renderBoard(){
   if(L) bar.innerHTML = `<button id="bUp">↩ 外へ</button>`
     + `<span class="bpath">🧩 ${layerName(L)} の中</span>`
     + `<span class="bsub">入口 ${Object.keys(layerNeeds(L)).map(k=>ITEMS[k].i).join('')||'なし'}`
-    + `　出口 ${L.out?ITEMS[L.out].i+ITEMS[L.out].n:'なし'}</span>`;
+    + `　出口 ${layerOutList(L).map(k=>ITEMS[k].i+ITEMS[k].n).join('・')||'なし'}`
+    + `（${layerOutList(L).length}/${loutSlots(L)}）</span>`;
   const up = bar.querySelector('#bUp'); if(up) up.onclick=leaveLayer;
 }
 const memOf    = L => memMap().get(L.id) || [];
+/* ── 出口（貨物口）──
+   外へ出せる素材の種類。強化するほど増える。Lv1=1種／Lv5=2種／…／最大6種。
+   レイヤーは L.outs（配列）で持つ。古いデータの L.out も読める        */
+const LOUT_STEP = 4, LOUT_MAX = 6;
+const loutOf   = L => memOf(L).find(m => TYPES[m.type].lout) || null;
+const loutSlots= L => { const p = loutOf(L);
+  return Math.min(LOUT_MAX, 1 + Math.floor(((p ? p.level : 1) - 1) / LOUT_STEP)); };
+function layerOutList(L){
+  if(!Array.isArray(L.outs)) L.outs = L.out ? [L.out] : [];
+  const k = loutSlots(L);
+  if(L.outs.length > k) L.outs = L.outs.slice(0, k);
+  return L.outs;
+}
+const isLayerOut = (L, k) => layerOutList(L).includes(k);
 /* 外から入れてもらう必要があるもの（中で作れないもの） */
 function layerNeeds(L){
   if(L._needs) return L._needs;
@@ -3139,14 +3164,16 @@ function layerFlow(L){
     }
     L.inBuf[k] = q;
   }
-  // 出口ノード → 外（無ければ中のノードから吸い上げる）
-  const k = L.out; if(!k) return;
+  // 出口ノード → 外（無ければ中のノードから吸い上げる）。登録ぶんすべて
+  const ks = layerOutList(L); if(!ks.length) return;
   if(lout){                                            // 出口も素通し
-    const have = lout.inBuf[k]||0;
-    if(have > 0){ lout.inBuf[k] = 0; L.outBuf[k] = (L.outBuf[k]||0) + have; }
+    for(const k of ks){
+      const have = lout.inBuf[k]||0;
+      if(have > 0){ lout.inBuf[k] = 0; L.outBuf[k] = (L.outBuf[k]||0) + have; }
+    }
     return;
   }
-  for(const m of mem){
+  for(const k of ks) for(const m of mem){
     const have = m.outBuf[k]||0; if(have <= 0) continue;
     m.outBuf[k] = 0; L.outBuf[k] = (L.outBuf[k]||0) + have;
   }
@@ -3176,20 +3203,29 @@ function autoWire(L, side){
   const has = (a,k,b) => S.links.some(l => l.from===a.id && l.to===b.id && l.item===k);
   if(side !== 'out') for(const k in layerNeeds(L))
     for(const m of mem) if(allIns(m)[k] && !has(lin,k,m)) addLink(lin.id, k, m.id);
-  if(side !== 'in' && L.out) for(const m of mem)
-    if(outsOf(m)[L.out] && !has(m,L.out,lout)) addLink(m.id, L.out, lout.id);
+  if(side !== 'in') for(const k of layerOutList(L)) for(const m of mem)
+    if(outsOf(m)[k] && !has(m,k,lout)) addLink(m.id, k, lout.id);
 }
-/* 外へ出すものを決める。レイヤー側の口と、中の出口ノードの口を張り替える */
-function setLayerOut(L, k){
-  if(L.out === k) return;
-  for(const l of [...S.links]) if(l.from === L.id) removeLink(l.id);
-  if(L.out) delete L.outBuf[L.out];
-  const lo = memOf(L).find(m => TYPES[m.type].lout);
-  if(lo){
-    for(const l of [...S.links]) if(l.to === lo.id) removeLink(l.id);
-    lo.inBuf = {};
+/* 外へ出すものを、枠ひとつぶん決める。
+   k を渡すとその素材を登録、null なら枠を空ける                      */
+function setLayerOut(L, idx, k){
+  const ks = layerOutList(L).slice();
+  const slots = loutSlots(L);
+  if(typeof idx !== 'number'){ k = idx; idx = ks.length < slots ? ks.length : 0; }
+  if(idx >= slots) return;
+  const old = ks[idx] || null;
+  if(old === (k||null)) return;
+  if(k && ks.includes(k) && ks.indexOf(k) !== idx) return toast('もう登録されています');
+  const lo = loutOf(L);
+  if(old){                                     // 古い登録ぶんの線と在庫を片付ける
+    for(const l of [...S.links]) if(l.from === L.id && l.item === old) removeLink(l.id);
+    if(lo) for(const l of [...S.links]) if(l.to === lo.id && l.item === old) removeLink(l.id);
+    delete L.outBuf[old];
+    if(lo) delete lo.inBuf[old];
   }
-  L.out = k;
+  if(k) ks[idx] = k; else ks.splice(idx, 1);
+  L.outs = ks.filter(Boolean).slice(0, slots);
+  delete L.out;
   if(lo) rebuildNodeEl(lo);
   rebuildNodeEl(L); autoWire(L, 'out'); renderBoard();
 }
@@ -3217,9 +3253,11 @@ function makeLayer(ids){
   }
   const opts = layerOuts(L);
   const picked = [...outItems].sort((a,b)=>outRank(b)-outRank(a));
-  L.out = picked[0] || opts[0] || null;
-  // 出口はひとつだけ。ほかの外向きの線は外す
-  for(const l of [...S.links]) if(l.from === L.id && l.item !== L.out) removeLink(l.id);
+  const slots = loutSlots(L);
+  L.outs = (picked.length ? picked : (opts[0] ? [opts[0]] : [])).slice(0, slots);
+  delete L.out;
+  // 枠に入りきらなかった外向きの線は外す
+  for(const l of [...S.links]) if(l.from === L.id && !L.outs.includes(l.item)) removeLink(l.id);
   // 同じ相手・同じ素材の線が重なったらひとつに畳む
   const seen = new Set();
   for(const l of [...S.links]){
@@ -3233,10 +3271,12 @@ function makeLayer(ids){
   autoWire(L);
   sel = L.id; renderInsp(); renderBoard();
   toast(`${mem.length}個をまとめました（ダブルタップで中を開けます）`);
-  if(outItems.size > 1){
-    const cut = [...outItems].filter(k => k !== L.out).map(k => ITEMS[k].n).join('・');
-    addLog(`【レイヤー】出口は ${ITEMS[L.out].n} ひとつだけ。${cut} の線は外しました`, 'u');
-    toast(`出口は ${ITEMS[L.out].n} だけ。${cut} の線は外れました`);
+  const cutK = [...outItems].filter(k => !L.outs.includes(k));
+  if(cutK.length){
+    const cut = cutK.map(k => ITEMS[k].n).join('・');
+    addLog(`【レイヤー】出口の枠は ${slots} 種まで。${cut} の線は外しました`
+         + `（🚪出口を強化すると増えます）`, 'u');
+    toast(`出口は ${slots}種まで。${cut} の線は外れました`);
   }
   return L;
 }
@@ -4211,16 +4251,18 @@ function render(){
           return stuck.length ? `⚠ ${stuck.map(k=>ITEMS[k].n).join('・')} の行き先がない（中のノードへ配線）`
                               : '外から届いたものがここに出る';
         })()
-      : T.lout ? (()=>{ const L=N(n.layer);
-          return L && L.out ? `ここに入れると外へ出る（${ITEMS[L.out].i}${ITEMS[L.out].n}）`
-                            : '外へ出すものを選んでください'; })()
+      : T.lout ? (()=>{ const L=N(n.layer); if(!L) return '外へ出すものを選んでください';
+          const ks = layerOutList(L);
+          return ks.length ? `ここに入れると外へ出る（${ks.map(k=>ITEMS[k].i+ITEMS[k].n).join('・')}）`
+                           + `／枠 ${ks.length}/${loutSlots(L)}`
+                           : `外へ出すものを選んでください（枠 ${loutSlots(L)}）`; })()
       : T.layer ? (()=>{
-          const lo = memOf(n).find(m=>TYPES[m.type].lout);
-          const wired = lo && S.links.some(l=>l.to===lo.id);
+          const lo = loutOf(n), ks = layerOutList(n);
+          const miss = ks.filter(k => lo && !S.links.some(l=>l.to===lo.id && l.item===k));
           return `${memCount(n)}個をまとめている`
-            + (!n.out ? '／出口なし'
-               : !wired ? `／⚠ ${ITEMS[n.out].n} が🚪出口に繋がっていない`
-               : `／出口 ${ITEMS[n.out].i}${ITEMS[n.out].n}`);
+            + (!ks.length ? '／出口なし'
+               : miss.length ? `／⚠ ${miss.map(k=>ITEMS[k].n).join('・')} が🚪出口に繋がっていない`
+               : `／出口 ${ks.map(k=>ITEMS[k].i+ITEMS[k].n).join('・')}`);
         })()
       : T.chain==='hout' ? (n.item
           ? `🏠${ITEMS[n.item].n}を搬出中（自宅に ${fmt(Math.floor(homeOf()[n.item]||0))}）`
@@ -4777,9 +4819,12 @@ function renderInsp(){
         ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : '') +
     (T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : '') +
     (T.tool  ? `<div class="kv">対象の素材<select class="itm"></select></div>` : '') +
-    (T.lout ? `<div class="kv">外へ出すもの<select class="lexit"></select></div>` : '') +
+    (T.lout ? `<div class="kv">外へ出すもの<b class="lcap"></b></div>`
+            + `<div class="exits"></div>`
+            + `<div class="lnote">強化するほど、いちどに出せる種類が増えます</div>` : '') +
     (T.layer ? `<button class="lopen">🧩 中を開く</button>
-                <div class="kv">出口（ひとつだけ）<select class="lout"></select></div>
+                <div class="kv">外へ出すもの<b class="lcap"></b></div>
+                <div class="exits"></div>
                 <div class="kv">中のノード<b class="lmem"></b></div>
                 <button class="lbreak">🧩 ほどく</button>` : '') +
     (T.store || T.ware ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : '') +
@@ -4873,22 +4918,27 @@ function renderInsp(){
   if(T.ware){
     box.querySelector('.wopen').onclick=()=>{ bagWare=n.id; bagTab='ware'; renderBag(); $('#bag').classList.add('on'); };
   }
-  if(T.lout){
-    const L=N(n.layer);
-    const sl=box.querySelector('.lexit');
-    const opts=L ? layerMade(L) : [];
-    sl.innerHTML=`<option value="">— 出さない —</option>`+
-      opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
-    sl.value=(L&&L.out)||'';
-    sl.onchange=()=>{ if(!L) return; setLayerOut(L, sl.value||null); renderInsp(); };
-  }
+  /* 出口の枠ぶんだけ、選ぶところを並べる */
+  const exitsUI = L => {
+    const w = box.querySelector('.exits'); if(!w || !L) return;
+    const cap = box.querySelector('.lcap');
+    const ks = layerOutList(L), slots = loutSlots(L), opts = layerMade(L);
+    if(cap) cap.textContent = `${ks.length} / ${slots} 種`;
+    w.innerHTML = '';
+    for(let i=0;i<slots;i++){
+      const row=document.createElement('div'); row.className='erow';
+      const sl=document.createElement('select');
+      const use = new Set(ks); use.delete(ks[i]);
+      sl.innerHTML=`<option value="">— 出さない —</option>`+
+        opts.filter(k=>!use.has(k)).map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
+      sl.value = ks[i] || '';
+      sl.onchange=()=>{ setLayerOut(L, i, sl.value||null); renderInsp(); };
+      row.appendChild(sl); w.appendChild(row);
+    }
+  };
+  if(T.lout) exitsUI(N(n.layer));
   if(T.layer){
-    const sl=box.querySelector('.lout');
-    const opts=layerMade(n);
-    sl.innerHTML=`<option value="">— 出さない —</option>`+
-      opts.map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('');
-    sl.value=n.out||'';
-    sl.onchange=()=>{ setLayerOut(n, sl.value||null); renderInsp(); };
+    exitsUI(n);
     box.querySelector('.lmem').textContent =
       memOf(n).filter(m=>!isPort(m)).map(m=>tierOf(m).i).join(' ') || '—';
     box.querySelector('.lbreak').onclick=()=>breakLayer(n);
@@ -5629,7 +5679,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest';
-const SAVE_V=15;
+const SAVE_V=16;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -5798,6 +5848,16 @@ function migrate(d){
       delete l.wp;
     }
     d.v = 15;
+  }
+  if(d.v < 16){
+    // レイヤーの出口を、複数種類を登録できる「貨物口」にした
+    for(const n of d.nodes||[]){
+      const T = TYPES[n.type]; if(!T) continue;
+      if(T.layer && !Array.isArray(n.outs)) n.outs = n.out ? [n.out] : [];
+      if(T.layer) delete n.out;
+      if(T.lout && !n.level) n.level = 1;
+    }
+    d.v = 16;
   }
   d.v = SAVE_V;
   return d;
