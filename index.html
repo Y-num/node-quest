@@ -446,7 +446,10 @@ body.tut #offscr{display:none}
 .dcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .dcard{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
 .dcard .k{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:5px}
-.dcard .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;margin:2px 0 1px}
+.dcard .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;margin:2px 0 1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dcard .io,.dcard .dnet{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dcards{grid-template-columns:repeat(auto-fit,minmax(168px,1fr))}
 .dcard .io{font-size:10.5px;font-variant-numeric:tabular-nums;color:var(--dim)}
 .dcard .io.now{opacity:.75;margin-top:2px}
 .dspan{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -457,7 +460,15 @@ body.tut #offscr{display:none}
 .dcard .io .up{color:var(--acc)} .dcard .io .dn{color:var(--bad)}
 .dnet{font-size:11.5px;font-variant-numeric:tabular-nums;font-weight:700}
 .dnet.up{color:var(--acc)} .dnet.dn{color:var(--bad)} .dnet.flat{color:var(--dim)}
-table.dtbl{width:100%;border-collapse:collapse;font-size:11.5px}
+table.dtbl{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+/* 桁数で列の幅が動かないよう、割り付けを決めておく */
+table.dtbl.t6 col:nth-child(1){width:26%} table.dtbl.t6 col:nth-child(2),
+table.dtbl.t6 col:nth-child(3),table.dtbl.t6 col:nth-child(4),
+table.dtbl.t6 col:nth-child(5),table.dtbl.t6 col:nth-child(6){width:14.8%}
+table.dtbl td{overflow:hidden;text-overflow:ellipsis}
+table.dtbl.t5 td:nth-child(2),table.dtbl.t5 th:nth-child(2),
+table.dtbl.t5 td:nth-child(3),table.dtbl.t5 th:nth-child(3),
+table.dtbl.t5 td:nth-child(4),table.dtbl.t5 th:nth-child(4){text-align:left}
 table.dtbl th{text-align:right;color:var(--dim);font-weight:600;padding:4px 7px;
   border-bottom:1px solid var(--line);font-size:10.5px;white-space:nowrap}
 table.dtbl th:first-child{text-align:left}
@@ -3567,7 +3578,7 @@ const spanName = () => (DASH_SPAN.find(x=>x[0]===dashSpan)||[0,'—'])[1];
 /* 勢いは小さい数もつぶさずに見せる（0.04/分 を「0」と書かない） */
 const fmtR = v => { v = Number(v)||0;
   if(v === 0) return '0';
-  if(Math.abs(v) < 0.01) return '0.01未満';
+  if(Math.abs(v) < 0.01) return '~0';
   if(Math.abs(v) < 10) return (Math.round(v*100)/100).toString();
   return fmt(v); };
 const sign = v => (v>0?'+':v<0?'-':'') + fmtR(Math.abs(v));
@@ -3588,101 +3599,158 @@ function dashCard(icon, name, val, k, unit){
     + `<div class="io now">いま <span class="up">+${fmtR(r.i)}</span>/<span class="dn">-${fmtR(r.o)}</span> 毎分`
     + `　<span class="${netCls(net)}">${sign(net)}</span></div></div>`;
 }
-function renderDash(){
-  const body = $('#dashBody'); if(!body) return;
-  const hero = S.nodes.find(n=>n.type==='hero');
-  const sta  = hero ? (hero.outBuf.sta||0) : 0;
-
-  // ── 1. おおもとの4つ ──
-  let h = `<div class="dsec">ぜんたいの収支（${spanName()}）</div>`
-    + `<div class="dspan">`
-    + DASH_SPAN.map(([v,n])=>`<button data-sp="${v}" class="${v===dashSpan?'on':''}">${n}</button>`).join('')
-    + `<span class="dsn">この起動から ${hmsShort(flowClock)}ぶんを数えています</span></div>`
-    + `<div class="dcards">`
-    + dashCard('💰','ゴールド', S.gold, 'gold')
-    + dashCard('🔬','研究ポイント', gotRp(), 'rp')
-    + dashCard('🧱','研究資材', gotMat(), 'mat')
-    + dashCard('⚡','体力（勇者の手持ち）', sta, 'sta')
-    + `</div>`;
-
-  // ── 2. 素材ごとの出入り。並びは素材の登録順で固定（勢いで入れ替わらない）──
-  const keys = new Set();
-  for(const k in flowTot) if(ITEMS[k] && k!=='sta') keys.add(k);
-  const rows = [...keys].map(k=>{
-    const r = rateOf(k), w = flowWindow(k, dashSpan);
-    return {k, ri:r.i, ro:r.o, rnet:r.i-r.o, wi:w.i, wo:w.o, wnet:w.i-w.o, held:heldOf(k)};
-  }).filter(r => r.wi>0 || r.wo>0 || r.held>0)
-    .sort((a,b)=> itemRank(a.k) - itemRank(b.k));
-  h += `<div class="dsec">素材の出入り（${rows.length}種・${spanName()}）</div>`;
-  h += rows.length ? `<table class="dtbl"><thead><tr>`
-      + `<th>素材</th><th>作った</th><th>使った</th><th>差し引き</th>`
-      + `<th>いま/分</th><th>盤面の在庫</th></tr></thead><tbody>`
-    + rows.map(r=>{
-        // 使っているのに作れていない＝詰まりの元。
-        // 一瞬の揺れで赤くしないよう、期間ぶんの合計で見る
-        const bad = r.wo > 0 && r.wnet < -Math.max(1, r.wo*0.05) && r.held < 1;
-        return `<tr class="${bad?'warn':''}"><td>${ITEMS[r.k].i} ${ITEMS[r.k].n}</td>`
-          + `<td>${fmtR(r.wi)}</td><td>${fmtR(r.wo)}</td>`
-          + `<td class="dnet ${netCls(r.wnet)}">${sign(r.wnet)}</td>`
-          + `<td class="dnet ${netCls(r.rnet)}">${sign(r.rnet)}</td>`
-          + `<td>${fmt(r.held)}</td></tr>`;
-      }).join('') + `</tbody></table>`
-    : `<div class="bempty">まだ動いていません</div>`;
-
-  // ── 3. 施設ごとの収支。並びは通し番号で固定 ──
+/* ── 中身の作り直しは「顔ぶれが変わったとき」だけ。
+   0.5秒ごとに丸ごと書き直すと、桁数で列の幅が動き、
+   スクロールの位置も戻ってしまって落ち着かない                      */
+let dashKey = '';
+function dashRows(){
+  // 行の顔ぶれは増えるだけ（いちど出たものは消えない）にして、並びを固定する
+  const keys = [];
+  for(const k in flowTot) if(ITEMS[k] && k!=='sta'
+    && (flowTot[k].i > 0 || flowTot[k].o > 0)) keys.push(k);
+  keys.sort((a,b)=> itemRank(a) - itemRank(b));
   const ns = S.nodes.filter(n => !TYPES[n.type].port && n._fr && Object.keys(n._fr).length)
                     .sort((a,b)=>(a.no||0)-(b.no||0));
-  h += `<div class="dsec">施設ごとの収支（${ns.length}台・いまの1分あたり）</div>`;
-  h += ns.length ? `<table class="dtbl"><thead><tr>`
-      + `<th>#</th><th>施設</th><th>作っている</th><th>使っている</th><th>状態</th></tr></thead><tbody>`
-    + ns.map(n=>{
-        const fr = n._fr, ks = Object.keys(fr).filter(k=>ITEMS[k])
-          .sort((a,b)=>itemRank(a)-itemRank(b));
-        const made = ks.filter(k=>fr[k].i>0.005).map(k=>`${ITEMS[k].i}${fmtR(fr[k].i)}`).join(' ');
-        const used = ks.filter(k=>fr[k].o>0.005).map(k=>`${ITEMS[k].i}${fmtR(fr[k].o)}`).join(' ');
-        const st = n.stall ? `<span class="dn">止 ${n.why||''}</span>` : '稼働';
-        return `<tr class="${n.stall?'warn':''}"><td>#${n.no||'-'}</td>`
-          + `<td>${tierOf(n).i} ${tierOf(n).n}</td>`
-          + `<td class="up">${made||'—'}</td><td class="dn">${used||'—'}</td>`
-          + `<td>${st}</td></tr>`;
-      }).join('') + `</tbody></table>`
+  const own = SKILLS.filter(x=>hasSkill(x.k));
+  return {keys, ns, own};
+}
+const EFF_ROWS = () => [
+  ['⚔️ 攻撃力',        skillMul('atk')  * gearMul('firm')],
+  ['⚙️ 施設の速さ',    skillMul('spd')  * intBoost()],
+  ['🪶 ⚡の消費',      1/skillMul('cost')],
+  ['❤️ ⚡の生成',      skillMul('sta')  * Math.pow(VIT_K, S.stats.vit)],
+  ['🔎 研究の入り',    skillMul('rp')   * gearMul('arcane')],
+  ['💰 売値',          skillMul('gold') * gearMul('rich')],
+  ['💧 汚染への強さ',  skillMul('pure') * gearMul('pure')],
+  ['🍀 拾い物',        skillMul('drop')],
+];
+/* 骨組みを組む（顔ぶれが変わったときだけ走る） */
+function buildDash(body, R){
+  const card = (icon,name,k) =>
+    `<div class="dcard" data-c="${k}"><div class="k">${icon} ${name}</div>`
+    + `<div class="v">0</div><div class="dnet">—</div>`
+    + `<div class="io"></div><div class="io now"></div></div>`;
+  let h = `<div class="dsec">ぜんたいの収支<b class="dspn"></b></div>`
+    + `<div class="dspan">`
+    + DASH_SPAN.map(([v,n])=>`<button data-sp="${v}">${n}</button>`).join('')
+    + `<span class="dsn"></span></div>`
+    + `<div class="dcards">`
+    + card('💰','ゴールド','gold') + card('🔬','研究ポイント','rp')
+    + card('🧱','研究資材','mat')  + card('⚡','体力（勇者の手持ち）','sta')
+    + `</div>`;
+
+  h += `<div class="dsec">素材の出入り<b class="dsi"></b></div>`;
+  h += R.keys.length ? `<table class="dtbl t6">`
+      + `<colgroup>${'<col>'.repeat(6)}</colgroup><thead><tr>`
+      + `<th>素材</th><th>作った</th><th>使った</th><th>差し引き</th>`
+      + `<th>いま/分</th><th>在庫</th></tr></thead><tbody>`
+    + R.keys.map(k=>`<tr data-k="${k}"><td>${ITEMS[k].i} ${ITEMS[k].n}</td>`
+        + `<td></td><td></td><td class="dnet"></td><td class="dnet"></td><td></td></tr>`).join('')
+    + `</tbody></table>`
     : `<div class="bempty">まだ動いていません</div>`;
 
-  // ── 4. スキル：誰が持っていて、いま何が効いているか ──
-  const own = SKILLS.filter(x=>hasSkill(x.k));
+  h += `<div class="dsec">施設ごとの収支<b class="dsn2"></b></div>`;
+  h += R.ns.length ? `<table class="dtbl t5">`
+      + `<colgroup><col style="width:8%"><col style="width:26%"><col style="width:25%">`
+      + `<col style="width:25%"><col style="width:16%"></colgroup><thead><tr>`
+      + `<th>#</th><th>施設</th><th>作っている</th><th>使っている</th><th>状態</th></tr></thead><tbody>`
+    + R.ns.map(n=>`<tr data-n="${n.id}"><td>#${n.no||'-'}</td>`
+        + `<td>${tierOf(n).i} ${tierOf(n).n}</td>`
+        + `<td class="up"></td><td class="dn"></td><td></td></tr>`).join('')
+    + `</tbody></table>`
+    : `<div class="bempty">まだ動いていません</div>`;
+
   const where = {};
   for(const n of S.nodes) for(const k of skillOf(n)) if(k) where[k] = n;
-  h += `<div class="dsec">スキル（覚えた ${own.length}/${SKILLS.length}・セット中 ${Object.keys(where).length}）</div>`;
-  h += own.length ? `<div class="dwho">` + own.map(x=>{
-      const n = where[x.k];
-      return `<div class="dsk ${n?'':'off'}"><span class="si">${x.i}</span>`
-        + `<span><span class="sn">${x.n}</span> <span class="sd">${x.d}</span></span>`
-        + `<span class="sw">${n ? `${tierOf(n).i} ${tierOf(n).n}` : 'セットされていない'}</span></div>`;
-    }).join('') + `</div>`
+  h += `<div class="dsec">スキル<b class="dsk2"></b></div>`;
+  h += R.own.length ? `<div class="dwho">` + R.own.map(x=>
+      `<div class="dsk" data-s="${x.k}"><span class="si">${x.i}</span>`
+      + `<span><span class="sn">${x.n}</span> <span class="sd">${x.d}</span></span>`
+      + `<span class="sw"></span></div>`).join('') + `</div>`
     : `<div class="bempty">まだスキルを覚えていません（🎒持ち物 → ✨スキル）</div>`;
 
-  // ── 5. いま効いている倍率（スキルと装備をまとめて） ──
-  const EFF = [
-    ['⚔️ 攻撃力',        skillMul('atk')  * gearMul('firm')],
-    ['⚙️ 施設の速さ',    skillMul('spd')  * intBoost()],
-    ['🪶 ⚡の消費',      1/skillMul('cost')],
-    ['❤️ ⚡の生成',      skillMul('sta')  * Math.pow(VIT_K, S.stats.vit)],
-    ['🔎 研究の入り',    skillMul('rp')   * gearMul('arcane')],
-    ['💰 売値',          skillMul('gold') * gearMul('rich')],
-    ['💧 汚染への強さ',  skillMul('pure') * gearMul('pure')],
-    ['🍀 拾い物',        skillMul('drop')],
-  ];
   h += `<div class="dsec">いま効いている倍率（スキル＋装備＋能力値）</div>`
-    + `<div class="dcards">` + EFF.map(([n,v])=>
-        `<div class="dcard"><div class="k">${n}</div>`
-        + `<div class="v">×${v>=100?fmt(v):v.toFixed(2)}</div></div>`).join('')
+    + `<div class="dcards">` + EFF_ROWS().map(([n])=>
+        `<div class="dcard" data-e="${n}"><div class="k">${n}</div>`
+        + `<div class="v">×1.00</div></div>`).join('')
     + `</div>`;
 
   body.innerHTML = h;
   body.querySelectorAll('.dspan button').forEach(b=>
     b.onclick=()=>{ dashSpan = +b.dataset.sp; renderDash(); });
+  // 書き換える場所を覚えておく（毎回さがさない）
+  body._c = {}; body.querySelectorAll('.dcard[data-c]').forEach(e=>{
+    body._c[e.dataset.c] = {v:e.querySelector('.v'), net:e.querySelector('.dnet'),
+                            io:e.querySelector('.io'), now:e.querySelector('.io.now')}; });
+  body._r = {}; body.querySelectorAll('tr[data-k]').forEach(tr=>
+    body._r[tr.dataset.k] = tr);
+  body._n = {}; body.querySelectorAll('tr[data-n]').forEach(tr=>
+    body._n[tr.dataset.n] = tr);
+  body._s = {}; body.querySelectorAll('.dsk[data-s]').forEach(e=>
+    body._s[e.dataset.s] = e);
+  body._e = [...body.querySelectorAll('.dcard[data-e] .v')];
+  body._hd = {spn:body.querySelector('.dspn'), sn:body.querySelector('.dsn'),
+              si:body.querySelector('.dsi'), sn2:body.querySelector('.dsn2'),
+              sk2:body.querySelector('.dsk2')};
 }
+function renderDash(){
+  const body = $('#dashBody'); if(!body) return;
+  const R = dashRows();
+  const key = R.keys.join(',') + '|' + R.ns.map(n=>n.id).join(',') + '|' + R.own.map(x=>x.k).join(',');
+  if(dashKey !== key || !body._c){ dashKey = key; buildDash(body, R); }
 
+  const hero = S.nodes.find(n=>n.type==='hero');
+  const sta  = hero ? (hero.outBuf.sta||0) : 0;
+  const now  = {gold:S.gold, rp:gotRp(), mat:gotMat(), sta};
+  setTxt(body._hd.spn, `（${spanName()}）`);
+  setTxt(body._hd.sn,  `この起動から ${hmsShort(flowClock)}ぶんを数えています`);
+  setTxt(body._hd.si,  `（${R.keys.length}種・${spanName()}）`);
+  setTxt(body._hd.sn2, `（${R.ns.length}台・いまの1分あたり）`);
+  setTxt(body._hd.sk2, `（覚えた ${R.own.length}/${SKILLS.length}）`);
+  body.querySelectorAll('.dspan button').forEach(b=>
+    setCls(b,'on', +b.dataset.sp === dashSpan));
+
+  for(const k in body._c){
+    const c = body._c[k], r = rateOf(k), w = flowWindow(k, dashSpan);
+    const net = r.i - r.o, wnet = w.i - w.o;
+    setTxt(c.v, fmt(now[k]));
+    setTxt(c.net, `${spanName()}で ${sign(wnet)}`);
+    c.net.className = 'dnet ' + netCls(wnet);
+    setTxt(c.io, `+${fmtR(w.i)} / -${fmtR(w.o)}`);
+    setTxt(c.now, `いま +${fmtR(r.i)} / -${fmtR(r.o)}　${sign(net)}/分`);
+  }
+  for(const k in body._r){
+    const tr = body._r[k], td = tr.children;
+    const r = rateOf(k), w = flowWindow(k, dashSpan);
+    const rnet = r.i - r.o, wnet = w.i - w.o, held = heldOf(k);
+    setTxt(td[1], fmtR(w.i)); setTxt(td[2], fmtR(w.o));
+    setTxt(td[3], sign(wnet)); td[3].className = 'dnet ' + netCls(wnet);
+    setTxt(td[4], sign(rnet)); td[4].className = 'dnet ' + netCls(rnet);
+    setTxt(td[5], fmt(held));
+    // 使っているのに作れていない＝詰まりの元。期間ぶんの合計で見る
+    setCls(tr,'warn', w.o > 0 && wnet < -Math.max(1, w.o*0.05) && held < 1);
+  }
+  for(const n of R.ns){
+    const tr = body._n[n.id]; if(!tr) continue;
+    const td = tr.children, fr = n._fr;
+    const ks = Object.keys(fr).filter(k=>ITEMS[k]).sort((a,b)=>itemRank(a)-itemRank(b));
+    setTxt(td[2], ks.filter(k=>fr[k].i>0.005).map(k=>`${ITEMS[k].i}${fmtR(fr[k].i)}`).join(' ') || '—');
+    setTxt(td[3], ks.filter(k=>fr[k].o>0.005).map(k=>`${ITEMS[k].i}${fmtR(fr[k].o)}`).join(' ') || '—');
+    setTxt(td[4], n.stall ? '止 '+(n.why||'') : '稼働');
+    setCls(td[4],'dn', !!n.stall);
+    setCls(tr,'warn', !!n.stall);
+  }
+  const where = {};
+  for(const n of S.nodes) for(const k of skillOf(n)) if(k) where[k] = n;
+  for(const k in body._s){
+    const e = body._s[k], n = where[k];
+    setTxt(e.querySelector('.sw'), n ? `${tierOf(n).i} ${tierOf(n).n}` : 'セットされていない');
+    setCls(e,'off', !n);
+  }
+  EFF_ROWS().forEach(([,v],i)=>{
+    const e = body._e[i]; if(e) setTxt(e, '×' + (v>=100 ? fmt(v) : v.toFixed(2)));
+  });
+}
 /* ========================= 持ち物 =========================
    装備工房で作った装備と、ダンジョンのクリア報酬。どちらも上限なしで貯まる。
    いらないものは売ってゴールドに、または捨てられる。                */
