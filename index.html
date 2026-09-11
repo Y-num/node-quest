@@ -762,7 +762,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         <div class="body">
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
-        <b>🔗複合化</b>=つながる生産施設を2〜4台囲むと、ひとつにまとまります（⚡が3割減）<br>
+        <b>🔗複合化</b>=つながる生産施設を2〜10台囲むと、ひとつにまとまります（⚡が3割減）<br>
         配線を<b>タップ</b>=選ぶ（折れ点の足し引き・切断ができます）<br>
         配線を<b>ドラッグ</b>=その棒を動かす（縦棒は左右・横棒は上下）/ <b>ダブルタップ</b>=まっすぐに戻す<br>
         <button id="tRestart">チュートリアルをやり直す</button>
@@ -996,7 +996,9 @@ const PSPEED = 380;   // 配線上を素材が流れる速さ px/s
 const PMAX   = 0.7;   // どんなに長い経路でも、渡りきるのにこれ以上はかけない（秒）
 const SENDCD = 0.10;  // 1回送り出すごとの間隔
 const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
-const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
+/* 強化コストの伸び（1レベルごと）。13レベルごとに値段が倍になる。
+   効きは逓減するので、後半あり余るゴールドを吸う場所としての役目が大きい */
+const UP_K   = 1.055;
 
 const ITEMS = {
   sta  :{n:'体力',   i:'⚡', c:'#f2c14e'},
@@ -1401,7 +1403,7 @@ const eraName  = e => ERAS[Math.max(0,Math.min(ERA_MAX-1, e-1))];
    かけ合わせると「1世代でおよそ2倍」＝世代を x としたときの 2^x の曲線になる。
    第10世代の施設は第1世代の 約19倍速く、⚡は 約0.05倍で動く                 */
 const ERA_SPD = 0.72, ERA_EFF = 0.72, ERA_COST = 3.2, ERA_UP = 4.0;
-const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
+const UP_RATE = 0.035;                      // 強化1回の基準＝建設費の3.5%
 /* その時代の施設が⚡のほかに要るもの */
 const ERA_POW = {2:{wood:1}, 3:{wood:1}, 4:{wood:2},
                  5:{coal:1}, 6:{power:1}, 7:{power:2}, 8:{nfl:1}, 9:{power:3}, 10:{power:6}};
@@ -1528,7 +1530,7 @@ const FAC = {
    中の受け渡しが無くなるぶん、⚡が減り、並べるより速くなる。
    使えるのは「その施設の時代から2つ先の時代に入ってから」。
    第9・第10の施設だけは、解放されたその時代から使える。            */
-const COMB_MAX  = 4;      // ひとつにまとめられる段の数
+const COMB_MAX  = 10;     // ひとつにまとめられる段の数（つながる限り）
 const COMB_T    = 1.00;   // 速さ：いちばん重い段ぶん（並べたときと同じだけ出る）
 const COMB_STA  = 0.70;   // ⚡：合計 × これ（受け渡しの無駄が消える）
 const COMB_FROM = 9;      // この時代からは、解放されたらすぐ使える
@@ -1585,6 +1587,19 @@ function combCalc(n){
   let t = 0; for(let i=0;i<A.length;i++) t = Math.max(t, A[i].t * mul[i]);
   n._cbk = key;
   return n._cb = {ins, outs, time: t * COMB_T, stages: st, mul};
+}
+/* 段どうしの倍率が跳ね上がる並びは、まとめても使いものにならない。
+   （圧縮を積み重ねると、1回まわすのに前の段が何百万回も必要になる）    */
+const COMB_TMAX = 240;    // 1回にかかる時間の上限（秒・強化前）
+const COMB_MULX = 400;    // ひとつの段が1回あたりにまわる回数の上限
+function combFit(line){
+  const last = line[line.length-1];
+  const tmp = {type:last.type, item:last.item, level:1, inBuf:{}, outBuf:{},
+               items:[], mods:null, id:-1, no:0, layer:last.layer,
+               comb:line.slice(0,-1).map(n=>({type:n.type, item:n.item}))};
+  const c = combCalc(tmp);
+  const mx = Math.max.apply(null, c.mul);
+  return {time:c.time, mul:mx, ok: c.time <= COMB_TMAX && mx <= COMB_MULX};
 }
 /* まとめられる並びか調べる。線でひとつながりになっている必要がある */
 function combChain(ids){
@@ -1696,7 +1711,8 @@ const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',e
 // ❤️体力は指数的に効く（生成も上限も）。だから数字はインフレするが、コストの伸びが上回るので成長は緩やか
 /* レベルによる強化は逓減する。
    レベル50でちょうど次の時代ぶん、レベル250でその次の時代ぶんに追いつく。
-   時代を進めるのは研究、施設そのものを強くするのはゴールドだけ、という住み分け */
+   時代を進めるのは研究、施設そのものを強くするのはゴールドだけ、という住み分け。
+   強化は13レベルごとに値段が倍になる                                  */
 const LV_STEP = 5, LV_BASE = 12.25;
 const lvPow = L => Math.pow(1/ERA_SPD, Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP));
 const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP);  // 何時代ぶんか
@@ -5256,7 +5272,7 @@ function setLasso(v, mode){
   $('#bScrap').classList.toggle('scrapon', v && lassoMode==='del');
   const bc = $('#bComb'); if(bc) bc.classList.toggle('combon', v && lassoMode==='comb');
   if(v) toast(lassoMode==='del'  ? '撤去したいノードをぐるっと囲んでください'
-            : lassoMode==='comb' ? 'ひとつながりの生産施設を2〜4台、囲んでください'
+            : lassoMode==='comb' ? 'ひとつながりの生産施設を2〜10台、囲んでください'
                                  : '囲みたいノードをぐるっとなぞってください');
   else $('#lasso').style.display='none';
 }
@@ -5325,8 +5341,11 @@ function makeComb(ids){
     if(young.length) return toast(
       `${tierOf(young[0]).n}はまだまとめられません（第${(TYPES[young[0].type].era||1)+2}時代から）`);
     if(ns.some(n=>n.drop)) return toast('⛏ダンジョン産は、性能のばらつきが消えてしまうのでまとめられません');
-    return toast('出口と入口がひとつながりになる、2〜4台の生産施設を囲んでください');
+    return toast(`出口と入口がひとつながりになる、2〜${COMB_MAX}台の生産施設を囲んでください`);
   }
+  const fit = combFit(line);
+  if(!fit.ok) return toast(
+    `この並びはまとめられません（1回に ${fmt(fit.time)}秒・前の段が ${fmt(fit.mul)}回まわる計算になります）`);
   const last = line[line.length-1];
   const comb = line.slice(0,-1).map(n=>({type:n.type, item:n.item}));
   // 見た目の確認用に、まとめる前後を数えておく
