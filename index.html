@@ -194,7 +194,10 @@ body.placing #stage::after{content:'';position:absolute;inset:0;pointer-events:n
 body.lasso #stage{cursor:crosshair}
 .tbtn.lassoon{border-color:var(--pw);color:var(--pw);background:rgba(180,135,245,.14)}
 .tbtn.scrapon{border-color:var(--bad);color:var(--bad);background:rgba(224,87,107,.14)}
+.tbtn.combon{border-color:var(--acc);color:var(--acc);background:rgba(94,224,192,.14)}
 #lasso.del{fill:rgba(224,87,107,.14);stroke:var(--bad)}
+#lasso.comb{fill:rgba(94,224,192,.14);stroke:var(--acc)}
+.node.comb{border-color:#3c7f9b;box-shadow:0 0 0 1px rgba(122,200,255,.35),0 8px 22px rgba(0,0,0,.45)}
 .node.port{border-color:var(--acc2);border-style:dashed}
 .node.port .nm{color:var(--acc2)}
 .node.lay{border-color:var(--pw);box-shadow:0 0 0 1px var(--pw),0 0 18px rgba(180,135,245,.25)}
@@ -507,6 +510,19 @@ table.dtbl td .dn{color:var(--bad)}
 #insp .nflow .fnm{overflow:hidden;text-overflow:ellipsis}
 #insp .nflow .fi{color:var(--acc)} #insp .nflow .fo{color:var(--bad)}
 #insp .nflow .fn{font-weight:700;min-width:54px;text-align:right;color:var(--fg)}
+/* 3つまで選べる小さな確認ダイアログ */
+#ask{position:fixed;inset:0;background:rgba(6,9,14,.82);z-index:112;display:none;
+  align-items:center;justify-content:center;padding:18px}
+#ask.on{display:flex}
+#ask .abox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#ask .at{font-weight:700;font-size:13.5px;margin-bottom:7px}
+#ask .ap{margin:0 0 13px;font-size:11.5px;color:var(--dim);line-height:1.7;white-space:pre-wrap}
+#ask .abtns{display:grid;gap:7px}
+#ask .abtns button{background:#0c111b;border:1px solid var(--line);border-radius:8px;
+  padding:9px;font-size:12px;font-weight:600;text-align:center}
+#ask .abtns button.go{border-color:var(--acc);color:var(--acc)}
+#ask .abtns button.bad{border-color:var(--bad);color:var(--bad)}
 #bag{position:fixed;inset:0;background:rgba(6,9,14,.82);z-index:105;display:none;
   align-items:center;justify-content:center;padding:16px}
 #bag.on{display:flex}
@@ -718,6 +734,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <button class="tbtn" id="bDash">📊 収支</button>
     <button class="tbtn" id="bStats">📈 記録</button>
     <button class="tbtn" id="bLasso">🧩 まとめる</button>
+    <button class="tbtn" id="bComb" hidden>🔗 複合化</button>
     <button class="tbtn" id="bScrap">🗑 まとめて撤去</button>
     <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
@@ -743,6 +760,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         <div class="body">
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
+        <b>🔗複合化</b>=つながる生産施設を2〜4台囲むと、ひとつにまとまります（⚡が3割減）<br>
         配線を<b>タップ</b>=選ぶ（折れ点の足し引き・切断ができます）<br>
         配線を<b>ドラッグ</b>=その棒を動かす（縦棒は左右・横棒は上下）/ <b>ダブルタップ</b>=まっすぐに戻す<br>
         <button id="tRestart">チュートリアルをやり直す</button>
@@ -891,6 +909,14 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <span class="dnote">この画面は <code>?debug=1</code> か <code>#debug</code> を付けたときだけ開けます</span>
     </div>
     <div class="dwrap"><table id="dTable"></table></div>
+  </div>
+</div>
+
+<div id="ask">
+  <div class="abox">
+    <div class="at" id="askT"></div>
+    <p class="ap" id="askP"></p>
+    <div class="abtns" id="askB"></div>
   </div>
 </div>
 
@@ -1495,6 +1521,84 @@ const FAC = {
   nfuel: [{e:8,n:'濃縮施設',i:'🟢'}],
 };
 
+/* =========================================================================
+   複合施設：出口と入口がつながる施設を、ひとつの施設にまとめる。
+   中の受け渡しが無くなるぶん、⚡が減り、並べるより速くなる。
+   使えるのは「その施設の時代から2つ先の時代に入ってから」。
+   第9・第10の施設だけは、解放されたその時代から使える。            */
+const COMB_MAX  = 4;      // ひとつにまとめられる段の数
+const COMB_T    = 1.00;   // 速さ：いちばん重い段ぶん（並べたときと同じだけ出る）
+const COMB_STA  = 0.70;   // ⚡：合計 × これ（受け渡しの無駄が消える）
+const COMB_FROM = 9;      // この時代からは、解放されたらすぐ使える
+const combReady = T => (T.era||1) >= COMB_FROM || (S.era||1) >= (T.era||1) + 2;
+/* まとめられる役割（作る系だけ。訓練や探索はまとめない） */
+const COMB_ROLE = {ore:1, ingot:1, part:1, alloy:1, equip:1, anvil:1, comp:1};
+/* ダンジョン産は接辞（性能のばらつき）を持っているので、まとめない。
+   まとめると接辞が消えてしまい、拾った値打ちが失われる              */
+const canComb = n => !!(n && !n.comb && !n.drop && COMB_ROLE[TYPES[n.type].chain]
+                        && !TYPES[n.type].unique && combReady(TYPES[n.type]));
+/* この施設が持っている段（まとめていなければ自分ひとつ） */
+const combStages = n => (n.comb || []).concat([{type:n.type, item:n.item}]);
+const combKey = n => n.comb ? n.comb.map(c=>c.type+':'+c.item).join('>')+'>'+n.type+':'+n.item
+                            : '';
+/* まとめた施設の入り・出・かかる時間をまとめて出す。
+   後ろの段から数えて、前の段が何回まわればよいかを求める            */
+function combCalc(n){
+  const key = combKey(n) + '|' + n.level;
+  if(n._cb && n._cbk === key) return n._cb;
+  const st = combStages(n);
+  const shim = c => ({type:c.type, item:c.item, level:n.level, inBuf:{}, outBuf:{},
+                      items:[], mods:null, sk:null, layer:n.layer, id:n.id, no:n.no,
+                      pol:n.pol, spd:n.spd});
+  const A = st.map(c=>{ const v=shim(c);
+    return {ins:insOf(v), outs:outsOf(v), t:TYPES[c.type].time}; });
+  // 段と段のあいだで受け渡す素材と、前の段が何回まわるか
+  const inner = [];                       // inner[i] = 段iの出を段i+1が使う素材
+  const mul = A.map(()=>1);
+  for(let i=A.length-1;i>0;i--){
+    let k = null;
+    for(const x in A[i].ins) if(A[i-1].outs[x] && !isByp(x) && x!=='sta'){ k = x; break; }
+    inner[i-1] = k;
+    mul[i-1] = mul[i] * (k ? A[i].ins[k] / Math.max(1e-9, A[i-1].outs[k]) : 1);
+  }
+  const ins = {}, outs = {};
+  for(let i=0;i<A.length;i++){
+    for(const x in A[i].ins){
+      if(i>0 && inner[i-1] === x) continue;            // 中で受け渡すものは要らない
+      ins[x] = (ins[x]||0) + A[i].ins[x] * mul[i];
+    }
+    for(const x in A[i].outs){
+      if(inner[i] === x) continue;                     // 中で使い切るものは出さない
+      outs[x] = (outs[x]||0) + A[i].outs[x] * mul[i];
+    }
+  }
+  for(const x in ins) ins[x] = Math.max(1, Math.round(ins[x] * (x==='sta' ? COMB_STA : 1)));
+  for(const x in outs) outs[x] = Math.max(1, Math.round(outs[x]));
+  let t = 0; for(let i=0;i<A.length;i++) t = Math.max(t, A[i].t * mul[i]);
+  n._cbk = key;
+  return n._cb = {ins, outs, time: t * COMB_T, stages: st};
+}
+/* まとめられる並びか調べる。線でひとつながりになっている必要がある */
+function combChain(ids){
+  const ns = ids.map(N).filter(n=>n && canComb(n));
+  if(ns.length < 2) return null;
+  if(ns.length > COMB_MAX) return null;
+  const set = new Set(ns.map(n=>n.id));
+  // 前がいないものを先頭に、線をたどって一列に並べる
+  const prev = n => ns.find(m => m!==n && S.links.some(l =>
+    l.from===m.id && l.to===n.id && !isByp(l.item) && l.item!=='sta'));
+  const head = ns.filter(n => !prev(n));
+  if(head.length !== 1) return null;
+  const line = [head[0]];
+  for(let i=0;i<ns.length-1;i++){
+    const cur = line[line.length-1];
+    const nx = ns.filter(m => !line.includes(m) && S.links.some(l =>
+      l.from===cur.id && l.to===m.id && !isByp(l.item) && l.item!=='sta'));
+    if(nx.length !== 1) return null;
+    line.push(nx[0]);
+  }
+  return line.length === ns.length ? line : null;
+}
 /* 施設の見た目と名前は「時代」で決まる。レベルは効きだけを上げる */
 /* まとめた区画と、雇った仲間には固有の名前がつく。
    区画は中の台数で 村→街→都市 と呼び名が育つ                         */
@@ -1517,16 +1621,20 @@ function randPerson(){
 }
 const LAYER_TIER = m => m >= 15 ? '都市' : m >= 6 ? '街' : '村';
 const layerName  = L => (L.lname || '名もなき') + LAYER_TIER(memCount(L));
+const ROLE_SHORT = {ore:'採掘', ingot:'精錬', part:'加工', alloy:'合成',
+                    equip:'装備', anvil:'鍛錬', comp:'圧縮'};
+const combName = n => combStages(n).map(c=>ROLE_SHORT[TYPES[c.type].chain] || TYPES[c.type].n).join('＋');
 function tierOf(n){
   const T = TYPES[n.type];
   let nm = (n.type==='hero' && S.name) ? S.name
          : T.layer ? layerName(n)
+         : n.comb  ? combName(n)
          : n.pname ? n.pname : T.n;
   if(n.drop) nm += `〈${(n.mods && n.mods.tags || []).join('・') || '無印'}〉`;
   const list = T.line ? FAC[T.line] : null;
   let next = null;
   if(list){ const f = list.find(x => x.e > (T.era||0)); if(f) next = [f.e, f.n]; }
-  return {t:T.era||1, n:nm, i:T.i, max:ERA_MAX, next};
+  return {t:T.era||1, n:nm, i:n.comb ? '🔗' : T.i, max:ERA_MAX, next};
 }
 const effOf   = n => (TYPES[n.type].eff || 1) * Math.pow(ERA_EFF, (TYPES[n.type].era||1)-1);
 const baseName= t => TYPES[t].i + TYPES[t].n;
@@ -1635,6 +1743,7 @@ const toolLoad = n => Math.pow(toolWeight(n), 0.30);
 const staCost = (x, e) => Math.max(1, Math.ceil(x * e * COST_K / skillMul('cost')));
 function insOf(n){
   const T = TYPES[n.type], e = effOf(n), o = {};
+  if(n.comb) return modIns(n, combCalc(n).ins);      // 複合施設
   if(T.chain==='clean'){                       // 副産物を片付ける
     if(!n.item) return {};
     // 厄介なものほど片付けるのに体力が要る
@@ -1723,6 +1832,7 @@ function modOuts(n, o){
 }
 function outsOf(n){
   const T = TYPES[n.type];
+  if(n.comb) return modOuts(n, combCalc(n).outs);    // 複合施設
   if(T.chain==='comp'){
     const to = !n.item ? null
       : isEqp(n.item) ? (ensureItem(compKey(n.item, compOf(n.item)+1)), compKey(n.item, compOf(n.item)+1))
@@ -1932,7 +2042,8 @@ function craftTime(n){
   const sp = n.mods ? n.mods.spd : 1;
   const env = (1 + (n.pol||0) * POL_SLOW) / (n.spd || 1);   // 汚染で遅く、ピンで速く
   if(T.src) return staRate(n) * sp * env / skillMul('sta');
-  return T.time / lvPow(n.level) / intBoost() * sp * env / skillMul('spd');
+  const base = n.comb ? combCalc(n).time : T.time;
+  return base / lvPow(n.level) / intBoost() * sp * env / skillMul('spd');
 }
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
@@ -1965,9 +2076,11 @@ const capIn   = (n,item) => Math.ceil(capMul(n) * layerWide(n,item)
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
 const BYP_CAP  = 100;                     // 副産物はここまでしか溜まらない。満杯になると施設が止まる
 const isByp    = k => BYP.some(b=>b.k===k);
+/* 副産物を抱えておける量。複合施設は中の段の数だけ、ふつうの施設ぶん持てる */
+const bypCap = n => BYP_CAP * (n.comb ? n.comb.length + 1 : 1);
 const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
                           : (TYPES[n.type].src && item==='sta') ? maxSta()
-                          : isByp(item) ? BYP_CAP
+                          : isByp(item) ? bypCap(n)
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
 
@@ -2158,6 +2271,20 @@ function fmt(n){
   const u=['','K','M','B','T','Qa','Qi']; let i=0;
   while(n>=1000 && i<u.length-1){ n/=1000; i++; }
   return n.toFixed(2)+u[i];
+}
+/* はい・いいえの2択では足りないときに使う。opts は [{n:見出し, c:色, f:押したとき}] */
+function ask(title, msg, opts){
+  const box = $('#ask'), b = $('#askB');
+  $('#askT').textContent = title;
+  $('#askP').textContent = msg;
+  b.innerHTML = '';
+  for(const o of opts){
+    const el = document.createElement('button');
+    el.textContent = o.n; if(o.c) el.className = o.c;
+    el.onclick = ()=>{ box.classList.remove('on'); if(o.f) o.f(); };
+    b.appendChild(el);
+  }
+  box.classList.add('on');
 }
 function toast(m){
   const t=$('#toast'); t.textContent=m; t.classList.add('on');
@@ -2758,8 +2885,12 @@ function tick(dt,fast){
       if(!Array.isArray(st) || st.length !== ls.length) st = n.wrr[item] = ls.map(()=>0);
       // レイヤーは「中で使っている数」ぶんの取り分をもらう。
       // 1つにまとめただけで取り分が1台ぶんに減ると、まとめた瞬間に細ってしまう
-      const w = ls.map(l=>{ const d=N(l.to);
-        return prioOf(d) * (d && TYPES[d.type].layer ? Math.max(1, layerUsers(d)[item]||1) : 1); });
+      const w = ls.map(l=>{ const d=N(l.to); if(!d) return 1;
+        // レイヤーと複合施設は、中に抱えている数ぶんの取り分をもらう。
+        // 1つにまとめただけで取り分が1台ぶんに減ると、まとめた瞬間に細ってしまう
+        const many = TYPES[d.type].layer ? Math.max(1, layerUsers(d)[item]||1)
+                   : d.comb ? d.comb.length + 1 : 1;
+        return prioOf(d) * many; });
       const wtot = w.reduce((a,b)=>a+b,0);
       while(left-- > 0 && (n.outBuf[item]||0) > 0){
         for(let i=0;i<ls.length;i++) st[i]+=w[i];
@@ -3233,7 +3364,7 @@ function polSource(n){
   let v=0;
   for(const k in POL_ITEM){
     const held = (n.outBuf[k]||0) + (n.inBuf[k]||0);       // 溜め込んでいる量
-    if(held > 0) v += POL_ITEM[k] * Math.min(1, held / BYP_CAP);
+    if(held > 0) v += POL_ITEM[k] * Math.min(1, held / bypCap(n));
   }
   return v;
 }
@@ -4130,6 +4261,7 @@ function render(){
     }
     setCls(e.root,'pol', (n.pol||0) > 0.05);
     setCls(e.root,'drop', !!n.drop);
+  setCls(e.root,'comb', !!n.comb);
     // 汚染が届く範囲。溜め込んでいるノードだけ出す
     const ps = n._psrc || 0;
     const po = ps > 0 ? Math.min(0.95, 0.3 + ps * 0.5) : 0;
@@ -4233,6 +4365,9 @@ function render(){
     hEx.textContent = `💪${fmt(g.str)} 🧠${fmt(g.int)} ❤️${fmt(g.vit)}`
       + (tot>0 ? `　+${tot>=10?Math.round(tot):tot.toFixed(1)}/分` : '');
   }
+  // 複合化が使える時代になったら、ボタンを出す
+  const bc = $('#bComb');
+  if(bc){ const on = S.nodes.some(canComb); if(bc.hidden === on) bc.hidden = !on; }
   // 研究の在庫
   $('#rDev').textContent = devCount()+'種';
   $('#rRp').textContent  = fmt(gotRp());
@@ -4545,7 +4680,13 @@ function scrapNode(n){
   let g = 0;
   if(!n.drop){                                 // 拾った施設は買っていないので返金なし
     S.counts[n.type] = Math.max(0, (S.counts[n.type]||1) - 1);
-    g = Math.floor(buyCost(n.type) * 0.5); S.gold += g;
+    g = Math.floor(buyCost(n.type) * 0.5);
+    // まとめた施設は、中の段のぶんも戻す
+    for(const c of (n.comb||[])){
+      S.counts[c.type] = Math.max(0, (S.counts[c.type]||1) - 1);
+      g += Math.floor(buyCost(c.type) * 0.5);
+    }
+    S.gold += g;
   }
   if(sl){ homeOf().slud = (homeOf().slud||0) + sl;
     addLog(`☣汚染${Math.round(pol*100)}%の${tierOf(n).n}を解体 → 研究 +${fmt(rp)}／🫙汚染塊×${sl}`,'w'); }
@@ -4627,6 +4768,8 @@ function renderInsp(){
   const head =
     `<div class="t"><span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv"></span></div>` +
     (canRename(n) ? `<div class="kv">名前<button class="ren"></button></div>` : '') +
+    (n.comb ? `<div class="kv">まとめた段<b>${combStages(n).map(c=>TYPES[c.type].i+TYPES[c.type].n).join(' → ')}</b></div>`
+            + `<button class="unc">🔗 ほどいて ${combStages(n).length}台に戻す</button>` : '') +
     `<div class="kv wrow"><span>つながり<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>` +
     `<div class="kvb"><div class="kb">この施設の収支<i class="wsub">1分あたり</i></div>`
     + `<div class="nflow"></div></div>` +
@@ -4782,6 +4925,8 @@ function renderInsp(){
     toast(`${tierOf(n).n} を Lv.${n.level} まで強化しました`);
   };
   box._wv = linkVer; renderWires(box, n);
+  const uc=box.querySelector('.unc');
+  if(uc) uc.onclick=()=>breakComb(n);
   const rn=box.querySelector('.ren');
   if(rn) rn.onclick=()=>renameNode(n);
   box.querySelector('.pm').onclick=()=>{ n.prio=Math.max(1,prioOf(n)-1); };
@@ -5050,16 +5195,19 @@ function doPinch(){
 // 渡すと背景クリック扱いで選択が解除され、renderInsp() がボタンごと消してしまう
 const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast,#board';
 /* ========================= 投げ縄でまとめる ========================= */
-let lassoOn = false, lassoMode = 'group';   // group=まとめる / del=まとめて撤去
+let lassoOn = false, lassoMode = 'group';   // group=まとめる / del=撤去 / comb=複合化
 function setLasso(v, mode){
   lassoOn = v;
   if(v) lassoMode = mode || 'group';
   document.body.classList.toggle('lasso', v);
-  $('#lasso').classList.toggle('del', v && lassoMode==='del');
+  $('#lasso').classList.toggle('del',  v && lassoMode==='del');
+  $('#lasso').classList.toggle('comb', v && lassoMode==='comb');
   $('#bLasso').classList.toggle('lassoon', v && lassoMode==='group');
   $('#bScrap').classList.toggle('scrapon', v && lassoMode==='del');
-  if(v) toast(lassoMode==='del' ? '撤去したいノードをぐるっと囲んでください'
-                                : '囲みたいノードをぐるっとなぞってください');
+  const bc = $('#bComb'); if(bc) bc.classList.toggle('combon', v && lassoMode==='comb');
+  if(v) toast(lassoMode==='del'  ? '撤去したいノードをぐるっと囲んでください'
+            : lassoMode==='comb' ? 'ひとつながりの生産施設を2〜4台、囲んでください'
+                                 : '囲みたいノードをぐるっとなぞってください');
   else $('#lasso').style.display='none';
 }
 /* 囲みのなかに区画があれば、その中身もまとめて撤去の対象にする */
@@ -5085,24 +5233,115 @@ function scrapMany(ids){
     rp += scrapRp(n.type, n.level, n.grade||0) + polScrapRp(n, pol);
     if(!n.drop) g += Math.floor(buyCost(n.type) * 0.5);
   }
+  const drops = ns.filter(n=>n.drop), plain = ns.filter(n=>!n.drop);
   const kinds = new Set(ns.map(n=>tierOf(n).n));
   const list = [...kinds].slice(0,6).join('・') + (kinds.size > 6 ? ' ほか' : '');
-  const lay  = lays.length ? `\n（区画 ${lays.map(L=>tierOf(L).n).join('・')} も中身ごと外します）` : '';
-  if(!confirm(`${ns.length}個をまとめて撤去します。\n${list}${lay}\n\n`
-            + `戻ってくるもの： +${fmt(g)}G ／ 研究ポイント +${fmt(rp)}\nよろしいですか？`)) return;
-  let sl = 0;
-  for(const n of ns){ const r = scrapNode(n); sl += r.sl || 0; }
-  for(const L of lays){                       // 空になった区画は口ごと片付ける
-    if(atNow() === L.id) leaveLayer();
-    for(const m of [...memOf(L)]) removeNode(m.id);
-    if(sel === L.id) sel = null;
-    removeNode(L.id);
+  const lay  = lays.length ? `\n区画 ${lays.map(L=>tierOf(L).n).join('・')} も中身ごと外します。` : '';
+  /* えらんだぶんだけ外す */
+  const go = keep => {
+    const del = keep ? plain : ns;
+    if(!del.length && !lays.length) return toast('外すものがありません');
+    let sl = 0, g2 = 0, rp2 = 0;
+    for(const n of del){ const r = scrapNode(n); sl += r.sl||0; g2 += r.g||0; rp2 += r.rp||0; }
+    if(!keep) for(const L of lays){            // 空になった区画は口ごと片付ける
+      if(atNow() === L.id) leaveLayer();
+      for(const m of [...memOf(L)]) removeNode(m.id);
+      if(sel === L.id) sel = null;
+      removeNode(L.id);
+    }
+    if(lays.length){ reindex(); layerDirty(); }
+    const total = del.length + (keep ? 0 : lays.length);
+    addLog(`${total}個をまとめて撤去 → +${fmt(g2)}G／研究 +${fmt(rp2)}`
+      + (keep ? `（ダンジョン産 ${drops.length}台は残した）` : ''), 'b');
+    toast(`${total}個を撤去しました（+${fmt(g2)}G / 研究 +${fmt(rp2)}${sl?' ＋🫙×'+sl:''}）`);
+    renderInsp(); renderBag();
+  };
+  const opts = [];
+  opts.push({n:`すべて撤去（${ns.length}個）`, c:'bad', f:()=>go(false)});
+  if(drops.length) opts.push({n:`⛏ ダンジョン産 ${drops.length}台は残す（${plain.length}個を撤去）`,
+                              c:'go', f:()=>go(true)});
+  opts.push({n:'やめる'});
+  ask('まとめて撤去',
+      `${list}${lay}\n\n戻ってくるもの： +${fmt(g)}G ／ 研究ポイント +${fmt(rp)}`
+      + (drops.length ? `\n※ ダンジョン産が ${drops.length}台ふくまれています（返金はありません）` : ''),
+      opts);
+}
+/* 囲んだ並びを、ひとつの複合施設にする */
+function makeComb(ids){
+  const line = combChain(ids);
+  if(!line){
+    const ns = ids.map(N).filter(Boolean);
+    const young = ns.filter(n => COMB_ROLE[TYPES[n.type].chain] && !n.drop && !combReady(TYPES[n.type]));
+    if(young.length) return toast(
+      `${tierOf(young[0]).n}はまだまとめられません（第${(TYPES[young[0].type].era||1)+2}時代から）`);
+    if(ns.some(n=>n.drop)) return toast('⛏ダンジョン産は、性能のばらつきが消えてしまうのでまとめられません');
+    return toast('出口と入口がひとつながりになる、2〜4台の生産施設を囲んでください');
   }
-  if(lays.length){ reindex(); layerDirty(); }
-  const total = ns.length + lays.length;
-  addLog(`${total}個をまとめて撤去 → +${fmt(g)}G／研究 +${fmt(rp)}`,'b');
-  toast(`${total}個を撤去しました（+${fmt(g)}G / 研究 +${fmt(rp)}${sl?' ＋🫙×'+sl:''}）`);
-  renderInsp(); renderBag();
+  const last = line[line.length-1];
+  const comb = line.slice(0,-1).map(n=>({type:n.type, item:n.item}));
+  // 見た目の確認用に、まとめる前後を数えておく
+  const before = line.reduce((a,n)=>a + (insOf(n).sta||0)/Math.max(1e-6,craftTime(n)), 0);
+  const node = addNode(last.type, last.x, last.y);
+  node.item  = last.item;
+  node.level = Math.min(...line.map(n=>n.level));
+  node.comb  = comb;
+  node.prio  = last.prio;
+  rebuildNodeEl(node);          // 口の顔ぶれが変わるので作り直す
+  // 外との線を張り替える：先頭への入りと、末尾からの出しを新しい施設へ
+  const inner = new Set(line.map(n=>n.id));
+  const want  = allIns(node), give = outsOf(node);
+  const dup = (a,k,b) => S.links.some(l=>l.from===a && l.item===k && l.to===b);
+  for(const l of [...S.links]){
+    const fromIn = inner.has(l.from), toIn = inner.has(l.to);
+    if(fromIn && toIn){ removeLink(l.id); continue; }        // 中の受け渡しは要らない
+    if(toIn){   if(want[l.item] && !dup(l.from,l.item,node.id)) addLink(l.from,l.item,node.id);
+                removeLink(l.id); }
+    else if(fromIn){ if(give[l.item] && !dup(node.id,l.item,l.to)) addLink(node.id,l.item,l.to);
+                     removeLink(l.id); }
+  }
+  // 台数は減らさない：まとめた中に段として生きているので、
+  //   撤去したときにまとめて戻す（scrapNode が段のぶんも数える）
+  for(const n of line) removeNode(n.id);
+  reindex(); layerDirty();
+  const after = (insOf(node).sta||0)/Math.max(1e-6,craftTime(node));
+  sel = node.id; renderInsp();
+  addLog(`【複合】${combName(node)} にまとめた（⚡ ${fmt(before)}/秒 → ${fmt(after)}/秒）`,'b');
+  toast(`${combName(node)} にまとめました`);
+}
+/* まとめをほどく。段のぶんだけ施設を並べ直して線をつなぐ */
+function breakComb(n){
+  const st = combStages(n);
+  const made = [];
+  for(let i=0;i<st.length;i++){
+    const m = addNode(st[i].type, n.x + i*230, n.y);
+    m.item = st[i].item; m.level = n.level; m.prio = n.prio;
+    rebuildNodeEl(m);
+    made.push(m);
+  }
+  for(let i=0;i<made.length-1;i++){
+    const outs = outsOf(made[i]), ins = allIns(made[i+1]);
+    for(const k in outs) if(ins[k] && !isByp(k) && k!=='sta'){ addLink(made[i].id, k, made[i+1].id); break; }
+  }
+  const dup = (a,k,b) => S.links.some(l=>l.from===a && l.item===k && l.to===b);
+  for(const l of [...S.links]){
+    if(l.to === n.id){
+      // ⚡や動力はどの段にも要る。鎖の素材は先頭だけ
+      const want = made.filter(m => allIns(m)[l.item]);
+      const to = (l.item==='sta' || POW_ITEM[l.item]) ? want : want.slice(0,1);
+      for(const t of to) if(!dup(l.from, l.item, t.id)) addLink(l.from, l.item, t.id);
+      removeLink(l.id);
+    }else if(l.from === n.id){
+      // 副産物はどの段からも出る。本命は最後の段から
+      const from = made.filter(m => outsOf(m)[l.item]);
+      const fr = isByp(l.item) ? from : from.slice(-1);
+      for(const f of fr) if(!dup(f.id, l.item, l.to)) addLink(f.id, l.item, l.to);
+      removeLink(l.id);
+    }
+  }
+  const name = combName(n);
+  removeNode(n.id); reindex(); layerDirty();
+  sel = made[0].id; renderInsp();
+  toast(`${name} を ${made.length}台にほどきました`);
 }
 const lassoD = pts => pts.length<2 ? '' :
   'M'+pts.map(p=>`${p.x.toFixed(0)} ${p.y.toFixed(0)}`).join('L')+'Z';
@@ -5346,12 +5585,14 @@ stage.addEventListener('pointerup', e=>{
   }else if(drag.mode==='lasso'){
     const pts=drag.pts; $('#lasso').style.display='none'; $('#lasso').setAttribute('d','');
     if(pts.length > 4){
-      const del = lassoMode === 'del';
+      const del = lassoMode === 'del', cmb = lassoMode === 'comb';
       const ids = S.nodes.filter(n => onBoard(n) && !isPort(n)
         && (del ? (canScrap(n) || isLayer(n)) : !isLayer(n))
         && inPoly(pts, n.x + NW/2, n.y + 45)).map(n=>n.id);
       if(!ids.length) toast('ノードが囲まれていません');
-      else if(del) scrapMany(ids); else makeLayer(ids);
+      else if(del) scrapMany(ids);
+      else if(cmb) makeComb(ids);
+      else makeLayer(ids);
     }
     setLasso(false);
   }else if(drag.mode==='pan'){
@@ -5631,6 +5872,7 @@ $('#tClose').onclick=()=>$('#tree').classList.remove('on');
 $('#bStats').onclick=()=>{ renderStats(); $('#stats').classList.add('on'); };
 $('#bLasso').onclick=()=>setLasso(!(lassoOn && lassoMode==='group'), 'group');
 $('#bScrap').onclick=()=>setLasso(!(lassoOn && lassoMode==='del'), 'del');
+$('#bComb').onclick=()=>setLasso(!(lassoOn && lassoMode==='comb'), 'comb');
 $('#sClose').onclick=()=>$('#stats').classList.remove('on');
 $('#stats').onclick=e=>{ if(e.target===$('#stats')) $('#stats').classList.remove('on'); };
 $('#tree').onclick=e=>{ if(e.target===$('#tree')) $('#tree').classList.remove('on'); };
