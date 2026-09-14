@@ -913,6 +913,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="btabs">
         <button class="bt1 on" data-t="gear">🎽 装備 <b id="bcGear">0</b></button>
         <button class="bt1" data-t="home">🏠 自宅 <b id="bcHome">0</b></button>
+        <button class="bt1" data-t="part">🔧 パーツ <b id="bcPart">0</b></button>
         <button class="bt1" data-t="skill">✨ スキル <b id="bcSkill">0</b></button>
         <button class="bt1" data-t="drop">🎁 クリア報酬 <b id="bcDrop">0</b></button>
         <button class="bt1" data-t="ware" id="bcWareTab" hidden>📦 倉庫</button>
@@ -1246,7 +1247,7 @@ const FUND_G    = 4000;
    第9以降の人工の仲間は、ゴールドではなく研究ポイントで動く */
 const payOf   = n => { const T=TYPES[n.type];
   return T.pay ? Math.max(1, Math.round(T.pay * Math.pow(2.6, (T.era||1)-1)
-                                        * ((n.mods && n.mods.payK) || 1))) : 0; };
+                                        * modsOf(n).payK)) : 0; };
 const payRpOf = n => { const T=TYPES[n.type];
   return T.payRp ? Math.max(1, Math.round(T.payRp * Math.pow(2.6, (T.era||1)-1))) : 0; };
 const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
@@ -1849,14 +1850,15 @@ function insOf(n){
 }
 /* 拾った施設の接辞を入出力に反映する */
 function modIns(n, o){
-  const m = n.mods; if(!m) return o;
+  const m = modsOf(n);
   const r = {};
-  for(const k in o) r[k] = k==='sta' ? Math.max(1, Math.ceil(o[k]*m.sta)) : o[k];
+  // 切り上げだと、⚡の少ない施設では節電が効かなくなる。四捨五入にする
+  for(const k in o) r[k] = k==='sta' ? Math.max(1, Math.round(o[k]*m.sta)) : o[k];
   for(const k in m.need) r[k] = (r[k]||0) + m.need[k];
   return r;
 }
 function modOuts(n, o){
-  const m = n.mods; if(!m) return o;
+  const m = modsOf(n);
   const r = {};
   for(const k in o){
     if(k==='waste'){ if(m.clean) continue; r[k] = o[k] + (m.wst||0); }
@@ -1951,7 +1953,7 @@ const hasSkill = k => !!(S.skills && S.skills[k]);
 const skillSlots = n => {
   const T = TYPES[n.type];
   if(!T.src) return 0;
-  return Math.max(0, (n.type==='hero' ? 3 : 1) + ((n.mods && n.mods.skill) || 0));
+  return Math.max(0, (n.type==='hero' ? 3 : 1) + modsOf(n).skill);
 };
 function skillOf(n){
   const k = skillSlots(n); if(!k) return [];
@@ -2003,7 +2005,7 @@ function setSkill(n, i, k){
 /* 装備はふつうのアイテム。工房の出力に積まれ、配線で装備庫へ流せる。
    身につけるときは、工房のどこかにある在庫か「外した装備」から1つ取る。   */
 const homeOf = () => (S.home = S.home || {});   // 自宅のしまい場所
-const gearSlots = n => Math.max(0, (TYPES[n.type].gear || 0) + ((n.mods && n.mods.gear) || 0));
+const gearSlots = n => Math.max(0, (TYPES[n.type].gear || 0) + modsOf(n).gear);
 function gearOf(n){
   const k = gearSlots(n); if(!k) return [];
   if(!n.gear || n.gear.length !== k){
@@ -2043,6 +2045,18 @@ function takeEquip(k){
   return pick(S.nodes.filter(n=>TYPES[n.type].store)) || pick(S.nodes);
 }
 const giveEquip = k => { const P=homeOf(); P[k]=(P[k]||0)+1; };
+/* パーツを挿す・外す。外したぶんは持ち物へ戻る */
+function setPart(n, i, key){
+  const g = partsOf(n); if(i >= g.length) return;
+  const old = g[i] || null;
+  if(old === (key||null)) return;
+  if(key && !partStock(key)) return toast('そのパーツを持っていません');
+  if(old) addPart(old, 1);
+  if(key) usePart(key);
+  n.parts[i] = key || null;
+  modsDirty(n); rebuildNodeEl(n); renderBag();
+  toast(key ? `${partName(key)} を挿した` : 'パーツを外した');
+}
 function setGear(n, i, k){
   const g = gearOf(n)[i]; if(!g || g.item===k) return;
   if(k && !takeEquip(k)) return toast('その装備の在庫がありません');
@@ -2073,7 +2087,7 @@ const inKeys  = n => Object.keys(portIns(n));
 const outKeys = n => Object.keys(outsOf(n));
 function craftTime(n){
   const T = TYPES[n.type];
-  const sp = n.mods ? n.mods.spd : 1;
+  const sp = modsOf(n).spd;
   const env = (1 + (n.pol||0) * POL_SLOW) / (n.spd || 1);   // 汚染で遅く、ピンで速く
   // 祝福は主人公・仲間にも効く。⚡を作る側と使う側が同じだけ速くなるので、
   // 工房ぜんたいがそのぶん速くまわる（片方だけだと⚡が足りなくなる）
@@ -2150,7 +2164,7 @@ function upCostN(n, k){
   return c;
 }
 const UP_BULK = 10;
-const capMul  = n => n.mods ? n.mods.cap : 1;
+const capMul  = n => modsOf(n).cap;
 /* レイヤーと口は「中身の合計」としてふるまう。
    まとめただけで受け口が1つぶんに狭まると、まとめたとたんに細るので     */
 const layerWide = (n,item) => (TYPES[n.type].layer) ? Math.max(1, layerUsers(n)[item] || 1)
@@ -2195,6 +2209,100 @@ const AFFIX = [
 ];
 function newMods(){ return {spd:1, sta:1, yld:0, wst:0, cap:1, clean:0, need:{},
                             gear:0, skill:0, payK:1, tags:[]}; }
+/* ── 強化パーツ ──
+   施設のスロットに挿して、その1台だけを強くする。
+   等級（1〜3）があり、深いダンジョンほど良いものが出る。
+   ふつうの施設はスロット1つ、ダンジョン産は2〜5つ                 */
+const PARTS = [
+  {k:'acc', i:'⚙️', n:'加速装置', d:'この施設が速くなる',
+   v:g=>`速さ ×${(1/Math.max(.35,1-0.18*g)).toFixed(2)}`, f:(m,g)=>m.spd *= Math.max(.35, 1-0.18*g)},
+  {k:'eco', i:'🪶', n:'節電装置', d:'⚡の消費が減る',
+   v:g=>`⚡ ×${Math.max(.30,1-0.16*g).toFixed(2)}`,        f:(m,g)=>m.sta *= Math.max(.30, 1-0.16*g)},
+  {k:'yld', i:'📈', n:'増産装置', d:'出来上がりが増える',
+   v:g=>`出来高 +${g}`,                                    f:(m,g)=>m.yld += g},
+  {k:'cap', i:'📦', n:'大型貯蔵', d:'抱えられる量が増える',
+   v:g=>`容量 ×${(1+0.8*g).toFixed(1)}`,                   f:(m,g)=>m.cap *= 1+0.8*g},
+  {k:'cln', i:'🌬', n:'集塵装置', d:'廃材を出さなくなる',
+   v:()=>'廃材なし',                                        f:(m)  =>m.clean = 1},
+  {k:'arm', i:'🔧', n:'拡張架台', d:'装備とスキルの枠が増える',
+   v:g=>`装備 +${g}／スキル +${Math.ceil(g/2)}`,            f:(m,g)=>{ m.gear+=g; m.skill+=Math.ceil(g/2); }},
+];
+const PART = {}; for(const x of PARTS) PART[x.k] = x;
+/* ── 換装コア ──
+   設置済みの施設を、そのまま1世代ぶん引き上げる。
+   建て直しではないので、レベル・パーツ・配線・名前がそのまま残る。
+   これがあるおかげで、古い施設を捨てずに済む                       */
+const CORE = {k:'core', i:'🔩', n:'換装コア', d:'設置済みの施設を1世代ぶん引き上げる'};
+const coreStock = () => Math.floor((S.parts && S.parts.core) || 0);
+/* その施設を引き上げられるか。次の世代の型があり、その世代を解放済みであること */
+function nextGenType(n){
+  const T = TYPES[n.type], role = T.line;
+  if(!role || !FAC[role] || n.comb) return null;
+  const nx = FAC[role].find(f => f.e === (T.era||1) + 1);
+  return nx ? role + nx.e : null;
+}
+const canCore = n => { const t = nextGenType(n);
+  return !!t && isDev(t) && coreStock() > 0; };
+function useCore(n){
+  const t = nextGenType(n);
+  if(!t) return toast('これ以上は引き上げられません');
+  if(!isDev(t)) return toast(`${eraName(TYPES[t].era).n}の世代に上げてからです`);
+  if(coreStock() <= 0) return toast('🔩換装コアを持っていません');
+  const was = tierOf(n).n;
+  S.parts.core--; if(S.parts.core <= 0) delete S.parts.core;
+  S.counts[n.type] = Math.max(0, (S.counts[n.type]||1) - 1);
+  S.counts[t] = (S.counts[t]||0) + 1;
+  n.type = t;
+  // 口の顔ぶれが変わるので、合わなくなった線だけ外す
+  const ins = allIns(n), outs = outsOf(n);
+  for(const l of [...S.links]){
+    if(l.to === n.id && !ins[l.item] && !storeCanTake(n, l.item)) removeLink(l.id);
+    if(l.from === n.id && !outs[l.item]) removeLink(l.id);
+  }
+  modsDirty(n); layerDirty(); rebuildNodeEl(n); renderInsp(); renderBag();
+  addLog(`🔩 ${was} を ${tierOf(n).n}（第${TYPES[t].era}世代）に引き上げた`, 'b');
+  toast(`${tierOf(n).n} に引き上げました`);
+}
+const PART_MAX = 3;                                   // 等級の上限
+const partKey  = (k,g) => k + g;                      // 'acc2' のような持ち物のキー
+const partOf   = key => ({p: PART[String(key).slice(0,3)], g: +String(key).slice(3) || 1});
+const partName = key => { if(key==='core') return `${CORE.i}${CORE.n}`;
+  const {p,g} = partOf(key);
+  return p ? `${p.i}${p.n}${'＋'.repeat(g-1)}` : '—'; };
+const partInfo = key => { if(key==='core') return CORE.d;
+  const {p,g} = partOf(key); return p ? p.v(g) : ''; };
+/* 持ち物のなかのパーツ（S.parts） */
+const partStock = key => Math.floor((S.parts && S.parts[key]) || 0);
+function addPart(key, q){ S.parts = S.parts || {};
+  S.parts[key] = (S.parts[key]||0) + (q||1); }
+function usePart(key){ if(partStock(key) <= 0) return false;
+  S.parts[key]--; if(S.parts[key] <= 0) delete S.parts[key]; return true; }
+/* 施設のスロットの数。ダンジョン産はばらつく */
+const slotsOf = n => TYPES[n.type].port || TYPES[n.type].layer ? 0
+                   : Math.max(1, Math.min(5, n.pslot || 1));
+function partsOf(n){
+  const k = slotsOf(n); if(!k) return [];
+  if(!n.parts || n.parts.length !== k){
+    const old = n.parts || [];
+    n.parts = Array.from({length:k}, (_,i) => (old[i] && PART[String(old[i]).slice(0,3)]) ? old[i] : null);
+  }
+  return n.parts;
+}
+/* 拾い物の癖（mods）と、挿したパーツを合わせた、その施設の効き */
+function modsOf(n){
+  const key = (n.parts||[]).join(',') + '|' + (n.mods ? 'd' : '-');
+  if(n._md && n._mk === key) return n._md;
+  const m = newMods();
+  if(n.mods){ for(const x in m) if(x!=='need' && x!=='tags') m[x] = n.mods[x];
+    m.need = Object.assign({}, n.mods.need); m.tags = n.mods.tags; }
+  for(const key2 of partsOf(n)){
+    if(!key2) continue;
+    const {p,g} = partOf(key2); if(p) p.f(m, g);
+  }
+  n._mk = key;
+  return n._md = m;
+}
+const modsDirty = n => { n._mk = null; };
 /* 仲間の拾い物にだけ付く接辞。装備枠・スキル枠・給料がばらつく */
 const MATE_AFFIX = [
   {grp:'gear', n:'多才',   good:1, w:8,  f:(m,g)=>m.gear  += 1 + Math.floor(g/8)},
@@ -2211,6 +2319,7 @@ function rollDrop(floor, rnd){
   if(!pool.length) return null;
   const type = pool[Math.floor(rnd()*pool.length)];
   const m = newMods();
+  m.pslot = 2 + Math.floor(rnd()*4);                            // ダンジョン産はスロット2〜5
   const count = Math.min(4, (g<3 ? 2 : 1) + Math.floor(g/4));   // 浅い層のものは癖が強い
   const bag = [];
   const table = TYPES[type].src ? AFFIX.concat(MATE_AFFIX) : AFFIX;
@@ -2349,7 +2458,7 @@ function freshState(){
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, home:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -3447,7 +3556,8 @@ function raidTick(dt){
 /* 削りきった時点で報酬を確定させ、その場に置いておく。タップで受け取る */
 function raidDone(n){
   n.clear = true; n.hp = 0;
-  n.reward = { g: raidGold(), m: raidMat(), d: rollDrop(Math.max(DROP_FROM, S.best)) };
+  n.reward = { g: raidGold(), m: raidMat(), d: rollDrop(Math.max(DROP_FROM, S.best)),
+               p: rollPart(Math.max(DROP_FROM, S.best)) };
   addLog(`【突発】裂け目を閉じた。ノードをタップして報酬を受け取ろう`, 'b');
   toast('🌀 クリア！ ノードをタップで受け取り');
 }
@@ -3455,8 +3565,10 @@ function raidClaim(n){
   const r = n.reward || { g: raidGold(), m: raidMat(), d: null };
   S.gold += r.g; S.stock = (S.stock||0) + r.m;
   if(r.d) S.drops.push(r.d);
-  addLog(`【突発】報酬を受け取った → +${fmt(r.g)}G ＋🧱${fmt(r.m)}` + (r.d ? ` ＋${dropName(r.d)}` : ''), 'b');
-  toast(`+${fmt(r.g)}G ＋🧱${fmt(r.m)}` + (r.d ? ' ＋拾得品' : ''));
+  if(r.p) addPart(r.p, 1);
+  addLog(`【突発】報酬を受け取った → +${fmt(r.g)}G ＋🧱${fmt(r.m)}`
+    + (r.d ? ` ＋${dropName(r.d)}` : '') + (r.p ? ` ＋${partName(r.p)}` : ''), 'b');
+  toast(`+${fmt(r.g)}G ＋🧱${fmt(r.m)}` + (r.d ? ' ＋拾得品' : '') + (r.p ? ' ＋パーツ' : ''));
   if(sel===n.id) sel=null;
   removeNode(n.id); reindex(); renderInsp(); renderBag();
 }
@@ -3659,6 +3771,17 @@ function doDive(fast, node){
   // 施設と仲間は低確率。ボス層だけは確定で落ちる
   const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;   // 宝探し
   if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * skillMul('drop') * findK)) tryDrop(f, fast);
+  // 強化パーツは施設より出やすい
+  if(Math.random() < 0.05 * skillMul('drop') * findK){
+    const k = rollPart(f);
+    addPart(k, 1);
+    if(!fast) addLog(`【入手】${partName(k)}`, 'b');
+  }
+  // 換装コアは節目の層でだけ。世代を上げたあとの「移行」が仕事になる
+  if(isBoss(f) && f >= 20 && Math.random() < 0.30 * skillMul('drop')){
+    addPart('core', 1);
+    if(!fast) addLog(`【入手】${CORE.i}${CORE.n}（設置済みの施設を1世代ぶん引き上げられる）`, 'b');
+  }
   spawnEnemy();
 }
 function tryDrop(f, fast){
@@ -3794,12 +3917,20 @@ function renderStats(){
 }
 
 /* ========================= 拾得品 ========================= */
+/* ダンジョンで拾ったパーツ。等級は深さで上がる */
+function rollPart(floor, rnd){
+  rnd = rnd || Math.random;
+  const g = Math.max(1, Math.min(PART_MAX, 1 + Math.floor(dropGrade(floor)/3)));
+  const p = PARTS[Math.floor(rnd()*PARTS.length)];
+  return partKey(p.k, g);
+}
 function placeDrop(id){
   const i = S.drops.findIndex(d=>d.id===id); if(i<0) return;
   const d = S.drops[i];
   const p = freeSpot();
   const n = addNode(d.type, p.x, p.y);
   n.mods = d.mods; n.drop = true; n.grade = d.grade;
+  n.pslot = d.mods.pslot || 2; modsDirty(n);
   rebuildNodeEl(n);
   S.drops.splice(i,1);
   sel = n.id; renderInsp(); renderBag();
@@ -4112,7 +4243,8 @@ function gearKeys(){
   return [...new Set(Object.keys(P).concat([...worn], equipOpts()))]
     .filter(k => isEqp(k)).sort((a,b)=>itemVal(b)-itemVal(a));
 }
-function bagCount(){ return homeCount() + S.drops.length; }
+const partCount = () => Object.keys(S.parts||{}).reduce((a,k)=>a+partStock(k),0);
+function bagCount(){ return homeCount() + S.drops.length + partCount(); }
 function sellHome(k, all){
   const P=homeOf(), q = all ? (P[k]||0) : Math.min(1, P[k]||0);
   if(q<1) return;
@@ -4141,6 +4273,7 @@ function renderBag(){
   $('#bcGear').textContent = nG; $('#bcDrop').textContent = nD+' / '+DROP_MAX;
   const bs=$('#bcSkill');
   if(bs) bs.textContent = SKILLS.filter(x=>hasSkill(x.k)).length+' / '+SKILLS.length;
+  const bp=$('#bcPart'); if(bp) bp.textContent = fmt(partCount());
   const wt2=$('#bcHome');
   if(wt2) wt2.textContent = Object.keys(homeOf()).filter(k=>!isEqp(k)).length;
   document.querySelectorAll('#bag .btabs button')
@@ -4203,6 +4336,22 @@ function renderBag(){
     return;
   }
 
+  if(bagTab==='part'){
+    $('#bagNote').textContent = 'ダンジョンで拾う強化パーツ。施設のアイテムスロットに挿すと、'
+      + 'その1台だけが強くなります。ふつうの施設はスロット1つ、⛏ダンジョン産は2〜5つ。';
+    const ks = Object.keys(S.parts||{}).filter(k=>partStock(k)>0).sort();
+    if(!ks.length){ box.innerHTML = `<div class="bempty">まだ持っていません。ダンジョンに潜ると拾えます。</div>`; return; }
+    box.innerHTML = ks.map(k=>{
+      if(k==='core') return `<div class="bitem"><div class="bmain">
+        <div class="bname">${CORE.i}${CORE.n} <span class="bon">×${fmt(coreStock())}</span></div>
+        <div class="bsub">${CORE.d}（施設を選んで「引き上げる」）</div></div></div>`;
+      const {p,g} = partOf(k); if(!p) return '';
+      return `<div class="bitem"><div class="bmain">
+        <div class="bname">${p.i}${p.n}${'＋'.repeat(g-1)} <span class="bon">×${fmt(partStock(k))}</span></div>
+        <div class="bsub">${p.d}　／　${p.v(g)}</div></div></div>`;
+    }).join('');
+    return;
+  }
   if(bagTab==='home'){
     $('#bagNote').textContent = '📦開封所で宝箱を開けると、中身がここに入ります。'
       + '素材はここから売ったり捨てたりできます（装備は「装備」のタブへ）。';
@@ -5021,6 +5170,8 @@ function renderInsp(){
     (T.store || T.ware ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : '') +
     (T.ware  ? `<button class="wopen">📦 中身を見る</button>` : '') +
     (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
+    (nextGenType(n) ? `<button class="core"></button>` : '') +
+    (slotsOf(n) ? `<div class="kv gearhd">アイテムスロット<b class="psum"></b></div><div class="partsel"></div>` : '') +
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     (skillSlots(n) ? `<div class="kv gearhd">スキル<b class="ksum"></b></div><div class="skillsel"></div>` : '') +
     (perksOf(T).length ? `<div class="kv">世代の特性<b class="perk"></b></div>` : '') +
@@ -5072,6 +5223,23 @@ function renderInsp(){
       : `<option value="">${T.chain==='hout' ? '宝箱を開けると増えます' : '深く潜ると増えます'}</option>`;
     cl.value = T.loot ? lootItem(n) : (n.item||'');
     cl.onchange=()=>{ setChainItem(n, cl.value||null); renderInsp(); };
+  }
+  if(slotsOf(n)){
+    const w=box.querySelector('.partsel');
+    partsOf(n).forEach((key,i)=>{
+      const row=document.createElement('div'); row.className='grow';
+      const sl=document.createElement('select');
+      const own = Object.keys(S.parts||{}).filter(k=>k!=='core' && (partStock(k)>0 || k===key));
+      own.sort();
+      sl.innerHTML=`<option value="">— 空き —</option>`+
+        own.map(k=>`<option value="${k}">${partName(k)}（持ち ${fmt(partStock(k))}）</option>`).join('');
+      sl.value=key||'';
+      sl.onchange=()=>{ setPart(n,i,sl.value||null); renderInsp(); };
+      const info=document.createElement('div'); info.className='ginfo';
+      info.textContent = key ? partInfo(key)
+        : (own.length ? 'パーツを挿すと、この施設だけが強くなる' : 'ダンジョンで拾うと挿せる');
+      row.append(sl, info); w.appendChild(row);
+    });
   }
   if(gearSlots(n)){
     const w=box.querySelector('.gearsel');
@@ -5166,6 +5334,11 @@ function renderInsp(){
     toast(`${tierOf(n).n} を Lv.${n.level} まで強化しました`);
   };
   box._wv = linkVer; renderWires(box, n);
+  const cb=box.querySelector('.core');
+  if(cb){ const t=nextGenType(n), T2=TYPES[t];
+    cb.textContent = `🔩 ${T2.i}${T2.n}（第${T2.era}世代）へ引き上げる　持ち ${coreStock()}`;
+    cb.disabled = !canCore(n);
+    cb.onclick = ()=>useCore(n); }
   const uc=box.querySelector('.unc');
   if(uc) uc.onclick=()=>breakComb(n);
   const rn=box.querySelector('.ren');
@@ -5246,6 +5419,9 @@ function renderInspLive(){
   const ks=box.querySelector('.ksum');
   if(ks){ const on=skillOf(n).filter(Boolean);
     ks.textContent = `${on.length}/${skillSlots(n)}` + (on.length ? '　'+on.map(k=>SKILL[k].i).join('') : ''); }
+  const ps=box.querySelector('.psum');
+  if(ps){ const on=partsOf(n).filter(Boolean);
+    ps.textContent = `${on.length}/${slotsOf(n)}` + (on.length ? '　'+on.map(k=>partOf(k).p.i).join('') : ''); }
   const gs=box.querySelector('.gsum');
   if(gs){ const bn=gearBonus();
     const t=Object.keys(TRAITS).filter(k=>bn[k]>0.01)
