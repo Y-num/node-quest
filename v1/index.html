@@ -747,7 +747,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
 <body>
 <div id="app">
   <div id="top">
-    <span class="logo">NODE QUEST</span>
+    <span class="logo">NODE QUEST <em style="font-style:normal;font-size:9px;color:#7e8ba4">旧版</em></span>
     <div class="stat best"><span class="k">最深<em>到達</em></span><span class="v num" id="tBest">1</span><span class="u">層</span></div>
     <div class="stat f"><span class="k">現<em>在</em></span><span class="v num" id="tFloor">1</span></div>
     <div class="stat a"><span class="k">攻<em>撃力</em></span><span class="v num" id="tAtk">0</span></div>
@@ -3800,7 +3800,7 @@ function scrapDrop(id){
    遊びの節目を永久に記録する。良い節目も、汚染のような後ろ暗い節目も。
    ひとつにつき 1〜5% の「祝福」がつき、重ねて効く（すべての施設が速くなる）。
    リセットしても消えない。消したいときだけ、自分で消す。            */
-const TRO_KEY = 'nodequest2.trophy';
+const TRO_KEY = 'nodequest.trophy';
 const TROPHY = [
   // ── 攻撃力 ──
   {k:'atk1', i:'🗡', n:'はじめの一撃',  d:'攻撃力 1,000 をこえた',        p:1, f:()=>atk()>=1e3},
@@ -5838,7 +5838,7 @@ stage.addEventListener('wheel', e=>{
 /* ========================= セーブ / ロード ========================= */
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
-const KEY='nodequest2';          // 旧版（/v1/）とはセーブを分ける
+const KEY='nodequest';
 const SAVE_V=16;
 function migrate(d){
   d.v = d.v || 0;
