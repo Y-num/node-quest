@@ -71,14 +71,16 @@ button{font:inherit;color:inherit;cursor:pointer}
 #wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 /* ノードだけがクリックを受け、空白は下の配線に通す */
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
-/* 地形。1タイル1ピクセルで描いて、そのまま引き伸ばす（軽くてくっきり） */
-#mapc{position:absolute;left:0;top:0;opacity:.5;
-  pointer-events:none;z-index:-3}
-#mapg{position:absolute;left:0;top:0;pointer-events:none;z-index:-2;
-  background-image:linear-gradient(rgba(140,170,200,.04) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(140,170,200,.04) 1px,transparent 1px)}
-#mapd{position:absolute;left:0;top:0;pointer-events:none;z-index:-1}
+/* 地形。小さな地形画像を、画面の大きさのカンバスへ毎回描き写す。
+   10000×8000 の要素を置くと、引いたときに端末が抱えきれなくなる       */
+#mapc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#mapg{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(140,170,200,.05) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(140,170,200,.05) 1px,transparent 1px)}
+#mapd{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
 body.far #mapg{display:none}
+/* 引いたときは細かい格子を出さない（目が詰まって地形が読めなくなる） */
+body.far #stage{background-image:none}
 .dgm{position:absolute;width:200px;height:200px;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:2px;pointer-events:none;
   transform:scale(var(--iz,1))}
@@ -806,8 +808,9 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="shopList"></div>
     </div>
     <div id="stage">
+      <canvas id="mapc"></canvas><div id="mapg"></div>
       <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><g id="gwH"></g><path id="temp"></path><path id="lasso"></path></g></svg>
-      <div id="world"><canvas id="mapc"></canvas><div id="mapg"></div><div id="mapd"></div></div>
+      <div id="world"><div id="mapd"></div></div>
       <div id="hint">
         <div class="ttl">ⓘ 操作方法</div>
         <div class="body">
@@ -2605,16 +2608,17 @@ function setCls(el, name, on){
   c[name] = on; el.classList.toggle(name, on);
 }
 const mapc = $('#mapc'), mapg = $('#mapg');
-/* 地形を1回だけ描く。タイル1つ＝1ピクセル。表示は CSS で引き伸ばす */
+const MAP_SUB = 8;          // 1タイルを何画素で描くか
+const MAP_ALPHA = 0.5;      // 盤面の上にどれくらい薄く重ねるか
+let mapSrc = null;          // 地形そのものの絵（小さい。作るのは1回だけ）
+/* 地形の絵を1回だけ作る。画面へは drawMapView が毎回、必要なぶんだけ描き写す */
 function drawMap(){
   if(!S.map || !mapc) return;
   drawDungeons();
-  const W=S.map.w, H=S.map.h, SUB=8;      // 1タイルを SUB×SUB 画素で描く
-  mapc.width=W*SUB; mapc.height=H*SUB;
-  mapc.style.width=(W*TILE)+'px'; mapc.style.height=(H*TILE)+'px';
-  mapg.style.width=(W*TILE)+'px'; mapg.style.height=(H*TILE)+'px';
-  mapg.style.backgroundSize=TILE+'px '+TILE+'px';
-  const g=mapc.getContext('2d'), im=g.createImageData(W*SUB,H*SUB);
+  const W=S.map.w, H=S.map.h, SUB=MAP_SUB;
+  mapSrc = document.createElement('canvas');
+  mapSrc.width=W*SUB; mapSrc.height=H*SUB;
+  const g=mapSrc.getContext('2d'), im=g.createImageData(W*SUB,H*SUB);
   const hex=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
   const cols=TERR.map(t=>hex(t.c));
   const cl=(v,m)=>v<0?0:v>m?m:v;
@@ -2632,6 +2636,25 @@ function drawMap(){
     }
   }
   g.putImageData(im,0,0);
+  drawMapView();
+}
+/* いま映っているぶんの地形を、画面の大きさのカンバスへ描き写す。
+   持つ絵は常に画面ぶんなので、どれだけ引いても重さが変わらない        */
+function drawMapView(){
+  if(!mapc) return;
+  const W=stage.clientWidth, H=stage.clientHeight;
+  if(!W || !H) return;
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  const cw=Math.round(W*dpr), ch=Math.round(H*dpr);
+  if(mapc.width!==cw || mapc.height!==ch){ mapc.width=cw; mapc.height=ch; }
+  const g=mapc.getContext('2d');
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,cw,ch);
+  if(!mapSrc) return;
+  const v=S.view, k=(TILE/MAP_SUB)*v.s*dpr;   // 地形1画素ぶんの、画面での大きさ
+  g.globalAlpha=MAP_ALPHA; g.imageSmoothingEnabled=true;
+  g.setTransform(k,0,0,k, v.x*dpr, v.y*dpr);
+  g.drawImage(mapSrc,0,0);
+  g.setTransform(1,0,0,1,0,0); g.globalAlpha=1;
 }
 /* ========== 地図のダンジョン ==========
    拠点から遠いほど守護者が硬い。倒すと制圧となり、そのダンジョン固有の鉱石が採れる */
@@ -2671,7 +2694,6 @@ function drawDungeons(){
   const w = $('#mapd'); if(!w || !S.map) return;
   const key = S.map.dg.map(d=>(d.node?1:0)+(d.done?2:0)).join('');
   if(w._k === key) return; w._k = key;
-  w.style.width=(S.map.w*TILE)+'px'; w.style.height=(S.map.h*TILE)+'px';
   w.innerHTML = S.map.dg.map(d=>{
     if(d.node) return '';                       // すでに施設になっているものは出さない
     const nm = dgName(d);
@@ -4730,11 +4752,15 @@ function applyView(){
   gw.classList.toggle('far', v.s < 0.45);
   document.body.classList.toggle('far', v.s < 0.3);
   // 引くほど目印を大きく描いて、地図として読めるようにする
-  world.style.setProperty('--iz', Math.max(1, Math.min(4.5, 0.5 / v.s)).toFixed(2));
+  world.style.setProperty('--iz', Math.max(1, Math.min(9, 0.55 / v.s)).toFixed(2));
   world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.s})`;
   gw.setAttribute('transform',`translate(${v.x},${v.y}) scale(${v.s})`);
+  // 細かすぎる格子は端末が描ききれない。近いときだけ出す
   stage.style.backgroundSize=`${40*v.s}px ${40*v.s}px`;
   stage.style.backgroundPosition=`${v.x}px ${v.y}px`;
+  mapg.style.backgroundSize=`${TILE*v.s}px ${TILE*v.s}px`;
+  mapg.style.backgroundPosition=`${v.x}px ${v.y}px`;
+  drawMapView();
 }
 /* 同じ文字を毎コマ書き込むだけでもブラウザは仕事をする。変わったときだけ書く */
 function setTxt(el, v){ if(el && el._v !== v){ el._v = v; el.textContent = v; } }
@@ -6891,7 +6917,10 @@ document.addEventListener('visibilitychange', ()=>{
 });
 // 画面サイズが変わってノードが見えなくなったら自動で入れ直す
 let rzT=null;
+// 盤面の大きさが変わったら地形を描き直す（横画面への切り替え・キーボードの出入り）
+if(window.ResizeObserver) new ResizeObserver(()=>applyView()).observe(stage);
 window.addEventListener('resize',()=>{
+  applyView();                      // 地形のカンバスを新しい画面の大きさに合わせる
   clearTimeout(rzT);
   rzT=setTimeout(()=>{ if(offscreenCount()>0) fitView(); }, 250);
 });
