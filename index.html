@@ -71,12 +71,28 @@ button{font:inherit;color:inherit;cursor:pointer}
 #wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 /* ノードだけがクリックを受け、空白は下の配線に通す */
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
+/* 地形。1タイル1ピクセルで描いて、そのまま引き伸ばす（軽くてくっきり） */
+#mapc{position:absolute;left:0;top:0;image-rendering:pixelated;opacity:.95;
+  pointer-events:none;z-index:-3}
+#mapg{position:absolute;left:0;top:0;pointer-events:none;z-index:-2;
+  background-image:linear-gradient(rgba(140,170,200,.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(140,170,200,.055) 1px,transparent 1px)}
+#mapd{position:absolute;left:0;top:0;pointer-events:none;z-index:-1}
+.dgm{position:absolute;width:200px;height:200px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;pointer-events:none}
+.dgm .ic{font-size:54px;filter:grayscale(.65) brightness(.75)}
+.dgm .lb{font-size:22px;font-weight:700;color:var(--dim);white-space:nowrap;
+  background:rgba(10,13,20,.7);border:1px solid var(--line);border-radius:6px;padding:2px 10px}
+.dgm.open .ic{filter:none}
+.dgm.open .lb{color:var(--acc);border-color:var(--acc)}
+.node.onsea{border-color:var(--bad)}
 path.hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:move}
-path.wire{fill:none;stroke-width:3.5;stroke-linecap:round}
+path.wire{fill:none;stroke-width:4;stroke-linecap:round;
+  filter:drop-shadow(0 0 3px rgba(5,8,12,.9))}
 /* 線の向き。動きっぱなしの点線はやめ、真ん中に「>」を1つ置くだけにした。
    実際に物が動いたときは粒が走るので、そちらで流れが分かる            */
-path.flow{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
-  stroke-opacity:.35}
+path.flow{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
+  stroke-opacity:.55}
 path.flow.on{stroke-width:3;stroke-opacity:1}   /* いま流れている線だけ濃く */
 #gw.far path.flow{display:none}        /* 引きの絵では細かい印は出さない */
 path.hit:hover + .wire{stroke-width:6;stroke-opacity:.85}
@@ -784,12 +800,14 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     </div>
     <div id="stage">
       <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><g id="gwH"></g><path id="temp"></path><path id="lasso"></path></g></svg>
-      <div id="world"></div>
+      <div id="world"><canvas id="mapc"></canvas><div id="mapg"></div><div id="mapd"></div></div>
       <div id="hint">
         <div class="ttl">ⓘ 操作方法</div>
         <div class="body">
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
+        <b>地形</b>：施設はタイルの上に置きます。配線が横切った地形で流れの速さが変わります<br>
+        　🌱平地 ×1 ／ ⛰️山 ×1/2 ／ 💧川 ×1/3 ／ 🌊海は⚓港がないと渡れません<br>
         <b>🔗複合化</b>=つながる生産施設を2〜10台囲むと、ひとつにまとまります（⚡が3割減）<br>
         配線を<b>タップ</b>=選ぶ（ピンの足し引き・切断ができます）<br>
         配線を<b>ドラッグ</b>=ピンを打って曲げる / <b>ダブルタップ</b>=まっすぐに戻す<br>
@@ -1404,6 +1422,9 @@ const TYPES = {
            +'ほどけば元に戻る'},
   raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
           d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
+  port  :{n:'港',        i:'⚓', cost:6000, up:7000, time:3.0, ins:{sta:6}, outs:{}, port2:true,
+          d:'海に面した土地にだけ置ける。まわり6タイルの海を、配線が渡れるようになる。'
+           +'ただし海の上は流れが半分になる'},
   purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:3.0, ins:{sta:4}, outs:{},
           aura:{k:'clean', v:1.0, r:280},
           d:'置いた場所のまわりの汚染を抑える。範囲は点線で見える'},
@@ -1534,6 +1555,7 @@ const FAC = {
   hout:  [{e:1,n:'搬出口',      i:'🏠'},{e:2,n:'荷出し場',  i:'🚚'},{e:3,n:'自動搬出機',i:'🤖'}],
   purify:[{e:1,n:'送風機',      i:'🌬️'},{e:2,n:'空気清浄機',i:'🌀'},{e:3,n:'浄化場',    i:'🧱'}],
   boost: [{e:1,n:'作業灯',      i:'💡'},{e:2,n:'監督塔',    i:'🔔'},{e:3,n:'管制塔',    i:'🤖'}],
+  port:  [{e:1,n:'港',          i:'⚓'},{e:2,n:'大型港',    i:'🛳'},{e:3,n:'空中港',    i:'🛸'}],
 };
 
 /* =========================================================================
@@ -1707,7 +1729,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  wood:'薪',coal:'石炭',gen:'発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
+  wood:'薪',coal:'石炭',gen:'発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',port:'港'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -2419,6 +2441,128 @@ const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
 const depthBonus = () => { const t = depthTier();
   return Math.pow(DEPTH_K, t + t*t/DEPTH_Q); };
 const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
+
+/* ========================= マップ =========================
+   遊びはじめに 50×40＝2000タイルの土地を作る。
+   海・平地・山・川があり、施設はタイルの上に置く。
+   配線が横切った地形で、流れる速さが変わる。
+     平地 ×1 ／ 山 ×1/2 ／ 川 ×1/3 ／ 海は港が要る
+   拠点は中心。ダンジョンは11個（すぐ隣のチュートリアル＋10個）で、
+   遠いほど強く、採れる鉱石も良くなる。                              */
+const MAP_W = 50, MAP_H = 40, TILE = 200;
+const SEA = 0, PLAIN = 1, MOUNT = 2, RIVER = 3;
+const TERR = [
+  {k:'海',   i:'🌊', c:'#10263c', spd:0},
+  {k:'平地', i:'🌱', c:'#1b3226', spd:1},
+  {k:'山',   i:'⛰️', c:'#3a322a', spd:0.5},
+  {k:'川',   i:'💧', c:'#1a4468', spd:1/3},
+];
+const mapW = () => (S.map && S.map.w) || MAP_W;
+const mapH = () => (S.map && S.map.h) || MAP_H;
+/* 世界の座標 ⇄ タイル */
+const tileX  = x => Math.floor(x / TILE);
+const tileY  = y => Math.floor(y / TILE);
+const tileAt = (x,y) => terrAt(tileX(x), tileY(y));
+function terrAt(tx,ty){
+  if(!S.map) return PLAIN;
+  if(tx<0||ty<0||tx>=S.map.w||ty>=S.map.h) return SEA;
+  return S.map.t[ty*S.map.w+tx];
+}
+/* タイルの中央に置くときの、左上の座標 */
+const tileLeft = tx => tx*TILE + (TILE-NW)/2;
+const tileTop  = ty => ty*TILE + (TILE-90)/2;
+const nodeTx = n => tileX(n.x + NW/2);
+const nodeTy = n => tileY(n.y + 45);
+
+/* 土地を作る。高さの雲を重ねて島の形にし、山から海へ川を流す */
+function genMap(seed){
+  let s = (seed>>>0) || ((Math.random()*4294967296)>>>0) || 1;
+  const rnd = () => ((s = (s*1664525 + 1013904223) >>> 0) / 4294967296);
+  const W=MAP_W, H=MAP_H, N=W*H, at=(x,y)=>y*W+x;
+  const h=new Float32Array(N);
+  for(const [step,amp] of [[16,1.0],[8,0.55],[4,0.3],[2,0.16]]){
+    const gw=Math.ceil(W/step)+2, gh=Math.ceil(H/step)+2;
+    const g=[]; for(let i=0;i<gw*gh;i++) g.push(rnd());
+    const sm=t=>t*t*(3-2*t);
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+      const fx=x/step, fy=y/step, ix=Math.floor(fx), iy=Math.floor(fy);
+      const tx=fx-ix, ty=fy-iy;
+      const a=g[iy*gw+ix], b=g[iy*gw+ix+1], c=g[(iy+1)*gw+ix], d=g[(iy+1)*gw+ix+1];
+      h[at(x,y)] += (a+(b-a)*sm(tx)+(c-a)*sm(ty)+(a-b-c+d)*sm(tx)*sm(ty))*amp;
+    }
+  }
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){       // 外周ほど低く＝島になる
+    const dx=(x/(W-1)-0.5)*2, dy=(y/(H-1)-0.5)*2;
+    h[at(x,y)] -= Math.max(0, Math.sqrt(dx*dx+dy*dy)-0.48)*3.0;
+  }
+  let lo=1e9, hi=-1e9; for(const v of h){ lo=Math.min(lo,v); hi=Math.max(hi,v); }
+  for(let i=0;i<N;i++) h[i]=(h[i]-lo)/(hi-lo);
+  const t=new Uint8Array(N);
+  for(let i=0;i<N;i++) t[i] = h[i]<0.44 ? SEA : h[i]>0.78 ? MOUNT : PLAIN;
+  // 川：高い頂から低い隣へ落ちていく
+  const peaks=[]; for(let i=0;i<N;i++) if(h[i]>0.84) peaks.push(i);
+  peaks.sort((a,b)=>h[b]-h[a]);
+  let rivers=0;
+  for(const st of peaks){
+    if(rivers>=7) break;
+    if(rnd()<0.7) continue;
+    let cur=st, guard=0; const path=[];
+    while(guard++<300){
+      path.push(cur); if(t[cur]===SEA) break;
+      const x=cur%W, y=(cur/W)|0; let best=-1, bh=h[cur];
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue;
+        const ni=at(nx,ny); if(h[ni]<bh){ bh=h[ni]; best=ni; }
+      }
+      if(best<0) break; cur=best;
+    }
+    if(path.length>=8 && t[path[path.length-1]]===SEA){
+      for(const i of path) if(t[i]!==SEA) t[i]=RIVER;
+      rivers++;
+    }
+  }
+  // 拠点：中心にいちばん近い平地
+  let base=-1, bd=1e9;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=at(x,y); if(t[i]!==PLAIN) continue;
+    const d=Math.hypot(x-W/2, y-H/2); if(d<bd){ bd=d; base=i; }
+  }
+  const bx=base%W, by=(base/W)|0;
+  // 拠点のまわりは平らにならす。出だしから山と川に囲まれていると身動きが取れない
+  for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){
+    const x=bx+dx, y=by+dy;
+    if(x<0||y<0||x>=W||y>=H) continue;
+    if(Math.hypot(dx,dy) > 3.2) continue;
+    if(t[at(x,y)] !== SEA) t[at(x,y)] = PLAIN;
+  }
+  const land=[]; for(let i=0;i<N;i++) if(t[i]===PLAIN||t[i]===MOUNT) land.push(i);
+  const dist=i=>Math.hypot(i%W-bx, ((i/W)|0)-by);
+  const far=(i,gs)=>gs.every(g=>Math.hypot(i%W-g.x, ((i/W)|0)-g.y)>3);
+  const dg=[];
+  {                                             // チュートリアルは拠点のすぐ隣
+    const near=land.filter(i=>{const d=dist(i); return d>=1.5&&d<=3;}).sort((a,b)=>dist(a)-dist(b));
+    const i = near.length ? near[0] : land[0];
+    dg.push({x:i%W, y:(i/W)|0, n:0});
+  }
+  const maxD=Math.max(...land.map(dist));
+  for(let k=1;k<=10;k++){
+    const lo2=maxD*(k+0.4)/11.4, hi2=maxD*(k+1.4)/11.4;
+    const band=land.filter(i=>{const d=dist(i); return d>=lo2 && d<hi2 && far(i,dg);});
+    const pool = band.length ? band
+      : land.filter(i=>far(i,dg)).sort((a,b)=>Math.abs(dist(a)-lo2)-Math.abs(dist(b)-lo2)).slice(0,20);
+    if(!pool.length) continue;
+    const i = pool[Math.floor(rnd()*pool.length)];
+    dg.push({x:i%W, y:(i/W)|0, n:k});
+  }
+  // ダンジョンごとに採れる鉱石。遠いほど良いものが出る
+  for(const d of dg){
+    const k = Math.min(CHAIN.length-1, Math.floor(d.n * CHAIN.length / 11));
+    d.ore = CHAIN[k].ore;
+    d.dist = Math.round(Math.hypot(d.x-bx, d.y-by));
+    d.done = false;
+  }
+  return {w:W, h:H, t:Array.from(t), bx, by, seed:s, dg};
+}
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
 const anyPort = n => { const T=TYPES[n.type];
@@ -2447,6 +2591,39 @@ function setCls(el, name, on){
   const c = el._cls || (el._cls = {});
   if(c[name] === on) return;
   c[name] = on; el.classList.toggle(name, on);
+}
+const mapc = $('#mapc'), mapg = $('#mapg');
+/* 地形を1回だけ描く。タイル1つ＝1ピクセル。表示は CSS で引き伸ばす */
+function drawMap(){
+  if(!S.map || !mapc) return;
+  drawDungeons();
+  const W=S.map.w, H=S.map.h;
+  mapc.width=W; mapc.height=H;
+  mapc.style.width=(W*TILE)+'px'; mapc.style.height=(H*TILE)+'px';
+  mapg.style.width=(W*TILE)+'px'; mapg.style.height=(H*TILE)+'px';
+  mapg.style.backgroundSize=TILE+'px '+TILE+'px';
+  const g=mapc.getContext('2d'), im=g.createImageData(W,H);
+  const hex=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
+  const cols=TERR.map(t=>hex(t.c));
+  for(let i=0;i<W*H;i++){
+    const c=cols[S.map.t[i]] || cols[1];
+    im.data[i*4]=c[0]; im.data[i*4+1]=c[1]; im.data[i*4+2]=c[2]; im.data[i*4+3]=255;
+  }
+  g.putImageData(im,0,0);
+}
+/* まだ開けていないダンジョンの在りかを、地図の上に出す */
+function drawDungeons(){
+  const w = $('#mapd'); if(!w || !S.map) return;
+  const key = S.map.dg.map(d=>(d.node?1:0)+(d.done?2:0)).join('');
+  if(w._k === key) return; w._k = key;
+  w.style.width=(S.map.w*TILE)+'px'; w.style.height=(S.map.h*TILE)+'px';
+  w.innerHTML = S.map.dg.map(d=>{
+    if(d.node) return '';                       // すでに施設になっているものは出さない
+    const nm = d.n===0 ? '試練の洞窟' : `第${d.n}のダンジョン`;
+    return `<div class="dgm" style="left:${d.x*TILE}px;top:${d.y*TILE}px">`
+      + `<div class="ic">🕳️</div>`
+      + `<div class="lb">${nm}　${ITEMS[d.ore].i}${ITEMS[d.ore].n}　拠点から${d.dist}</div></div>`;
+  }).join('');
 }
 const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'),
       gwH = $('#gwH'), gw = $('#gw');
@@ -2557,7 +2734,31 @@ function linkGeom(l){
     total += lens[lens.length-1];
     pts.push(q);
   }
-  return {pts, lens, total:Math.max(1,total), d, segs, P:r.P, Q:r.Q, pins:r.pins};
+  const g = {pts, lens, total:Math.max(1,total), d, segs, P:r.P, Q:r.Q, pins:r.pins};
+  Object.assign(g, terrCost(pts));
+  return g;
+}
+/* 通った地形から、流れの速さと「海を渡れているか」を出す。
+   平地1・山1/2・川1/3。海は港の範囲に入っていないと渡れない       */
+const PORT_R = 6;                      // 港が海を渡せる範囲（タイル）
+function portsNear(tx,ty){
+  for(const n of S.nodes){
+    if(!TYPES[n.type].port2) continue;
+    if(Math.hypot(nodeTx(n)-tx, nodeTy(n)-ty) <= PORT_R) return true;
+  }
+  return false;
+}
+function terrCost(pts){
+  if(!S.map) return {spd:1, sea:0, blocked:false};
+  let sum=0, n=0, sea=0, bad=false;
+  for(let i=0;i<pts.length;i+=2){
+    const tx=tileX(pts[i].x), ty=tileY(pts[i].y);
+    const t=terrAt(tx,ty);
+    n++;
+    if(t===SEA){ sea++; if(portsNear(tx,ty)) sum += 0.5; else { bad=true; sum += 0; } }
+    else sum += TERR[t].spd;
+  }
+  return {spd: n ? Math.max(0.05, sum/n) : 1, sea, blocked:bad};
 }
 /* いま実際に打たれているピン */
 function bendOf(l){ return pinsOf(l); }
@@ -2769,7 +2970,7 @@ function mkLinkEl(l){
   const wire=document.createElementNS(SVG,'path');  wire.setAttribute('class','wire');
   const flow=document.createElementNS(SVG,'path');  flow.setAttribute('class','flow');
 
-  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','.32');
+  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','.62');
   flow.setAttribute('stroke',c); flow.setAttribute('stroke-opacity','.9');
   hit.dataset.link=l.id;
   gwL.append(hit,wire,flow);
@@ -3090,7 +3291,8 @@ function tick(dt,fast){
         let sent=false;
         for(const i of order){
           const l=ls[i], dst=N(l.to);
-          const sp=dst?spaceIn(dst,item):0;
+          const gg = l.G || geomOf(l);
+          const sp = (gg && gg.blocked) ? 0 : (dst ? spaceIn(dst,item) : 0);
           if(sp>0){
             const q=Math.min(n.outBuf[item], chunk, sp);
             n.outBuf[item]-=q; st[i]-=wtot;
@@ -3116,7 +3318,7 @@ function tick(dt,fast){
       const p=l.packets[i];
       // 直角に曲がると経路が長くなる。速さを固定したままだと粒が這うので、
       // 「長いほど速く」して、渡りきる時間が延びすぎないようにする
-      p.t += dt * Math.max(PSPEED / G.total, 1 / PMAX);
+      p.t += dt * Math.max(PSPEED / G.total, 1 / PMAX) * (G.spd || 1);
       if(p.t>=1){ b.inBuf[p.item]=(b.inBuf[p.item]||0)+(p.q||1); delPacket(l,i); }
     }
   }
@@ -4669,6 +4871,7 @@ function render(){
     for(const p of l.packets){ if(!p.el) continue; const q=geomPt(G,p.t); p.el.setAttribute('cx',q.x); p.el.setAttribute('cy',q.y); }
   }
   if(selLink!==null) renderHandles();
+  if(slow) drawDungeons();
   // ── ここから下はパネルの数字。毎コマ書き換えても目には追えないので
   //    5コマに1回（およそ12回/秒）にまとめる。盤面の動きはそのまま60コマ ──
   if(!slow) return;
@@ -4894,10 +5097,9 @@ function placeAt(cx, cy){
   if(S.gold < cost){ cancelPlace(); return toast('ゴールドが足りません'); }
   if(!matOk(need)){ cancelPlace(); return toast(`資材が足りません（${matText(need)}）`); }
   const w = toWorld(cx, cy);
-  let x = Math.round((w.x - NW/2)/10)*10, y = Math.round((w.y - 45)/10)*10;
-  for(let i=0; i<48 && taken(x,y); i++){        // 重なったら近くの空きへずらす
-    x += 40; if(i % 5 === 4){ x -= 200; y += 46; }
-  }
+  const spot = freeTile(tileX(w.x), tileY(w.y), TYPES[t].port2);
+  if(!spot){ cancelPlace(); return toast('そこには置けません（海か、まわりが埋まっています）'); }
+  const x = tileLeft(spot.tx), y = tileTop(spot.ty);
   S.gold -= cost; takeMat(need); S.counts[t] = (S.counts[t]||0)+1;
   const n = addNode(t, x, y);
   sel = n.id; cancelPlace(); renderInsp();
@@ -4913,7 +5115,8 @@ function buy(t){
   if(!matOk(need)) return toast(`資材が足りません（${matText(need)}）`);
   S.gold-=cost; takeMat(need); S.counts[t]=(S.counts[t]||0)+1;
   const p=freeSpot();
-  sel=addNode(t,p.x,p.y).id; renderInsp();
+  const sp=freeTile(tileX(p.x+NW/2), tileY(p.y+45), TYPES[t].port2);
+  sel=addNode(t, sp?tileLeft(sp.tx):p.x, sp?tileTop(sp.ty):p.y).id; renderInsp();
   const w = powerWarn(t);
   if(w){ toast('⚠ '+w); addLog(`⚠ ${TYPES[t].n}は${w}`,'u'); }
 }
@@ -4922,6 +5125,28 @@ function buy(t){
 const NHmax = 126;                       // 判定に使うノードの高さ（最大3行ぶん）
 const hOf = n => parseFloat(n.el.root.style.height) || NHmax;
 const taken = (x,y) => S.nodes.some(n => onBoard(n) && Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
+/* そのタイルに置けるか。海には置けない（港だけは海際に置ける） */
+const tileFree = (tx,ty) => !S.nodes.some(n => onBoard(n) && nodeTx(n)===tx && nodeTy(n)===ty);
+function tileOk(tx,ty,isPort){
+  if(tx<0||ty<0||tx>=mapW()||ty>=mapH()) return false;
+  const t = terrAt(tx,ty);
+  if(t===SEA) return false;
+  if(isPort){                                   // 港は海に面していないと意味がない
+    const sea = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>terrAt(tx+dx,ty+dy)===SEA);
+    if(!sea) return false;
+  }
+  return tileFree(tx,ty);
+}
+/* 指したタイルから、渦を巻くように近い空きタイルを探す */
+function freeTile(tx,ty,isPort){
+  if(tileOk(tx,ty,isPort)) return {tx,ty};
+  for(let r=1;r<=6;r++)
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
+      if(tileOk(tx+dx,ty+dy,isPort)) return {tx:tx+dx, ty:ty+dy};
+    }
+  return null;
+}
 // 左下のインスペクタ・右上のヘルプに隠れる位置は避ける
 // 画面に重なっているパネル（案内・インスペクタ・ヘルプ）の下は避ける。
 // 縦向きと横向きでパネルの位置が変わるので、決め打ちせず実際の矩形から判定する
@@ -4941,6 +5166,15 @@ function uiBlocked(wx,wy){
   return false;
 }
 // 表示倍率を保ったまま、画面中央を基準に拡大縮小する
+/* 拠点のあたりを映す */
+function lookAtBase(){
+  if(!S.map) return fitView(1);
+  const W=stage.clientWidth||800, H=stage.clientHeight||600;
+  S.view.s = 0.6;
+  S.view.x = W/2 - (S.map.bx+0.5)*TILE*S.view.s;
+  S.view.y = H/2 - (S.map.by+0.5)*TILE*S.view.s;
+  applyView();
+}
 /* そのノードが画面の真ん中に来るように寄せる（別の盤面なら移動もする） */
 function centerOn(n){
   if(!n) return;
@@ -5112,6 +5346,10 @@ function renderLinkInsp(){
     + `<span class="nm2">${ITEMS[l.item].n}の配線</span></div>`
     + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
     + `<div class="kv">流れ<b>${fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
+    + (()=>{ const G=geomOf(l); if(!G||!S.map) return '';
+        return `<div class="kv">地形<b class="${G.blocked?'no':''}">`
+          + (G.blocked ? '🌊海を渡れない（⚓港が要ります）'
+                       : `運びの速さ ×${(G.spd||1).toFixed(2)}`) + `</b></div>`; })()
     + `<div class="kv">ピン<b>${n}本 / ${PIN_MAX}本</b></div>`
     + `<div class="lnote">丸を掴むと、曲線がそのピンを通ります。`
     + `線の上の「＋」を押すと、そこにピンが増えます</div>`
@@ -5146,6 +5384,9 @@ function renderInsp(){
     (canRename(n) ? `<div class="kv">名前<button class="ren"></button></div>` : '') +
     (n.comb ? `<div class="kv">まとめた段<b>${combStages(n).map(c=>TYPES[c.type].i+TYPES[c.type].n).join(' → ')}</b></div>`
             + `<button class="unc">🔗 ほどいて ${combStages(n).length}台に戻す</button>` : '') +
+    (S.map && !TYPES[n.type].port && !TYPES[n.type].layer
+      ? `<div class="kv">場所<b>${TERR[terrAt(nodeTx(n),nodeTy(n))].i}${TERR[terrAt(nodeTx(n),nodeTy(n))].k}`
+        + `（拠点から${Math.round(Math.hypot(nodeTx(n)-S.map.bx, nodeTy(n)-S.map.by))}）</b></div>` : '') +
     `<div class="kv wrow"><span>つながり<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>` +
     `<div class="kvb"><div class="kb">この施設の収支<i class="wsub">1分あたり</i></div>`
     + `<div class="nflow"></div></div>` +
@@ -6274,6 +6515,8 @@ function load(){
     clearBoardEls();
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
     for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
+    if(!S.map) S.map = genMap();     // 地図の無い古いデータにも土地を作る
+    drawMap();
     S.at = null; applyView(); renderLog(); renderBoard();
     layerDirty();                       // 数え直せるものは持ち越さない
     applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
@@ -6489,9 +6732,17 @@ troLoad();
 function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
-  // 出発点は「発電機・主人公・洞窟」の3つ。発電機が⚡を作り、
-  // その⚡を配線で分けた先が動く                                   */
-  const g=addNode('gen1',60,150), h=addNode('hero',60,340), d=addNode('dive1',420,150);
+  // 土地を作って、拠点のまわりから始める
+  S.map = genMap();
+  drawMap();
+  const bx=S.map.bx, by=S.map.by;
+  const put=(t,tx,ty)=>{ const sp=freeTile(tx,ty,TYPES[t].port2)||{tx,ty};
+    return addNode(t, tileLeft(sp.tx), tileTop(sp.ty)); };
+  const g=put('gen1',bx,by), h=put('hero',bx-1,by+1);
+  // チュートリアルのダンジョンは、拠点のすぐ隣に
+  const t0=S.map.dg[0];
+  const d=addNode('dive1', tileLeft(t0.x), tileTop(t0.y));
+  d.dgn = 0; t0.node = d.id;
   S.counts={hero:1, gen1:1, dive1:1};
   S.home = {ing1: 40};                 // 持ち出した資材。最初の数台はこれで建てる
   addLink(g.id,'sta',d.id);
@@ -6499,7 +6750,7 @@ function newGame(){
   addLog('建設には💰ゴールドと🟫地金の両方が要る。手持ちの地金は 🟫40（🎒持ち物→自宅）','u');
   addLog('⛏採掘機を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
   S.at = null; renderBoard();
-  fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
+  lookAtBase();
 }
 if(!load()) newGame();
 for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が未配線なので一度だけ繋ぐ
