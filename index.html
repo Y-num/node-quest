@@ -812,10 +812,10 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="alert"></div>
       <div class="sec">勇者</div>
       <div class="box">
-        <div class="hd"><span>🧍</span><span id="hName">体力</span><span class="sub num" id="hSta">0 / 10</span></div>
+        <div class="hd"><span>⚡</span><span id="hName">電力</span><span class="sub num" id="hSta">0</span></div>
         <div class="hbar sta"><i id="hStaBar"></i></div>
         <div class="rows">
-          <div class="row">体力の生成<b class="num" id="hRegen">0 /秒</b></div>
+          <div class="row">発電（作 − 使）<b class="num" id="hRegen">0 /分</b></div>
           <div class="row">攻撃力<b class="num" id="hAtk">0</b></div>
           <div class="row s1"><span>💪 筋力<i class="rt" id="eStr"></i></span><b class="num" id="sStr">0</b></div>
           <div class="xbar s1"><i id="xStr"></i></div><div class="xnote" id="rStr"></div>
@@ -1040,7 +1040,7 @@ const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
 const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
 
 const ITEMS = {
-  sta  :{n:'体力',   i:'⚡', c:'#f2c14e'},
+  sta  :{n:'電力',   i:'⚡', c:'#f2c14e'},
   waste:{n:'廃材',   i:'🗑️', c:'#8a6f5c'},
   // 原鉱（採掘で得る。深く潜るほど良いものが解放される）
   ore1 :{n:'銅鉱',   i:'🪨', c:'#b0764a'},
@@ -1094,8 +1094,8 @@ const ITEMS = {
   // 時代ごとの動力。これが無いとその時代の施設は動かない
   wood :{n:'薪',     i:'🪵', c:'#a3743f'},
   coal :{n:'石炭',   i:'⚫', c:'#6b6b6b'},
-  power:{n:'電力',   i:'🔌', c:'#f2e14e'},
-  nfl  :{n:'核燃料', i:'🟢', c:'#7ee06b'},
+  power:{n:'高圧電力', i:'🔋', c:'#f2e14e'},
+  nfl  :{n:'臨界電力', i:'🌀', c:'#7ee06b'},
   // 副産物。時代が進むほど厄介なものが必ず出る
   slud :{n:'汚染塊', i:'🫙', c:'#7fb03a'},   // 汚れきった施設を解体すると出る
   toxic:{n:'汚染',   i:'🧪', c:'#9ad14a'},
@@ -1105,10 +1105,10 @@ const ITEMS = {
 /* 副産物と、燃料に戻したときの価値。時代が進むほど厄介なものが増える。
    出るようになる時代と、片付けられるようになる時代は1つずれている。   */
 const BYP = [
-  {k:'waste', from:1,  fix:1,  v:2},
-  {k:'toxic', from:6,  fix:7,  v:9},     // 電気の時代に出て、電子の時代に片付く
-  {k:'rad',   from:8,  fix:9,  v:60},    // 原子力の時代に出て、量子の時代に分解できる
-  {k:'rift',  from:10, fix:10, v:240},   // 次元の時代
+  {k:'waste', from:1, fix:1, v:2},
+  {k:'toxic', from:2, fix:2, v:9},      // 高圧の世代から出て、同じ世代の触媒分解炉で片付く
+  {k:'rad',   from:3, fix:3, v:60},     // 超臨界の世代。遮蔽処分場と対消滅炉だけが扱える
+  {k:'rift',  from:3, fix:3, v:240},
 ];
 const bypOf  = era => BYP.filter(b => (era||1) >= b.from);   // 出る側
 const bypFix = era => BYP.filter(b => (era||1) >= b.fix);    // 片付けられる側
@@ -1332,11 +1332,12 @@ function chainOpts(t){
 /* ノード＝主人公の「行動」。役割ごとに1つだけ基本を書き、
    時代ちがいの版は下の FAC 表から作る。                                   */
 const TYPES = {
-  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3,
-          d:'すべての行動の源。装備スロットが3つある。ここから伸ばす配線の本数が体力の配分になる。経験値もここへ戻す'},
-  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:6,
-          d:'ゴールドを払って働いてもらう、もう一つの体力の源。装備スロットが1つある。'
-           +'給料が払えなくなると手が止まる'},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, unique:true, gear:3,
+          d:'この工房のあるじ。装備スロットが3つある。訓練で得た経験値はここへ戻す。'
+           +'ダンジョンや街に配属して働く'},
+  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, gear:1, pay:6,
+          d:'ゴールドを払って働いてもらう人。装備スロットが1つある。'
+           +'ダンジョンや街に配属して働く。給料が払えなくなると手が止まる'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
           d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
            +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
@@ -1385,8 +1386,9 @@ const TYPES = {
            +'⚡で動く第1世代の施設を「廃材の出し手」として残しておくとよい'},
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
-  power :{n:'発電所',    i:'🔌', cost:500, up:600, time:2.0, ins:{sta:10}, outs:{power:12, toxic:1},
-          d:'電気の時代からの動力。多くの施設が電力を要る'},
+  gen   :{n:'発電機',    i:'🔌', cost:300, up:400, time:1.6, ins:{}, outs:{sta:7}, gen:true,
+          d:'工房の動力。何も要らずに⚡電力を作る。ここから配線を伸ばした先が動く。'
+           +'世代を上げると燃料を食うかわりに、桁ちがいの電力と新しいエネルギーを作る'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
@@ -1406,8 +1408,6 @@ const TYPES = {
   boost :{n:'作業灯',    i:'💡', cost:2500, up:3000, time:3.0, ins:{sta:5}, outs:{},
           aura:{k:'speed', v:0.5, r:250},
           d:'置いた場所のまわりの施設が速くなる。重ねて置くほど効く'},
-  nfuel :{n:'濃縮施設',  i:'🟢', cost:9000, up:11000, time:4.0, ins:{sta:20, power:4, ore5:2}, outs:{nfl:4, rad:1},
-          d:'原子力の時代の動力。核燃料を作るが、放射性廃棄物も必ず出る'},
 };
 
 /* =========================================================================
@@ -1424,52 +1424,47 @@ const TYPES = {
      探索  第5 手練 → 第7 宝探し（拾い物2.5倍）→ 第9 凱旋（共鳴）
    ========================================================================= */
 const ERAS = [
-  {n:'石器',   i:'🪨', d:'手と石だけ。⚡のほかに要るものはない'},
-  {n:'青銅',   i:'🏺', d:'炉と型。副産物を燃やして⚡に戻せるようになる'},
-  {n:'鉄器',   i:'⚒️', d:'合成炉。2種類の地金から合金が作れる'},
-  {n:'水力',   i:'💧', d:'水車と炭窯。石炭を焼きはじめる'},
-  {n:'蒸気',   i:'🚂', d:'機械の始まり。この時代の生産施設は⚡ではなく⚫石炭で動く'},
-  {n:'電気',   i:'⚡', d:'発電所。生産は🔌電力で回るようになる。かわりに🧪汚染が出る'},
-  {n:'電子',   i:'💻', d:'自動化と触媒分解炉。ようやく汚染を片付けられる'},
-  {n:'原子力', i:'☢️', d:'核燃料で一気に伸びるが、☢️放射性廃棄物が必ず出る。捨てるしかない'},
-  {n:'量子',   i:'🧿', d:'放射性廃棄物を分解して⚡に変えられるようになる'},
-  {n:'次元',   i:'🌌', d:'この時代の施設は🌌歪みを生む。歪みを扱えるのもこの時代だけ'},
+  {n:'黎明',   i:'🔌', d:'🔌発電機が⚡電力を作り、機械が回りはじめる'},
+  {n:'高圧',   i:'⚡', d:'⚡高性能発電機。🔋高圧電力が要る施設が増え、生産が桁で変わる'},
+  {n:'超臨界', i:'🌟', d:'🌟超高性能発電機。🌀臨界電力を扱えるのは、この世代だけ'},
 ];
 const ERA_MAX  = ERAS.length;
 const eraName  = e => ERAS[Math.max(0,Math.min(ERA_MAX-1, e-1))];
 /* 時代が上がるほど、速く・省エネになるかわりに建設費と強化費は指数で増える */
-/* 世代がひとつ上がるごとに、速さ 1/0.72＝約1.39倍・⚡の食いぶち 0.72倍。
-   かけ合わせると「1世代でおよそ2倍」＝世代を x としたときの 2^x の曲線になる。
-   第10世代の施設は第1世代の 約19倍速く、⚡は 約0.05倍で動く                 */
-const ERA_SPD = 0.72, ERA_EFF = 0.72, ERA_COST = 3.2, ERA_UP = 4.0;
+/* 世代は3つしかないので、1段の差を思い切り大きく取る。
+   ひとつ上がるごとに 速さ 1/0.30＝約3.3倍・⚡の食いぶち 0.42倍。
+   かけ合わせると1世代でおよそ8倍。第3世代は第1世代の約11倍速く、
+   ⚡は約0.18倍で動く                                                     */
+const ERA_SPD = 0.30, ERA_EFF = 0.42, ERA_COST = 14, ERA_UP = 18;
 const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
-/* その時代の施設が⚡のほかに要るもの */
-const ERA_POW = {2:{wood:1}, 3:{wood:1}, 4:{wood:2},
-                 5:{coal:1}, 6:{power:1}, 7:{power:2}, 8:{nfl:1}, 9:{power:3}, 10:{power:6}};
+/* その世代の施設が⚡のほかに要るもの。世代が上がるほど、
+   新しいエネルギーが1種ずつ足される（作れるのは、その世代の発電機だけ） */
+const ERA_POW = {2:{power:1}, 3:{power:2, nfl:1}};
 /* 動力で動く役割。ここに入るものは、その時代になると人の体力では動かなくなる。
    逆に廃棄と再利用は最後まで⚡で動く（動力が止まっても工房を立て直せるように） */
-const POW_ROLE = {ore:1, ingot:1, part:1, alloy:1, atk:1, anvil:1, comp:1, decomp:1, sell:1, tool:1};
+const POW_ROLE = {ore:1, ingot:1, part:1, alloy:1, atk:1, anvil:1, comp:1, decomp:1, sell:1, tool:1,
+                  equip:1};
 const eraPow = T => (POW_ROLE[T.chain || T.line] && ERA_POW[T.era]) || null;
 /* 世代ごとの「できること」。数字が伸びるだけでなく、振る舞いそのものが変わる。
    生産・訓練・研究・販売・探索の5系統それぞれに別の伸び方があり、
    その世代以降の施設に付いて、上の世代ほど重ねて持つ                        */
 const ERA_PERK = {
-  make: [{e:5,  k:'sift',   n:'選別',   d:'材料が半分で済む（圧縮は除く）'},
-         {e:7,  k:'clean',  n:'無廃',   d:'廃材を出さなくなる'},
-         {e:8,  k:'aura',   n:'共鳴',   d:'まわりの施設を速くする'},
-         {e:10, k:'twin',   n:'複製',   d:'4回に1回、出来上がりが倍'}],
-  train:[{e:5,  k:'thrift', n:'省力',   d:'体力が半分で済む'},
-         {e:7,  k:'cross',  n:'複合',   d:'ほかの経験値も少し出る'},
-         {e:9,  k:'twin',   n:'覚醒',   d:'4回に1回、経験値が倍'}],
-  lab:  [{e:4,  k:'thrift', n:'集中',   d:'体力が半分で済む'},
-         {e:7,  k:'twin',   n:'並列',   d:'4回に1回、研究力が倍'},
-         {e:9,  k:'aura',   n:'知の場', d:'まわりの施設を速くする'}],
-  trade:[{e:5,  k:'rich',   n:'目利き', d:'売値が5割増し'},
-         {e:7,  k:'thrift', n:'流通',   d:'体力が半分で済む'},
-         {e:9,  k:'aura',   n:'活気',   d:'まわりの施設を速くする'}],
-  dive: [{e:5,  k:'thrift', n:'手練',   d:'体力が半分で済む'},
-         {e:7,  k:'find',   n:'宝探し', d:'拾い物が出やすい'},
-         {e:9,  k:'aura',   n:'凱旋',   d:'まわりの施設を速くする'}],
+  make: [{e:2, k:'sift',   n:'選別',   d:'材料が半分で済む（圧縮は除く）'},
+         {e:2, k:'clean',  n:'無廃',   d:'廃材を出さなくなる'},
+         {e:3, k:'aura',   n:'共鳴',   d:'まわりの施設を速くする'},
+         {e:3, k:'twin',   n:'複製',   d:'4回に1回、出来上がりが倍'}],
+  train:[{e:2, k:'thrift', n:'省力',   d:'⚡が半分で済む'},
+         {e:2, k:'cross',  n:'複合',   d:'ほかの経験値も少し出る'},
+         {e:3, k:'twin',   n:'覚醒',   d:'4回に1回、経験値が倍'}],
+  lab:  [{e:2, k:'thrift', n:'集中',   d:'⚡が半分で済む'},
+         {e:3, k:'twin',   n:'並列',   d:'4回に1回、研究力が倍'},
+         {e:3, k:'aura',   n:'知の場', d:'まわりの施設を速くする'}],
+  trade:[{e:2, k:'rich',   n:'目利き', d:'売値が5割増し'},
+         {e:2, k:'thrift', n:'流通',   d:'⚡が半分で済む'},
+         {e:3, k:'aura',   n:'活気',   d:'まわりの施設を速くする'}],
+  dive: [{e:2, k:'thrift', n:'手練',   d:'⚡が半分で済む'},
+         {e:2, k:'find',   n:'宝探し', d:'拾い物が出やすい'},
+         {e:3, k:'aura',   n:'凱旋',   d:'まわりの施設を速くする'}],
 };
 const PERK_MAKE = {ore:1, ingot:1, part:1, alloy:1, equip:1, anvil:1, comp:1};
 const FAM_LABEL = {make:'生産', train:'訓練', lab:'研究', trade:'販売', dive:'探索'};
@@ -1500,68 +1495,43 @@ const ERA_EXTRA = {
 
 /* 役割ごとに「どの時代に、どんな版があるか」。無い時代には無い。 */
 const FAC = {
-  mine:  [{e:1,n:'石のつるはし',i:'🪓'},{e:3,n:'鉄のつるはし',i:'⛏️'},{e:5,n:'蒸気掘削機',i:'🚂'},
-          {e:7,n:'自動採掘場',i:'🤖'},{e:9,n:'量子採掘機',i:'🧿'},{e:10,n:'次元採掘',i:'🌌'}],
-  smelt: [{e:1,n:'焚き火',i:'🔥',eff:1.25,d:'原鉱2つを地金1つにする。素朴なので⚡を余計に食う'},
-          {e:2,n:'るつぼ',i:'🏺'},{e:3,n:'炉',i:'🧱'},{e:5,n:'高炉',i:'🏭'},
-          {e:6,n:'電気炉',i:'⚡'},{e:8,n:'核融合炉',i:'☢️'},{e:10,n:'恒星炉',i:'🌞'}],
-  alloy: [{e:3,n:'合金炉',i:'⚗️'},{e:6,n:'電気合成炉',i:'🧪'},{e:8,n:'中性子合成炉',i:'☢️'},
-          {e:10,n:'次元合成',i:'🌌'}],
-  forge: [{e:1,n:'金床',i:'🔨'},{e:4,n:'水車鍛造',i:'💧'},{e:5,n:'蒸気ハンマー',i:'🚂'},
-          {e:6,n:'旋盤',i:'⚙️'},{e:7,n:'ロボット加工',i:'🦾'},{e:9,n:'ナノ組立',i:'🦠'},
-          {e:10,n:'次元鍛造',i:'🌀'}],
-  equip: [{e:2,n:'装備工房',i:'🎽'},{e:5,n:'兵装工房',i:'⚔️'},{e:7,n:'装甲組立',i:'🦾'},
-          {e:9,n:'生体装備炉',i:'🧬'},{e:10,n:'次元装備',i:'🌌'}],
-  anvil: [{e:3,n:'鍛錬台',i:'🔨'},{e:5,n:'強化炉',i:'🛠️'},{e:8,n:'改造槽',i:'🧫'},
-          {e:10,n:'次元強化',i:'🌌'}],
-  dive:  [{e:1,n:'洞窟の入口',i:'🕳️'},{e:3,n:'ダンジョン',i:'🚪'},{e:5,n:'深層門',i:'🌀'},
-          {e:7,n:'転移門',i:'🔷'},{e:9,n:'星間門',i:'🌠'},{e:10,n:'時空門',i:'⏳'}],
-  fund:  [{e:2,n:'出資窓口',i:'💱'},{e:4,n:'商会',i:'🏦'},{e:6,n:'投資部',i:'📈'},
-          {e:8,n:'財団',i:'🏛'},{e:10,n:'次元経済',i:'🌌'}],
-  lab:   [{e:1,n:'家の机',i:'🪑'},{e:2,n:'書斎',i:'📚'},{e:4,n:'研究室',i:'🔬'},
-          {e:6,n:'研究所',i:'🏢'},{e:7,n:'計算機室',i:'🖥'},{e:9,n:'量子演算体',i:'🧿'}],
-  dump:  [{e:1,n:'ゴミ袋',i:'🛍️'},{e:2,n:'焼却炉',i:'🔥'},{e:4,n:'廃棄場',i:'♻️'},
-          {e:7,n:'触媒分解炉',i:'🧪',d:'🧪汚染をようやく片付けられる'},
-          {e:8,n:'遮蔽処分場',i:'☢️',hd:['waste','toxic','rad'],
-           d:'☢️放射性廃棄物を封じ込められる唯一の手。ただし体力を大量に食う'},
-          {e:10,n:'次元廃棄',i:'🌀',d:'🌌歪みまで扱える唯一の廃棄'}],
-  fuel:  [{e:2,n:'堆肥箱',i:'🪱'},{e:5,n:'焼却発電',i:'🔥'},{e:8,n:'燃料電池',i:'🔋'},
-          {e:9,n:'放射能分解炉',i:'☢️',d:'☢️放射性廃棄物を分解して⚡に変える。厄介なものほど多く戻る'},
-          {e:10,n:'対消滅炉',i:'💫'}],
-  comp:  [{e:2,n:'石臼',i:'🗿'},{e:5,n:'圧縮機',i:'🗜️'},{e:7,n:'油圧プレス',i:'🛢'},
-          {e:9,n:'特異点プレス',i:'⚫'},{e:10,n:'次元圧縮',i:'🌌'}],
-  decomp:[{e:4,n:'解体台',i:'🔪'},{e:7,n:'分解機',i:'🧪'},{e:9,n:'原子炉',i:'⚛️'},
-          {e:10,n:'情報還元',i:'🧿'}],
-  shop:  [{e:1,n:'露店',i:'🏪'},{e:3,n:'商店',i:'🏬'},{e:5,n:'交易所',i:'⛵'},
-          {e:7,n:'通商網',i:'🌐'},{e:9,n:'星間交易',i:'🛰'}],
-  tool:  [{e:2,n:'木の道具',i:'🪵'},{e:4,n:'鉄の道具',i:'⚒️'},{e:6,n:'精密工具',i:'🔧'},
-          {e:8,n:'増殖炉',i:'🧫'},{e:10,n:'物質創成',i:'🌟'}],
-  box:   [{e:1,n:'木箱',i:'📦'},{e:3,n:'棚',i:'🗄️'},{e:5,n:'倉庫',i:'🏬'},
-          {e:7,n:'自動倉庫',i:'🏦'},{e:9,n:'亜空間倉庫',i:'🌀'},{e:10,n:'無限庫',i:'♾️'}],
-  tstr:  [{e:1,n:'腕立て',i:'🙇'},{e:3,n:'筋トレ',i:'🏋️'},{e:5,n:'道場',i:'🥋'},
-          {e:7,n:'闘技場',i:'🏟'},{e:9,n:'重力室',i:'🪐'},{e:10,n:'戦神の間',i:'⚡'}],
-  tint:  [{e:1,n:'読書',i:'📖'},{e:3,n:'勉強会',i:'📝'},{e:5,n:'講義',i:'🎓'},
-          {e:7,n:'図書館',i:'📚'},{e:9,n:'神経接続',i:'🧠'},{e:10,n:'悟り',i:'♾️'}],
-  tvit:  [{e:1,n:'散歩',i:'🚶'},{e:3,n:'走り込み',i:'🏃'},{e:5,n:'山ごもり',i:'⛰️'},
-          {e:7,n:'体質改善',i:'🫀'},{e:9,n:'生体改造',i:'🧬'},{e:10,n:'不死の泉',i:'⛲'}],
-  mate:  [{e:3,n:'村人',i:'👩‍🌾'},{e:6,n:'職人',i:'👩‍🔧'},{e:8,n:'試作体',i:'👩‍🔬'},
-          {e:9,n:'ホムンクルス',i:'🧝‍♀️',payRp:0.012,d:'研究ポイントを食べて働く人工の仲間。ゴールドは要らない'},
-          {e:10,n:'オートマタ',i:'🧞‍♀️',payRp:0.012,d:'研究ポイントで動く自動人形。ゴールドは要らない'}],
-  wood:  [{e:2,n:'薪割り小屋',i:'🪓'},{e:4,n:'製材所',i:'🪚',outs:{wood:3}}],
-  coal:  [{e:4,n:'炭窯',i:'🪵'}],
-  open:  [{e:1,n:'開封所',i:'📦'},{e:4,n:'開封場',i:'🏗'},{e:7,n:'自動開封機',i:'🤖'},
-          {e:10,n:'次元開封',i:'🌌'}],
-  hout:  [{e:1,n:'搬出口',i:'🏠'},{e:4,n:'荷出し場',i:'🚚'},{e:7,n:'自動搬出機',i:'🤖'},
-          {e:10,n:'次元搬出',i:'🌌'}],
-  purify:[{e:2,n:'送風機',i:'🌬️'},{e:4,n:'緑化区画',i:'🪴'},{e:6,n:'空気清浄機',i:'🌀'},
-          {e:8,n:'遮蔽壁',i:'🧱'},{e:10,n:'浄化場',i:'🌌'}],
-  boost: [{e:3,n:'作業灯',i:'💡'},{e:6,n:'監督塔',i:'🔔'},{e:9,n:'管制塔',i:'🤖'}],
-  power: [{e:6,n:'発電所',i:'🔌'},
-          {e:8,n:'原子力発電所',i:'☢️',ins:{sta:14, nfl:1}, outs:{power:40, rad:1},
-           d:'桁ちがいの電力。かわりに☢️放射性廃棄物が必ず出る'},
-          {e:9,n:'量子炉',i:'🧿', ins:{sta:18}, outs:{power:90}, d:'副産物なしで大量の電力を生む'},
-          {e:10,n:'真空発電',i:'🌌', ins:{sta:24}, outs:{power:260, rift:1}}],
-  nfuel: [{e:8,n:'濃縮施設',i:'🟢'}],
+  /* 動力の源。第1世代は何も要らずに⚡を作る（工房の出発点）。
+     上の世代は燃料を食うかわりに、新しいエネルギーまで作る           */
+  gen:   [{e:1,n:'発電機',      i:'🔌'},
+          {e:2,n:'高性能発電機', i:'⚡', ins:{wood:1}, outs:{sta:26, power:4}},
+          {e:3,n:'超高性能発電機',i:'🌟', ins:{coal:1}, outs:{sta:90, power:16, nfl:3}}],
+  mine:  [{e:1,n:'採掘機',      i:'⛏️'},{e:2,n:'高速採掘機',i:'🚜'},{e:3,n:'重層採掘機',i:'🛰'}],
+  smelt: [{e:1,n:'精錬炉',      i:'🔥'},{e:2,n:'高炉',      i:'🏭'},{e:3,n:'プラズマ炉',i:'🌞'}],
+  alloy: [{e:1,n:'合金炉',      i:'⚗️'},{e:2,n:'電気合成炉',i:'🧪'},{e:3,n:'分子合成炉',i:'🧬'}],
+  forge: [{e:1,n:'鍛造機',      i:'🔨'},{e:2,n:'精密加工機',i:'⚙️'},{e:3,n:'ナノ加工機',i:'🦠'}],
+  equip: [{e:1,n:'装備工房',    i:'🎽'},{e:2,n:'兵装工房',  i:'⚔️'},{e:3,n:'強化外装炉',i:'🦾'}],
+  anvil: [{e:1,n:'鍛錬台',      i:'🔨'},{e:2,n:'強化炉',    i:'🛠️'},{e:3,n:'改造槽',    i:'🧫'}],
+  dive:  [{e:1,n:'洞窟の入口',  i:'🕳️'},{e:2,n:'探索拠点',  i:'🚪'},{e:3,n:'深層転移門',i:'🌀'}],
+  fund:  [{e:1,n:'出資窓口',    i:'💱'},{e:2,n:'商会',      i:'🏦'},{e:3,n:'投資機構',  i:'📈'}],
+  lab:   [{e:1,n:'研究室',      i:'🔬'},{e:2,n:'研究所',    i:'🏢'},{e:3,n:'計算機群',  i:'🧿'}],
+  dump:  [{e:1,n:'廃棄場',      i:'♻️'},
+          {e:2,n:'触媒分解炉',  i:'🧪', d:'🧪汚染まで片付けられる'},
+          {e:3,n:'遮蔽処分場',  i:'☢️', hd:['waste','toxic','rad','rift'],
+           d:'☢️放射性廃棄物と🌌歪みを封じ込められる唯一の手。⚡を大量に食う'}],
+  fuel:  [{e:1,n:'焼却発電',    i:'🔥'},{e:2,n:'燃料電池',  i:'🔋'},
+          {e:3,n:'対消滅炉',    i:'💫', d:'☢️放射性廃棄物まで⚡に戻す。厄介なものほど多く戻る'}],
+  comp:  [{e:1,n:'圧縮機',      i:'🗜️'},{e:2,n:'油圧プレス',i:'🛢'},{e:3,n:'特異点プレス',i:'⚫'}],
+  decomp:[{e:1,n:'解体台',      i:'🔪'},{e:2,n:'分解機',    i:'🧪'},{e:3,n:'情報還元炉',i:'⚛️'}],
+  shop:  [{e:1,n:'露店',        i:'🏪'},{e:2,n:'商店',      i:'🏬'},{e:3,n:'通商網',    i:'🌐'}],
+  tool:  [{e:1,n:'道具棚',      i:'🪵'},{e:2,n:'精密工具',  i:'🔧'},{e:3,n:'物質増幅器',i:'🌟'}],
+  box:   [{e:1,n:'木箱',        i:'📦'},{e:2,n:'倉庫',      i:'🏬'},{e:3,n:'自動倉庫',  i:'🏦'}],
+  tstr:  [{e:1,n:'筋トレ',      i:'🏋️'},{e:2,n:'道場',      i:'🥋'},{e:3,n:'重力室',    i:'🪐'}],
+  tint:  [{e:1,n:'読書',        i:'📖'},{e:2,n:'講義',      i:'🎓'},{e:3,n:'神経接続',  i:'🧠'}],
+  tvit:  [{e:1,n:'走り込み',    i:'🏃'},{e:2,n:'山ごもり',  i:'⛰️'},{e:3,n:'体質改造',  i:'🧬'}],
+  mate:  [{e:1,n:'村人',        i:'👩‍🌾'},{e:2,n:'職人',      i:'👩‍🔧'},{e:3,n:'研究者',    i:'👩‍🔬'}],
+  wood:  [{e:1,n:'薪割り小屋',  i:'🪓'},{e:2,n:'製材所',    i:'🪚', outs:{wood:4}},
+          {e:3,n:'自動林場',    i:'🌲', outs:{wood:14}}],
+  coal:  [{e:1,n:'炭窯',        i:'🪵'},{e:2,n:'コークス炉',i:'🏭', outs:{coal:14, waste:2}},
+          {e:3,n:'合成炭素炉',  i:'💎', outs:{coal:48, waste:6}}],
+  open:  [{e:1,n:'開封所',      i:'📦'},{e:2,n:'開封場',    i:'🏗'},{e:3,n:'自動開封機',i:'🤖'}],
+  hout:  [{e:1,n:'搬出口',      i:'🏠'},{e:2,n:'荷出し場',  i:'🚚'},{e:3,n:'自動搬出機',i:'🤖'}],
+  purify:[{e:1,n:'送風機',      i:'🌬️'},{e:2,n:'空気清浄機',i:'🌀'},{e:3,n:'浄化場',    i:'🧱'}],
+  boost: [{e:1,n:'作業灯',      i:'💡'},{e:2,n:'監督塔',    i:'🔔'},{e:3,n:'管制塔',    i:'🤖'}],
 };
 
 /* =========================================================================
@@ -1572,7 +1542,7 @@ const FAC = {
 const COMB_MAX  = 10;     // ひとつにまとめられる段の数（つながる限り）
 const COMB_T    = 1.00;   // 速さ：いちばん重い段ぶん（並べたときと同じだけ出る）
 const COMB_STA  = 0.70;   // ⚡：合計 × これ（受け渡しの無駄が消える）
-const COMB_FROM = 9;      // この時代からは、解放されたらすぐ使える
+const COMB_FROM = 3;      // この世代からは、解放されたらすぐ使える
 const combReady = T => (T.era||1) >= COMB_FROM || (S.era||1) >= (T.era||1) + 2;
 /* まとめられる役割（作る系だけ。訓練や探索はまとめない） */
 const COMB_ROLE = {ore:1, ingot:1, part:1, alloy:1, equip:1, anvil:1, comp:1};
@@ -1735,7 +1705,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  wood:'薪',coal:'石炭',power:'発電',nfuel:'濃縮',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
+  wood:'薪',coal:'石炭',gen:'発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -1791,7 +1761,7 @@ function tierIdx(k){ if(!k) return -1; const b=baseOf(k);
 /* 動力で動く時代の施設は、人の体力ではなく動力で回る。
    つるはしと掘削機は同じ「掘る」でも別物、という区別をここで付けている。   */
 function eraIn(T, o){ const x=eraPow(T); if(!x) return o;
-  delete o.sta;                                  // 機械は⚡を使わない
+  // ⚡電力はどの世代の土台。上の世代は、それに加えて新しいエネルギーが要る
   const save = gearMul('cond');                  // 導電の装備で動力が減る
   for(const k in x) o[k]=(o[k]||0)+Math.max(1, Math.round(x[k]/save));
   return o; }
@@ -2252,14 +2222,12 @@ const isSeen = t => (TYPES[t].era || 1) <= (S.era || 1) + 1;   // 次の時代�
 const gotRp  = () => Math.floor(S.rp || 0);
 const gotMat = () => Math.floor(S.stock || 0);
 /* 時代を1つ上げるのに要るもの。桁は時代ごとに大きく変わる */
-const ERA_RP0 = 2500, ERA_RPK = 4.5;
-const ERA_MAT_FROM = 4, ERA_MATK = 3.5;
-const ERA_RP_EARLY = {2:400, 3:3000};      // 装備に触れるまでは軽く
-/* 終盤の3世代だけ、さらに重くする。序盤は軽いまま、最後のひと押しに時間がかかる */
-const ERA_LATE = e => Math.pow(Math.max(0, e-7), 2) / 6;
-const eraRp  = e => e<=1 ? 0
-  : (ERA_RP_EARLY[e] || Math.round(ERA_RP0 * Math.pow(ERA_RPK, e-2 + ERA_LATE(e))));
-const eraMat = e => e < ERA_MAT_FROM ? 0 : Math.round(150 * Math.pow(ERA_MATK, e-ERA_MAT_FROM));
+/* 世代は2回しか上がらないので、1回ぶんの重さをはっきりさせる。
+   第2世代は「装備を作れるようになったころ」、第3世代は「じっくり育てた先」 */
+const ERA_RP  = {2: 6.0e4, 3: 9.0e7};
+const ERA_MAT = {2: 1.2e3, 3: 2.4e5};
+const eraRp  = e => ERA_RP[e]  || 0;
+const eraMat = e => ERA_MAT[e] || 0;
 const canEra = () => (S.era||1) < ERA_MAX
   && gotRp() >= eraRp((S.era||1)+1) && gotMat() >= eraMat((S.era||1)+1);
 function doEra(){
@@ -2844,6 +2812,7 @@ function tick(dt,fast){
     if(T.layer){ n.stall=false; n.why=''; layerFlow(n); continue; }
     if(T.port){ n.stall=false; n.why=''; continue; }   // 入口・出口はただの受け渡し口
     if(T.raid && n.clear){ n.stall=false; n.why=''; continue; }   // 受け取り待ちは⚡を食わない
+    if(T.src){ n.stall=false; n.why=''; continue; }   // 人は物を作らない（配属して働く）
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store){                                 // 貯蔵：しまって、選んだものだけ外へ出す
       n.stall=false; n.why='';
@@ -3597,16 +3566,16 @@ const expRouted = n => !!TYPES[n.type].stat && !expMiss(n);
 /* 主人公・仲間のノードに出す一行。受け取った経験値を数字で見せる */
 function srcFace(n){
   const T=TYPES[n.type];
-  const role = n.pname ? `${T.i}${T.n}／` : '';
+  const role = n.pname ? `${T.i}${T.n}／` : `${T.i}${T.n}／`;
   const sk = skillOf(n).filter(Boolean);
   const skl = sk.length ? '　' + sk.map(k=>SKILL[k].i+SKILL[k].n).join('・') : '';
   const e=n.ex||{}, got=(e.str||0)+(e.int||0)+(e.vit||0);
   const r=exRate.str+exRate.int+exRate.vit;
   const pay = payOf(n)   ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分`
             : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分` : '';
-  if(!got) return role+'⚡供給中'+pay+'／経験値はまだ戻っていない'+skl;
+  if(!got) return role+'待機中'+pay+'／経験値はまだ戻っていない'+skl;
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
-  return `${role}⚡供給中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
+  return `${role}待機中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
 }
 function doDive(fast, node){
   if(!S.enemy) spawnEnemy();
@@ -3815,12 +3784,15 @@ const TROPHY = [
   {k:'dep4', i:'🌋', n:'溶岩を踏んで',  d:'ダンジョン 175層 をこえた',     p:3, f:()=>S.best>=175},
   {k:'dep5', i:'❄️', n:'深淵の底',      d:'ダンジョン 275層 をこえた',     p:4, f:()=>S.best>=275},
   {k:'dep6', i:'✴️', n:'極点到達',      d:'ダンジョン 400層 をこえた',     p:5, f:()=>S.best>=400},
-  // ── 時代 ──
-  {k:'era3', i:'⚒️', n:'鉄を知る',      d:'第3時代を解放した',            p:1, f:()=>(S.era||1)>=3},
-  {k:'era5', i:'🚂', n:'蒸気の轟き',    d:'第5時代を解放した',            p:2, f:()=>(S.era||1)>=5},
-  {k:'era7', i:'💻', n:'電子の世',      d:'第7時代を解放した',            p:3, f:()=>(S.era||1)>=7},
-  {k:'era9', i:'🧬', n:'生命を編む',    d:'第9時代を解放した',            p:4, f:()=>(S.era||1)>=9},
-  {k:'era10',i:'🌌', n:'次元の彼方',    d:'第10時代を解放した',           p:5, f:()=>(S.era||1)>=10},
+  // ── 世代とエネルギー ──
+  {k:'era2', i:'⚡', n:'高圧の世',      d:'第2世代を解放した',            p:3, f:()=>(S.era||1)>=2},
+  {k:'era3', i:'🌟', n:'超臨界',        d:'第3世代を解放した',            p:5, f:()=>(S.era||1)>=3},
+  {k:'gen2', i:'🔋', n:'高圧送電',      d:'🔋高圧電力を作った',            p:2,
+   f:()=>S.nodes.some(n=>outsOf(n).power)},
+  {k:'gen3', i:'🌀', n:'臨界到達',      d:'🌀臨界電力を作った',            p:4,
+   f:()=>S.nodes.some(n=>outsOf(n).nfl)},
+  {k:'genN', i:'🔌', n:'送電網',        d:'発電機を 20台 並べた',          p:2,
+   f:()=>S.nodes.filter(n=>TYPES[n.type].gen).length>=20},
   // ── 規模 ──
   {k:'mat1', i:'🧑‍🌾', n:'ひとり親方',  d:'仲間が 10人 になった',          p:1, f:()=>mateCount()>=10},
   {k:'mat2', i:'🏢', n:'町工場',        d:'仲間が 50人 になった',          p:2, f:()=>mateCount()>=50},
@@ -4526,10 +4498,13 @@ function render(){
   $('#dTier').textContent=dt+'段階';
   $('#dBonus').textContent='×'+depthBonus().toFixed(2);
   $('#dNext').textContent='第'+((dt+1)*BOSS_EVERY)+'層';
-  $('#hName').textContent = S.name || '体力';
-  $('#hSta').textContent=`${fmt(sta)} / ${fmt(mx)}`;
-  $('#hStaBar').style.width=Math.min(100,sta/mx*100)+'%';
-  $('#hRegen').textContent=hero?(1/staRate(hero)).toFixed(2)+' /秒':'—';
+  // ⚡は発電機が作る。盤面ぜんたいの手持ちと、作り／使いの差を見せる
+  let held=0; for(const n of S.nodes) held += (n.outBuf.sta||0)+(n.inBuf.sta||0);
+  const pr=rateOf('sta'), net=pr.i-pr.o;
+  $('#hName').textContent = '電力';
+  $('#hSta').textContent = fmt(held);
+  $('#hStaBar').style.width = Math.min(100, pr.i>0 ? (1-pr.o/Math.max(pr.i,1e-9))*100 : 0)+'%';
+  $('#hRegen').textContent = `+${fmtR(pr.i)} − ${fmtR(pr.o)} = ${sign(net)}`;
   $('#hAtk').textContent=fmt(atk());
   $('#sStr').textContent=S.stats.str; $('#sInt').textContent=S.stats.int; $('#sVit').textContent=S.stats.vit;
   // 能力値がどう溜まっているか。棒＋「次の+1まで」＋いまの入り
@@ -5275,6 +5250,7 @@ function renderInspLive(){
    「実際にやったら次へ進む」形。check() が true になると自動で進み、
    manual:true の手順だけ〈次へ〉で進める。いつでもスキップできる。 */
 const heroNode = () => S.nodes.find(n=>n.type==='hero');
+const genNode  = () => S.nodes.find(n=>TYPES[n.type].gen);
 // 役割どうしが繋がっているか（時代ちがいの版もまとめて見る）
 const roleOf = t => TYPES[t] ? (TYPES[t].line || t) : t;
 const linkFrom = (a,item,b) => S.links.some(l =>
@@ -5282,53 +5258,52 @@ const linkFrom = (a,item,b) => S.links.some(l =>
 
 const TUT = [
   { t:'ようこそ',
-    d:'これは <b>⚡体力の配り方</b>を考える放置RPGです。体力を生むのは主人公ひとつだけ。'
-     +'そこから伸ばす配線が、そのまま体力の配分になります。',
+    d:'これは <b>⚡電力の配り方</b>を考える放置RPGです。電力を生むのは <b>🔌発電機</b>。'
+     +'そこから伸ばす配線が、そのまま電力の配分になります。',
     manual:true },
 
   { t:'まずは放っておく',
-    d:'主人公 ⚡→ 洞窟の入口 はもう繋がっています。何もしなくても自動で潜り、ゴールドが貯まります。'
-     +'<b>石のつるはしが買えるまで待ってください。</b>',
+    d:'🔌発電機 ⚡→ 🕳️洞窟の入口 はもう繋がっています。何もしなくても自動で潜り、ゴールドが貯まります。'
+     +'<b>⛏️採掘機が買えるまで待ってください。</b>',
     check:()=> S.gold >= buyCost('mine1') },
 
-  { t:'採掘を建てる',
-    d:'左の一覧（スマホでは下の〈建設〉タブ）から <b>🪓 石のつるはし</b> を選び、'
+  { t:'採掘機を建てる',
+    d:'左の一覧（スマホでは下の〈建設〉タブ）から <b>⛏️ 採掘機</b> を選び、'
      +'<b>盤面の置きたい場所をタップ</b>してください。素材が手に入るようになります。',
-    pane:'shop', hi:()=> shopEls.mine.root,
+    pane:'shop', hi:()=> shopEls.mine && shopEls.mine.root,
     check:()=> S.nodes.some(n=>roleOf(n.type)==='mine') },
 
-  { t:'体力を分ける',
-    d:'建てただけでは動きません。<b>主人公の右にある緑の丸</b>から、'
-     +'<b>石のつるはし</b>まで線を引いてください。'
+  { t:'電力を分ける',
+    d:'建てただけでは動きません。<b>発電機の右にある緑の丸</b>から、'
+     +'<b>採掘機</b>まで線を引いてください。'
      +'（そのままドラッグしても、丸をタップしてから相手をタップしても引けます）',
-    pane:'stage', hi:()=> { const h=heroNode(); return h && h.el.root.querySelector('.pout'); },
-    check:()=> linkFrom('hero','sta','mine') },
+    pane:'stage', hi:()=> { const g=genNode(); return g && g.el.root.querySelector('.pout'); },
+    check:()=> linkFrom('gen','sta','mine') },
 
   { t:'戦利品を売る',
     d:'ダンジョンは撃破のたびに <b>🎁戦利品</b> を出します。自分の中には5個までしか積めず、'
      +'あふれたぶんは手に入りません（潜るのは続きます）。<b>🏪 露店</b>を建て、'
-     +'<b>主人公の⚡</b> と <b>洞窟の入口の🎁</b> の2本を繋いでください。',
-    pane:'shop', hi:()=> shopEls.shop.root,
-    check:()=> linkFrom('hero','sta','shop') && linkFrom('dive','lot1','shop') },
+     +'<b>発電機の⚡</b> と <b>洞窟の入口の🎁</b> の2本を繋いでください。',
+    pane:'shop', hi:()=> shopEls.shop && shopEls.shop.root,
+    check:()=> linkFrom('gen','sta','shop') && linkFrom('dive','lot1','shop') },
 
   { t:'廃材を片付ける',
-    d:'採掘は <b>🗑廃材</b> も出します。溜めても止まりはしませんが、'
+    d:'採掘機は <b>🗑廃材</b> も出します。溜めても止まりはしませんが、'
      +'<b>溜まるほどまわりが汚染されて仕事が遅くなります</b>。'
-     +'<b>🛍 ゴミ袋</b>を建て、そこへ <b>主人公の⚡</b> と <b>採掘の🗑</b> の2本を繋いでください。',
-    pane:'shop', hi:()=> shopEls.dump.root,
-    check:()=> linkFrom('hero','sta','dump') && linkFrom('mine','waste','dump') },
+     +'<b>♻️ 廃棄場</b>を建て、そこへ <b>発電機の⚡</b> と <b>採掘機の🗑</b> の2本を繋いでください。',
+    pane:'shop', hi:()=> shopEls.dump && shopEls.dump.root,
+    check:()=> linkFrom('gen','sta','dump') && linkFrom('mine','waste','dump') },
 
-  { t:'宝箱を開ける',
-    d:'ダンジョンは <b>🥉宝箱</b> も落とします。<b>📦 開封所</b>を建てて、'
-     +'<b>主人公の⚡</b> と <b>洞窟の入口の🥉</b> を繋いでください。'
-     +'中身は<b>自宅</b>に入り、🎒持ち物の〈自宅〉から見られます。'
-     +'自宅の素材は <b>🏠搬出口</b> を建てると工房へ送り出せます。',
-    pane:'shop', hi:()=> shopEls.open.root,
-    check:()=> linkFrom('hero','sta','open') && linkFrom('dive','bxc','open') },
+  { t:'発電機を増やす',
+    d:'⚡が足りなくなったら <b>🔌発電機</b> をもう1台建てます。'
+     +'施設が増えるほど電力が要るので、発電を伸ばすことが工房を伸ばすことになります。',
+    pane:'shop', hi:()=> shopEls.gen && shopEls.gen.root,
+    check:()=> S.nodes.filter(n=>TYPES[n.type].gen).length >= 2 },
 
   { t:'あとは自由に',
     d:'基本はこれだけです。🏋️訓練の経験値は<b>主人公に配線を戻す</b>と能力になります。'
-     +'🔬研究所で研究ポイントを貯めると<b>時代</b>を進められ、その時代にしかない施設が建てられます。'
+     +'🔬研究室で研究ポイントを貯めると<b>世代</b>を進められ、'
+     +'<b>⚡高性能発電機</b>と、それで動く新しい施設が使えるようになります。'
      +'目標は <b>どこまで深く潜れるか</b> です。',
     manual:true, last:true },
 ];
@@ -6273,11 +6248,13 @@ troLoad();
 function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
-  const h=addNode('hero',80,150), d=addNode('dive1',420,150);
-  S.counts={hero:1,dive1:1};
-  addLink(h.id,'sta',d.id);
-  addLog('勇者 ⚡→ ダンジョン が接続済み。まずは潜ってゴールドを貯めよう','u');
-  addLog('⛏採掘を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
+  // 出発点は「発電機・主人公・洞窟」の3つ。発電機が⚡を作り、
+  // その⚡を配線で分けた先が動く                                   */
+  const g=addNode('gen1',60,150), h=addNode('hero',60,340), d=addNode('dive1',420,150);
+  S.counts={hero:1, gen1:1, dive1:1};
+  addLink(g.id,'sta',d.id);
+  addLog('🔌発電機 ⚡→ 🕳️洞窟 が接続済み。まずは潜ってゴールドを貯めよう','u');
+  addLog('⛏採掘機を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
   S.at = null; renderBoard();
   fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
 }
