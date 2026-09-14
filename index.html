@@ -72,23 +72,30 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ノードだけがクリックを受け、空白は下の配線に通す */
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
 /* 地形。1タイル1ピクセルで描いて、そのまま引き伸ばす（軽くてくっきり） */
-#mapc{position:absolute;left:0;top:0;image-rendering:pixelated;opacity:.95;
+#mapc{position:absolute;left:0;top:0;opacity:.5;
   pointer-events:none;z-index:-3}
 #mapg{position:absolute;left:0;top:0;pointer-events:none;z-index:-2;
-  background-image:linear-gradient(rgba(140,170,200,.055) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(140,170,200,.055) 1px,transparent 1px)}
+  background-image:linear-gradient(rgba(140,170,200,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(140,170,200,.04) 1px,transparent 1px)}
 #mapd{position:absolute;left:0;top:0;pointer-events:none;z-index:-1}
+body.far #mapg{display:none}
 .dgm{position:absolute;width:200px;height:200px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:2px;pointer-events:none}
-.dgm .ic{font-size:54px;filter:grayscale(.65) brightness(.75)}
+  align-items:center;justify-content:center;gap:2px;pointer-events:none;
+  transform:scale(var(--iz,1))}
+.dgm .ic{font-size:54px;filter:grayscale(.4) brightness(1.05)}
 .dgm .lb{font-size:22px;font-weight:700;color:var(--dim);white-space:nowrap;
   background:rgba(10,13,20,.7);border:1px solid var(--line);border-radius:6px;padding:2px 10px}
 .dgm.open .ic{filter:none}
 .dgm.open .lb{color:var(--acc);border-color:var(--acc)}
+/* 引いた地図では、名前まで読ませると混み合う。素材と強さだけにする */
+.dgm .lb2{display:none;font-size:20px;font-weight:700;color:var(--dim);white-space:nowrap;
+  background:rgba(10,13,20,.72);border:1px solid var(--line);border-radius:6px;padding:1px 8px}
+body.far .dgm .lb{display:none}
+body.far .dgm .lb2{display:block}
 .node.onsea{border-color:var(--bad)}
 path.hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:move}
-path.wire{fill:none;stroke-width:4;stroke-linecap:round;
-  filter:drop-shadow(0 0 3px rgba(5,8,12,.9))}
+path.wire{fill:none;stroke-width:4.5;stroke-linecap:round;
+  filter:drop-shadow(0 0 4px rgba(4,7,11,1))}
 /* 線の向き。動きっぱなしの点線はやめ、真ん中に「>」を1つ置くだけにした。
    実際に物が動いたときは粒が走るので、そちらで流れが分かる            */
 path.flow{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
@@ -101,7 +108,7 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .wadd circle{fill:#0b1119;stroke:var(--acc);stroke-width:2}
 .wadd path{stroke:var(--acc);stroke-width:2;stroke-linecap:round;fill:none}
 .wadd:hover circle{fill:var(--acc)} .wadd:hover path{stroke:#08131a}
-path.wire.pick{stroke-opacity:1;stroke-width:4.5}
+path.wire.pick{stroke-opacity:1;stroke-width:6}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
 
 /* ---------- ノード ---------- */
@@ -138,8 +145,8 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 body.linking .node.dim, body.placing .node.dim{opacity:1;filter:none}
 body.linking path.wire.dim, body.placing path.wire.dim{stroke-opacity:.32}
 .node.near{border-color:var(--acc2)}
-path.wire.dim{stroke-opacity:.05}
-path.flow.dim{stroke-opacity:.05}
+path.wire.dim{stroke-opacity:.1}
+path.flow.dim{stroke-opacity:.1}
 circle.wph.dim{opacity:.15}
 .nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
   background:#0b1119;border:1px solid var(--line);padding:0 5px;border-radius:4px}
@@ -1061,6 +1068,7 @@ const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果
 
 const ITEMS = {
   sta  :{n:'電力',   i:'⚡', c:'#f2c14e'},
+  crew :{n:'人手',   i:'🧑', c:'#e8785a'},
   waste:{n:'廃材',   i:'🗑️', c:'#8a6f5c'},
   // 原鉱（採掘で得る。深く潜るほど良いものが解放される）
   ore1 :{n:'銅鉱',   i:'🪨', c:'#b0764a'},
@@ -1352,15 +1360,16 @@ function chainOpts(t){
 /* ノード＝主人公の「行動」。役割ごとに1つだけ基本を書き、
    時代ちがいの版は下の FAC 表から作る。                                   */
 const TYPES = {
-  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, unique:true, gear:3,
-          d:'この工房のあるじ。装備スロットが3つある。訓練で得た経験値はここへ戻す。'
-           +'ダンジョンや街に配属して働く'},
-  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, gear:1, pay:6,
-          d:'ゴールドを払って働いてもらう人。装備スロットが1つある。'
-           +'ダンジョンや街に配属して働く。給料が払えなくなると手が止まる'},
-  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
-          d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
-           +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{crew:1}, src:true, unique:true, gear:3,
+          d:'この工房のあるじ。🧑人手を出す。ダンジョンへ配線でつなぐと、そこへ配属される。'
+           +'装備スロットが3つ。訓練で得た経験値はここへ戻す。❤️体力が高いほど人手が速く出る'},
+  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{crew:1}, src:true, gear:1, pay:6,
+          d:'ゴールドを払って働いてもらう人。🧑人手を出す。装備スロットが1つ。'
+           +'給料が払えなくなると手が止まる'},
+  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8, crew:1}, outs:{}, effect:'dive', loot:true,
+          d:'🧑人手を送りこんで1回攻撃する。人がいないと誰も潜れない。'
+           +'撃破すると戦利品が出る。地図のダンジョンは守護者を倒すと制圧でき、'
+           +'そこに眠る鉱石が採れるようになる'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore',
           d:'原鉱を掘る。掘る鉱石は選ぶ。かならず副産物が出る'},
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean',
@@ -1750,6 +1759,8 @@ const lvPow = L => Math.pow(1/ERA_SPD, Math.log(1 + (Math.max(1,L)-1)/LV_BASE) /
 const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP);  // 何時代ぶんか
 
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
+// 1人が抱えておける🧑人手。❤️体力が高いほど続けて働ける
+const crewCap  = () => Math.max(2, Math.floor(3 * Math.pow(VIT_K, S.stats.vit) / 2));
 const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / lvPow(n.level) / (1 + (tierOf(n).t-1)*0.5);
 const intBoost = () => 1 + S.stats.int * 0.02;
 const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15)
@@ -1941,6 +1952,7 @@ function outsOf(n){
   }
   if(T.loot){ const o = {[lootItem(n)]:1};
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
+    const d = dgOf(n); if(d && d.done) o[d.ore] = 1;   // 制圧したダンジョンの鉱石
     return modOuts(n, o); }
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
@@ -2202,7 +2214,7 @@ const isByp    = k => BYP.some(b=>b.k===k);
 /* 副産物を抱えておける量。複合施設は中の段の数だけ、ふつうの施設ぶん持てる */
 const bypCap = n => BYP_CAP * (n.comb ? n.comb.length + 1 : 1);
 const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
-                          : (TYPES[n.type].src && item==='sta') ? maxSta()
+                          : (TYPES[n.type].src && item==='crew') ? crewCap()
                           : isByp(item) ? bypCap(n)
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
@@ -2452,10 +2464,10 @@ const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッ�
 const MAP_W = 50, MAP_H = 40, TILE = 200;
 const SEA = 0, PLAIN = 1, MOUNT = 2, RIVER = 3;
 const TERR = [
-  {k:'海',   i:'🌊', c:'#10263c', spd:0},
-  {k:'平地', i:'🌱', c:'#1b3226', spd:1},
-  {k:'山',   i:'⛰️', c:'#3a322a', spd:0.5},
-  {k:'川',   i:'💧', c:'#1a4468', spd:1/3},
+  {k:'海',   i:'🌊', c:'#20395b', spd:0},
+  {k:'平地', i:'🌱', c:'#2c492f', spd:1},
+  {k:'山',   i:'⛰️', c:'#4c412f', spd:0.5},
+  {k:'川',   i:'💧', c:'#2c699b', spd:1/3},
 ];
 const mapW = () => (S.map && S.map.w) || MAP_W;
 const mapH = () => (S.map && S.map.h) || MAP_H;
@@ -2597,19 +2609,62 @@ const mapc = $('#mapc'), mapg = $('#mapg');
 function drawMap(){
   if(!S.map || !mapc) return;
   drawDungeons();
-  const W=S.map.w, H=S.map.h;
-  mapc.width=W; mapc.height=H;
+  const W=S.map.w, H=S.map.h, SUB=8;      // 1タイルを SUB×SUB 画素で描く
+  mapc.width=W*SUB; mapc.height=H*SUB;
   mapc.style.width=(W*TILE)+'px'; mapc.style.height=(H*TILE)+'px';
   mapg.style.width=(W*TILE)+'px'; mapg.style.height=(H*TILE)+'px';
   mapg.style.backgroundSize=TILE+'px '+TILE+'px';
-  const g=mapc.getContext('2d'), im=g.createImageData(W,H);
+  const g=mapc.getContext('2d'), im=g.createImageData(W*SUB,H*SUB);
   const hex=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
   const cols=TERR.map(t=>hex(t.c));
-  for(let i=0;i<W*H;i++){
-    const c=cols[S.map.t[i]] || cols[1];
-    im.data[i*4]=c[0]; im.data[i*4+1]=c[1]; im.data[i*4+2]=c[2]; im.data[i*4+3]=255;
+  const cl=(v,m)=>v<0?0:v>m?m:v;
+  const col=(tx,ty)=>cols[S.map.t[cl(ty,H-1)*W+cl(tx,W-1)]] || cols[1];
+  // タイルの中心どうしを混ぜて、境目の角をなくす（地形の位置はそのまま）
+  for(let py=0; py<H*SUB; py++){
+    const fy=(py+0.5)/SUB-0.5, y0=Math.floor(fy), v=fy-y0;
+    for(let px=0; px<W*SUB; px++){
+      const fx=(px+0.5)/SUB-0.5, x0=Math.floor(fx), u=fx-x0;
+      const a=col(x0,y0), b=col(x0+1,y0), c=col(x0,y0+1), d=col(x0+1,y0+1);
+      const i=(py*W*SUB+px)*4;
+      for(let k=0;k<3;k++)
+        im.data[i+k] = (a[k]*(1-u)+b[k]*u)*(1-v) + (c[k]*(1-u)+d[k]*u)*v;
+      im.data[i+3]=255;
+    }
   }
   g.putImageData(im,0,0);
+}
+/* ========== 地図のダンジョン ==========
+   拠点から遠いほど守護者が硬い。倒すと制圧となり、そのダンジョン固有の鉱石が採れる */
+const dgOf   = n => (S.map && n.dgn != null) ? S.map.dg[n.dgn] : null;
+const dgName = d => d.n===0 ? '試練の洞窟' : `第${d.n}のダンジョン`;
+// 守護者の強さは本編の層に合わせる。拠点から1タイル遠いごとに約4層ぶん手強い
+const dgFloor = d => 1 + Math.round(d.dist * 4);
+const dgHp    = d => Math.floor(enemyHp(dgFloor(d)) * 10);
+// 施設を置いたとき、その足元が未攻略のダンジョンならそこに結びつける
+function bindDungeon(n){
+  if(!S.map || !TYPES[n.type].loot || n.dgn != null) return;
+  const tx = nodeTx(n), ty = nodeTy(n);
+  for(let i=0;i<S.map.dg.length;i++){
+    const d = S.map.dg[i];
+    if(d.node || Math.abs(d.x-tx) > 1 || Math.abs(d.y-ty) > 1) continue;
+    n.dgn = i; d.node = n.id; drawDungeons(); return;
+  }
+}
+// 制圧したダンジョンから採れるもの。ここが「遠くへ行って持ち帰る」の入口になる
+function dgYield(n){
+  const d = dgOf(n);
+  return (d && d.done) ? {[d.ore]: 1} : {};
+}
+function dgClear(d, n, fast){
+  d.done = true; d.hp = 0;
+  S.dgDone = (S.dgDone||0) + 1;
+  S.atkBonus = (S.atkBonus||0) + Math.round(8 * (1 + d.dist/5));  // 攻略ごとの永久ボーナス
+  drawDungeons();
+  if(!fast){
+    addLog(`【制圧】${dgName(d)}（拠点から${d.dist}）を攻略。`
+         + `${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れるようになった`,'b');
+    toast(`${dgName(d)} 制圧！ ${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れます`);
+  }
 }
 /* まだ開けていないダンジョンの在りかを、地図の上に出す */
 function drawDungeons(){
@@ -2619,10 +2674,12 @@ function drawDungeons(){
   w.style.width=(S.map.w*TILE)+'px'; w.style.height=(S.map.h*TILE)+'px';
   w.innerHTML = S.map.dg.map(d=>{
     if(d.node) return '';                       // すでに施設になっているものは出さない
-    const nm = d.n===0 ? '試練の洞窟' : `第${d.n}のダンジョン`;
+    const nm = dgName(d);
     return `<div class="dgm" style="left:${d.x*TILE}px;top:${d.y*TILE}px">`
       + `<div class="ic">🕳️</div>`
-      + `<div class="lb">${nm}　${ITEMS[d.ore].i}${ITEMS[d.ore].n}　拠点から${d.dist}</div></div>`;
+      + `<div class="lb">${nm}　${ITEMS[d.ore].i}${ITEMS[d.ore].n}`
+      + `　第${dgFloor(d)}層相当　拠点から${d.dist}</div>`
+      + `<div class="lb2">${ITEMS[d.ore].i} 第${dgFloor(d)}層</div></div>`;
   }).join('');
 }
 const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'),
@@ -2698,18 +2755,29 @@ function bez4(a,b,c,d,t){
   const u=1-t, w0=u*u*u, w1=3*u*u*t, w2=3*u*t*t, w3=t*t*t;
   return {x:w0*a.x+w1*b.x+w2*c.x+w3*d.x, y:w0*a.y+w1*b.y+w2*c.y+w3*d.y};
 }
-/* ピンを通る曲線を、三次ベジェの列にする（Catmull-Rom を変換） */
+/* ピンを通る曲線を、三次ベジェの列にする。
+   両端は口から横向きに出入りさせ、途中のピンは Catmull-Rom で滑らかに通す */
 function curveSegs(P, pins, Q){
   const pts = [P, ...pins, Q];
-  const lead = Math.max(46, Math.abs(Q.x-P.x)*0.34);
-  // 口からは横向きに出入りしてほしいので、両端に仮想の点を足す
-  const ext = [{x:P.x-lead, y:P.y}, ...pts, {x:Q.x+lead, y:Q.y}];
+  const n = pts.length;
+  const out = [], inn = [];            // その点から出る／その点へ入る制御点のずれ
+  // 横へ伸びる線はゆったり、真上・真下へ向かう線は張り出しを控える
+  const lead = (a,b) => Math.max(30, Math.min(190, Math.abs(a.x-b.x)*0.45
+                                                 + Math.abs(a.y-b.y)*0.06));
+  for(let i=0;i<n;i++){
+    if(i===0){            const L=lead(pts[0],pts[1]);     out.push({x:L,y:0}); inn.push({x:0,y:0}); }
+    else if(i===n-1){     const L=lead(pts[n-1],pts[n-2]); out.push({x:0,y:0}); inn.push({x:L,y:0}); }
+    else {
+      const m = {x:(pts[i+1].x-pts[i-1].x)/5, y:(pts[i+1].y-pts[i-1].y)/5};
+      out.push(m); inn.push(m);
+    }
+  }
   const segs = [];
-  for(let i=1;i<ext.length-2;i++){
-    const p0=ext[i-1], p1=ext[i], p2=ext[i+1], p3=ext[i+2];
+  for(let i=0;i<n-1;i++){
+    const p1=pts[i], p2=pts[i+1];
     segs.push([p1,
-               {x:p1.x+(p2.x-p0.x)/6, y:p1.y+(p2.y-p0.y)/6},
-               {x:p2.x-(p3.x-p1.x)/6, y:p2.y-(p3.y-p1.y)/6},
+               {x:p1.x+out[i].x,   y:p1.y+out[i].y},
+               {x:p2.x-inn[i+1].x, y:p2.y-inn[i+1].y},
                p2]);
   }
   return segs;
@@ -2970,7 +3038,7 @@ function mkLinkEl(l){
   const wire=document.createElementNS(SVG,'path');  wire.setAttribute('class','wire');
   const flow=document.createElementNS(SVG,'path');  flow.setAttribute('class','flow');
 
-  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','.62');
+  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','1');
   flow.setAttribute('stroke',c); flow.setAttribute('stroke-opacity','.9');
   hit.dataset.link=l.id;
   gwL.append(hit,wire,flow);
@@ -2995,13 +3063,16 @@ function addNode(type,x,y){
   }
   if(TYPES[type].src && type!=='hero') n.pname = randPerson();
   n.no = S.nextNo = (S.nextNo || 0) + 1;      // 見分けるための通し番号（一度ついたら変わらない）
-  S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n); return n;
+  S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n);
+  if(!n.layer) bindDungeon(n);                // 足元が地図のダンジョンならそこに結びつける
+  return n;
 }
 function removeNode(id){
   gearDirty(); skillDirty();
   for(const l of [...S.links]) if(l.from===id||l.to===id) removeLink(l.id);
   const i=S.nodes.findIndex(n=>n.id===id); if(i<0) return;
   const wasIn = S.nodes[i].layer;
+  const dRel = dgOf(S.nodes[i]); if(dRel){ dRel.node = null; drawDungeons(); }
   S.nodes[i].el.root.remove(); S.nodes.splice(i,1); reindex();
   if(wasIn) layerDirty();
   if(sel===id){ sel=null; renderInsp(); }
@@ -3165,7 +3236,7 @@ function tick(dt,fast){
     if(T.layer){ n.stall=false; n.why=''; layerFlow(n); continue; }
     if(T.port){ n.stall=false; n.why=''; continue; }   // 入口・出口はただの受け渡し口
     if(T.raid && n.clear){ n.stall=false; n.why=''; continue; }   // 受け取り待ちは⚡を食わない
-    if(T.src){ n.stall=false; n.why=''; continue; }   // 人は物を作らない（配属して働く）
+
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store){                                 // 貯蔵：しまって、選んだものだけ外へ出す
       n.stall=false; n.why='';
@@ -3216,7 +3287,7 @@ function tick(dt,fast){
       const rest=n.need-n.prog;
       if(budget < rest){ n.prog+=budget; break; }
       budget-=rest;
-      let give = T.loot ? {} : outsOf(n);        // 戦利品は撃破したときだけ積む
+      let give = T.loot ? dgYield(n) : outsOf(n); // 戦利品は撃破したときだけ。制圧後は鉱石が出る
       if(T.chain==='hout'){                      // 自宅の在庫を1つ減らして出す
         const H=homeOf(), have=Math.floor(H[n.item]||0);
         if(have < 1) give = {};
@@ -3247,7 +3318,14 @@ function tick(dt,fast){
         const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(n.level) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
-      if(T.effect==='dive') doDive(fast, n);
+      if(T.effect==='dive'){
+        doDive(fast, n);                        // 潜って戦う（戦利品と層は今まで通り）
+        const d = dgOf(n);                      // 地図のダンジョンは守護者も削れる
+        if(d && !d.done){
+          d.hp = (d.hp == null ? dgHp(d) : d.hp) - dmg();
+          if(d.hp <= 0) dgClear(d, n, fast);
+        }
+      }
       if(T.effect==='raid'){
         n.hp = (n.hp || raidHp()) - atk();     // 階層の装甲は関係しない
         if(n.hp <= 0){ raidDone(n); break; }
@@ -3930,9 +4008,13 @@ function srcFace(n){
   const r=exRate.str+exRate.int+exRate.vit;
   const pay = payOf(n)   ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分`
             : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分` : '';
-  if(!got) return role+'待機中'+pay+'／経験値はまだ戻っていない'+skl;
+  const held = Math.floor(n.outBuf.crew||0), cap = crewCap();
+  const sent = S.links.some(l=>l.from===n.id && l.item==='crew');
+  const crew = `🧑${held}/${cap}　${fmt(60/craftTime(n))}人/分`
+             + (sent ? '' : '　⚠ 送り先がない（ダンジョンや街へ配線）');
+  if(!got) return role+crew+pay+skl;
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
-  return `${role}待機中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
+  return `${role}${crew}${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
 }
 function doDive(fast, node){
   if(!S.enemy) spawnEnemy();
@@ -4646,6 +4728,9 @@ function renderBag(){
 function applyView(){
   const v=S.view;
   gw.classList.toggle('far', v.s < 0.45);
+  document.body.classList.toggle('far', v.s < 0.3);
+  // 引くほど目印を大きく描いて、地図として読めるようにする
+  world.style.setProperty('--iz', Math.max(1, Math.min(4.5, 0.5 / v.s)).toFixed(2));
   world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.s})`;
   gw.setAttribute('transform',`translate(${v.x},${v.y}) scale(${v.s})`);
   stage.style.backgroundSize=`${40*v.s}px ${40*v.s}px`;
@@ -4755,8 +4840,13 @@ function render(){
           ? `✨ クリア！ タップで受け取る（+${fmt((n.reward||{}).g||0)}G ほか）`
           : (()=>{ const hp=Math.max(0,n.hp||0), mx=n.hpMax||1;
               return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })())
-      : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
-          return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
+      : T.effect==='dive'? (()=>{ const d=dgOf(n);
+          if(d && !d.done){ const hp=Math.max(0, d.hp==null?dgHp(d):d.hp), mx=dgHp(d);
+            return `${dgName(d)} 守護者 ${fmt(hp)}/${fmt(mx)}`
+              + `　第${dgFloor(d)}層相当（あと${fmt(Math.ceil(hp/Math.max(1,dmg())))}回）`; }
+          const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
+          return (d ? `制圧済 ${ITEMS[d.ore].i}${ITEMS[d.ore].n}を採掘中／` : '')
+            + `${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}`
           + (n.item?`／${ITEMS[n.item].i}1つ→🧱${fmt(itemVal(n.item)*matMul(n))}＋🔬${fmt(itemVal(n.item)*matRp(n))}`
                    :'／素材を選ぶと🧱と🔬が増える')
@@ -5236,8 +5326,8 @@ function bounds(){
 }
 function fitView(maxS){
   if(!S.nodes.some(onBoard)) return;
-  const b=bounds(), W=stage.clientWidth, H=stage.clientHeight, pad=48;
-  const s=Math.min(maxS||1.2, Math.max(0.2, Math.min((W-pad*2)/Math.max(1,b.x1-b.x0),
+  const b=bounds(), W=stage.clientWidth||800, H=stage.clientHeight||600, pad=48;
+  const s=Math.min(maxS||1.2, Math.max(0.06, Math.min((W-pad*2)/Math.max(1,b.x1-b.x0),
                                                (H-pad*2)/Math.max(1,b.y1-b.y0))));
   S.view.s=s;
   S.view.x=(W-(b.x1-b.x0)*s)/2 - b.x0*s;
@@ -5387,6 +5477,12 @@ function renderInsp(){
     (S.map && !TYPES[n.type].port && !TYPES[n.type].layer
       ? `<div class="kv">場所<b>${TERR[terrAt(nodeTx(n),nodeTy(n))].i}${TERR[terrAt(nodeTx(n),nodeTy(n))].k}`
         + `（拠点から${Math.round(Math.hypot(nodeTx(n)-S.map.bx, nodeTy(n)-S.map.by))}）</b></div>` : '') +
+    (dgOf(n) ? (()=>{ const d=dgOf(n);
+        return d.done
+          ? `<div class="kv">${dgName(d)}<b>制圧済 → ${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れる</b></div>`
+          : `<div class="kv">${dgName(d)}<b>守護者 ${fmt(Math.max(0,d.hp==null?dgHp(d):d.hp))}`
+            + ` / ${fmt(dgHp(d))}（第${dgFloor(d)}層相当）</b></div>`
+            + `<div class="kv">攻略すると<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れる</b></div>`; })() : '') +
     `<div class="kv wrow"><span>つながり<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>` +
     `<div class="kvb"><div class="kb">この施設の収支<i class="wsub">1分あたり</i></div>`
     + `<div class="nflow"></div></div>` +
@@ -5835,7 +5931,7 @@ function doPinch(){
   const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
   if(!pinch || d < 1){ pinch = {d, mx, my, s:S.view.s, vx:S.view.x, vy:S.view.y}; return; }
   const r = stage.getBoundingClientRect();
-  const ns = Math.min(1.6, Math.max(0.2, pinch.s * d / pinch.d));
+  const ns = Math.min(2.0, Math.max(0.06, pinch.s * d / pinch.d));
   const cx = mx - r.left, cy = my - r.top;
   S.view.s = ns;
   S.view.x = cx - (cx - pinch.vx) * (ns / pinch.s);
@@ -6283,7 +6379,7 @@ stage.addEventListener('wheel', e=>{
   e.preventDefault();
   const r=stage.getBoundingClientRect(), v=S.view;
   const mx=e.clientX-r.left, my=e.clientY-r.top;
-  const ns=Math.min(1.6,Math.max(0.20, v.s*(e.deltaY>0?0.9:1.1)));
+  const ns=Math.min(2.0,Math.max(0.06, v.s*(e.deltaY>0?0.9:1.1)));
   v.x=mx-(mx-v.x)*(ns/v.s); v.y=my-(my-v.y)*(ns/v.s); v.s=ns; applyView();
 },{passive:false});
 
@@ -6741,12 +6837,13 @@ function newGame(){
   const g=put('gen1',bx,by), h=put('hero',bx-1,by+1);
   // チュートリアルのダンジョンは、拠点のすぐ隣に
   const t0=S.map.dg[0];
-  const d=addNode('dive1', tileLeft(t0.x), tileTop(t0.y));
-  d.dgn = 0; t0.node = d.id;
+  const d=addNode('dive1', tileLeft(t0.x), tileTop(t0.y));   // addNode が試練の洞窟に結びつける
   S.counts={hero:1, gen1:1, dive1:1};
   S.home = {ing1: 40};                 // 持ち出した資材。最初の数台はこれで建てる
   addLink(g.id,'sta',d.id);
-  addLog('🔌発電機 ⚡→ 🕳️洞窟 が接続済み。まずは潜ってゴールドを貯めよう','u');
+  addLink(h.id,'crew',d.id);          // 人がいないとダンジョンには潜れない
+  addLog('🔌発電機 ⚡と 🧍主人公 🧑人手 が 🕳️洞窟 に接続済み。まずは潜ってゴールドを貯めよう','u');
+  addLog('ダンジョンは🧑人手がないと止まる。人を増やしたら配線で送りこむこと','u');
   addLog('建設には💰ゴールドと🟫地金の両方が要る。手持ちの地金は 🟫40（🎒持ち物→自宅）','u');
   addLog('⛏採掘機を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
   S.at = null; renderBoard();
