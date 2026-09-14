@@ -52,6 +52,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .card .r1 .ic{font-size:15px}
 .card .r1 .price{margin-left:auto;font-size:11px;color:var(--gold);font-weight:700}
 .card.off .price{color:var(--dim)}
+.card .r1 .price.short{color:var(--bad)}
 .card .io{font-size:10px;color:var(--dim);margin-top:3px}
 .card .io .ar{color:var(--line);margin:0 3px}
 .card .d{font-size:10px;color:#5f6b82;margin-top:2px;line-height:1.4}
@@ -2090,6 +2091,54 @@ const buyCost = t => {
   const base = (c===0 && FIRST[T.line]) ? T.cost * FIRST[T.line] : T.cost;
   return Math.max(1, Math.floor(base * Math.pow(T.pk || PRICE_K, c)));
 };
+/* ── 建設には資材（地金）も要る ──
+   その世代に見合った地金が要るので、上の世代へ進むには
+   その地金の元になる鉱石＝遠くのダンジョンが要ることになる。
+   資材は盤面の貯蔵・倉庫と、自宅の在庫からまとめて数える        */
+const MAT_RATE = 0.045;        // 建設費のこれくらいを、地金の数に換算する
+const MAT_ITEM = e => 'ing' + Math.min(CHAIN.length, Math.max(1, e||1));
+function buyMat(t){
+  const T = TYPES[t];
+  if(!T.era || T.cost <= 0) return null;            // 口やレイヤーは要らない
+  const k = MAT_ITEM(T.era);
+  const q = Math.max(1, Math.round(buyCost(t) * MAT_RATE / Math.max(1, itemVal(k))));
+  return {[k]: q};
+}
+/* いま手元にある数（盤面の貯蔵・倉庫＋自宅） */
+function stockOfMat(k){
+  let v = Math.floor(homeOf()[k] || 0);
+  for(const n of S.nodes){
+    const T = TYPES[n.type];
+    if(!(T.store || T.ware)) continue;
+    v += Math.floor(n.inBuf[k] || 0) + Math.floor(n.outBuf[k] || 0);
+  }
+  return v;
+}
+const matOk = need => !need || Object.keys(need).every(k => stockOfMat(k) >= need[k]);
+/* 足りているぶんを、自宅 →貯蔵 の順に取り崩す */
+function takeMat(need){
+  if(!need) return true;
+  if(!matOk(need)) return false;
+  for(const k in need){
+    let q = need[k];
+    const H = homeOf(), have = Math.floor(H[k] || 0);
+    if(have > 0){ const u = Math.min(have, q); H[k] -= u; q -= u; if(H[k] <= 0) delete H[k]; }
+    for(const n of S.nodes){
+      if(q <= 0) break;
+      const T = TYPES[n.type]; if(!(T.store || T.ware)) continue;
+      for(const b of ['outBuf','inBuf']){
+        if(q <= 0) break;
+        const h = Math.floor(n[b][k] || 0); if(h <= 0) continue;
+        const u = Math.min(h, q); n[b][k] -= u; q -= u;
+        if(n[b][k] <= 0) delete n[b][k];
+      }
+    }
+  }
+  renderBag();
+  return true;
+}
+const matText = need => !need ? '' :
+  Object.keys(need).map(k=>`${ITEMS[k].i}${fmt(need[k])}`).join(' ');
 /* 値上がり方は施設ごとに変えられる。
    貨物口だけは「枠がひとつ増えるたびに桁が変わる」ほど急にしてある */
 const upKof   = n => TYPES[n.type].upk || UP_K;
@@ -4649,15 +4698,18 @@ function renderShop(){
     if(!dev) continue;
     if(e.cur!==t){ e.cur=t; e.ic.textContent=T.i; e.io.innerHTML=ioText(T); }
     const uniq=T.unique && (S.counts[t]||0)>=1;
-    const cost=buyCost(t);
+    const cost=buyCost(t), need=buyMat(t), okMat=matOk(need);
     e.name.textContent=T.n;
-    e.price.textContent = uniq ? '設置済' : fmt(cost)+' G';
+    e.price.textContent = uniq ? '設置済'
+      : fmt(cost)+' G' + (need ? '　'+matText(need) : '');
+    setCls(e.price,'short', !uniq && !okMat);
     const w = powerWarn(t);
     e.rq.textContent = (LINE_LABEL[r] ? LINE_LABEL[r] + '　' : '')
-      + (T.era ? `${eraName(T.era).i}第${T.era}時代` : '')
-      + (w ? `　⚠ ${w}` : '');
-    e.rq.classList.toggle('warn', !!w);
-    e.root.classList.toggle('off', uniq || S.gold<cost);
+      + (T.era ? `${eraName(T.era).i}第${T.era}世代` : '')
+      + (!okMat && need ? `　⚠ 資材が足りない（手元 ${Object.keys(need).map(k=>ITEMS[k].i+fmt(stockOfMat(k))).join(' ')}）`
+         : w ? `　⚠ ${w}` : '');
+    setCls(e.rq,'warn', !!w || !okMat);
+    setCls(e.root,'off', uniq || S.gold<cost || !okMat);
   }
 }
 /* その動力を工房のどこかで作れているか */
@@ -4677,8 +4729,10 @@ function startPlace(t){
   if(placing === t) return cancelPlace();          // もう一度押したら取り消し
   const T = TYPES[t];
   if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
-  if(!isDev(t)) return toast(`${eraName(T.era).n}の時代に上げると建てられます`);
+  if(!isDev(t)) return toast(`${eraName(T.era).n}の世代に上げると建てられます`);
   if(S.gold < buyCost(t)) return toast('ゴールドが足りません');
+  const need = buyMat(t);
+  if(!matOk(need)) return toast(`資材が足りません（${matText(need)} が要ります）`);
   placing = t; document.body.classList.add('placing');
   setPane('stage'); renderPlaceBar();
 }
@@ -4693,14 +4747,15 @@ function renderPlaceBar(){
 }
 function placeAt(cx, cy){
   const t = placing; if(!t) return;
-  const cost = buyCost(t);
+  const cost = buyCost(t), need = buyMat(t);
   if(S.gold < cost){ cancelPlace(); return toast('ゴールドが足りません'); }
+  if(!matOk(need)){ cancelPlace(); return toast(`資材が足りません（${matText(need)}）`); }
   const w = toWorld(cx, cy);
   let x = Math.round((w.x - NW/2)/10)*10, y = Math.round((w.y - 45)/10)*10;
   for(let i=0; i<48 && taken(x,y); i++){        // 重なったら近くの空きへずらす
     x += 40; if(i % 5 === 4){ x -= 200; y += 46; }
   }
-  S.gold -= cost; S.counts[t] = (S.counts[t]||0)+1;
+  S.gold -= cost; takeMat(need); S.counts[t] = (S.counts[t]||0)+1;
   const n = addNode(t, x, y);
   sel = n.id; cancelPlace(); renderInsp();
   const wv = powerWarn(t);
@@ -4710,9 +4765,10 @@ function buy(t){
   const T=TYPES[t];
   if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
   if(!isDev(t)) return toast(`${eraName(TYPES[t].era).n}の時代に上げると建てられます`);
-  const cost=buyCost(t);
+  const cost=buyCost(t), need=buyMat(t);
   if(S.gold<cost) return toast('ゴールドが足りません');
-  S.gold-=cost; S.counts[t]=(S.counts[t]||0)+1;
+  if(!matOk(need)) return toast(`資材が足りません（${matText(need)}）`);
+  S.gold-=cost; takeMat(need); S.counts[t]=(S.counts[t]||0)+1;
   const p=freeSpot();
   sel=addNode(t,p.x,p.y).id; renderInsp();
   const w = powerWarn(t);
@@ -4855,6 +4911,9 @@ function scrapNode(n){
   if(!n.drop){                                 // 拾った施設は買っていないので返金なし
     S.counts[n.type] = Math.max(0, (S.counts[n.type]||1) - 1);
     g = Math.floor(buyCost(n.type) * 0.5);
+    const bm = buyMat(n.type);            // 資材も半分だけ返る
+    if(bm){ const H=homeOf();
+      for(const k in bm){ const q=Math.floor(bm[k]*0.5); if(q>0) H[k]=(H[k]||0)+q; } }
     // まとめた施設は、中の段のぶんも戻す
     for(const c of (n.comb||[])){
       S.counts[c.type] = Math.max(0, (S.counts[c.type]||1) - 1);
@@ -6252,8 +6311,10 @@ function newGame(){
   // その⚡を配線で分けた先が動く                                   */
   const g=addNode('gen1',60,150), h=addNode('hero',60,340), d=addNode('dive1',420,150);
   S.counts={hero:1, gen1:1, dive1:1};
+  S.home = {ing1: 40};                 // 持ち出した資材。最初の数台はこれで建てる
   addLink(g.id,'sta',d.id);
   addLog('🔌発電機 ⚡→ 🕳️洞窟 が接続済み。まずは潜ってゴールドを貯めよう','u');
+  addLog('建設には💰ゴールドと🟫地金の両方が要る。手持ちの地金は 🟫40（🎒持ち物→自宅）','u');
   addLog('⛏採掘機を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
   S.at = null; renderBoard();
   fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
