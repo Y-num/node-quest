@@ -791,8 +791,8 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
         <b>🔗複合化</b>=つながる生産施設を2〜10台囲むと、ひとつにまとまります（⚡が3割減）<br>
-        配線を<b>タップ</b>=選ぶ（折れ点の足し引き・切断ができます）<br>
-        配線を<b>ドラッグ</b>=その棒を動かす（縦棒は左右・横棒は上下）/ <b>ダブルタップ</b>=まっすぐに戻す<br>
+        配線を<b>タップ</b>=選ぶ（ピンの足し引き・切断ができます）<br>
+        配線を<b>ドラッグ</b>=ピンを打って曲げる / <b>ダブルタップ</b>=まっすぐに戻す<br>
         <button id="tRestart">チュートリアルをやり直す</button>
         </div>
       </div>
@@ -2511,134 +2511,128 @@ function portPos(n, item, dir){
 }
 
 // 配線は中継点(waypoint)を1つ持てる → 引っ張って経路を整理できる
-/* ── 配線は直角の折れ線（エクセルのカギ線と同じ考え方）──
-   折れ方は l.bend が持つ。[x1, y1, x2, y2, … , xk] の奇数個で、
-   奇数番目が縦棒の左右位置、偶数番目が横棒の上下位置。
-     [x1]           → 横・縦・横 の3本
-     [x1,y1,x2]     → 横・縦・横・縦・横 の5本
-   点を足すと2つずつ増えて、好きなだけ折れ曲がれる                */
-const ELB = 26;                        // ノードの口から、まっすぐ出す長さ
-function defaultBend(P, Q){
-  if(Q.x - P.x >= ELB*2) return [Math.round((P.x + Q.x)/2)];
-  // 相手が左（または近すぎる）。上か下へ逃がしてから回り込む
-  const y = (Math.abs(Q.y - P.y) < 60) ? P.y + 90 : Math.round((P.y + Q.y)/2);
-  return [P.x + ELB, y, Q.x - ELB];
+/* ── 配線はなめらかな曲線 ──
+   ピン（中継点）を好きなだけ打てて、曲線はそのピンをすべて通る。
+   ピンが無ければ、口から横に出て相手の口へ入る1本の曲線。
+   l.pins = [{x,y}, ...]                                            */
+const PIN_MAX = 8;                     // 打てるピンの数
+const CURVE_SEG = 14;                  // 1区間を何点で近似するか（粒の移動と当たり判定用）
+function bez4(a,b,c,d,t){
+  const u=1-t, w0=u*u*u, w1=3*u*u*t, w2=3*u*t*t, w3=t*t*t;
+  return {x:w0*a.x+w1*b.x+w2*c.x+w3*d.x, y:w0*a.y+w1*b.y+w2*c.y+w3*d.y};
+}
+/* ピンを通る曲線を、三次ベジェの列にする（Catmull-Rom を変換） */
+function curveSegs(P, pins, Q){
+  const pts = [P, ...pins, Q];
+  const lead = Math.max(46, Math.abs(Q.x-P.x)*0.34);
+  // 口からは横向きに出入りしてほしいので、両端に仮想の点を足す
+  const ext = [{x:P.x-lead, y:P.y}, ...pts, {x:Q.x+lead, y:Q.y}];
+  const segs = [];
+  for(let i=1;i<ext.length-2;i++){
+    const p0=ext[i-1], p1=ext[i], p2=ext[i+1], p3=ext[i+2];
+    segs.push([p1,
+               {x:p1.x+(p2.x-p0.x)/6, y:p1.y+(p2.y-p0.y)/6},
+               {x:p2.x-(p3.x-p1.x)/6, y:p2.y-(p3.y-p1.y)/6},
+               p2]);
+  }
+  return segs;
 }
 function linkPts(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
-  const P=portPos(a,l.item,'out'), Q=portPos(b,l.item,'in');
-  const bend = (Array.isArray(l.bend) && l.bend.length && l.bend.length%2===1)
-             ? l.bend : defaultBend(P, Q);
-  const pts = [P];
-  let cy = P.y;
-  for(let i=0;i<bend.length;i+=2){
-    const x = bend[i];
-    pts.push({x, y:cy});                       // 横棒の終わり＝縦棒のはじまり
-    const ny = (i+1 < bend.length) ? bend[i+1] : Q.y;
-    pts.push({x, y:ny});                       // 縦棒の終わり
-    cy = ny;
-  }
-  pts.push(Q);
-  return {pts, P, Q};
+  return {P:portPos(a,l.item,'out'), Q:portPos(b,l.item,'in'), pins:pinsOf(l)};
 }
+const pinsOf = l => Array.isArray(l.pins) ? l.pins : [];
 function linkGeom(l){
   const r = linkPts(l); if(!r) return null;
-  const pts = r.pts, lens = [];
-  let total = 0;
-  for(let i=1;i<pts.length;i++){
-    const v = Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y);
-    lens.push(v); total += v;
+  const segs = curveSegs(r.P, r.pins, r.Q);
+  // 見た目はベジェ、粒の移動と取っ手は近似した折れ線で扱う
+  let d = `M${Math.round(r.P.x)} ${Math.round(r.P.y)}`;
+  for(const g of segs) d += `C${g[1].x.toFixed(1)} ${g[1].y.toFixed(1)}`
+    + ` ${g[2].x.toFixed(1)} ${g[2].y.toFixed(1)} ${g[3].x.toFixed(1)} ${g[3].y.toFixed(1)}`;
+  const pts=[r.P], lens=[]; let total=0;
+  for(const g of segs) for(let i=1;i<=CURVE_SEG;i++){
+    const q = bez4(g[0],g[1],g[2],g[3], i/CURVE_SEG);
+    const prev = pts[pts.length-1];
+    lens.push(Math.hypot(q.x-prev.x, q.y-prev.y));
+    total += lens[lens.length-1];
+    pts.push(q);
   }
-  const d = 'M' + pts.map(p=>`${Math.round(p.x)} ${Math.round(p.y)}`).join('L');
-  return {pts, lens, total:Math.max(1,total), d};
+  return {pts, lens, total:Math.max(1,total), d, segs, P:r.P, Q:r.Q, pins:r.pins};
 }
-/* いま実際に使っている折れ方（未設定なら既定のもの）を配列で返す */
-function bendOf(l){
-  const a=N(l.from), b=N(l.to); if(!a||!b) return [];
-  if(Array.isArray(l.bend) && l.bend.length && l.bend.length%2===1) return l.bend;
-  return defaultBend(portPos(a,l.item,'out'), portPos(b,l.item,'in'));
-}
-/* 動かせる棒＝端の2本をのぞいた、まん中の棒たち。
-   棒 j は bend[j-1] が決めている。奇数番なら縦（左右へ）、偶数番なら横（上下へ）*/
+/* いま実際に打たれているピン */
+function bendOf(l){ return pinsOf(l); }
+/* ピンの取っ手（そのピン）と、区間ごとの「＋」（そこにピンを足す）  */
 function segsOf(G){
-  const o = [];
-  for(let j=1;j<=G.pts.length-3;j++){
-    const a=G.pts[j], b=G.pts[j+1];
-    o.push({j, bi:j-1, vert:(j%2===1), mid:{x:(a.x+b.x)/2, y:(a.y+b.y)/2},
-            len:Math.hypot(b.x-a.x, b.y-a.y)});
-  }
+  const o = [], pts = [G.P, ...G.pins, G.Q];
+  G.pins.forEach((p,i)=>o.push({j:i, pin:true, mid:p}));
   return o;
 }
-/* 曲線は端点が動いたときだけ引き直す。
+/* 曲線は端点かピンが動いたときだけ引き直す。
    毎コマ作り直すと、線の数がそのまま重さになる                      */
 function geomOf(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
-  // 位置だけでなく「口の顔ぶれ」も見る。口が増減すると端点の高さが変わる
-  const gk = a.x+','+a.y+','+b.x+','+b.y+','+(l.bend?l.bend.join('_'):'-')
+  const gk = a.x+','+a.y+','+b.x+','+b.y
+           + ',' + pinsOf(l).map(p=>p.x+'_'+p.y).join(';')
            + '|' + (a.el&&a.el.sig||'') + '|' + (b.el&&b.el.sig||'');
   if(l._gk !== gk || !l.G){ l._gk = gk; l.G = linkGeom(l); }
   return l.G;
 }
-/* 折れ点を足す。端の棒の真ん中で2つぶん（縦＋横）増やす */
+/* ピンを打つ。at は 'head'（口の近く）／'tail'（相手の近く）／区間の番号 */
 function addBend(id, at){
   const l = S.links.find(x=>x.id===id); if(!l) return;
   const G = geomOf(l); if(!G) return;
-  const bend = bendOf(l).slice();
-  if(bend.length >= 11) return toast('折れ点はここまでです');
-  if(at === 'head'){
-    const a=G.pts[0], b=G.pts[1];
-    bend.unshift(Math.round((a.x+b.x)/2/10)*10, Math.round(a.y/10)*10);
-  }else{
-    const a=G.pts[G.pts.length-2], b=G.pts[G.pts.length-1];
-    bend.push(Math.round(b.y/10)*10, Math.round((a.x+b.x)/2/10)*10);
-  }
-  l.bend = bend; renderHandles(); renderInsp();
-  toast('折れ点を足しました（丸を掴んで動かせます）');
+  const pins = pinsOf(l).slice();
+  if(pins.length >= PIN_MAX) return toast(`ピンは${PIN_MAX}本までです`);
+  const n = pins.length + 1;
+  const at2 = (at === 'head') ? 0 : (at === 'tail') ? n-1 : Math.max(0, Math.min(n-1, at|0));
+  const q = geomPt(G, (at2 + 0.5) / n);
+  pins.splice(at2, 0, {x:Math.round(q.x), y:Math.round(q.y)});
+  l.pins = pins; renderHandles(); renderInsp();
+  toast('ピンを打ちました（掴んで動かせます）');
 }
-/* 折れ点を減らす。いちばん最後の2つぶんを取る */
+/* いちばん最後のピンを抜く */
 function delBend(id){
   const l = S.links.find(x=>x.id===id); if(!l) return;
-  const bend = bendOf(l).slice();
-  if(bend.length <= 1){ l.bend = null; renderHandles(); renderInsp();
-    return toast('これ以上は減らせません（まっすぐに戻しました）'); }
-  bend.length -= 2;
-  l.bend = bend; renderHandles(); renderInsp();
-  toast('折れ点を減らしました');
+  const pins = pinsOf(l).slice();
+  if(!pins.length) return toast('ピンはありません');
+  pins.pop();
+  l.pins = pins.length ? pins : null;
+  renderHandles(); renderInsp();
+  toast('ピンを抜きました');
 }
-/* 選んだ線の取っ手。棒の中点に丸、端の2本には「＋」を出す。
-   丸をドラッグ＝その棒を動かす／＋を押す＝そこに折れ点を足す        */
+/* 選んだ線の取っ手。ピンに丸、区間の中ほどに「＋」を出す */
 function renderHandles(){
   const l = selLink ? S.links.find(x=>x.id===selLink) : null;
   if(!l || l.el.hidden){ if(gwH.childNodes.length) gwH.innerHTML=''; gwH._k=''; return; }
   const G = geomOf(l); if(!G){ gwH.innerHTML=''; gwH._k=''; return; }
-  const segs = segsOf(G);
   const k = selLink + '|' + G.d;
-  if(gwH._k === k) return;                       // 形が変わっていなければ触らない
+  if(gwH._k === k) return;
   gwH._k = k;
   const c = ITEMS[l.item].c;
   let h = '';
-  for(const g of segs) h += `<circle class="wph" r="7" cx="${g.mid.x}" cy="${g.mid.y}"`
-    + ` stroke="${c}" data-link="${l.id}" data-seg="${g.j}"></circle>`;
-  // 端の2本（口から出るところ／口へ入るところ）には、折れ点を足す「＋」
-  for(const j of [0, G.pts.length-2]){
-    const a=G.pts[j], b=G.pts[j+1];
-    if(Math.hypot(b.x-a.x, b.y-a.y) < 26) continue;
-    h += `<g class="wadd" data-link="${l.id}" data-at="${j===0?'head':'tail'}"`
-      + ` transform="translate(${(a.x+b.x)/2},${(a.y+b.y)/2})">`
-      + `<circle r="8"></circle><path d="M-4 0H4M0 -4V4"></path></g>`;
+  G.pins.forEach((p,i)=>{ h += `<circle class="wph" r="7" cx="${p.x}" cy="${p.y}"`
+    + ` stroke="${c}" data-link="${l.id}" data-seg="${i}"></circle>`; });
+  // ピンを足せる場所（区間の中ほど）
+  if(G.pins.length < PIN_MAX){
+    const n = G.pins.length + 1;
+    for(let i=0;i<n;i++){
+      const q = geomPt(G, (i + 0.5) / n);
+      h += `<g class="wadd" data-link="${l.id}" data-at="${i}"`
+        + ` transform="translate(${q.x.toFixed(1)},${q.y.toFixed(1)})">`
+        + `<circle r="8"></circle><path d="M-4 0H4M0 -4V4"></path></g>`;
+    }
   }
   gwH.innerHTML = h;
 }
-/* 曲線の真ん中に置く、進む向きの「>」。端点が動いたときだけ作り直す */
+/* 曲線の中ほどに置く、進む向きの「>」 */
 function arrowD(G){
-  // いちばん長い棒の真ん中に置く。角の上に載って向きがぶれないように
-  let bi = 0; for(let i=1;i<G.lens.length;i++) if(G.lens[i] > G.lens[bi]) bi = i;
-  const a = G.pts[bi], b = G.pts[bi+1];
+  const mid = Math.max(1, Math.floor(G.pts.length/2));
+  const a = G.pts[mid-1], b = G.pts[Math.min(G.pts.length-1, mid+1)];
   let dx = b.x-a.x, dy = b.y-a.y;
   const len = Math.hypot(dx,dy) || 1;
   dx /= len; dy /= len;
-  const px = -dy, py = dx;                       // 進む向きに垂直
-  const m = {x:(a.x+b.x)/2, y:(a.y+b.y)/2}, h = 5.5, w = 4.5;   // 先の長さ・羽の広がり
+  const px = -dy, py = dx;
+  const m = G.pts[mid], h = 5.5, w = 4.5;
   const tx = m.x + dx*h, ty = m.y + dy*h;
   const b1x = tx - dx*h*2 + px*w, b1y = ty - dy*h*2 + py*w;
   const b2x = tx - dx*h*2 - px*w, b2y = ty - dy*h*2 - py*w;
@@ -5112,23 +5106,23 @@ function renderLinkInsp(){
   if(!l){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
   const a=N(l.from), b=N(l.to);
   if(!a||!b){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
-  const bend = bendOf(l), n = (bend.length-1)/2 + 1;
+  const n = pinsOf(l).length;
   box.innerHTML =
     `<div class="t"><span class="ic2">${ITEMS[l.item].i}</span>`
     + `<span class="nm2">${ITEMS[l.item].n}の配線</span></div>`
     + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
     + `<div class="kv">流れ<b>${fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
-    + `<div class="kv">折れ点<b>${n}か所</b></div>`
-    + `<div class="lnote">丸を掴むと棒が動きます（縦棒は左右・横棒は上下）。`
-    + `線の端の「＋」でも折れ点を足せます</div>`
-    + `<div class="btns"><button class="badd">＋ 折れ点</button>`
-    + `<button class="bdel">− 折れ点</button>`
+    + `<div class="kv">ピン<b>${n}本 / ${PIN_MAX}本</b></div>`
+    + `<div class="lnote">丸を掴むと、曲線がそのピンを通ります。`
+    + `線の上の「＋」を押すと、そこにピンが増えます</div>`
+    + `<div class="btns"><button class="badd">＋ ピン</button>`
+    + `<button class="bdel">− ピン</button>`
     + `<button class="bstr">まっすぐ</button></div>`
     + `<div class="btns"><button class="del">配線を切る</button></div>`;
   box.classList.add('on');
   box.querySelector('.badd').onclick=()=>addBend(l.id,'tail');
   box.querySelector('.bdel').onclick=()=>delBend(l.id);
-  box.querySelector('.bstr').onclick=()=>{ l.bend=null; renderHandles(); renderInsp();
+  box.querySelector('.bstr').onclick=()=>{ l.pins=null; renderHandles(); renderInsp();
     toast('配線をまっすぐに戻しました'); };
   box.querySelector('.del').onclick=()=>{ removeLink(l.id); selLink=null;
     renderHandles(); renderInsp(); toast('配線を切断しました'); };
@@ -5865,15 +5859,22 @@ function dragTo(cx, cy){
     if(drag.handle||drag.moved>5){
       const w=toWorld(cx,cy);
       const G=geomOf(l); if(!G) return;
-      const segs = segsOf(G); if(!segs.length) return;
-      // 掴んだ棒（指定が無ければ指にいちばん近い棒）を、その向きに動かす
-      let g = drag.seg!=null ? segs.find(x=>x.j===drag.seg) : null;
-      if(!g){ let best=1e18; for(const x of segs){
-                const d=Math.hypot(x.mid.x-w.x, x.mid.y-w.y); if(d<best){best=d; g=x;} } }
-      if(!g) return;
-      drag.seg = g.j;
-      const bend = l.bend = bendOf(l).slice();
-      bend[g.bi] = Math.round((g.vert ? w.x : w.y)/10)*10;
+      const pins = pinsOf(l).slice();
+      // 掴んだピン（指定が無ければ、いちばん近いピン）を自由に動かす。
+      // ピンが1本も無ければ、その場に1本打ってから掴む
+      let i = drag.seg;
+      if(i == null || !pins[i]){
+        if(!pins.length){
+          if(pins.length >= PIN_MAX) return;
+          pins.push({x:Math.round(w.x), y:Math.round(w.y)}); i = 0;
+        }else{
+          let best=1e18; pins.forEach((p,k)=>{ const d=Math.hypot(p.x-w.x,p.y-w.y);
+            if(d<best){ best=d; i=k; } });
+        }
+        drag.seg = i;
+      }
+      pins[i] = {x:Math.round(w.x), y:Math.round(w.y)};
+      l.pins = pins;
     }
   }else if(drag.mode==='lasso'){
     const w=toWorld(cx,cy), last=drag.pts[drag.pts.length-1];
@@ -6034,7 +6035,7 @@ stage.addEventListener('dblclick', e=>{
   const wph=e.target.closest('circle.wph'), hit=e.target.closest('path.hit');
   if(!wph && !hit) return;
   const l=S.links.find(x=>x.id===+(wph?wph.dataset.link:hit.dataset.link));
-  if(l){ l.bend=null; renderHandles(); toast('配線をまっすぐに戻しました'); }
+  if(l){ l.pins=null; renderHandles(); toast('配線をまっすぐに戻しました'); }
 });
 stage.addEventListener('wheel', e=>{
   if(e.target.closest(OVERLAY_SEL)) return;   // パネル内はスクロールさせる
@@ -6049,7 +6050,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest2';          // 旧版（/v1/）とはセーブを分ける
-const SAVE_V=16;
+const SAVE_V=17;
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -6228,6 +6229,11 @@ function migrate(d){
       if(T.lout && !n.level) n.level = 1;
     }
     d.v = 16;
+  }
+  if(d.v < 17){
+    // 配線を直角の折れ線から、ピンを通る曲線に戻した
+    for(const l of d.links||[]){ delete l.bend; delete l.wp; }
+    d.v = 17;
   }
   d.v = SAVE_V;
   return d;
