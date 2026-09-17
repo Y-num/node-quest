@@ -116,6 +116,28 @@ path.wire.pick{stroke-opacity:1;stroke-width:6}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
 
 
+/* 拾った瞬間の光。等級の色で一瞬ふくらむ。
+   数字が増えるだけでは「当たった」感じが出ない                    */
+.node .pop{position:absolute;left:50%;top:-6px;transform:translateX(-50%);
+  pointer-events:none;white-space:nowrap;font-size:12px;font-weight:700;
+  color:var(--rc);text-shadow:0 0 8px var(--rc),0 1px 3px #000;
+  background:rgba(8,12,18,.86);border:1px solid var(--rc);border-radius:7px;
+  padding:2px 9px;opacity:0;animation:popup 1.5s ease-out forwards;z-index:6}
+@keyframes popup{
+  0%  {opacity:0; transform:translateX(-50%) translateY(6px)  scale(.8)}
+  14% {opacity:1; transform:translateX(-50%) translateY(-6px) scale(1.12)}
+  30% {opacity:1; transform:translateX(-50%) translateY(-12px) scale(1)}
+  100%{opacity:0; transform:translateX(-50%) translateY(-42px) scale(1)}}
+.node.flash{animation:nflash .7s ease-out}
+/* 動きを控える設定の人には、動かさずに色だけ見せる */
+@media (prefers-reduced-motion: reduce){
+  .node .pop{animation:none;opacity:1;transform:translateX(-50%) translateY(-10px)}
+  .node.flash{animation:none;box-shadow:0 0 14px 3px var(--fc),0 8px 22px rgba(0,0,0,.45)}
+}
+@keyframes nflash{
+  0%  {box-shadow:0 0 0 0 var(--fc), 0 8px 22px rgba(0,0,0,.45)}
+  35% {box-shadow:0 0 22px 6px var(--fc), 0 8px 22px rgba(0,0,0,.45)}
+  100%{box-shadow:0 0 0 0 transparent, 0 8px 22px rgba(0,0,0,.45)}}
 /* ---------- 収集庫（遺物） ---------- */
 .stbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
 .stbar select{flex:1 1 auto;min-width:104px;background:#0b1119;color:var(--fg);
@@ -146,9 +168,14 @@ path.wire.pick{stroke-opacity:1;stroke-width:6}
 .raf span.fx{border-color:#35506e;color:#bcd2ee}
 .raf span.lk{border-color:var(--acc)}
 .raf span.cur{border-color:#6d3a45;color:#ff8b9a}
+.raf span.cor{border-color:#7a4fb0;color:#c08bff}
 .raf .aft{font-style:normal;font-size:9px;color:var(--dim);margin-left:3px}
 .rfl{font-size:10.5px;color:#c8b48a;margin-top:4px;font-style:italic}
 .stsel{margin-bottom:10px}
+.cmp{border:1px dashed var(--line);border-radius:9px;padding:7px 8px;margin:0 0 10px}
+.cmp.win{border-color:#2f6b60} .cmp.lose{border-color:#6d3a45}
+.cmph{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:5px}
+.cmp.win .cmph{color:var(--acc)} .cmp.lose .cmph{color:#ff8b9a}
 .orbs{display:grid;gap:7px}
 .orb{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#0c131c;cursor:pointer}
 .orb:hover{border-color:var(--acc)}
@@ -2525,6 +2552,25 @@ const SETS = [
   bo:'すべての施設の速さ +30%／出来高が15%で2倍', f:b=>{ b.spd /= 1.30; b.twin += 15; }},
 ];
 const SETM = {}; for(const s of SETS) SETM[s.k] = s;
+/* ── ダンジョンごとの好み ──
+   どの坑でも同じものが出るなら、地図はただの距離でしかない。
+   坑ごとに出やすい器・落ちる揃い・そこにしか眠っていない固有品を決める。
+   「あれが欲しいから、あそこへ行く」を作るための表                    */
+const DG_THEME = [
+  {n:'試練の洞窟', i:'🕳️', b:['acc','yld'], set:null,      uq:[]},
+  {n:'鉄の坑',     i:'⛏️', b:['acc','arm'], set:'s_craft', uq:['u_glut']},
+  {n:'静かな窯',   i:'🏺', b:['eco','cln'], set:'s_craft', uq:['u_perp','u_stor']},
+  {n:'溜まりの間', i:'🫙', b:['cap','yld'], set:'s_crown', uq:['u_void']},
+  {n:'風の回廊',   i:'🌬', b:['lns','eco'], set:'s_road',  uq:['u_lens','u_leyl']},
+  {n:'賭場の跡',   i:'🎲', b:['luc','gld'], set:'s_abyss', uq:['u_dice','u_mint']},
+  {n:'沈んだ書庫', i:'📚', b:['stu','prs'], set:'s_crown', uq:['u_sage','u_star']},
+  {n:'白い泉',     i:'⛲', b:['pur','cln'], set:'s_abyss', uq:['u_pure','u_root']},
+  {n:'歯車の谷',   i:'⚙️', b:['yld','acc'], set:'s_craft', uq:['u_twin','u_forg','u_hart']},
+  {n:'鏡の間',     i:'🪞', b:['prs','luc'], set:'s_abyss', uq:['u_mirr','u_bell','u_omni']},
+  {n:'鍛冶場の跡', i:'🔨', b:['arm','cap'], set:'s_myth',
+   uq:['u_anvl','u_wyrm','u_node','u_gate','u_kron','u_gaia']},
+];
+const dgTheme = d => DG_THEME[Math.min(DG_THEME.length-1, Math.max(0, (d && d.n) || 0))];
 /* ── 錬成（拾ったものを打ち直す） ── */
 const ORBS = [
  {k:'polish',i:'✨', n:'精錬の雫',     d:'接辞の数値だけを振り直す',                 w:34},
@@ -2534,6 +2580,8 @@ const ORBS = [
  {k:'deep',  i:'💠', n:'深化の核',     d:'深さを +12 して打ち直す',                  w:8},
  {k:'chaos', i:'🜂', n:'混沌の種',     d:'器だけを変える（接辞はそのまま）',         w:6},
  {k:'bless', i:'💎', n:'聖別の結晶',   d:'英雄を固有に変える',                       w:1.6},
+ {k:'warp',  i:'🜏', n:'歪みの楔',     d:'賭け。大化けするか、呪いを背負うか、'
+   + '別物になるか。一度使うと二度と打ち直せない',                                    w:5},
 ];
 const ORB = {}; for(const o of ORBS) ORB[o.k] = o;
 const orbStock = k => Math.floor((S.orb && S.orb[k]) || 0);
@@ -2589,20 +2637,30 @@ function addAffixes(it, want, rnd){
 function rollRelic(lv, opt){
   opt = opt || {};
   const rnd = opt.rnd || Math.random;
+  const th = opt.theme || null;                 // その坑の好み
   lv = Math.max(1, Math.round(lv));
   let r = opt.rar != null ? opt.rar : rollRar(lv, opt.mq||0, rnd);
   let uni = null;
   if(r >= 4){
-    const pool = UNIQ.filter(u => u.lv <= lv);
+    // その坑にしか眠っていない固有品を、まず引く
+    const mine = th && th.uq ? UNIQ.filter(u => u.lv <= lv && th.uq.includes(u.k)) : [];
+    const any  = UNIQ.filter(u => u.lv <= lv);
+    const pool = (mine.length && rnd() < 0.75) ? mine : any;
     if(pool.length) uni = pool[Math.floor(rnd()*pool.length)]; else r = 3;
   }
   let set = null;
   if(!uni && r === 2 && rnd() < 0.24){
-    const pool = SETS.filter(s => s.lv <= lv);
+    // 揃いは坑ごとに決まっている。そろえたければ、その坑に通うことになる
+    const want = th && th.set ? SETS.filter(x => x.k === th.set && x.lv <= lv) : [];
+    const pool = want.length ? want : SETS.filter(s => s.lv <= lv);
     if(pool.length){ const s = pool[Math.floor(rnd()*pool.length)];
       set = {s, p: s.p[Math.floor(rnd()*s.p.length)]}; }
   }
-  const base = uni ? RB[uni.b] : set ? RB[set.p.k] : REL_BASE[Math.floor(rnd()*REL_BASE.length)];
+  // 器は坑の好みに寄る（好みのものは3倍出やすい）
+  const bag = [];
+  for(const b of REL_BASE){ const w = (th && th.b && th.b.includes(b.k)) ? 3 : 1;
+    for(let i=0;i<w;i++) bag.push(b); }
+  const base = uni ? RB[uni.b] : set ? RB[set.p.k] : bag[Math.floor(rnd()*bag.length)];
   const it = {id:S.nextId++, b:base.k, r, lv, af:[], lk:[]};
   if(uni){ it.u = uni.k; for(const a of uni.af) it.af.push({k:a.k, t:9, v:a.v, fx:1}); }
   else if(set){ it.s = set.s.k; it.sn = set.p.n;
@@ -2624,7 +2682,8 @@ function relName(it){
   if(it.s) return it.sn || '？';
   const B = RB[it.b] || REL_BASE[0];
   if(it.r === 0) return B.n;
-  if(it.r >= 2){ const h = hash32(it.id);
+  // 打ち直しで中身がまるきり変わったものは、名前も変わってほしい
+  if(it.r >= 2){ const h = hash32(it.seed || it.id);
     return RN1[h % RN1.length] + RN2[(h >>> 7) % RN2.length]; }
   const pre = it.af.filter(a => AFM[a.k] && AFM[a.k].p).sort((a,b)=>b.t-a.t)[0];
   const suf = it.af.filter(a => AFM[a.k] && !AFM[a.k].p).sort((a,b)=>b.t-a.t)[0];
@@ -3125,7 +3184,8 @@ function drawMapView(){
 /* ========== 地図のダンジョン ==========
    拠点から遠いほど守護者が硬い。倒すと制圧となり、そのダンジョン固有の鉱石が採れる */
 const dgOf   = n => (S.map && n.dgn != null) ? S.map.dg[n.dgn] : null;
-const dgName = d => d.n===0 ? '試練の洞窟' : `第${d.n}のダンジョン`;
+const dgName = d => dgTheme(d).n;
+const dgIcon = d => dgTheme(d).i;
 // 守護者の強さは本編の層に合わせる。拠点から1タイル遠いごとに約4層ぶん手強い。
 // さらに「深度」を上げると、そのぶん深いところの守護者と品物になる。
 // 深度は自分で上げる。上げたぶん守護者が戻ってくるが、採掘は前の深度で続く
@@ -3194,10 +3254,12 @@ function drawDungeons(){
     if(d.node) return '';                       // すでに施設になっているものは出さない
     const nm = dgName(d);
     return `<div class="dgm" style="left:${d.x*TILE}px;top:${d.y*TILE}px">`
-      + `<div class="ic">🕳️</div>`
+      + `<div class="ic">${dgIcon(d)}</div>`
       + `<div class="lb">${nm}　${ITEMS[d.ore].i}${ITEMS[d.ore].n}`
+      + `　${dgTheme(d).b.map(b=>RB[b].i).join('')}`
       + `　第${dgFloor(d,0)}層相当　拠点から${d.dist}</div>`
-      + `<div class="lb2">${ITEMS[d.ore].i} 第${dgFloor(d)}層</div></div>`;
+      + `<div class="lb2">${ITEMS[d.ore].i}${dgTheme(d).b.map(b=>RB[b].i).join('')}`
+      + ` 第${dgFloor(d,0)}層</div></div>`;
   }).join('');
 }
 const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'),
@@ -4654,7 +4716,7 @@ function doDive(fast, node){
   const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;
   const dg = node ? dgOf(node) : null;
   const lv = dg ? dgLoot(dg) : f;
-  const q  = skillMul('drop') * findK * mfMul(node) * (dg ? 1 + dgCl(dg) * 0.14 : 1);
+  const q  = skillMul('drop') * findK * mfMul(node) * (dg ? 1 + Math.max(0,dgCl(dg)) * 0.25 : 1);
   if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * q)) tryDrop(f, fast);
   // 遺物。ここがトレハンの本体。撃破ごとにぼろぼろ落ちる
   let n2 = Math.floor(0.34 * q);
@@ -4673,6 +4735,24 @@ function doDive(fast, node){
     if(!fast) addLog(`【入手】${CORE.i}${CORE.n}（設置済みの施設を1世代ぶん引き上げられる）`, 'b');
   }
   spawnEnemy();
+}
+/* 拾ったものを、その場に一瞬出す。等級が高いほど長く強く光る */
+let popN = 0;
+function popRelic(node, it){
+  if(!node || !node.el || !node.el.root) return;
+  if(popN > 6 && it.r < 3) return;            // 出しすぎて画面が埋まらないように
+  const R = node.el.root;
+  const c = relColor(it);
+  const e = document.createElement('div');
+  e.className = 'pop';
+  e.style.setProperty('--rc', c);
+  e.textContent = `${relIcon(it)}${it.r>=2 ? relName(it) : relBaseName(it)}`;
+  R.appendChild(e); popN++;
+  setTimeout(()=>{ e.remove(); popN--; }, 1500);
+  if(it.r >= 2){
+    R.style.setProperty('--fc', c);
+    R.classList.remove('flash'); void R.offsetWidth; R.classList.add('flash');
+  }
 }
 const RELIC_MAX = 400;                 // 持ち物に積める遺物の数
 const FRAG_PER  = 100;                 // 錬成の品ひとつぶんのかけら
@@ -4703,8 +4783,10 @@ function doMelt(n, fast){
 /* 遺物をひとつ落とす。工房ぜんたいの発見量・発見質がここに効く */
 function lootRelic(lv, fast, node, opt){
   const sp = node ? modsOf(node).sp : {};
+  const dgN = node ? dgOf(node) : null;
   const it = rollRelic(lv, Object.assign(
-    {mq: mqBonus(node) + (sp.rarePlus ? sp.rarePlus * 50 : 0)}, opt||{}));
+    {mq: mqBonus(node) + (sp.rarePlus ? sp.rarePlus * 50 : 0),
+     theme: dgN ? dgTheme(dgN) : null}, opt||{}));
   // 拾った数は、仕分けで売ったぶんも含めて数える（実績の基準になるので）
   S.found = (S.found||0) + 1;
   if(it.r > (S.bestRar||0)) S.bestRar = it.r;
@@ -4736,6 +4818,7 @@ function lootRelic(lv, fast, node, opt){
   if(!fast){
     addLog(`【${relRarName(it)}】${relIcon(it)}${relName(it)}`
       + `（${relBaseName(it)}・深さ${it.lv}）`, it.r>=3 ? 'b' : 'w');
+    if(it.r >= 1) popRelic(node, it);            // 等級の色で盤面に出す
     if(it.r >= 4) toast(`${relIcon(it)}${relName(it)} を掘り当てた！`);
   }
   return it;
@@ -4848,10 +4931,17 @@ function renderStats(){
   const b=$('#statsBody'); if(!b) return;
   $('#sPlay').textContent = '遊んだ時間 '+hTime(S.playT||0);
   const h=S.hist||[];
+  const uq = new Set(invAll().filter(x=>x.u).map(x=>x.u)).size;
+  const deepest = (S.map&&S.map.dg||[]).reduce((m,d)=>Math.max(m,dgCl(d)), 0);
   const now=[['遊んだ時間',hTime(S.playT||0)],['ゴールド',fmt(S.gold)],['最深階層','第'+S.best+'層'],
     ['攻撃力',fmt(atk())],['開発した施設',devCount()+'種'],
     ['能力値',`${S.stats.str}/${S.stats.int}/${S.stats.vit}`],
-    ['ノード',S.nodes.length+'台'],['研究ポイント',fmt(gotRp())]];
+    ['ノード',S.nodes.length+'台'],['研究ポイント',fmt(gotRp())],
+    ['拾った遺物',fmt(S.found||0)+'個'],['いちばん良い等級',RAR[S.bestRar||0].n],
+    ['見つけた固有品',uq+' / '+UNIQ.length],
+    ['そろえた揃い',setBonus().done.length+' / '+SETS.length],
+    ['溶かした遺物',fmt(S.melted||0)+'個'],['自動で売った',fmt(S.autoN||0)+'個'],
+    ['いちばん深い坑','深度'+deepest],['錬成の持ち',fmt(orbCount())+'個']];
   let html='<div class="snow">'+now.map(k=>`<div><div class="k">${k[0]}</div><div class="v">${k[1]}</div></div>`).join('')+'</div>';
   if(h.length<2){
     html+='<div class="sempty">まだ記録がありません。<br>遊んだ時間ぶんだけ書き留めていくので、しばらくするとここに折れ線が出ます。</div>';
@@ -5455,7 +5545,8 @@ function relCard(it, opt){
     <div class="raf">${it.af.map(a=>`<span class="${a.fx?'fx':''}${(it.lk||[]).includes(a.k)?' lk':''}">`
        + `${(it.lk||[]).includes(a.k)?'🔒':''}${afText(a)}</span>`).join('')}
       ${it.cu ? (()=>{ const c=CURSE.find(x=>x.k===it.cu.k);
-        return c ? `<span class="cur">呪 ${c.d(it.cu.v)}</span>` : ''; })() : ''}</div>
+        return c ? `<span class="cur">呪 ${c.d(it.cu.v)}</span>` : ''; })() : ''}
+      ${it.cor ? `<span class="cor">🜏 歪み（打ち直せない）</span>` : ''}</div>
     ${u ? `<div class="rfl">「${u.fl}」</div>` : ''}
   </div>`;
 }
@@ -5510,6 +5601,7 @@ function renderStash(box){
       + RAR.slice(0,3).map((r,i)=>`<option value="${i}">${r.n}以下</option>`).join('') + `
       </select>
       <span class="sthint">${(S.autoN||0) ? `これまで ${fmt(S.autoN)}個を自動で売って +${fmt(S.autoG||0)}G` : '揃い・固有は仕分けしません'}</span>
+      <span class="sthint">⚗️錬成台があるなら、売るより溶かすほうが実入りが良いです</span>
     </div>
     <div class="rlist">${list.map(it=>relCard(it)).join('')}</div>`;
   $('#stSort').value=stSort; $('#stRar').value=stRar;
@@ -5592,6 +5684,20 @@ function renderOrbs(box){
   let h = '';
   if(it){
     h += `<div class="stsel">${relCard(it)}</div>`;
+    // いま挿してある同じ器と見比べる。良いか悪いかを言葉で言い切る
+    const w = wornIds();
+    const rival = invAll().filter(x => x.b === it.b && x.id !== it.id && w.has(x.id))
+                          .sort((a,b)=>relScore(b)-relScore(a))[0];
+    if(rival){
+      const d = relScore(it) - relScore(rival);
+      h += `<div class="cmp ${d>0?'win':d<0?'lose':''}">`
+        + `<div class="cmph">${d>0 ? '▲ いま挿してある同じ器より良い'
+            : d<0 ? '▼ いま挿してある同じ器より劣る' : '＝ ほぼ同じ'}`
+        + `（${d>0?'+':''}${d} 点）</div>`
+        + relCard(rival) + `</div>`;
+    } else if(!w.has(it.id)){
+      h += `<div class="cmp"><div class="cmph">同じ器はまだ挿していません</div></div>`;
+    }
     h += `<div class="stacts"><button id="orbClear">選択を外す</button>`
        + (wornAt(it.id) ? `<span class="sthint">#${wornAt(it.id).no} に挿さっています</span>`
           : `<button id="orbSell">売る +${fmt(relSell(it))}G</button>`) + `</div>`;
@@ -5616,6 +5722,8 @@ function renderOrbs(box){
 }
 function orbOk(k, it){
   if(!it) return false;
+  if(it.cor) return false;                                // 歪めたものは触れない
+  if(k === 'warp') return true;                           // 賭けは何にでも打てる
   if(it.u) return k === 'polish' || k === 'lock';        // 固有は数値だけ直せる
   if(k === 'raise') return it.r < RAR_MAX;
   if(k === 'bless') return it.r === 3;
@@ -5623,6 +5731,7 @@ function orbOk(k, it){
   return true;
 }
 function orbWhy(k, it){
+  if(it.cor) return '🜏歪めた遺物は、もう打ち直せません';
   if(it.u) return '固有品は作り変えられません（数値の精錬と刻印だけ）';
   if(k === 'raise') return `${RAR[RAR_MAX].n}より上には上げられません`;
   if(k === 'bless') return '英雄の遺物にだけ使えます';
@@ -5685,9 +5794,39 @@ function useOrbOn(k){
     opts.push({n:'やめる', f:()=>{}});
     return ask('刻印の鎖', 'どの接辞を固定しますか（振り直しでも残ります）', opts);
   }
+  else if(k === 'warp'){
+    // 賭け。四つにひとつずつ。打ったあとは二度と触れない
+    const r4 = Math.floor(rnd()*4);
+    it.cor = 1;
+    if(r4 === 0){                       // 何も起きない
+      addLog('🜏 歪みは何も変えなかった', 'w'); toast('何も起きなかった');
+    } else if(r4 === 1){                // 大化け：等級がひとつ上がって接辞が増える
+      it.r = Math.min(RAR.length-2, it.r + 1);
+      addAffixes(it, 1 + Math.floor(rnd()*2), rnd);
+      for(const a of it.af) if(!a.fx) a.v = Math.round(a.v * 1.25);
+      addLog(`🜏 歪みが実を結んだ → ${relRarName(it)}`, 'b');
+      toast(`大化けした！ ${relRarName(it)}`);
+    } else if(r4 === 2){                // 呪いと引き換えに、すべてが伸びる
+      const c = CURSE[Math.floor(rnd()*CURSE.length)];
+      it.cu = {k:c.k, v: c.t[0] + Math.floor(rnd()*(c.t[1]-c.t[0]+1))};
+      for(const a of it.af) if(!a.fx) a.v = Math.round(a.v * 1.55);
+      addLog(`🜏 呪いを背負った代わりに、力が跳ねた（${c.n}）`, 'b');
+      toast(`呪われた…が、強くなった`);
+    } else {                            // 別物になる
+      const nb = REL_BASE[Math.floor(rnd()*REL_BASE.length)];
+      const keepR = it.r, keepLv = it.lv;
+      for(const key in it) if(key !== 'id') delete it[key];
+      const fresh = rollRelic(keepLv, {rar: keepR});
+      for(const key in fresh) if(key !== 'id') it[key] = fresh[key];
+      it.seed = fresh.id; it.cor = 1;      // 名前も別物になる
+      addLog(`🜏 まるきり別のものになった → ${relName(it)}`, 'w');
+      toast('別物になった');
+    }
+  }
   useOrb(k); relicDirty();
-  addLog(`${ORB[k].i}${ORB[k].n} → ${relIcon(it)}${relName(it)}（${relRarName(it)}）`, 'w');
-  toast(`${ORB[k].n} を使った`);
+  if(k !== 'warp')
+    addLog(`${ORB[k].i}${ORB[k].n} → ${relIcon(it)}${relName(it)}（${relRarName(it)}）`, 'w');
+  if(k !== 'warp') toast(`${ORB[k].n} を使った`);
   renderBag();
 }
 /* ── 揃いの一覧 ── */
@@ -6533,14 +6672,38 @@ function renderInsp(){
         if(dgOpen(d)) h += `<div class="kv">守護者<b class="no">`
           + `${fmt(Math.max(0,d.hp==null?dgHp(d):d.hp))} / ${fmt(dgHp(d))}`
           + `（第${dgFloor(d)}層相当）</b></div>`;
-        if(cl>=0) h += `<div class="kv">採れるもの<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n} ×`
-          + `${1+Math.ceil(cl*0.6)}</b></div>`
-          + `<div class="kv">落ちる遺物の深さ<b>${dgLoot(d)}</b></div>`
-          + `<div class="kv">この坑の発見量／発見質<b>`
-          + `+${Math.round(modsOf(n).mf)}% ／ +${Math.round(modsOf(n).mq)}%</b></div>`
-          + `<div class="lnote">🍀幸運環や💠稜晶をこの施設に挿すと、`
-          + `ここから出る遺物の量と等級が上がります</div>`;
-        else h += `<div class="kv">攻略すると<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れる</b></div>`;
+        if(cl>=0){
+          h += `<div class="kv">採れるもの<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n} ×`
+            + `${1+Math.ceil(cl*0.6)}</b></div>`
+            + `<div class="kv">落ちる遺物の深さ<b>${dgLoot(d)}</b></div>`
+            + `<div class="kv">この坑の発見量／発見質<b>`
+            + `+${Math.round(modsOf(n).mf)}% ／ +${Math.round(modsOf(n).mq)}%</b></div>`
+            + `<div class="lnote">🍀幸運環や💠稜晶をこの施設に挿すと、`
+            + `ここから出る遺物の量と等級が上がります</div>`;
+        } else {
+          h += `<div class="kv">攻略すると<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れる</b></div>`;
+        }
+        // この坑の「顔」。どこへ通えばいいかが、ここで分かる
+        const th = dgTheme(d);
+        const uqLeft = (th.uq||[]).filter(k=>!invAll().some(x=>x.u===k));
+        h += `<div class="kv">出やすい器<b>`
+          + th.b.map(b=>RB[b].i+RB[b].n).join('・') + `</b></div>`
+          + (th.set ? `<div class="kv">ここで拾える揃い<b>${SETM[th.set].n}</b></div>` : '')
+          + ((th.uq||[]).length
+             ? `<div class="kv">ここにしかない固有品<b>`
+               + th.uq.map(k=>{ const got = invAll().some(x=>x.u===k);
+                   return got ? UQ[k].n : `？？？（深さ${UQ[k].lv}）`; }).join('・')
+               + `</b></div>`
+               + (uqLeft.length ? (()=>{
+                    const need = Math.min.apply(null, uqLeft.map(k=>UQ[k].lv));
+                    const lv = cl>=0 ? dgLoot(d) : 0;
+                    return `<div class="lnote">まだ ${uqLeft.length}種 眠っています。`
+                      + (lv >= need
+                         ? `いまの深さ（${lv}）で出ます。あとは引き当てるだけです`
+                         : `落ちる遺物の深さを ${need} 以上にすると出ます（いま ${lv}）`)
+                      + `</div>`; })()
+                  : `<div class="lnote">この坑の固有品はすべて見つけました</div>`)
+             : '');
         if(cl>=0 && !dgOpen(d)) h += `<div class="btns">`
           + `<button class="dep1">深度 ${dep+1} に挑む（第${dgFloor(d,dep+1)}層相当）</button></div>`
           + `<div class="lnote">深度を上げると守護者が戻ってきます。`
