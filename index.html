@@ -96,8 +96,10 @@ body.far .dgm .lb{display:none}
 body.far .dgm .lb2{display:block}
 .node.onsea{border-color:var(--bad)}
 path.hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:move}
-path.wire{fill:none;stroke-width:4.5;stroke-linecap:round;
+path.wire{fill:none;stroke-linecap:round;
   filter:drop-shadow(0 0 4px rgba(4,7,11,1))}
+/* 細くて点線の線＝遠すぎて運べていない線。見ただけで手を入れる場所が分かる */
+path.wire.thin{stroke-dasharray:9 7}
 /* 線の向き。動きっぱなしの点線はやめ、真ん中に「>」を1つ置くだけにした。
    実際に物が動いたときは粒が走るので、そちらで流れが分かる            */
 path.flow{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
@@ -182,6 +184,10 @@ circle.wph.dim{opacity:.15}
 .slot.o .dm{margin:0 0 0 1px}
 .node .aura.clean{border:1px dashed rgba(94,224,192,.30);
   background:radial-gradient(circle,rgba(94,224,192,.09),transparent 70%)}
+.node .aura.reach{border:1px dashed rgba(122,162,255,.34);
+  background:radial-gradient(circle,rgba(122,162,255,.07),transparent 72%)}
+.node .aura.sea{border:1px dashed rgba(90,170,220,.30);
+  background:radial-gradient(circle,rgba(90,170,220,.06),transparent 72%)}
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
 .node.stall .aura{opacity:.25}
@@ -1066,6 +1072,7 @@ const CAP    = 10;    // バッファの基準値（必要数が大きいノー�
 const PSPEED = 380;   // 配線上を素材が流れる速さ px/s
 const PMAX   = 0.7;   // どんなに長い経路でも、渡りきるのにこれ以上はかけない（秒）
 const SENDCD = 0.10;  // 1回送り出すごとの間隔
+const LINK_BURST = 12;// 1本の線が貯めておける送り出しの回数（まとめ送りのため）
 const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
 const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
 
@@ -1434,6 +1441,9 @@ const TYPES = {
            +'ほどけば元に戻る'},
   raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
           d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
+  relay :{n:'中継塔',    i:'📡', cost:1200, up:1500, time:3.0, ins:{}, outs:{}, relay2:true,
+          d:'まわりの土地を「近い」ことにする。塔の下を通る配線は、距離が1/4に数えられる。'
+           +'遠くの鉱山から運びたいなら、途中に点々と建てて道をつなぐ'},
   port  :{n:'港',        i:'⚓', cost:6000, up:7000, time:3.0, ins:{sta:6}, outs:{}, port2:true,
           d:'海に面した土地にだけ置ける。まわり6タイルの海を、配線が渡れるようになる。'
            +'ただし海の上は流れが半分になる'},
@@ -1567,6 +1577,7 @@ const FAC = {
   hout:  [{e:1,n:'搬出口',      i:'🏠'},{e:2,n:'荷出し場',  i:'🚚'},{e:3,n:'自動搬出機',i:'🤖'}],
   purify:[{e:1,n:'送風機',      i:'🌬️'},{e:2,n:'空気清浄機',i:'🌀'},{e:3,n:'浄化場',    i:'🧱'}],
   boost: [{e:1,n:'作業灯',      i:'💡'},{e:2,n:'監督塔',    i:'🔔'},{e:3,n:'管制塔',    i:'🤖'}],
+  relay: [{e:1,n:'中継塔',      i:'📡'},{e:2,n:'中継基地',  i:'🗼'},{e:3,n:'転送塔',    i:'🛰'}],
   port:  [{e:1,n:'港',          i:'⚓'},{e:2,n:'大型港',    i:'🛳'},{e:3,n:'空中港',    i:'🛸'}],
 };
 
@@ -2825,31 +2836,76 @@ function linkGeom(l){
     pts.push(q);
   }
   const g = {pts, lens, total:Math.max(1,total), d, segs, P:r.P, Q:r.Q, pins:r.pins};
-  Object.assign(g, terrCost(pts));
+  // 街の中の配線は「建物の中」。座標も街の中の値なので、地図の地形にかけてはいけない
+  const a2=N(l.from), b2=N(l.to);
+  if((a2&&a2.layer) || (b2&&b2.layer))
+    Object.assign(g, {spd:1, sea:0, blocked:false, eff:0, cap:1, relayed:0});
+  else Object.assign(g, terrCost(pts));
   return g;
 }
-/* 通った地形から、流れの速さと「海を渡れているか」を出す。
-   平地1・山1/2・川1/3。海は港の範囲に入っていないと渡れない       */
-const PORT_R = 6;                      // 港が海を渡せる範囲（タイル）
-function portsNear(tx,ty){
-  for(const n of S.nodes){
-    if(!TYPES[n.type].port2) continue;
-    if(Math.hypot(nodeTx(n)-tx, nodeTy(n)-ty) <= PORT_R) return true;
-  }
-  return false;
+/* ========== 配線の「実効距離」 ==========
+   この作りの肝。1本の線が運べる量は、通った土地の遠さで決まる。
+   平地1・山2・川3タイルぶんとして数え、中継塔の下は1/4に数える。
+   だから「遠くの鉱山から直に引く」は成り立たず、
+   途中に塔を建てるか、その場で精錬して価値を濃くしてから運ぶことになる。 */
+const PORT_R    = 6;      // 港が海を渡せる範囲（タイル）
+const RELAY_CUT = 0.25;   // 中継塔の下を通ったときの、距離の数え方
+const LINK_REACH= 6;      // ここまでの実効距離なら、まるごと運べる
+const SEA_COST  = 2;      // 港ごしの海は、平地2タイルぶん
+const TERR_COST = [SEA_COST, 1, 2, 3];   // 海・平地・山・川
+const relayR = n => 4 + 2 * ((TYPES[n.type].era||1) - 1) + Math.floor(lvGen(n.level||1) * 2);
+/* 港と塔が覆っているタイルを、まとめて持っておく。
+   1点ずつ全ノードを見にいくと、盤面が育ったときに描き直しが追いつかない */
+let coverV = 0, coverKey = '', covSea = null, covRly = null;
+const cvKey = (tx,ty) => (ty+64)*8192 + (tx+64);
+function stampCover(set, cx, cy, r){
+  for(let dy=-r; dy<=r; dy++) for(let dx=-r; dx<=r; dx++)
+    if(dx*dx + dy*dy <= r*r) set.add(cvKey(cx+dx, cy+dy));
 }
+function buildCover(){
+  covSea = new Set(); covRly = new Set();
+  const sig = [];
+  for(const n of S.nodes){
+    const T = TYPES[n.type];
+    if(!T.port2 && !T.relay2) continue;
+    const tx = nodeTx(n), ty = nodeTy(n);
+    if(T.port2)  stampCover(covSea, tx, ty, PORT_R);
+    if(T.relay2) stampCover(covRly, tx, ty, relayR(n));
+    sig.push(n.id + ':' + tx + ',' + ty + ',' + n.type + ',' + n.level);
+  }
+  const k = sig.join('|');
+  if(k !== coverKey){ coverKey = k; coverV++; }   // 覆いが変われば線を引き直す
+}
+const portsNear  = (tx,ty) => !!covSea && covSea.has(cvKey(tx,ty));
+const relaysNear = (tx,ty) => !!covRly && covRly.has(cvKey(tx,ty));
 function terrCost(pts){
-  if(!S.map) return {spd:1, sea:0, blocked:false};
-  let sum=0, n=0, sea=0, bad=false;
-  for(let i=0;i<pts.length;i+=2){
+  if(!S.map) return {spd:1, sea:0, blocked:false, eff:0, cap:1, relayed:0};
+  if(!covSea) buildCover();
+  let sum=0, n=0, sea=0, bad=false, eff=0, rly=0, tiles=0;
+  const step = Math.max(2, Math.floor(pts.length/40)) & ~1;   // 長い線は間引いて数える
+  for(let i=0;i<pts.length;i+=step){
     const tx=tileX(pts[i].x), ty=tileY(pts[i].y);
     const t=terrAt(tx,ty);
     n++;
+    // 実効距離：通りにくい土地ほど遠い。塔の下なら近い
+    let c = TERR_COST[t];
+    if(t===SEA && !portsNear(tx,ty)) c = TERR_COST[PLAIN];   // 渡れないので距離には数えない
+    if(relaysNear(tx,ty)){ c *= RELAY_CUT; rly++; }
+    eff += c; tiles++;
     if(t===SEA){ sea++; if(portsNear(tx,ty)) sum += 0.5; else { bad=true; sum += 0; } }
     else sum += TERR[t].spd;
   }
-  return {spd: n ? Math.max(0.05, sum/n) : 1, sea, blocked:bad};
+  // 数えた点を、実際のタイル数に直す
+  const len = tiles ? eff * (pathTiles(pts) / tiles) : 0;
+  return {spd: n ? Math.max(0.05, sum/n) : 1, sea, blocked:bad,
+          eff: +len.toFixed(2), relayed: tiles ? rly/tiles : 0,
+          cap: Math.min(1, LINK_REACH / Math.max(LINK_REACH, len))};
 }
+// 経路そのものの長さ（タイル数）
+const pathTiles = pts => {
+  let d=0; for(let i=1;i<pts.length;i++) d += Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y);
+  return d / TILE;
+};
 /* いま実際に打たれているピン */
 function bendOf(l){ return pinsOf(l); }
 /* ピンの取っ手（そのピン）と、区間ごとの「＋」（そこにピンを足す）  */
@@ -2864,7 +2920,7 @@ function geomOf(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
   const gk = a.x+','+a.y+','+b.x+','+b.y
            + ',' + pinsOf(l).map(p=>p.x+'_'+p.y).join(';')
-           + '|' + (a.el&&a.el.sig||'') + '|' + (b.el&&b.el.sig||'');
+           + '|' + (a.el&&a.el.sig||'') + '|' + (b.el&&b.el.sig||'') + '|' + coverV;
   if(l._gk !== gk || !l.G){ l._gk = gk; l.G = linkGeom(l); }
   return l.G;
 }
@@ -2980,7 +3036,9 @@ function mkNodeEl(n){
     if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
   }
   const A = TYPES[n.type].aura;
-  const auraEl = (A
+  const RK = TYPES[n.type].relay2 ? 'reach' : TYPES[n.type].port2 ? 'sea' : '';
+  const auraEl = (RK ? `<div class="aura ${RK}"></div>` : '')
+    + (A
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '')
     + `<div class="polr" style="width:${POL_R*2}px;height:${POL_R*2}px;left:${NW/2-POL_R}px;top:${45-POL_R}px"></div>`;
@@ -3061,6 +3119,7 @@ function mkLinkEl(l){
   const flow=document.createElementNS(SVG,'path');  flow.setAttribute('class','flow');
 
   wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','1');
+  wire.setAttribute('stroke-width','4.5');   // 太さは「運べる量」で毎秒つけ直す
   flow.setAttribute('stroke',c); flow.setAttribute('stroke-opacity','.9');
   hit.dataset.link=l.id;
   gwL.append(hit,wire,flow);
@@ -3393,7 +3452,8 @@ function tick(dt,fast){
           const l=ls[i], dst=N(l.to);
           const gg = l.G || geomOf(l);
           const sp = (gg && gg.blocked) ? 0 : (dst ? spaceIn(dst,item) : 0);
-          if(sp>0){
+          if(sp>0 && (big || (l.tok||0) >= 1)){
+            if(!big) l.tok -= 1;
             const q=Math.min(n.outBuf[item], chunk, sp);
             n.outBuf[item]-=q; st[i]-=wtot;
             n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
@@ -3409,6 +3469,13 @@ function tick(dt,fast){
     }
   }
 
+  // 線ごとの持ち分を戻す。遠い線は、戻る速さそのものが遅い
+  for(const l of S.links){
+    const G = l.G || geomOf(l);
+    const f = G ? (G.cap==null ? 1 : G.cap) : 1;
+    const room = Math.max(LINK_BURST, dt / SENDCD);
+    l.tok = Math.min(room, (l.tok||0) + dt / SENDCD * f);
+  }
   // 配線上の移動
   for(const l of S.links){
     if(!l.packets.length) continue;
@@ -4257,6 +4324,17 @@ const TROPHY = [
   {k:'atk3', i:'🔥', n:'一騎当千',      d:'攻撃力 1,000万 をこえた',      p:3, f:()=>atk()>=1e7},
   {k:'atk4', i:'💥', n:'天災',          d:'攻撃力 10億 をこえた',         p:4, f:()=>atk()>=1e9},
   {k:'atk5', i:'🌟', n:'神話',          d:'攻撃力 1兆 をこえた',          p:5, f:()=>atk()>=1e12},
+  // ── 運び ──
+  {k:'rly1', i:'📡', n:'道をつなぐ',    d:'📡中継塔を 3本 建てた',        p:1,
+   f:()=>S.nodes.filter(n=>TYPES[n.type].relay2).length>=3},
+  {k:'rly2', i:'🗼', n:'街道',          d:'📡中継塔を 12本 建てた',       p:2,
+   f:()=>S.nodes.filter(n=>TYPES[n.type].relay2).length>=12},
+  {k:'rly3', i:'🛰', n:'大動脈',        d:'拠点から15タイル以上はなれた場所と、満載の配線でつながった', p:4,
+   f:()=>S.links.some(l=>{ const g=l.G, a=N(l.from), b=N(l.to);
+     if(!g||!a||!b||a.layer||b.layer||g.cap<0.99||!S.map) return false;
+     const d=Math.max(Math.hypot(nodeTx(a)-S.map.bx, nodeTy(a)-S.map.by),
+                      Math.hypot(nodeTx(b)-S.map.bx, nodeTy(b)-S.map.by));
+     return d>=15; })},
   // ── 深さ ──
   {k:'dep1', i:'🕳', n:'洞窟を抜けて',  d:'ダンジョン 25層 をこえた',      p:1, f:()=>S.best>=25},
   {k:'dep2', i:'💧', n:'水路の主',      d:'ダンジョン 50層 をこえた',      p:1, f:()=>S.best>=50},
@@ -4976,6 +5054,14 @@ function render(){
     const off = !!F && l.from!==sel && l.to!==sel;
     setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off);
     setCls(l.el.wire,'pick', selLink===l.id);
+    // 太さがそのまま「運べる量」。細い線は、遠すぎて届いていない線
+    if(slow){
+      const c = G.cap==null ? 1 : G.cap;
+      const w = (1.6 + 3.2*c).toFixed(1);
+      if(l.el.cw !== w){ l.el.cw = w; l.el.wire.setAttribute('stroke-width', w);
+        l.el.hit.setAttribute('stroke-width', Math.max(18, +w*4)); }
+      setCls(l.el.wire, 'thin', c < 0.55);
+    }
     // 流れている線は向きの印を濃くする（点滅させずに、動いていることを見せる）
     if(slow){
       const r = (a.rate && a.rate[l.item]) || 0;
@@ -4987,7 +5073,25 @@ function render(){
     for(const p of l.packets){ if(!p.el) continue; const q=geomPt(G,p.t); p.el.setAttribute('cx',q.x); p.el.setAttribute('cy',q.y); }
   }
   if(selLink!==null) renderHandles();
-  if(slow) drawDungeons();
+  if(slow){
+    drawDungeons(); buildCover();
+    // 細い線ができたら、初回だけ理由を教える。ここがこの仕掛けの入口になる
+    if(!S.thinSeen){
+      const bad = S.links.find(l=>{ const g=l.G; return g && g.cap!=null && g.cap < 0.5 && !g.blocked; });
+      if(bad){ S.thinSeen = 1;
+        addLog('【遠い】配線が細くなっている。遠い線は運べる量が落ちる。'
+             + '📡中継塔を途中に建てるか、その場で精錬してから運ぼう','u');
+        toast('遠い配線は細くなります。📡中継塔で太く戻せます'); }
+    }
+    // 中継塔と港の「届く範囲」。強化で伸びるので、その都度合わせる
+    for(const n of S.nodes){
+      const T=TYPES[n.type]; if(!T.relay2 && !T.port2) continue;
+      const el = n.el && n.el.root.querySelector('.aura.reach,.aura.sea'); if(!el) continue;
+      const r = (T.relay2 ? relayR(n) : PORT_R) * TILE;
+      if(el._r === r) continue; el._r = r;
+      el.style.cssText = `width:${r*2}px;height:${r*2}px;left:${NW/2-r}px;top:${45-r}px`;
+    }
+  }
   // ── ここから下はパネルの数字。毎コマ書き換えても目には追えないので
   //    5コマに1回（およそ12回/秒）にまとめる。盤面の動きはそのまま60コマ ──
   if(!slow) return;
@@ -5463,9 +5567,15 @@ function renderLinkInsp(){
     + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
     + `<div class="kv">流れ<b>${fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
     + (()=>{ const G=geomOf(l); if(!G||!S.map) return '';
-        return `<div class="kv">地形<b class="${G.blocked?'no':''}">`
-          + (G.blocked ? '🌊海を渡れない（⚓港が要ります）'
-                       : `運びの速さ ×${(G.spd||1).toFixed(2)}`) + `</b></div>`; })()
+        if(G.blocked) return `<div class="kv">地形<b class="no">🌊海を渡れない（⚓港が要ります）</b></div>`;
+        const c = G.cap==null ? 1 : G.cap, pc = Math.round(c*100);
+        const rl = G.relayed>0.02 ? `　📡${Math.round(G.relayed*100)}%を中継` : '';
+        return `<div class="kv">運べる量<b class="${c<0.55?'no':''}">${pc}%${rl}</b></div>`
+          + `<div class="kv">実効距離<b>${G.eff||0}（${LINK_REACH}まで満載）</b></div>`
+          + (c<1 ? `<div class="lnote">遠い線は細くなります。📡中継塔を途中に建てると`
+                 + `距離が1/4に数えられ、太く戻ります。`
+                 + `その場で精錬してから運ぶのも手です（1回で運べる値打ちが上がります）</div>` : '')
+          + `<div class="kv">運びの速さ<b>×${(G.spd||1).toFixed(2)}</b></div>`; })()
     + `<div class="kv">ピン<b>${n}本 / ${PIN_MAX}本</b></div>`
     + `<div class="lnote">丸を掴むと、曲線がそのピンを通ります。`
     + `線の上の「＋」を押すと、そこにピンが増えます</div>`
@@ -5503,6 +5613,12 @@ function renderInsp(){
     (S.map && !TYPES[n.type].port && !TYPES[n.type].layer
       ? `<div class="kv">場所<b>${TERR[terrAt(nodeTx(n),nodeTy(n))].i}${TERR[terrAt(nodeTx(n),nodeTy(n))].k}`
         + `（拠点から${Math.round(Math.hypot(nodeTx(n)-S.map.bx, nodeTy(n)-S.map.by))}）</b></div>` : '') +
+    (TYPES[n.type].relay2
+      ? `<div class="kv">届く範囲<b>まわり${relayR(n)}タイル</b></div>`
+        + `<div class="lnote">この輪の中を通る配線は、距離が1/4に数えられます。`
+        + `遠い鉱山まで点々と建てて、道をつないでください</div>` : '') +
+    (TYPES[n.type].port2
+      ? `<div class="kv">届く範囲<b>まわり${PORT_R}タイルの海</b></div>` : '') +
     (dgOf(n) ? (()=>{ const d=dgOf(n);
         return d.done
           ? `<div class="kv">${dgName(d)}<b>制圧済 → ${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れる</b></div>`
@@ -6670,7 +6786,7 @@ function b64dec(c){
 /* セーブに残さないもの：DOM への参照と、数え直せる作業用の値。
    「_」で始まるキーはすべて作業用（描き直しの目印・キャッシュ）なので外す。
    ここに漏れがあると、読み込んだあとに「もう描いた」と誤解して線が消える */
-const saveSkip = (k,v) => (k==='el' || k==='G' || k==='sent' || k.charAt(0)==='_')
+const saveSkip = (k,v) => (k==='el' || k==='G' || k==='sent' || k==='tok' || k.charAt(0)==='_')
                           ? undefined : v;
 const dumpState = () => JSON.stringify(Object.assign({}, S, {tro:TRO}), saveSkip);
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
