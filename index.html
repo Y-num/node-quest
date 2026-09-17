@@ -116,6 +116,67 @@ path.wire.pick{stroke-opacity:1;stroke-width:6}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
 
 
+/* ---------- 山場の演出 ---------- */
+#fxFlash{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:30;
+  mix-blend-mode:screen}
+#fxCry{position:absolute;left:0;right:0;top:20%;pointer-events:none;z-index:31;
+  text-align:center;opacity:0}
+#fxCry.on{animation:cry 1.9s cubic-bezier(.16,1,.3,1) forwards}
+#fxCry .cry1{font-size:44px;font-weight:900;letter-spacing:.06em;color:var(--cc);
+  text-shadow:0 0 26px var(--cc),0 0 60px var(--cc),0 3px 10px #000}
+#fxCry .cry2{margin-top:6px;font-size:15px;font-weight:700;color:#e8eefc;
+  text-shadow:0 0 12px var(--cc),0 2px 6px #000}
+@keyframes cry{
+  0%  {opacity:0; transform:scale(.6) translateY(16px)}
+  10% {opacity:1; transform:scale(1.14) translateY(0)}
+  22% {opacity:1; transform:scale(1) translateY(0)}
+  72% {opacity:1; transform:scale(1) translateY(-6px)}
+  100%{opacity:0; transform:scale(1.06) translateY(-26px)}}
+/* 坑から広がる輪 */
+.node .shock{position:absolute;left:50%;top:50%;width:14px;height:14px;
+  margin:-7px 0 0 -7px;border-radius:50%;pointer-events:none;
+  border:2px solid var(--sc);opacity:.9;animation:shockw .9s ease-out forwards;z-index:-1}
+@keyframes shockw{
+  0%  {transform:scale(1);   opacity:.9;  border-width:3px}
+  100%{transform:scale(26);  opacity:0;   border-width:0.4px}}
+/* 共鳴。溜まるほど坑が熱を持つ */
+/* 守護者の体力。削れていくのが見えないと、戦っている気がしない */
+.node .hpwrap{position:absolute;left:8px;right:8px;top:-9px;height:5px;
+  border-radius:3px;background:#0a0f16;border:1px solid #3a1f27;overflow:hidden;
+  pointer-events:none;display:none}
+.node.boss .hpwrap,.node.guard .hpwrap{display:block}
+.node .hpwrap i{display:block;height:100%;width:100%;background:#d9576b;
+  box-shadow:0 0 7px #d9576b;transition:width .12s linear}
+.node.boss .hpwrap{border-color:#7a4fb0;height:7px;top:-11px}
+.node.boss .hpwrap i{background:linear-gradient(90deg,#ff5f6d,#c08bff);
+  box-shadow:0 0 12px #c08bff}
+.node .dmg{position:absolute;right:-6px;top:6px;pointer-events:none;
+  font-size:12px;font-weight:900;color:#ffd7a0;
+  text-shadow:0 0 8px #ff9a4d,0 1px 3px #000;
+  animation:dmgf .75s ease-out forwards;z-index:5}
+.node .dmg.crit{font-size:16px;color:#fff1b8;text-shadow:0 0 14px #ffd24d,0 1px 3px #000}
+@keyframes dmgf{
+  0%  {opacity:0; transform:translate(0,4px)   scale(.7)}
+  18% {opacity:1; transform:translate(6px,-4px) scale(1.15)}
+  100%{opacity:0; transform:translate(16px,-26px) scale(.95)}}
+@media (prefers-reduced-motion: reduce){ .node .dmg{animation:none;opacity:1} }
+.node .resbar{position:absolute;left:8px;right:8px;bottom:3px;height:3px;
+  border-radius:2px;background:#0a0f16;overflow:hidden;pointer-events:none}
+.node .resbar i{display:block;height:100%;width:0;background:var(--rcol,#5a6b82);
+  box-shadow:0 0 7px var(--rcol,#5a6b82);transition:width .25s linear}
+@keyframes riftp{
+  0%,100%{box-shadow:0 0 0 1px #c08bff,0 0 14px 2px rgba(192,139,255,.55),0 8px 22px rgba(0,0,0,.45)}
+  50%    {box-shadow:0 0 0 2px #c08bff,0 0 34px 10px rgba(192,139,255,.8),0 8px 22px rgba(0,0,0,.45)}}
+/* 裂け目の印。名前を押し出さないよう、角に出す */
+.node.rift::after{content:'🌀 裂け目';position:absolute;right:-4px;top:-11px;
+  font-size:9.5px;font-weight:900;color:#08131a;background:#c08bff;
+  border-radius:5px;padding:1px 6px;letter-spacing:.04em;
+  box-shadow:0 0 12px rgba(192,139,255,.9);pointer-events:none}
+@media (prefers-reduced-motion: reduce){
+  #fxCry.on{animation:none;opacity:1}
+  .node .shock{animation:none;display:none}
+  .node.rift{animation:none;box-shadow:0 0 0 2px #c08bff,0 0 20px 6px rgba(192,139,255,.6)}
+}
 /* 拾った瞬間の光。等級の色で一瞬ふくらむ。
    数字が増えるだけでは「当たった」感じが出ない                    */
 .node .pop{position:absolute;left:50%;top:-6px;transform:translateX(-50%);
@@ -175,7 +236,16 @@ path.wire.pick{stroke-opacity:1;stroke-width:6}
 .cmp{border:1px dashed var(--line);border-radius:9px;padding:7px 8px;margin:0 0 10px}
 .cmp.win{border-color:#2f6b60} .cmp.lose{border-color:#6d3a45}
 .cmph{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:5px}
+#insp .resline{height:6px;border-radius:3px;background:#0a0f16;overflow:hidden;margin:2px 0 6px}
+#insp .resline i{display:block;height:100%;transition:width .3s linear;
+  box-shadow:0 0 8px currentColor}
+#insp .kv.rift b{color:#c08bff}
+#insp .kv.prize b{color:#e0b366}
 .cmp.win .cmph{color:var(--acc)} .cmp.lose .cmph{color:#ff8b9a}
+#insp .btns.deprow button{flex:1 1 0;display:flex;flex-direction:column;
+  align-items:center;gap:1px;padding:7px 4px;line-height:1.2}
+#insp .btns.deprow button i{font-style:normal;font-size:9.5px;color:var(--dim)}
+#insp .btns.deprow button:hover i{color:var(--acc)}
 .orbs{display:grid;gap:7px}
 .orb{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#0c131c;cursor:pointer}
 .orb:hover{border-color:var(--acc)}
@@ -219,6 +289,10 @@ path.wire.pick{stroke-opacity:1;stroke-width:6}
 .node.stall{border-color:#6d3a45}
 .node.run{border-color:#2f6b60}
 .node.tgt{border-color:var(--acc2);box-shadow:0 0 0 2px var(--acc2)}
+.node.hot{border-color:var(--rcol);box-shadow:0 0 0 1px var(--rcol),
+  0 0 var(--rglow,0px) var(--rcol),0 8px 22px rgba(0,0,0,.45)}
+.node.rift{border-color:#c08bff;animation:riftp 1.05s ease-in-out infinite}
+
 .node.over{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc),0 0 22px rgba(94,224,192,.45)}
 /* 配線を伸ばしているあいだ、受け取れる口だけをはっきり光らせる */
 body.linking .port.hot{background:var(--acc2);color:#08131a;border-color:var(--acc2);
@@ -464,6 +538,7 @@ body.tut #offscr{display:none}
 .tbtn.fast{background:rgba(242,193,78,.18);color:var(--acc);border-color:var(--acc)}
 .tbtn.dbg:hover{background:var(--warn);color:#0a0d14}
 /* ---------- 研究ツリー ---------- */
+.tbtn.fxoff{opacity:.5}
 .tbtn.tree{border-color:var(--acc2);color:var(--acc2)}
 .tbtn.tree:hover{background:var(--acc2);color:#08131a}
 #stats{position:fixed;inset:0;background:rgba(6,9,14,.85);z-index:108;display:none;
@@ -882,6 +957,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <div class="stat m"><span class="k">🧱<em>資材</em></span><span class="v num" id="tMat">0</span></div>
     <span class="sp"></span>
     <button class="tbtn" id="bSpeed">⏩ ×1</button>
+    <button class="tbtn" id="bFx">✨ 演出</button>
     <button class="tbtn" id="bFit">全体表示</button>
     <button class="tbtn" id="bTidy">整列</button>
     <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
@@ -911,6 +987,8 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <canvas id="mapc"></canvas><div id="mapg"></div>
       <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><g id="gwH"></g><path id="temp"></path><path id="lasso"></path></g></svg>
       <div id="world"><div id="mapd"></div></div>
+      <div id="fxFlash"></div>
+      <div id="fxCry"></div>
       <div id="hint">
         <div class="ttl">ⓘ 操作方法</div>
         <div class="body">
@@ -1879,7 +1957,7 @@ const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP); 
 
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
 // 1人が抱えておける🧑人手。❤️体力が高いほど続けて働ける
-const crewCap  = () => Math.max(2, Math.floor(3 * Math.pow(VIT_K, S.stats.vit) / 2));
+const crewCap  = () => Math.max(4, Math.floor(4 * Math.pow(VIT_K, S.stats.vit)));
 const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / lvPow(nLv(n)) / (1 + (tierOf(n).t-1)*0.5);
 const intBoost = () => 1 + S.stats.int * 0.02;
 const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15)
@@ -2608,30 +2686,40 @@ function afTier(a, lv, rnd){
   return {k:a.k, t:pick, v: lo===hi ? lo : lo + Math.floor(rnd()*(hi-lo+1))};
 }
 function rollRar(lv, mq, rnd){
-  const boost = 1 + (mq||0)/200;
+  // 発見質は魔法〜英雄までは指数で効くが、固有・神話にはゆるくしか効かない。
+  // ここを素直に boost^i にすると、発見質を積んだ終盤で神話が当たり前になり、
+  // 「掘り当てた」という手ごたえが消えてしまう
+  const q = mq || 0;
+  const boost = 1 + q/200;
   const w = RAR.map((r,i)=>{
     if(i>=4 && !UNIQ.some(u=>u.lv<=lv)) return 0;
-    return r.w * Math.pow(boost, i) * (i>=3 ? Math.min(1, lv/20) : 1);
+    const ex = r.w * Math.pow(boost, Math.min(i, 3));
+    const top = i >= 4 ? (1 + q/900) : 1;      // 固有・固有以上はここまで
+    return ex * top * (i>=3 ? Math.min(1, lv/20) : 1);
   });
   const tot = w.reduce((a,b)=>a+b, 0);
   let x = rnd()*tot;
   for(let i=0;i<w.length;i++){ x -= w[i]; if(x < 0) return i; }
   return 0;
 }
+// 重みは変わらないので、あらかじめ持っておく（裂け目の最中は毎秒何十回も通る）
+for(const a of AF){ a._w = Math.max(1, Math.round(10 * (a.rw==null ? 1 : a.rw)));
+                    a._min = a.t[0][0]; }
 function addAffixes(it, want, rnd){
   const used = new Set(it.af.map(a => AFM[a.k] ? AFM[a.k].g : a.k));
   for(let i=0;i<want;i++){
-    const bag = [];
+    let tot = 0;
+    for(const a of AF) if(!used.has(a.g) && a._min <= it.lv) tot += a._w;
+    if(tot <= 0) break;
+    let x = rnd() * tot, pick = null;
     for(const a of AF){
-      if(used.has(a.g) || !a.t.some(t => t[0] <= it.lv)) continue;
-      const w = Math.max(1, Math.round(10 * (a.rw==null ? 1 : a.rw)));
-      for(let j=0;j<w;j++) bag.push(a);
+      if(used.has(a.g) || a._min > it.lv) continue;
+      x -= a._w; if(x < 0){ pick = a; break; }
     }
-    if(!bag.length) break;
-    const a = bag[Math.floor(rnd()*bag.length)];
-    const r = afTier(a, it.lv, rnd);
+    if(!pick) break;
+    const r = afTier(pick, it.lv, rnd);
     if(!r) break;
-    used.add(a.g); it.af.push(r);
+    used.add(pick.g); it.af.push(r);
   }
 }
 function rollRelic(lv, opt){
@@ -2657,10 +2745,17 @@ function rollRelic(lv, opt){
       set = {s, p: s.p[Math.floor(rnd()*s.p.length)]}; }
   }
   // 器は坑の好みに寄る（好みのものは3倍出やすい）
-  const bag = [];
-  for(const b of REL_BASE){ const w = (th && th.b && th.b.includes(b.k)) ? 3 : 1;
-    for(let i=0;i<w;i++) bag.push(b); }
-  const base = uni ? RB[uni.b] : set ? RB[set.p.k] : bag[Math.floor(rnd()*bag.length)];
+  let base;
+  if(uni) base = RB[uni.b];
+  else if(set) base = RB[set.p.k];
+  else {
+    let tot = 0;
+    for(const b of REL_BASE) tot += (th && th.b && th.b.indexOf(b.k) >= 0) ? 3 : 1;
+    let x = rnd() * tot;
+    base = REL_BASE[0];
+    for(const b of REL_BASE){ x -= (th && th.b && th.b.indexOf(b.k) >= 0) ? 3 : 1;
+      if(x < 0){ base = b; break; } }
+  }
   const it = {id:S.nextId++, b:base.k, r, lv, af:[], lk:[]};
   if(uni){ it.u = uni.k; for(const a of uni.af) it.af.push({k:a.k, t:9, v:a.v, fx:1}); }
   else if(set){ it.s = set.s.k; it.sn = set.p.n;
@@ -2698,6 +2793,7 @@ const afText = a => { const A = AFM[a.k]; if(!A) return '';
   return A.d(a.v) + (a.fx ? '' : `　<i class="aft">T${A.t.length - a.t}</i>`); };
 /* その遺物の「良さ」。並べ替えと自動仕分けに使う */
 function relScore(it){
+  if(it._s != null && it._sv === relicVer0(it)) return it._s;
   let s = RAR[it.r].s * 10;
   for(const a of it.af){ const A = AFM[a.k]; if(!A) continue;
     const top = A.t[A.t.length-1], hi = top[2] || 1;
@@ -2705,9 +2801,13 @@ function relScore(it){
   }
   if(it.cu) s *= 0.8;
   if(it.s)  s *= 1.7;        // 揃いの品は、自動で挿すときに優先して残す
-  return Math.round(s + it.lv * 0.6);
+  it._sv = relicVer0(it);
+  return it._s = Math.round(s + it.lv * 0.6);
 }
 const relSell = it => Math.max(4, Math.round(RAR[it.r].s * (6 + it.lv * 1.9)));
+/* 点数の作り直しが要るかどうかの目印。中身が変わると値も変わる */
+const relicVer0 = it => it.r + ':' + it.lv + ':' + it.af.length + ':'
+                      + (it.af[0] ? it.af[0].v : 0) + ':' + (it.cu?1:0) + ':' + (it.s?1:0);
 /* ── 持ち物 ── */
 const invAll = () => (S.inv = S.inv || []);
 const invGet = id => invAll().find(x => x.id === id) || null;
@@ -2715,10 +2815,13 @@ function invAdd(it){ invAll().push(it); return it; }
 function invDel(id){ const a = invAll(), i = a.findIndex(x => x.id === id);
   if(i >= 0) a.splice(i, 1); }
 /* いま施設に挿さっている遺物の id */
+let wornV = -1, wornC = null;
 function wornIds(){
+  if(wornC && wornV === relicVer) return wornC;
   const s = new Set();
   for(const n of S.nodes) for(const id of (n.parts || [])) if(id) s.add(id);
-  return s;
+  wornV = relicVer;
+  return wornC = s;
 }
 const isWorn = id => wornIds().has(id);
 /* どの施設に挿さっているか */
@@ -2733,7 +2836,9 @@ function setBonus(){
   for(const id of w){ const it = invGet(id); if(it && it.s) cnt[it.s] = (cnt[it.s]||0) + 1; }
   const b = {spd:1, mf:0, mq:0, gold:0, rp:0, yld:0, twin:0, reach:0, done:[]};
   for(const k in cnt){ const S2 = SETM[k]; if(!S2) continue;
-    if(cnt[k] >= S2.p.length){ S2.f(b); b.done.push(k); } }
+    if(cnt[k] >= S2.p.length){ S2.f(b); b.done.push(k);
+      if(typeof milestone === 'function')
+        milestone('set_'+k, S2.n + ' 完成', S2.c, S2.bo); } }
   b.cnt = cnt;
   return setCache = b;
 }
@@ -3195,8 +3300,28 @@ const dgCl    = d => d.cl != null ? d.cl : (d.done ? 0 : -1);   // 攻略済み�
 const dgFloor = (d, dep) => 1 + Math.round(d.dist * 4)
                           + (dep == null ? dgDep(d) : dep) * DEP_STEP;
 const dgLoot  = d => Math.max(1, 1 + Math.round(d.dist * 4) + Math.max(0, dgCl(d)) * DEP_STEP);
-const dgHp    = d => Math.floor(enemyHp(dgFloor(d)) * 10);
+const dgHp    = d => Math.floor(enemyHp(dgFloor(d)) * 10 * (dgIsBoss(d) ? 3 : 1));
 const dgOpen  = d => dgDep(d) > dgCl(d);             // 守護者が立ちはだかっているか
+/* 深度5ごとに「主」が出る。硬い代わりに、固有品が確定で落ちる。
+   運任せの山にひとつだけ、狙って取りにいける的を置く                */
+const BOSS_EVERY_DEP = 5;
+const BOSS_NAME = ['','深淵の主','地底の王','虚ろの番人','終の門番','原初の影','名も無き底'];
+const dgIsBoss  = d => dgDep(d) > 0 && dgDep(d) % BOSS_EVERY_DEP === 0;
+const dgBossName= d => BOSS_NAME[Math.min(BOSS_NAME.length-1, Math.floor(dgDep(d)/BOSS_EVERY_DEP))];
+/* その主が抱えている固有品。まだ持っていないものから選ぶ */
+function pickPrize(d){
+  // 倒す相手の強さ（層）で決める。深く潜るほど、抱えている品も良くなる
+  const th = dgTheme(d), lv = dgFloor(d);
+  const all  = (th.uq||[]).filter(k => UQ[k].lv <= lv);
+  const left = all.filter(k => !invAll().some(x=>x.u===k));
+  const pool = left.length ? left : all;
+  if(pool.length) return pool[Math.floor(Math.random()*pool.length)];
+  // その坑の品を取り尽くしていたら、まだ持っていない固有品から
+  const any = UNIQ.filter(u => u.lv <= lv && !invAll().some(x=>x.u===u.k));
+  if(any.length) return any[Math.floor(Math.random()*any.length)].k;
+  const low = UNIQ.filter(u => u.lv <= lv);
+  return low.length ? low[Math.floor(Math.random()*low.length)].k : null;
+}
 // 施設を置いたとき、その足元が未攻略のダンジョンならそこに結びつける
 function bindDungeon(n){
   if(!S.map || !TYPES[n.type].loot || n.dgn != null) return;
@@ -3216,15 +3341,44 @@ function dgYield(n){
 function dgWin(d, n, fast){
   const first = !d.done;
   const dep = dgDep(d);
+  const jump = Math.max(1, dep - Math.max(0, dgCl(d)));   // 何段ぶん飛んだか
   d.done = true; d.cl = dep; d.hp = 0;
   S.dgDone = (S.dgDone||0) + 1;
   S.atkBonus = (S.atkBonus||0) + Math.round(8 * (1 + d.dist/5) * (1 + dep*0.5));
   if(n){ modsDirty(n); }
   drawDungeons();
-  // 深度を越えるたび、確実に一つ落ちる（深いほど良い）
-  const bonus = 1 + Math.min(4, dep);
-  for(let i=0;i<bonus;i++) lootRelic(dgLoot(d), fast, n);
-  if(dep >= 1){ addOrb(rollOrb(), 1 + Math.floor(dep/3)); }
+  // 深度を越えるたび、確実に落ちる。一気に飛んだぶんだけ取り分が増える
+  const bonus = (1 + Math.min(4, dep)) * jump;
+  const floorR = jump >= 5 ? 3 : jump >= 3 ? 2 : undefined;
+  const nGuar  = floorR != null ? jump : 0;     // 底上げされるのは先頭の数個だけ
+  for(let i=0;i<Math.min(30,bonus);i++)
+    lootRelic(dgLoot(d), fast, n, i < nGuar ? {rar: floorR} : undefined);
+  if(dep >= 1) addOrb(rollOrb(), (1 + Math.floor(dep/3)) * jump);
+  if(jump >= 5){                        // 大跳びに賭けて勝った褒美
+    const it = lootRelic(dgLoot(d), fast, n, {rar: 4});
+    if(it && !fast){ bigCry('大跳び成功', '#e0b366',
+      `${jump}段ぶん飛んで ${relIcon(it)}${relName(it)}`, 7); flashBoard('#e0b366', 0.6); }
+  } else if(jump >= 3 && !fast){
+    bigCry(`深度 ${dep}`, '#ff9a4d', `${jump}段ぶん飛んだ`, 5); flashBoard('#ff9a4d', 0.4);
+  }
+  // 主が抱えていた固有品は、確定で手に入る
+  if(d.prize && UQ[d.prize]){
+    S.bossKill = (S.bossKill||0) + 1;
+    const u = UQ[d.prize];
+    const it = {id:S.nextId++, b:u.b, r:4, lv:dgLoot(d), lk:[],
+                af:u.af.map(a=>({k:a.k, t:9, v:a.v, fx:1})), u:u.k};
+    addAffixes(it, 2 + Math.floor(Math.random()*2), Math.random);
+    invAdd(it); relicDirty();
+    S.found = (S.found||0) + 1; S.foundUq = (S.foundUq||0) + 1;
+    if(4 > (S.bestRar||0)) S.bestRar = 4;
+    d.prize = null;
+    if(!fast){
+      addLog(`【討伐】${dgBossName(d)} を退けた → ${relIcon(it)}${u.n} を手にした`, 'b');
+      bigCry(u.n, '#e0b366', `「${u.fl}」`, 7);
+      flashBoard('#e0b366', 0.6);
+      shock(n, '#e0b366');
+    }
+  }
   if(!fast){
     if(first){
       addLog(`【制圧】${dgName(d)}（拠点から${d.dist}）を攻略。`
@@ -3241,9 +3395,17 @@ function dgWin(d, n, fast){
 function dgRaise(d, n, by){
   d.dep = dgDep(d) + (by||1);
   d.hp = dgHp(d);
+  d.prize = dgIsBoss(d) ? pickPrize(d) : null;
   if(n) modsDirty(n);
   drawDungeons(); renderInsp();
-  toast(`${dgName(d)} 深度${dgDep(d)}（第${dgFloor(d)}層相当）に挑みます`);
+  if(d.prize){
+    addLog(`【${dgBossName(d)}】${dgName(d)} 深度${dgDep(d)}。`
+         + `倒すと〈${UQ[d.prize].n}〉が確定で落ちる`, 'b');
+    bigCry(dgBossName(d), '#ff5f6d', `倒すと〈${UQ[d.prize].n}〉が確定`, 7);
+    flashBoard('#ff5f6d', 0.35);
+  } else {
+    toast(`${dgName(d)} 深度${dgDep(d)}（第${dgFloor(d)}層相当）に挑みます`);
+  }
 }
 /* まだ開けていないダンジョンの在りかを、地図の上に出す */
 function drawDungeons(){
@@ -3600,7 +3762,9 @@ function mkNodeEl(n){
     + (A
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '')
-    + `<div class="polr" style="width:${POL_R*2}px;height:${POL_R*2}px;left:${NW/2-POL_R}px;top:${45-POL_R}px"></div>`;
+    + `<div class="polr" style="width:${POL_R*2}px;height:${POL_R*2}px;left:${NW/2-POL_R}px;top:${45-POL_R}px"></div>`
+    + (TYPES[n.type].loot ? `<div class="resbar"><i></i></div>`
+        + `<div class="hpwrap"><i></i></div>` : '');
   if(any) ports += `<div class="port pin any" style="top:${portY(anyRow)}px"`
     + ` title="${TYPES[n.type].chain==='sell' ? 'どんな素材でもここへ繋げます（届いたものから売ります）'
         : TYPES[n.type].ware ? 'どんな素材でもここへ繋げます'
@@ -3918,7 +4082,7 @@ function tick(dt,fast){
         if(ok && T.pay && S.gold < payOf(n)){ ok=false; n.why=`給料が払えない（${fmt(payOf(n))}G）`; }
         if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`研究ポイントが足りない（${fmt(payRpOf(n))}）`; }
 
-        if(!ok){ n.stall=true; break; }
+        if(!ok){ if(T.loot && !n.stall) resTick(n, false); n.stall=true; break; }
         for(const k in need){ n.inBuf[k]-=need[k]; flowOut(k, need[k]); nodeFlow(n, k, need[k], 'o'); }
         if(T.pay)   S.gold -= payOf(n);
         if(T.payRp) S.rp = (S.rp||0) - payRpOf(n);
@@ -3941,7 +4105,11 @@ function tick(dt,fast){
         grantRp(give.waste * itemVal('waste') * 12 * lvPow(nLv(n)), fast);
         const g2 = Object.assign({}, give); delete g2.waste; give = g2;
       }
-      for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k]; flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
+      for(const k in give){
+        // 戦利品の口は満杯でも止めない代わりに、溜まる量には蓋をする
+        n.outBuf[k] = T.loot ? Math.min(capOut(n,k), (n.outBuf[k]||0)+give[k])
+                             : (n.outBuf[k]||0)+give[k];
+        flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
           const c=compOf(k); if(c>(S.maxComp||0)) S.maxComp=c; }
@@ -3966,10 +4134,19 @@ function tick(dt,fast){
       }
       if(T.effect==='orbf') doMelt(n, fast);
       if(T.effect==='dive'){
+        // 地図の坑は「潜った回数」で回る。共有の層を倒しきれなくても、
+        // 坑そのものは動き続けるので、共鳴もドロップもここで進む
+        const dgN = dgOf(n);
+        if(dgN){
+          resTick(n, true);
+          if(dgCl(dgN) >= 0) diveLoot(n, fast, dgLoot(dgN), false);
+        }
         doDive(fast, n);                        // 潜って戦う（戦利品と層は今まで通り）
         const d = dgOf(n);                      // 地図のダンジョンは守護者も削れる
         if(d && dgOpen(d)){
-          d.hp = (d.hp == null ? dgHp(d) : d.hp) - dmg();
+          const hit = dmg();
+          d.hp = (d.hp == null ? dgHp(d) : d.hp) - hit;
+          if(!fast) hitNum(n, hit, dgIsBoss(d) && d.hp <= dgHp(d)*0.12);
           if(d.hp <= 0) dgWin(d, n, fast);
         }
       }
@@ -4058,6 +4235,7 @@ function tick(dt,fast){
   }
   if(!S.enemy) spawnEnemy();
   polTick(dt);
+  riftTick(dt);                        // 裂け目の残り時間
   if(!fast) troTick(dt);
   flowTick(dt, fast);
   rateTick(dt);
@@ -4712,23 +4890,7 @@ function doDive(fast, node){
     const nz = zoneOf(S.floor);
     if(nz !== wasZone && !fast) addLog(`【新区域】${nz.i} ${nz.n} に到達`,'b');
   }
-  // 撃破でのドロップ。地図のダンジョンは深度ぶん深いところの品が出る
-  const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;
-  const dg = node ? dgOf(node) : null;
-  const lv = dg ? dgLoot(dg) : f;
-  const q  = skillMul('drop') * findK * mfMul(node) * (dg ? 1 + Math.max(0,dgCl(dg)) * 0.25 : 1);
-  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * q)) tryDrop(f, fast);
-  // 遺物。ここがトレハンの本体。撃破ごとにぼろぼろ落ちる
-  let n2 = Math.floor(0.34 * q);
-  if(Math.random() < 0.34 * q - n2) n2++;
-  if(isBoss(f)) n2 += 2;
-  for(let i=0;i<Math.min(12,n2);i++) lootRelic(lv, fast, node);
-  // 錬成の品
-  let n3 = Math.floor(0.085 * q);
-  if(Math.random() < 0.085 * q - n3) n3++;
-  if(isBoss(f)) n3 += 1;
-  for(let i=0;i<Math.min(6,n3);i++){ const k = rollOrb(); addOrb(k, 1);
-    if(!fast && i===0) addLog(`【入手】${ORB[k].i}${ORB[k].n}`, 'w'); }
+  if(!dgOf(node)) diveLoot(node, fast, f, isBoss(f));   // 突発・クエストの坑は撃破のときだけ
   // 換装コアは節目の層でだけ。世代を上げたあとの「移行」が仕事になる
   if(isBoss(f) && f >= 20 && Math.random() < 0.30 * skillMul('drop')){
     addPart('core', 1);
@@ -4737,10 +4899,16 @@ function doDive(fast, node){
   spawnEnemy();
 }
 /* 拾ったものを、その場に一瞬出す。等級が高いほど長く強く光る */
-let popN = 0;
+let popN = 0, popAt = 0;
 function popRelic(node, it){
-  if(!node || !node.el || !node.el.root) return;
-  if(popN > 6 && it.r < 3) return;            // 出しすぎて画面が埋まらないように
+  if(!fxOn || !node || !node.el || !node.el.root) return;
+  const now = performance.now();
+  // 裂け目の最中は何十個も同時に落ちる。並のものは間引かないと画面が埋まる
+  if(it.r < 4){
+    if(popN > 5) return;
+    if(now - popAt < (it.r >= 3 ? 90 : 240)) return;
+  }
+  popAt = now;
   const R = node.el.root;
   const c = relColor(it);
   const e = document.createElement('div');
@@ -4754,7 +4922,193 @@ function popRelic(node, it){
     R.classList.remove('flash'); void R.offsetWidth; R.classList.add('flash');
   }
 }
-const RELIC_MAX = 400;                 // 持ち物に積める遺物の数
+/* ========================= 共鳴と裂け目 =========================
+   ここがこのゲームの山場。
+   坑を止めずに回し続けると「共鳴」が溜まっていく。溜まるほど落ちる量も
+   等級も跳ね上がるが、⚡か🧑人手が一瞬でも切れると根こそぎ崩れる。
+   だから「工房を太らせる」ことが、そのまま「当たりを引く」ことになる。
+   振り切ると【裂け目】が開き、45秒のあいだ滅茶苦茶に降る。          */
+const RES_MAX  = 100;                 // ここまで溜めると裂け目が開く
+const RES_GAIN = 1.0;                 // 1撃破あたり
+/* 止まったときに残る割合。低いうちは優しく、高く積むほど失うものが大きい */
+const resKeep = v => v >= RES_T[4].at ? 0.45
+                   : v >= RES_T[3].at ? 0.58
+                   : v >= RES_T[2].at ? 0.70
+                   : 0.82;
+const RIFT_SEC = 45;                  // 裂け目が開いている長さ
+const RIFT_Q   = 8;                   // 裂け目のあいだ、落ちる量
+const RIFT_MQ  = 130;                 // 裂け目のあいだ、上がる発見質
+/* 共鳴の段。色と名前と倍率 */
+const RES_T = [
+  {at:0,   n:'静',  c:'#5a6b82', q:1.0,  mq:0},
+  {at:20,  n:'熱',  c:'#5aa9ff', q:1.6,  mq:25},
+  {at:40,  n:'灼',  c:'#f2c14e', q:2.6,  mq:60},
+  {at:62,  n:'燦',  c:'#ff9a4d', q:4.2,  mq:120},
+  {at:84,  n:'極',  c:'#ff5f6d', q:7.0,  mq:200},
+];
+const resOf  = n => Math.max(0, n.res || 0);
+function resTier(v){ let t = RES_T[0];
+  for(const x of RES_T) if(v >= x.at) t = x; return t; }
+const inRift = n => (n.rift || 0) > 0;
+/* その坑の、いまの落ちやすさ */
+function resMul(n){
+  if(inRift(n)) return {q: RIFT_Q, mq: RIFT_MQ, t:{n:'裂', c:'#c08bff'}};
+  const t = resTier(resOf(n));
+  return {q: t.q, mq: t.mq, t};
+}
+/* 1回まわるたびに共鳴が溜まる。止まると崩れる。
+   n.stall は毎コマ立て直されるので、それとは別に「前は回っていたか」を持つ */
+function resTick(n, ok){
+  if(!TYPES[n.type].loot) return;
+  if(n.rift > 0) return;                // 裂け目のあいだは溜まらない。時間だけ減る
+  if(!ok){                              // 止まった＝崩れる（止まった瞬間に1回だけ）
+    if(!n._resRun) return;              // すでに止まっている
+    n._resRun = false;
+    const before = resOf(n);
+    if(before <= 0) return;
+    n.res = before * resKeep(before);
+    addLog(`【共鳴が崩れた】${nodeTitle(n)} が止まった`
+         + `（${resTier(before).n}${Math.floor(before)} → ${resTier(n.res).n}${Math.floor(n.res)}）`, 'w');
+    flashBoard('#6d3a45', 0.22);
+    return;
+  }
+  n._resRun = true;
+  n.res = resOf(n) + RES_GAIN;
+  const t = resTier(n.res), was = resTier(n.res - RES_GAIN);
+  if(t.n !== was.n){
+    addLog(`【共鳴 ${t.n}】${nodeTitle(n)}　落ちる量 ×${t.q}／発見質 +${t.mq}%`, 'b');
+    toast(`共鳴【${t.n}】 落ちる量 ×${t.q}`);
+    flashBoard(t.c, 0.22);
+  }
+  if(n.res >= RES_MAX) openRift(n);
+}
+function openRift(n){
+  n.res = 0; n.rift = RIFT_SEC;
+  S.rifts = (S.rifts||0) + 1;
+  addLog(`【裂け目】${nodeTitle(n)} の底が抜けた。${RIFT_SEC}秒のあいだ、`
+       + `落ちる量 ×${RIFT_Q}・発見質 +${RIFT_MQ}%`, 'b');
+  toast(`🌀 裂け目が開いた！ ${RIFT_SEC}秒`);
+  flashBoard('#c08bff', 0.55);
+  bigCry('裂け目', '#c08bff', `${RIFT_SEC}秒のあいだ、滅茶苦茶に降る`, 6);
+  if(n.el && n.el.root) n.el.root.classList.add('rift');
+}
+const RES_LEAK = 2.2;                 // 止まっているあいだ、1秒に抜けていく量
+function riftTick(dt){
+  for(const n of S.nodes){
+    // 止まったままなら、共鳴はじわじわ抜ける。放っておいて戻ることはない
+    if(TYPES[n.type].loot && !n.rift && n.stall && resOf(n) > 0)
+      n.res = Math.max(0, resOf(n) - RES_LEAK * dt);
+    if(!(n.rift > 0)) continue;
+    n.rift -= dt;
+    if(n.rift <= 0){
+      n.rift = 0;
+      if(n.el && n.el.root) n.el.root.classList.remove('rift');
+      addLog(`【裂け目が閉じた】${nodeTitle(n)}`, 'w');
+    }
+  }
+}
+/* 守護者を削った量を、ときどき数字にして出す。
+   毎回出すと画面が埋まるので、溜めて0.22秒ごとに1つ            */
+function hitNum(n, v, big){
+  if(!fxOn || !n || !n.el || !n.el.root) return;
+  n._dmgA = (n._dmgA || 0) + v;
+  const now = performance.now();
+  if(!big && now - (n._dmgT || 0) < 220) return;
+  n._dmgT = now;
+  const q = n._dmgA; n._dmgA = 0;
+  if(q <= 0) return;
+  const e = document.createElement('div');
+  e.className = 'dmg' + (big ? ' crit' : '');
+  e.textContent = '-' + fmt(q);
+  n.el.root.appendChild(e);
+  setTimeout(()=>e.remove(), 760);
+}
+/* ── 見せ方 ──
+   数字が増えるだけでは手ごたえにならない。当たったら、画面がそう言う */
+const nodeTitle = n => { const d = dgOf(n);
+  return d ? dgName(d) : `#${n.no||'-'} ${tierOf(n).n}`; };
+let fxOn = true;                       // 演出を切りたい人のための栓（S.fx で覚える）
+function setFx(v){
+  fxOn = !!v; S.fx = fxOn ? 1 : 0;
+  const b = $('#bFx'); if(b){ b.classList.toggle('fxoff', !fxOn);
+    b.textContent = fxOn ? '✨ 演出' : '✨ 演出OFF'; }
+  if(!fxOn){ const f=$('#fxFlash'); if(f) f.style.opacity='0';
+    const c=$('#fxCry'); if(c) c.classList.remove('on'); }
+}
+function flashBoard(color, alpha){
+  if(!fxOn) return;
+  const el = $('#fxFlash'); if(!el) return;
+  el.style.background = color;
+  el.style.transition = 'none'; el.style.opacity = String(alpha);
+  void el.offsetWidth;
+  el.style.transition = 'opacity .55s ease-out'; el.style.opacity = '0';
+}
+/* 画面のまんなかに、大きく出す。ここぞの一回だけに使う。
+   出しすぎると「ここぞ」でなくなるので、間隔を空け、格の高いものを優先する */
+let cryT = null, cryAt = 0, cryRank = 0;
+const CRY_GAP = 1400;
+function bigCry(text, color, sub, rank){
+  if(!fxOn) return;
+  const now = performance.now(), r = rank || 1;
+  // まだ前の掛け声が生きているときは、より格の高いものだけが割り込める
+  if(now - cryAt < CRY_GAP && r <= cryRank) return;
+  cryAt = now; cryRank = r;
+  setTimeout(()=>{ if(performance.now() - cryAt >= CRY_GAP) cryRank = 0; }, CRY_GAP + 60);
+  const el = $('#fxCry'); if(!el) return;
+  el.style.setProperty('--cc', color);
+  el.innerHTML = `<div class="cry1">${text}</div>`
+    + (sub ? `<div class="cry2">${sub}</div>` : '');
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  clearTimeout(cryT); cryT = setTimeout(()=>el.classList.remove('on'), 1900);
+}
+/* 節目はその一度だけ、大きく祝う。二度目からは静かにする */
+function milestone(key, title, color, sub){
+  S.ms = S.ms || {};
+  if(S.ms[key]) return false;
+  S.ms[key] = 1;
+  addLog(`【${title}】${sub||''}`, 'b');
+  bigCry(title, color, sub, 9);          // 節目はいちばん優先
+  flashBoard(color, 0.6);
+  return true;
+}
+/* 坑から外へ広がる輪。どこで当たったのかが目で分かる */
+function shock(node, color){
+  if(!fxOn || !node || !node.el || !node.el.root) return;
+  const e = document.createElement('div');
+  e.className = 'shock'; e.style.setProperty('--sc', color);
+  node.el.root.appendChild(e);
+  setTimeout(()=>e.remove(), 900);
+}
+/* ── 連鎖 ──
+   良いものが出たとき、そこで終わらない。もう一段、もっと良いものが出ることがある。
+   稀に5段6段と続く。この「まだ続く」が、いちばん効く                */
+const CHAIN_P   = 0.32;                // 次へ続く確率
+const CHAIN_MAX = 6;
+const CHAIN_TOP = 4;                   // 連鎖で届く上限（固有まで。神話は素引きの特権）
+function cascade(lv, node, fast, baseR, mqAdd){
+  const got = [];
+  let floor = baseR;
+  for(let i=0;i<CHAIN_MAX;i++){
+    if(Math.random() >= CHAIN_P * (1 - i*0.14)) break;
+    floor = Math.min(CHAIN_TOP, floor + 1);
+    const it = lootRelic(lv, fast, node, {rar: floor, mqAdd});
+    if(!it) break;
+    got.push(it);
+    if(!fast){
+      addLog(`　↳ 連鎖 ${i+1}：${relIcon(it)}${relName(it)}【${relRarName(it)}】`, 'b');
+      shock(node, relColor(it));
+    }
+  }
+  if(got.length > (S.bestChain||0)) S.bestChain = got.length;
+  if(got.length >= 2 && !fast){
+    const best = got[got.length-1];
+    bigCry(`${got.length}連鎖`, relColor(best), `${relIcon(best)}${relName(best)}`, 2 + got.length);
+    flashBoard(relColor(best), 0.4);
+  }
+  return got;
+}
+
+const RELIC_MAX = 600;                 // 持ち物に積める遺物の数（裂け目で一気に降るので広め）
 const FRAG_PER  = 100;                 // 錬成の品ひとつぶんのかけら
 /* ── 仕分け ──
    数が増えると見るのも大変になる。決めた等級以下は拾った瞬間に売る */
@@ -4784,9 +5138,10 @@ function doMelt(n, fast){
 function lootRelic(lv, fast, node, opt){
   const sp = node ? modsOf(node).sp : {};
   const dgN = node ? dgOf(node) : null;
-  const it = rollRelic(lv, Object.assign(
-    {mq: mqBonus(node) + (sp.rarePlus ? sp.rarePlus * 50 : 0),
-     theme: dgN ? dgTheme(dgN) : null}, opt||{}));
+  const o = opt || {};
+  const it = rollRelic(lv, Object.assign({}, o, {
+    mq: mqBonus(node) + (sp.rarePlus ? sp.rarePlus * 50 : 0) + (o.mqAdd || 0),
+    theme: dgN ? dgTheme(dgN) : null}));
   // 拾った数は、仕分けで売ったぶんも含めて数える（実績の基準になるので）
   S.found = (S.found||0) + 1;
   if(it.r > (S.bestRar||0)) S.bestRar = it.r;
@@ -4797,17 +5152,27 @@ function lootRelic(lv, fast, node, opt){
     S.autoG = (S.autoG||0) + g; S.autoN = (S.autoN||0) + 1;
     return null;
   }
-  // いっぱいなら、いちばん良くないものと入れ替える（拾えなくなるより良い）
+  // いっぱいなら、いちばん良くないものと入れ替える（拾えなくなるより良い）。
+  // 全部を並べ替えると、裂け目の最中に何千回も走って描画が追いつかなくなる。
+  // 何十個か抜き取って、その中でいちばん良くないものと比べるだけにする
   if(invAll().length >= RELIC_MAX){
-    const w = wornIds();
-    const worst = invAll().filter(x=>!w.has(x.id)).sort((a,b)=>relScore(a)-relScore(b))[0];
-    if(!worst || relScore(worst) >= relScore(it)){
+    const w = wornIds(), a = invAll();
+    const mine = relScore(it);
+    let worst = null, ws = Infinity, wi = -1;
+    for(let k=0;k<28;k++){
+      const i = (Math.random() * a.length) | 0, x = a[i];
+      if(!x || w.has(x.id)) continue;
+      const sc = relScore(x);
+      if(sc < ws){ ws = sc; worst = x; wi = i; }
+    }
+    if(!worst || ws >= mine){
       const g = relSell(it); S.gold += g;
       S.autoG = (S.autoG||0) + g; S.autoN = (S.autoN||0) + 1;
       return null;
     }
     S.gold += relSell(worst); S.autoG = (S.autoG||0) + relSell(worst);
-    S.autoN = (S.autoN||0) + 1; invDel(worst.id);
+    S.autoN = (S.autoN||0) + 1;
+    a.splice(wi, 1);
   }
   invAdd(it); relicDirty();
   if(!S.relSeen){ S.relSeen = 1;
@@ -4819,9 +5184,44 @@ function lootRelic(lv, fast, node, opt){
     addLog(`【${relRarName(it)}】${relIcon(it)}${relName(it)}`
       + `（${relBaseName(it)}・深さ${it.lv}）`, it.r>=3 ? 'b' : 'w');
     if(it.r >= 1) popRelic(node, it);            // 等級の色で盤面に出す
+    // 等級が上がるほど、画面のほうが大きく反応する
+    if(it.r >= 3){ shock(node, relColor(it)); flashBoard(relColor(it), 0.18 + it.r*0.09); }
+    if(it.r === 4) bigCry(relName(it), relColor(it),
+      `${relBaseName(it)}・深さ${it.lv}${it.u?`「${UQ[it.u].fl}」`:''}`, 5);
+    if(it.r >= 5){
+      if(!milestone('myth', 'はじめての神話', relColor(it),
+           `${relIcon(it)}${relName(it)}　—　ここから先は、別の景色になる`)){
+        bigCry('神話', relColor(it), `${relIcon(it)}${relName(it)}`, 8);
+        flashBoard(relColor(it), 0.75);
+      }
+    }
     if(it.r >= 4) toast(`${relIcon(it)}${relName(it)} を掘り当てた！`);
   }
   return it;
+}
+/* 遺物が落ちるところ。地図の坑はもぐるたび、突発の坑は撃破のときに呼ばれる。
+   共鳴と裂け目の倍率がここに乗る。止めずに回すほど、降り方が変わる      */
+function diveLoot(node, fast, f, boss){
+  const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;
+  const dg = node ? dgOf(node) : null;
+  const lv = dg ? dgLoot(dg) : f;
+  const rm = node ? resMul(node) : {q:1, mq:0};
+  const q  = skillMul('drop') * findK * mfMul(node) * rm.q
+           * (dg ? 1 + Math.max(0,dgCl(dg)) * 0.25 : 1);
+  if(f >= DROP_FROM && (boss || Math.random() < 0.02 * q)) tryDrop(f, fast);
+  let n2 = Math.floor(0.34 * q);
+  if(Math.random() < 0.34 * q - n2) n2++;
+  if(boss) n2 += 2;
+  for(let i=0;i<Math.min(24,n2);i++){
+    const it = lootRelic(lv, fast, node, {mqAdd: rm.mq});
+    // 良いものが出たら、そこで終わらない。もう一段、もっと良いものが来ることがある
+    if(it && it.r >= 2) cascade(lv, node, fast, it.r, rm.mq);
+  }
+  let n3 = Math.floor(0.085 * q);
+  if(Math.random() < 0.085 * q - n3) n3++;
+  if(boss) n3 += 1;
+  for(let i=0;i<Math.min(12,n3);i++){ const k = rollOrb(); addOrb(k, 1);
+    if(!fast && i===0) addLog(`【入手】${ORB[k].i}${ORB[k].n}`, 'w'); }
 }
 function tryDrop(f, fast){
   if(S.drops.length >= DROP_MAX) return;      // クリア報酬スタックの上限
@@ -4998,6 +5398,25 @@ const TROPHY = [
   {k:'atk3', i:'🔥', n:'一騎当千',      d:'攻撃力 1,000万 をこえた',      p:3, f:()=>atk()>=1e7},
   {k:'atk4', i:'💥', n:'天災',          d:'攻撃力 10億 をこえた',         p:4, f:()=>atk()>=1e9},
   {k:'atk5', i:'🌟', n:'神話',          d:'攻撃力 1兆 をこえた',          p:5, f:()=>atk()>=1e12},
+  // ── 共鳴と裂け目 ──
+  {k:'res1', i:'🔥', n:'熱が入る',      d:'共鳴【灼】まで上げた',          p:1,
+   f:()=>S.nodes.some(n=>TYPES[n.type].loot && resOf(n)>=RES_T[2].at)},
+  {k:'res2', i:'☄️', n:'燦然',          d:'共鳴【極】まで上げた',          p:3,
+   f:()=>S.nodes.some(n=>TYPES[n.type].loot && resOf(n)>=RES_T[4].at)},
+  {k:'rif1', i:'🌀', n:'底が抜けた',    d:'裂け目を1回ひらいた',           p:2,
+   f:()=>(S.rifts||0)>=1},
+  {k:'rif2', i:'🌪', n:'常在の渦',      d:'裂け目を25回ひらいた',          p:4,
+   f:()=>(S.rifts||0)>=25},
+  {k:'rif3', i:'🕸', n:'世界の裂け目',  d:'裂け目を200回ひらいた',         p:5,
+   f:()=>(S.rifts||0)>=200},
+  {k:'bos1', i:'👁', n:'主を退けた',    d:'★主を1体 倒した',              p:2,
+   f:()=>(S.bossKill||0)>=1},
+  {k:'bos2', i:'☠️', n:'主狩り',        d:'★主を20体 倒した',             p:4,
+   f:()=>(S.bossKill||0)>=20},
+  {k:'cas1', i:'⛓', n:'連鎖',          d:'4連鎖を起こした',               p:3,
+   f:()=>(S.bestChain||0)>=4},
+  {k:'cas2', i:'⚡', n:'極限連鎖',      d:'6連鎖を起こした',               p:5,
+   f:()=>(S.bestChain||0)>=6},
   // ── トレハン ──
   {k:'rel1', i:'🔮', n:'はじめの遺物',  d:'遺物を 1つ 拾った',            p:1,
    f:()=>(S.found||0)>=1},
@@ -5936,6 +6355,33 @@ function render(){
     setTxt(e.lv, T.layer ? `${memCount(n)}個` : 'Lv.'+n.level);
     setCls(e.root,'lay', !!T.layer);
     setCls(e.root,'port', !!T.port);
+    // 共鳴の熱。溜まるほど坑が色づき、振り切ると裂け目になる
+    if(T.loot && slow){
+      const bar = e.root.querySelector('.resbar > i');
+      const v = Math.min(RES_MAX, resOf(n)), t = resTier(v);
+      const rift = inRift(n);
+      if(bar){
+        const w = rift ? 100 : Math.round(v / RES_MAX * 100);
+        if(e.resW !== w){ e.resW = w; bar.style.width = w + '%'; }
+        const c = rift ? '#c08bff' : t.c;
+        if(e.resC !== c){ e.resC = c;
+          e.root.style.setProperty('--rcol', c);
+          e.root.style.setProperty('--rglow', (v>=RES_T[1].at ? (6 + v*0.18).toFixed(0) : 0) + 'px'); }
+      }
+      setCls(e.root, 'hot', !rift && v >= RES_T[1].at);
+      setCls(e.root, 'rift', rift);
+      // 守護者の体力。削れていくのが見えると、あと何回かが分かる
+      const dd = dgOf(n), open = dd && dgOpen(dd);
+      setCls(e.root, 'guard', !!open && !dgIsBoss(dd));
+      setCls(e.root, 'boss',  !!open && dgIsBoss(dd));
+      if(open){
+        const hb = e.root.querySelector('.hpwrap > i');
+        const pc = Math.max(0, Math.min(100,
+          (dd.hp == null ? dgHp(dd) : dd.hp) / Math.max(1, dgHp(dd)) * 100));
+        const w = pc.toFixed(1) + '%';
+        if(hb && e.hpW !== w){ e.hpW = w; hb.style.width = w; }
+      }
+    }
     const need=insOf(n), give=outsOf(n), shown=portIns(n);
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
@@ -5981,7 +6427,8 @@ function render(){
               return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })())
       : T.effect==='dive'? (()=>{ const d=dgOf(n);
           if(d && dgOpen(d)){ const hp=Math.max(0, d.hp==null?dgHp(d):d.hp), mx=dgHp(d);
-            return `${dgName(d)}${dgDep(d)?' 深度'+dgDep(d):''} 守護者 ${fmt(hp)}/${fmt(mx)}`
+            return `${dgName(d)}${dgDep(d)?' 深度'+dgDep(d):''} `
+              + `${dgIsBoss(d)?'★'+dgBossName(d):'守護者'} ${fmt(hp)}/${fmt(mx)}`
               + `　第${dgFloor(d)}層相当（あと${fmt(Math.ceil(hp/Math.max(1,dmg())))}回）`; }
           const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
           return (d ? `制圧済 深度${dgCl(d)}／${ITEMS[d.ore].i}${ITEMS[d.ore].n}を採掘中／` : '')
@@ -6669,9 +7116,12 @@ function renderInsp(){
     (dgOf(n) ? (()=>{ const d=dgOf(n), cl=dgCl(d), dep=dgDep(d);
         let h = `<div class="kv">${dgName(d)}<b>`
           + (cl>=0 ? `制圧済 深度${cl}` : '未攻略') + `</b></div>`;
-        if(dgOpen(d)) h += `<div class="kv">守護者<b class="no">`
+        if(dgOpen(d)) h += `<div class="kv">${dgIsBoss(d)?'★'+dgBossName(d):'守護者'}<b class="no">`
           + `${fmt(Math.max(0,d.hp==null?dgHp(d):d.hp))} / ${fmt(dgHp(d))}`
-          + `（第${dgFloor(d)}層相当）</b></div>`;
+          + `（第${dgFloor(d)}層相当）</b></div>`
+          + (d.prize && UQ[d.prize]
+             ? `<div class="kv prize">倒すと確定で<b>${RB[UQ[d.prize].b].i}${UQ[d.prize].n}</b></div>`
+             : '');
         if(cl>=0){
           h += `<div class="kv">採れるもの<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n} ×`
             + `${1+Math.ceil(cl*0.6)}</b></div>`
@@ -6682,6 +7132,42 @@ function renderInsp(){
             + `ここから出る遺物の量と等級が上がります</div>`;
         } else {
           h += `<div class="kv">攻略すると<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れる</b></div>`;
+        }
+        // 人手と⚡の帳尻。足りていないなら、それをはっきり言う。
+        // ここが合っていないと、共鳴はいつまでも育たない
+        {
+          const per = 60 / Math.max(1e-6, craftTime(n));
+          const needC = (insOf(n).crew || 0) * per;
+          const needE = (insOf(n).sta  || 0) * per;
+          const supC = S.links.filter(l => l.to === n.id && l.item === 'crew')
+            .reduce((a,l)=>{ const src = N(l.from); if(!src) return a;
+              const g = l.G || geomOf(l);
+              return a + 60 / Math.max(1e-6, craftTime(src))
+                       * ((outsOf(src)||{}).crew || 0) * (g ? (g.cap==null?1:g.cap) : 1); }, 0);
+          const okC = supC >= needC * 0.98;
+          h += `<div class="kv">🧑人手の帳尻<b class="${okC?'':'no'}">`
+            + `要る ${fmt(Math.round(needC))}/分　届く ${fmt(Math.round(supC))}/分`
+            + `${okC ? '' : `　⚠ ${fmt(Math.ceil((needC-supC)/Math.max(1,supC/Math.max(1,S.links.filter(l=>l.to===n.id&&l.item==='crew').length))))}人ぶん足りない`}`
+            + `</b></div>`;
+          if(!okC) h += `<div class="lnote">人手が切れるたびに共鳴が崩れます。`
+            + `👩‍🌾仲間を増やしてこの坑へ繋ぐか、坑の強化をゆるめてください。`
+            + `❤️体力を上げると1人あたりの出が増えます</div>`;
+          if(needE > 0) h += `<div class="kv">⚡の要りよう<b>${fmt(Math.round(needE))}/分</b></div>`;
+        }
+        // 共鳴。止めずに回すほど降り方が変わる。ここがこのゲームの山場
+        {
+          const v = resOf(n), t = resTier(v), rm = resMul(n);
+          h += inRift(n)
+            ? `<div class="kv rift">🌀 裂け目<b>残り ${Math.ceil(n.rift)}秒　`
+              + `落ちる量 ×${RIFT_Q}／発見質 +${RIFT_MQ}%</b></div>`
+            : `<div class="kv">共鳴<b style="color:${t.c}">【${t.n}】${Math.floor(v)} / ${RES_MAX}`
+              + `　落ちる量 ×${rm.q}／発見質 +${rm.mq}%</b></div>`;
+          h += `<div class="resline"><i style="width:${Math.min(100,v/RES_MAX*100)}%;`
+            + `background:${inRift(n)?'#c08bff':t.c}"></i></div>`;
+          if(!inRift(n)) h += `<div class="lnote">回し続けると溜まり、`
+            + `⚡や🧑人手が切れて<b>止まった瞬間に${Math.round((1-resKeep(v))*100)}%が崩れます</b>`
+            + `（高く積むほど失うものが大きい）。`
+            + `${RES_MAX}まで溜めると🌀裂け目が開き、${RIFT_SEC}秒のあいだ滅茶苦茶に降ります</div>`;
         }
         // この坑の「顔」。どこへ通えばいいかが、ここで分かる
         const th = dgTheme(d);
@@ -6704,11 +7190,20 @@ function renderInsp(){
                       + `</div>`; })()
                   : `<div class="lnote">この坑の固有品はすべて見つけました</div>`)
              : '');
-        if(cl>=0 && !dgOpen(d)) h += `<div class="btns">`
-          + `<button class="dep1">深度 ${dep+1} に挑む（第${dgFloor(d,dep+1)}層相当）</button></div>`
-          + `<div class="lnote">深度を上げると守護者が戻ってきます。`
-          + `退けるまでは今の深度のまま採掘が続くので、失うものはありません。`
-          + `勝てば採れる量と落ちる遺物の深さが上がります</div>`;
+        if(cl>=0 && !dgOpen(d)){
+          const bn = (k)=>{ const nd = dep + k;
+            const boss = nd % BOSS_EVERY_DEP === 0;
+            return `<button class="dep${k}">+${k} → 深度${nd}`
+              + `<i>第${dgFloor(d,nd)}層相当${boss?'・★主':''}</i></button>`; };
+          h += `<div class="btns deprow">${bn(1)}${bn(3)}${bn(5)}</div>`
+            + `<div class="lnote">深度を上げると守護者が戻ってきます。`
+            + `退けるまでは今の深度のまま採掘が続くので、<b>失うものはありません</b>。`
+            + `一気に飛ぶほど守護者は手強くなりますが、勝ったときの取り分も増えます`
+            + `（+3で希少確定、+5で固有確定）。深度${BOSS_EVERY_DEP}ごとに★主が出て、`
+            + `固有品が確定で落ちます</div>`;
+        }
+        if(dgOpen(d) && cl>=0) h += `<div class="btns">`
+          + `<button class="depdn">深度 ${cl} に戻す（挑戦をやめる）</button></div>`;
         return h; })() : '') +
     `<div class="kv wrow"><span>つながり<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>` +
     `<div class="kvb"><div class="kb">この施設の収支<i class="wsub">1分あたり</i></div>`
@@ -6918,8 +7413,12 @@ function renderInsp(){
   if(uc) uc.onclick=()=>breakComb(n);
   const rn=box.querySelector('.ren');
   if(rn) rn.onclick=()=>renameNode(n);
-  const d1=box.querySelector('.dep1');
-  if(d1) d1.onclick=()=>{ const d=dgOf(n); if(d) dgRaise(d, n, 1); };
+  for(const k of [1,3,5]){ const b=box.querySelector('.dep'+k);
+    if(b) b.onclick=()=>{ const d=dgOf(n); if(d) dgRaise(d, n, k); }; }
+  const dd=box.querySelector('.depdn');
+  if(dd) dd.onclick=()=>{ const d=dgOf(n); if(!d) return;
+    d.dep = dgCl(d); d.hp = 0; d.prize = null; modsDirty(n);
+    drawDungeons(); renderInsp(); toast(`深度 ${dgDep(d)} に戻しました`); };
   const pa=box.querySelector('.pauto');
   if(pa) pa.onclick=()=>autoEquip(n);
   const pc=box.querySelector('.pclr');
@@ -7907,6 +8406,7 @@ function load(){
       addLog('【遺物】強化パーツを、一つずつ中身の違う「遺物」に作り直しました。'
            + '持っていたぶんは同じ働きの遺物として配り直し、施設に挿し直してあります。'
            + '🎒持ち物→🔮遺物 から見られます','u'); }
+    setFx(S.fx == null ? 1 : S.fx);
     S.at = null; applyView(); renderLog(); renderBoard();
     layerDirty();                       // 数え直せるものは持ち越さない
     applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
@@ -7921,6 +8421,8 @@ function setPane(p){
 }
 document.querySelectorAll('#mtabs button').forEach(b=>b.onclick=()=>setPane(b.dataset.p));
 $('#hint').onclick=()=>$('#hint').classList.toggle('open');
+$('#bFx').onclick=()=>{ setFx(!fxOn);
+  toast(fxOn ? '演出を出します' : '演出を止めました（数字と記録は今まで通り）'); };
 $('#bFit').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
 $('#offscr').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
 $('#bTidy').onclick=()=>{ if(confirm('ノードを格子状に並べ直します。よろしいですか？')){ tidyLayout(); toast('整列しました'); } };
@@ -8144,6 +8646,7 @@ function newGame(){
   lookAtBase();
 }
 if(!load()) newGame();
+setFx(S.fx == null ? 1 : S.fx);
 for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が未配線なので一度だけ繋ぐ
   const lo = memOf(L).find(m => TYPES[m.type].lout);
   if(!lo || !S.links.some(l => l.to === lo.id)) autoWire(L);
