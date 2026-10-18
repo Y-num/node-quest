@@ -71,21 +71,34 @@ button{font:inherit;color:inherit;cursor:pointer}
 #wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 /* ノードだけがクリックを受け、空白は下の配線に通す */
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
-path.hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:move}
-path.wire{fill:none;stroke-width:3.5;stroke-linecap:round}
-/* 線の向き。動きっぱなしの点線はやめ、真ん中に「>」を1つ置くだけにした。
-   実際に物が動いたときは粒が走るので、そちらで流れが分かる            */
-path.flow{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
-  stroke-opacity:.35}
-path.flow.on{stroke-width:3;stroke-opacity:1}   /* いま流れている線だけ濃く */
+path.hit{fill:none;stroke:transparent;stroke-width:22;pointer-events:stroke;cursor:move}
+/* ベルトコンベア（外枠 rail ＋ 暗い帯 wire.belt ＋ 動くローラー縞 flow.tread） */
+path.rail{fill:none;stroke:#2a3d56;stroke-width:15;stroke-linecap:round;transition:stroke .2s}
+path.wire.belt{fill:none;stroke:#0b111a;stroke-width:11;stroke-linecap:round}
+path.flow.tread{fill:none;stroke-width:7.5;stroke-linecap:butt;stroke-dasharray:4 8;stroke-opacity:.35}
+path.flow.tread.on{stroke-opacity:.86}
+path.rail.jam{stroke:#d94e4e;filter:drop-shadow(0 0 6px rgba(240,90,79,.55))}
+path.flow.tread.jam{stroke:#ff745c !important;stroke-opacity:.92}
+path.rail.pick{stroke:var(--acc);stroke-width:17;filter:drop-shadow(0 0 6px rgba(94,224,192,.45))}
+path.hit:hover + path.rail{stroke:#43628a}
+/* 電力ケーブル（細く控えめにして、ベルトコンベアを主役にする） */
+path.wire.cable{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-opacity:.26}
+path.flow.cable{fill:none;stroke-width:2;stroke-linecap:round;stroke-dasharray:4 10;stroke-opacity:.18}
+path.flow.cable.on{stroke-opacity:.75}
+path.wire.cable.pick{stroke-opacity:1;stroke-width:3.8}
+path.hit:hover + path.wire.cable{stroke-width:4;stroke-opacity:.75}
+/* ベルトの上を流れる素材アイコン */
+g.pkt{pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))}
+g.pkt rect.pkbg{fill:#101928;stroke-width:2;transition:stroke .15s,fill .15s}
+g.pkt.jam rect.pkbg{fill:#2d1216;stroke:#ff6b5e !important}
+g.pkt text.pkic{font-size:12.5px;user-select:none}
+#gw.far g.pkt text.pkic{display:none}
 #gw.far path.flow{display:none}        /* 引きの絵では細かい印は出さない */
-path.hit:hover + .wire{stroke-width:6;stroke-opacity:.85}
 circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .wadd{pointer-events:all;cursor:pointer}
 .wadd circle{fill:#0b1119;stroke:var(--acc);stroke-width:2}
 .wadd path{stroke:var(--acc);stroke-width:2;stroke-linecap:round;fill:none}
 .wadd:hover circle{fill:var(--acc)} .wadd:hover path{stroke:#08131a}
-path.wire.pick{stroke-opacity:1;stroke-width:4.5}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
 
 /* ---------- ノード ---------- */
@@ -99,6 +112,8 @@ path.wire.pick{stroke-opacity:1;stroke-width:4.5}
 .node.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 8px 24px rgba(0,0,0,.5)}
 .node.stall{border-color:#6d3a45}
 .node.run{border-color:#2f6b60}
+.node.work .nh .ic{animation:workb .7s ease-in-out infinite}
+@keyframes workb{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.5px) scale(1.1)}}
 .node.tgt{border-color:var(--acc2);box-shadow:0 0 0 2px var(--acc2)}
 .node.over{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc),0 0 22px rgba(94,224,192,.45)}
 /* 配線を伸ばしているあいだ、受け取れる口だけをはっきり光らせる */
@@ -121,9 +136,12 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 /* 配線を伸ばしている最中や、置き場所を決めている最中は沈めない */
 body.linking .node.dim, body.placing .node.dim{opacity:1;filter:none}
 body.linking path.wire.dim, body.placing path.wire.dim{stroke-opacity:.32}
+body.linking path.rail.dim, body.placing path.rail.dim{stroke-opacity:.35}
 .node.near{border-color:var(--acc2)}
+path.rail.dim{stroke-opacity:.06}
 path.wire.dim{stroke-opacity:.05}
 path.flow.dim{stroke-opacity:.05}
+g.pkt.dim{opacity:.12}
 circle.wph.dim{opacity:.15}
 .nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
   background:#0b1119;border:1px solid var(--line);padding:0 5px;border-radius:4px}
@@ -783,7 +801,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="shopList"></div>
     </div>
     <div id="stage">
-      <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><g id="gwH"></g><path id="temp"></path><path id="lasso"></path></g></svg>
+      <svg id="wires"><g id="gw"><g id="gwC"></g><g id="gwL"></g><g id="gwP"></g><g id="gwH"></g><path id="temp"></path><path id="lasso"></path></g></svg>
       <div id="world"></div>
       <div id="hint">
         <div class="ttl">ⓘ 操作方法</div>
@@ -1035,9 +1053,13 @@ const expNeed  = lv => 1 + Math.floor(Math.max(0, lv) / EXP_STEP);
 applyCurve();
 
 const CAP    = 10;    // バッファの基準値（必要数が大きいノードは自動で広がる）
-const PSPEED = 380;   // 配線上を素材が流れる速さ px/s
-const PMAX   = 0.7;   // どんなに長い経路でも、渡りきるのにこれ以上はかけない（秒）
-const SENDCD = 0.10;  // 1回送り出すごとの間隔
+const PSPEED = 72;    // ベルトコンベアの上を素材が流れる速さ px/s
+const PMAX   = 3.6;   // どんなに長いベルトでも、渡りきるのにこれ以上はかけない（秒）
+const PMIN   = 1.4;   // 短いベルトでも、素材の動きが見えるよう最低これだけはかける（秒）
+const SENDCD = 0.22;  // ベルトへ1個ずつ送り出す間隔
+const CABLE_ITEM = {sta:1, power:1, nfl:1}; // 電力系はベルトではなく細いケーブルで送る
+const beltGap = l => Math.min(0.18, 24 / Math.max(96, (l.G && l.G.total) || 180));
+const beltCap = l => Math.max(4, Math.min(12, Math.floor(((l.G && l.G.total) || 180) / 26)));
 const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
 const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
 
@@ -2448,7 +2470,7 @@ function setCls(el, name, on){
   if(c[name] === on) return;
   c[name] = on; el.classList.toggle(name, on);
 }
-const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'),
+const world = $('#world'), stage = $('#stage'), gwC = $('#gwC'), gwL = $('#gwL'), gwP = $('#gwP'),
       gwH = $('#gwH'), gw = $('#gw');
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -2761,26 +2783,53 @@ function setToolItem(n, item){
 }
 function clearBoardEls(){
   for(const el of [...world.querySelectorAll('.node')]) el.remove();
-  gwL.innerHTML=''; gwP.innerHTML=''; packetCount=0;
+  gwC.innerHTML=''; gwL.innerHTML=''; gwP.innerHTML=''; packetCount=0;
 }
 function mkLinkEl(l){
-  const c = ITEMS[l.item].c;
+  ensureItem(l.item);
+  const c = (ITEMS[l.item] && ITEMS[l.item].c) || '#8aa';
+  const isCab = !!CABLE_ITEM[l.item];
   const hit =document.createElementNS(SVG,'path');  hit.setAttribute('class','hit');
-  const wire=document.createElementNS(SVG,'path');  wire.setAttribute('class','wire');
-  const flow=document.createElementNS(SVG,'path');  flow.setAttribute('class','flow');
-
-  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','.32');
-  flow.setAttribute('stroke',c); flow.setAttribute('stroke-opacity','.9');
+  const wire=document.createElementNS(SVG,'path');
+  const flow=document.createElementNS(SVG,'path');
   hit.dataset.link=l.id;
-  gwL.append(hit,wire,flow);
-  l.el={hit,wire,flow};
-  l._gk = null; l._dk = null; l.G = null;   // 作り直したら必ず引き直す
+  if(isCab){
+    wire.setAttribute('class','wire cable');
+    flow.setAttribute('class','flow cable');
+    wire.setAttribute('stroke',c);
+    flow.setAttribute('stroke',c);
+    gwC.append(hit,wire,flow);
+    l.el={hit,rail:null,wire,flow,cable:true};
+  }else{
+    const rail=document.createElementNS(SVG,'path');
+    rail.setAttribute('class','rail');
+    wire.setAttribute('class','wire belt');
+    flow.setAttribute('class','flow tread');
+    flow.setAttribute('stroke',c);
+    gwL.append(hit,rail,wire,flow);
+    l.el={hit,rail,wire,flow,cable:false};
+  }
+  l._gk = null; l._dk = null; l.G = null; l._off = 0;   // 作り直したら必ず引き直す
 }
 function mkPacketEl(p){
-  const c=document.createElementNS(SVG,'circle');
-  c.setAttribute('r',5.5); c.setAttribute('fill',ITEMS[p.item].c);
-  c.setAttribute('stroke','#0a0d14'); c.setAttribute('stroke-width','1.5');
-  gwP.appendChild(c); p.el=c; packetCount++;
+  ensureItem(p.item);
+  const it = ITEMS[p.item] || ITEMS.ore1;
+  const g = document.createElementNS(SVG,'g');
+  g.setAttribute('class','pkt');
+  const r = document.createElementNS(SVG,'rect');
+  r.setAttribute('class','pkbg');
+  r.setAttribute('x','-10.5'); r.setAttribute('y','-10.5');
+  r.setAttribute('width','21'); r.setAttribute('height','21');
+  r.setAttribute('rx','6');
+  r.setAttribute('stroke', it.c);
+  const t = document.createElementNS(SVG,'text');
+  t.setAttribute('class','pkic');
+  t.setAttribute('x','0'); t.setAttribute('y','1');
+  t.setAttribute('text-anchor','middle');
+  t.setAttribute('dominant-baseline','central');
+  t.textContent = it.i;
+  g.append(r, t);
+  gwP.appendChild(g); p.el=g; packetCount++;
 }
 function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCount--;} l.packets.splice(i,1); }
 
@@ -2846,8 +2895,13 @@ function addLink(from,item,to){ const l={id:S.nextId++,from,to,item,packets:[],w
 function removeLink(id){
   const i=S.links.findIndex(l=>l.id===id); if(i<0) return;
   linkVer++;
-  const l=S.links[i]; while(l.packets.length) delPacket(l,0);
-  l.el.hit.remove(); l.el.wire.remove(); l.el.flow.remove();
+  const l=S.links[i], src=N(l.from);
+  while(l.packets.length){
+    const p=l.packets[0];
+    if(src && p && p.q) src.outBuf[l.item] = Math.min(capOut(src,l.item), (src.outBuf[l.item]||0) + p.q);
+    delPacket(l,0);
+  }
+  l.el.hit.remove(); if(l.el.rail) l.el.rail.remove(); l.el.wire.remove(); l.el.flow.remove();
   if(selLink === l.id){ selLink = null; renderHandles(); }
   S.links.splice(i,1);
   // 送る線が無くなったら、空いている枠は手放す
@@ -3057,29 +3111,29 @@ function tick(dt,fast){
     }
   }
 
-  // 出力バッファ → 配線へ。数字がインフレするので1粒にまとめて運ぶ
+  // 出力バッファ → 配線（電力ケーブルは即座に送り、物理素材はベルトコンベアに載せる）
   for(const n of S.nodes){
     for(const item in n.outBuf){
       if((n.outBuf[item]||0)<=0) continue;
       n.cd[item]=(n.cd[item]||0)-dt; if(n.cd[item]>0) continue;
       const ls=S.links.filter(l=>l.from===n.id&&l.item===item);
       if(!ls.length) continue;
+      const isCab = !!CABLE_ITEM[item];
       const big = TYPES[n.type].layer || TYPES[n.type].port;   // 口はまとめて流す
-      const chunk = big ? Infinity : Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8));
-      // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る。
-      // 使ったぶんだけ間隔を戻す（余りを捨てると、コマが粗いほど流れが細くなる）
-      const canSend = 1 + Math.floor(-n.cd[item]/SENDCD);
-      let left = big ? 400 : Math.min(200, canSend);
-      n.cd[item] += SENDCD * canSend;
+      const cdStep = (isCab || big) ? 0.10 : SENDCD;
+      const chunk = big ? Infinity
+                  : isCab ? Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8))
+                  : Math.max(1, Math.ceil(Math.max((n.outBuf[item]||0)/5, Math.min(capOut(n,item), CAP*20)/16)));
+      // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る
+      const canSend = 1 + Math.floor(-n.cd[item]/cdStep);
+      let left = big ? 400 : Math.min(isCab ? 200 : 30, canSend);
+      n.cd[item] += cdStep * canSend;
       // 優先度つきの分配（数字の大きい送り先ほど多く回る）
       n.wrr = n.wrr || {};
       let st = n.wrr[item];
       if(!Array.isArray(st) || st.length !== ls.length) st = n.wrr[item] = ls.map(()=>0);
-      // レイヤーは「中で使っている数」ぶんの取り分をもらう。
-      // 1つにまとめただけで取り分が1台ぶんに減ると、まとめた瞬間に細ってしまう
       const w = ls.map(l=>{ const d=N(l.to); if(!d) return 1;
-        // レイヤーと複合施設は、中に抱えている数ぶんの取り分をもらう。
-        // 1つにまとめただけで取り分が1台ぶんに減ると、まとめた瞬間に細ってしまう
+        // レイヤーと複合施設は、中に抱えている数ぶんの取り分をもらう
         const many = TYPES[d.type].layer ? Math.max(1, layerUsers(d)[item]||1)
                    : d.comb ? d.comb.length + 1 : 1;
         return prioOf(d) * many; });
@@ -3089,17 +3143,35 @@ function tick(dt,fast){
         const order=ls.map((_,i)=>i).sort((a,b)=>st[b]-st[a]);
         let sent=false;
         for(const i of order){
-          const l=ls[i], dst=N(l.to);
-          const sp=dst?spaceIn(dst,item):0;
-          if(sp>0){
-            const q=Math.min(n.outBuf[item], chunk, sp);
-            n.outBuf[item]-=q; st[i]-=wtot;
-            n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
-            // レイヤーの口は「素通し」。粒を走らせると、まとめただけで
-            // 一段ぶん遅くなってしまうので、口から先はその場で届ける
-            if(fast||big||packetCount>PKT_MAX) dst.inBuf[item]=(dst.inBuf[item]||0)+q;
-            else { const p={item,t:0,q}; mkPacketEl(p); l.packets.push(p); }
-            sent=true; break;
+          const l=ls[i], dst=N(l.to); if(!dst) continue;
+          const sp=spaceIn(dst,item);
+          if(fast || big || isCab){
+            if(sp>0){
+              const q=Math.min(n.outBuf[item], chunk, sp);
+              n.outBuf[item]-=q; st[i]-=wtot;
+              n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
+              dst.inBuf[item]=(dst.inBuf[item]||0)+q;
+              l._active = 0.35;
+              sent=true; break;
+            }
+          }else{
+            // ベルトコンベア：送り先が満杯でも、ベルトの上に空きがあれば載せる（先頭から詰まって並ぶ）
+            geomOf(l);
+            const cap = beltCap(l), gap = beltGap(l);
+            const tail = l.packets.length ? l.packets[l.packets.length-1] : null;
+            const beltRoom = l.packets.length < cap && (!tail || tail.t >= gap);
+            if(beltRoom){
+              const q=Math.min(n.outBuf[item], chunk, sp>0 ? Math.max(1, sp) : chunk);
+              n.outBuf[item]-=q; st[i]-=wtot;
+              n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
+              if(packetCount>PKT_MAX && sp>0){
+                dst.inBuf[item]=(dst.inBuf[item]||0)+q;
+              }else{
+                const p={item,t:0,q,jam:false}; mkPacketEl(p); l.packets.push(p);
+              }
+              l._active = 0.35;
+              sent=true; break;
+            }
           }
         }
         if(!sent){ for(let i=0;i<ls.length;i++) st[i]-=w[i]; break; }
@@ -3107,18 +3179,60 @@ function tick(dt,fast){
     }
   }
 
-  // 配線上の移動
+  // ベルトコンベア上の移動と詰まり（先頭 i=0 から順に動かし、前の荷物との車間距離を保つ）
   for(const l of S.links){
-    if(!l.packets.length) continue;
-    const b=N(l.to); if(!b) continue;
+    if((l._active||0) > 0) l._active = Math.max(0, l._active - dt);
+    if(!l.packets.length){ l.jam = false; l._moving = (l._active||0) > 0; continue; }
+    const b=N(l.to); if(!b){ while(l.packets.length) delPacket(l,0); continue; }
     const G=geomOf(l); if(!G) continue;
-    for(let i=l.packets.length-1;i>=0;i--){
-      const p=l.packets[i];
-      // 直角に曲がると経路が長くなる。速さを固定したままだと粒が這うので、
-      // 「長いほど速く」して、渡りきる時間が延びすぎないようにする
-      p.t += dt * Math.max(PSPEED / G.total, 1 / PMAX);
-      if(p.t>=1){ b.inBuf[p.item]=(b.inBuf[p.item]||0)+(p.q||1); delPacket(l,i); }
+    if(fast){
+      for(let i=0;i<l.packets.length;i++){
+        const p=l.packets[i], sp=spaceIn(b,p.item);
+        if(sp<=0) break;
+        const take=Math.min(p.q||1, sp);
+        b.inBuf[p.item]=(b.inBuf[p.item]||0)+take; p.q=(p.q||1)-take;
+        if(p.q<=0){ delPacket(l,i); i--; }
+      }
+      continue;
     }
+    const spd = Math.min(1 / PMIN, Math.max(PSPEED / G.total, 1 / PMAX));
+    const gap = beltGap(l);
+    let anyMoved = false, anyJam = false;
+    for(let i=0;i<l.packets.length;i++){
+      const p=l.packets[i], prevT=p.t;
+      const limit = (i===0) ? 1.0 : Math.max(0, l.packets[i-1].t - gap);
+      p.t = Math.min(limit, p.t + dt * spd);
+      if(i===0){
+        if(p.t >= 0.94){
+          const sp = spaceIn(b, p.item);
+          if(sp > 0){
+            if(p.t >= 1.0){
+              const take = Math.min(p.q||1, sp);
+              b.inBuf[p.item] = (b.inBuf[p.item]||0) + take;
+              p.q = (p.q||1) - take;
+              if(p.q <= 0){ delPacket(l,0); i--; anyMoved = true; continue; }
+              p.t = 0.94; p.jam = true; anyJam = true;
+            }else{
+              p.jam = false;
+            }
+          }else{
+            p.t = 0.94; p.jam = true; anyJam = true;
+          }
+        }else{
+          p.jam = false;
+        }
+      }else{
+        const front = l.packets[i-1];
+        if(front && front.jam && p.t >= limit - 0.002){
+          p.jam = true; anyJam = true;
+        }else{
+          p.jam = false;
+        }
+      }
+      if(p.t > prevT + 0.0004) anyMoved = true;
+    }
+    l.jam = anyJam;
+    l._moving = anyMoved;
   }
   if(!S.enemy) spawnEnemy();
   polTick(dt);
@@ -4483,7 +4597,8 @@ function wiresOf(n){
   }
   return {inn, out};
 }
-function render(){
+function render(fdt){
+  const vdt = fdt || 0.016;
   frameN++;
   let jam = null;
   const R = viewRect();
@@ -4622,7 +4737,7 @@ function render(){
     }
     setCls(e.root,'pol', (n.pol||0) > 0.05);
     setCls(e.root,'drop', !!n.drop);
-  setCls(e.root,'comb', !!n.comb);
+    setCls(e.root,'comb', !!n.comb);
     // 汚染が届く範囲。溜め込んでいるノードだけ出す
     const ps = n._psrc || 0;
     const po = ps > 0 ? Math.min(0.95, 0.3 + ps * 0.5) : 0;
@@ -4630,6 +4745,7 @@ function render(){
     setCls(e.root,'won', !!(T.raid && n.clear));
     setCls(e.root,'stall',n.stall);
     setCls(e.root,'run',!n.stall);
+    setCls(e.root,'work',!n.stall && !!n.crafting);
     setCls(e.root,'sel',sel===n.id);
     setCls(e.root,'dim',  !!F && !F.has(n.id));
     setCls(e.root,'near', !!F && n.id!==sel && F.has(n.id));
@@ -4641,32 +4757,57 @@ function render(){
     const hid = !a || !b || !onBoard(a) || !onBoard(b);
     if(l.el.hidden !== hid){
       l.el.hidden = hid;
-      for(const k of ['hit','wire','flow']) l.el[k].style.display = hid ? 'none' : '';
-
+      for(const k of ['hit','rail','wire','flow']) if(l.el[k]) l.el[k].style.display = hid ? 'none' : '';
+      for(const p of l.packets) if(p.el) p.el.style.display = hid ? 'none' : '';
     }
     if(hid) continue;
     // 端点が動いていなければ、曲線を引き直す必要はない。
     // ただし作りたての見た目には必ず1回描く（目印だけ合っていて線が無い状態を作らない）
     const G=geomOf(l); if(!G) continue;
-    // 5コマに1回は「本当に線が入っているか」を DOM に直接聞く。
-    // 目印まわりで取りこぼしても、見えない線が居座り続けないようにする
+    // 5コマに1回は「本当に線が入っているか」を DOM に直接聞く
     if(l._dk !== l._gk || !l.el.drawn || (slow && !l.el.wire.getAttribute('d'))){
       l._dk = l._gk; l.el.drawn = true;
       l.el.hit.setAttribute('d',G.d); l.el.wire.setAttribute('d',G.d);
-      l.el.flow.setAttribute('d',arrowD(G));
+      if(l.el.rail) l.el.rail.setAttribute('d',G.d);
+      l.el.flow.setAttribute('d',G.d);
     }
     const off = !!F && l.from!==sel && l.to!==sel;
+    if(l.el.rail){
+      setCls(l.el.rail,'dim',off);
+      setCls(l.el.rail,'pick', selLink===l.id);
+      setCls(l.el.rail,'jam', !!l.jam);
+    }else{
+      setCls(l.el.wire,'pick', selLink===l.id);
+    }
     setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off);
-    setCls(l.el.wire,'pick', selLink===l.id);
-    // 流れている線は向きの印を濃くする（点滅させずに、動いていることを見せる）
-    if(slow){
+    if(l.el.cable){
       const r = (a.rate && a.rate[l.item]) || 0;
-      setCls(l.el.flow, 'on', l.packets.length > 0 || r > 0.05);
+      const on = (l._active||0) > 0 || r > 0.05;
+      setCls(l.el.flow, 'on', on);
+      if(on && ( inRect(a,R) || inRect(b,R) )){
+        l._off = ((l._off||0) - vdt * 90) % 14;
+        l.el.flow.style.strokeDashoffset = l._off.toFixed(1);
+      }
+    }else{
+      const isJam = !!l.jam;
+      const moving = !isJam && (l._moving || l.packets.length > 0 || (l._active||0) > 0);
+      setCls(l.el.flow, 'jam', isJam);
+      setCls(l.el.flow, 'on', moving || isJam);
+      if(moving && (inRect(a,R) || inRect(b,R))){
+        l._off = ((l._off||0) - vdt * PSPEED) % 12;
+        l.el.flow.style.strokeDashoffset = l._off.toFixed(1);
+      }
     }
     if(!l.packets.length) continue;
     // 画面の外を流れている粒は、動かして見せる相手がいない
     if(!inRect(a,R) && !inRect(b,R)) continue;
-    for(const p of l.packets){ if(!p.el) continue; const q=geomPt(G,p.t); p.el.setAttribute('cx',q.x); p.el.setAttribute('cy',q.y); }
+    for(const p of l.packets){
+      if(!p.el) continue;
+      setCls(p.el, 'jam', !!p.jam);
+      setCls(p.el, 'dim', off);
+      const q=geomPt(G,p.t);
+      p.el.setAttribute('transform', `translate(${q.x.toFixed(1)},${q.y.toFixed(1)})`);
+    }
   }
   if(selLink!==null) renderHandles();
   // ── ここから下はパネルの数字。毎コマ書き換えても目には追えないので
@@ -5106,11 +5247,17 @@ function renderLinkInsp(){
   if(!l){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
   const a=N(l.from), b=N(l.to);
   if(!a||!b){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
-  const n = pinsOf(l).length;
+  const n = pinsOf(l).length, isCab = !!CABLE_ITEM[l.item];
+  geomOf(l);
+  const stTxt = isCab ? (((l._active||0)>0 || ((a.rate&&a.rate[l.item])||0)>0.05) ? '⚡ 送電中' : '待機')
+              : l.jam ? '⚠ 送り先が満杯（詰まり中）'
+              : l.packets.length ? `搬送中（${l.packets.length}/${beltCap(l)}個）`
+              : '待機';
   box.innerHTML =
     `<div class="t"><span class="ic2">${ITEMS[l.item].i}</span>`
-    + `<span class="nm2">${ITEMS[l.item].n}の配線</span></div>`
+    + `<span class="nm2">${ITEMS[l.item].n}の${isCab?'電力ケーブル':'ベルトコンベア'}</span></div>`
     + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
+    + `<div class="kv">状態<b>${stTxt}</b></div>`
     + `<div class="kv">流れ<b>${fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
     + `<div class="kv">ピン<b>${n}本 / ${PIN_MAX}本</b></div>`
     + `<div class="lnote">丸を掴むと、曲線がそのピンを通ります。`
@@ -5118,14 +5265,14 @@ function renderLinkInsp(){
     + `<div class="btns"><button class="badd">＋ ピン</button>`
     + `<button class="bdel">− ピン</button>`
     + `<button class="bstr">まっすぐ</button></div>`
-    + `<div class="btns"><button class="del">配線を切る</button></div>`;
+    + `<div class="btns"><button class="del">${isCab?'ケーブル':'コンベア'}を切る</button></div>`;
   box.classList.add('on');
   box.querySelector('.badd').onclick=()=>addBend(l.id,'tail');
   box.querySelector('.bdel').onclick=()=>delBend(l.id);
   box.querySelector('.bstr').onclick=()=>{ l.pins=null; renderHandles(); renderInsp();
-    toast('配線をまっすぐに戻しました'); };
+    toast('まっすぐに戻しました'); };
   box.querySelector('.del').onclick=()=>{ removeLink(l.id); selLink=null;
-    renderHandles(); renderInsp(); toast('配線を切断しました'); };
+    renderHandles(); renderInsp(); toast('切断しました'); };
   return true;
 }
 function renderInsp(){
@@ -6296,7 +6443,15 @@ function load(){
     if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
     clearBoardEls();
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
-    for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
+    for(const l of S.links){
+      const pk = Array.isArray(l.packets) ? l.packets : [];
+      l.packets=[]; mkLinkEl(l);
+      for(const p of pk){
+        if(!p || !ITEMS[p.item] || CABLE_ITEM[p.item]) continue;
+        const np={item:p.item, t:Math.max(0,Math.min(0.94,+p.t||0)), q:p.q||1, jam:!!p.jam};
+        mkPacketEl(np); l.packets.push(np);
+      }
+    }
     S.at = null; applyView(); renderLog(); renderBoard();
     layerDirty();                       // 数え直せるものは持ち越さない
     applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
@@ -6541,7 +6696,7 @@ function loop(now){
   const dt=raw * SPEED; last=now;
   try{
     edgeScroll(raw);
-    tick(dt,false); render();
+    tick(dt,false); render(dt);
     if(dashOpen()){ dashT+=raw; if(dashT>0.5){ dashT=0; renderDash(); } }
     accS+=dt; if(accS>5){ accS=0; save(); }
   }catch(e){
