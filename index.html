@@ -73,20 +73,26 @@ button{font:inherit;color:inherit;cursor:pointer}
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
 path.hit{fill:none;stroke:transparent;stroke-width:22;pointer-events:stroke;cursor:move}
 /* ベルトコンベア（外枠 rail ＋ 暗い帯 wire.belt ＋ 動くローラー縞 flow.tread） */
-path.rail{fill:none;stroke:#2a3d56;stroke-width:15;stroke-linecap:round;transition:stroke .2s}
-path.wire.belt{fill:none;stroke:#0b111a;stroke-width:11;stroke-linecap:round}
-path.flow.tread{fill:none;stroke-width:7.5;stroke-linecap:butt;stroke-dasharray:4 8;stroke-opacity:.35}
+path.rail{fill:none;stroke:#2a3d56;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
+path.wire.belt{fill:none;stroke:#0b111a;stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
+path.flow.tread{fill:none;stroke-width:7.5;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:4 8;stroke-opacity:.35}
 path.flow.tread.on{stroke-opacity:.86}
 path.rail.jam{stroke:#d94e4e;filter:drop-shadow(0 0 6px rgba(240,90,79,.55))}
 path.flow.tread.jam{stroke:#ff745c !important;stroke-opacity:.92}
 path.rail.pick{stroke:var(--acc);stroke-width:17;filter:drop-shadow(0 0 6px rgba(94,224,192,.45))}
 path.hit:hover + path.rail{stroke:#43628a}
 /* 電力ケーブル（細く控えめにして、ベルトコンベアを主役にする） */
-path.wire.cable{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-opacity:.26}
-path.flow.cable{fill:none;stroke-width:2;stroke-linecap:round;stroke-dasharray:4 10;stroke-opacity:.18}
+path.wire.cable{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:.26}
+path.flow.cable{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:4 10;stroke-opacity:.18}
 path.flow.cable.on{stroke-opacity:.75}
 path.wire.cable.pick{stroke-opacity:1;stroke-width:3.8}
 path.hit:hover + path.wire.cable{stroke-width:4;stroke-opacity:.75}
+/* 人の行動範囲外になって届いていない電力ケーブル */
+path.wire.cable.far{stroke:var(--bad) !important;stroke-width:2.8;stroke-dasharray:6 5;stroke-opacity:.92}
+path.flow.cable.far{stroke:var(--bad) !important;stroke-dasharray:3 9;stroke-opacity:.45}
+g.far-tag{pointer-events:none}
+g.far-tag rect{fill:#261015;stroke:var(--bad);stroke-width:1.4;rx:5}
+g.far-tag text{fill:#ff8a98;font-size:9.5px;font-weight:700;text-anchor:middle;dominant-baseline:central}
 /* ベルトの上を流れる素材アイコン */
 g.pkt{pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))}
 g.pkt rect.pkbg{fill:#101928;stroke-width:2;transition:stroke .15s,fill .15s}
@@ -115,6 +121,7 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .node.work .nh .ic{animation:workb .7s ease-in-out infinite}
 @keyframes workb{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.5px) scale(1.1)}}
 .node.tgt{border-color:var(--acc2);box-shadow:0 0 0 2px var(--acc2)}
+.node.tgt.tgt-far{border-color:var(--warn);border-style:dashed;box-shadow:0 0 0 2px rgba(224,138,75,.5)}
 .node.over{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc),0 0 22px rgba(94,224,192,.45)}
 /* 配線を伸ばしているあいだ、受け取れる口だけをはっきり光らせる */
 body.linking .port.hot{background:var(--acc2);color:#08131a;border-color:var(--acc2);
@@ -161,6 +168,32 @@ circle.wph.dim{opacity:.15}
 .nf{font-size:9.5px;color:var(--dim);height:14px;line-height:14px;overflow:hidden}
 .node.stall .nf{color:var(--bad)}
 .node .aura{position:absolute;border-radius:50%;pointer-events:none;z-index:-1}
+/* 人（主人公・仲間）の行動範囲。この円の中にある施設だけが人の⚡で起動する */
+.node .hrange{position:absolute;border-radius:50%;pointer-events:none;z-index:-1;
+  border:1.8px dashed rgba(242,193,78,.36);
+  background:radial-gradient(circle,rgba(242,193,78,.06) 0%,rgba(242,193,78,.02) 68%,transparent 100%);
+  transition:border-color .2s,background .2s,box-shadow .2s}
+.node .hrange .hrange-lbl{position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  background:rgba(14,20,31,.92);border:1px solid rgba(242,193,78,.45);color:var(--gold);
+  font-size:9.5px;font-weight:700;padding:1px 8px;border-radius:10px;white-space:nowrap;
+  letter-spacing:.03em;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.node.sel .hrange, body.placing .node .hrange, body.dragging-node .node .hrange, body.linking .node.src .hrange{
+  border-color:rgba(242,193,78,.82);border-width:2px;
+  background:radial-gradient(circle,rgba(242,193,78,.11) 0%,rgba(242,193,78,.04) 72%,transparent 100%);
+  box-shadow:0 0 24px rgba(242,193,78,.15)}
+.node .hrange.warn{border-color:rgba(224,87,107,.82);
+  background:radial-gradient(circle,rgba(224,87,107,.08) 0%,rgba(242,193,78,.03) 65%,transparent 100%)}
+.node .hrange.warn .hrange-lbl{border-color:var(--bad);color:#ff8a98}
+/* 人の行動範囲外で起動できない施設 */
+.node.out-range{border-color:var(--bad) !important;
+  box-shadow:0 0 0 1.5px var(--bad),0 0 18px rgba(224,87,107,.35) !important}
+.node .rng-badge{position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+  background:#281016;border:1px solid var(--bad);color:#ff8a98;font-size:9.5px;font-weight:700;
+  padding:1px 7px;border-radius:8px;white-space:nowrap;pointer-events:none;display:none;
+  box-shadow:0 3px 8px rgba(0,0,0,.5);z-index:5}
+.node.out-range .rng-badge{display:block}
+body.dragging-node .node.in-hrange, body.placing .node.in-hrange{
+  box-shadow:0 0 0 1.5px rgba(242,193,78,.65),0 8px 22px rgba(0,0,0,.45)}
 /* 汚染がどこまで届くか。溜め込んでいるノードのまわりに薄く出る */
 .node .polr{position:absolute;border-radius:50%;pointer-events:none;z-index:-2;opacity:0;
   border:1px dashed rgba(180,135,245,.28);
@@ -905,10 +938,11 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         <div class="ttl">ⓘ 操作方法</div>
         <div class="body">
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
+        <b>🧍人の行動範囲</b>：主人公や仲間を動力にする施設は、<b>黄色の点線円（行動範囲内）</b>に置かないと起動しません（🔌発電機は距離制限なし）<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
         <b>🔗複合化</b>=つながる生産施設を2〜10台囲むと、ひとつにまとまります（⚡が3割減）<br>
         配線を<b>タップ</b>=選ぶ（ピンの足し引き・切断ができます）<br>
-        配線を<b>ドラッグ</b>=ピンを打って曲げる / <b>ダブルタップ</b>=まっすぐに戻す<br>
+        配線を<b>ドラッグ</b>=ピンを打って直角に曲げる / <b>ダブルタップ</b>=初期経路に戻す<br>
         <button id="tRestart">チュートリアルをやり直す</button>
         </div>
       </div>
@@ -2778,39 +2812,165 @@ function memMap(){
 }
 const N = id => idx.get(id);
 
-/* ========================= 座標 ========================= */
+/* ========================= 座標・直交配線・人の行動範囲 ========================= */
+/* ── 人（主人公・仲間）を動力にする場合の行動範囲（距離制限） ──
+   人（TYPES[n.type].src）から⚡体力を送って施設を起動するには、
+   人と施設の距離が HUMAN_R 以内でなければならない（🔌発電機などは距離制限なし） */
+let HUMAN_R = 380;
+const isHuman = n => !!(n && TYPES[n.type] && TYPES[n.type].src);
+const nodeDist = (a, b) => (!a || !b) ? Infinity : Math.hypot((a.x + NW/2) - (b.x + NW/2), (a.y + 45) - (b.y + 45));
+const humanRangeOf = n => HUMAN_R;
+const inHumanRange = (a, b) => {
+  if(!a || !b) return false;
+  if((a.layer||null) !== (b.layer||null)) return false;
+  return nodeDist(a, b) <= humanRangeOf(a);
+};
+const inAnyHumanRange = b => {
+  if(!b || isHuman(b)) return false;
+  return !!(S && S.nodes && S.nodes.some(a => isHuman(a) && inHumanRange(a, b)));
+};
+const isLinkOutOfRange = l => {
+  if(!l || l.item !== 'sta') return false;
+  const a = N(l.from), b = N(l.to);
+  if(!a || !b || !isHuman(a)) return false;
+  return !inHumanRange(a, b);
+};
+function farHumanInfo(n){
+  if(!n || isHuman(n)) return null;
+  const staLinks = S.links.filter(l => l.to === n.id && l.item === 'sta');
+  if(!staLinks.length) return null;
+  let hasValid = false, bestFar = null, bestOver = Infinity;
+  for(const l of staLinks){
+    const a = N(l.from); if(!a) continue;
+    if(!isHuman(a) || inHumanRange(a, n)){ hasValid = true; break; }
+    const over = Math.ceil(nodeDist(a, n) - humanRangeOf(a));
+    if(over < bestOver){ bestOver = over; bestFar = a; }
+  }
+  if(hasValid || !bestFar) return null;
+  return { src: bestFar, over: Math.max(1, bestOver), dist: Math.round(nodeDist(bestFar, n)), max: humanRangeOf(bestFar) };
+}
+
 function portPos(n, item, dir){
   const keys = dir==='in' ? inKeys(n) : outKeys(n);
   const i = Math.max(0, keys.indexOf(item));
   return {x: n.x + (dir==='in' ? 0 : NW), y: n.y + portY(i)};
 }
 
-// 配線は中継点(waypoint)を1つ持てる → 引っ張って経路を整理できる
-/* ── 配線はなめらかな曲線 ──
-   ピン（中継点）を好きなだけ打てて、曲線はそのピンをすべて通る。
-   ピンが無ければ、口から横に出て相手の口へ入る1本の曲線。
+/* ── 配線は斜めを使わない直角（水平・垂直）ステップライン ──
+   ピン（中継点）を好きなだけ打てて、水平・垂直の折れ線でそのピンを通る。
+   角は小さく丸めてベルトコンベアの荷物が滑らかに直角を曲がるようにする。
    l.pins = [{x,y}, ...]                                            */
 const PIN_MAX = 8;                     // 打てるピンの数
-const CURVE_SEG = 14;                  // 1区間を何点で近似するか（粒の移動と当たり判定用）
-function bez4(a,b,c,d,t){
-  const u=1-t, w0=u*u*u, w1=3*u*u*t, w2=3*u*t*t, w3=t*t*t;
-  return {x:w0*a.x+w1*b.x+w2*c.x+w3*d.x, y:w0*a.y+w1*b.y+w2*c.y+w3*d.y};
-}
-/* ピンを通る曲線を、三次ベジェの列にする（Catmull-Rom を変換） */
-function curveSegs(P, pins, Q){
-  const pts = [P, ...pins, Q];
-  const lead = Math.max(46, Math.abs(Q.x-P.x)*0.34);
-  // 口からは横向きに出入りしてほしいので、両端に仮想の点を足す
-  const ext = [{x:P.x-lead, y:P.y}, ...pts, {x:Q.x+lead, y:Q.y}];
-  const segs = [];
-  for(let i=1;i<ext.length-2;i++){
-    const p0=ext[i-1], p1=ext[i], p2=ext[i+1], p3=ext[i+2];
-    segs.push([p1,
-               {x:p1.x+(p2.x-p0.x)/6, y:p1.y+(p2.y-p0.y)/6},
-               {x:p2.x-(p3.x-p1.x)/6, y:p2.y-(p3.y-p1.y)/6},
-               p2]);
+const ORTHO_R = 10;                    // 直角の角丸半径 px
+function orthoWaypoints(P, pins, Q){
+  const STUB = 22;
+  const raw = [{x:P.x, y:P.y}];
+  const push = (x, y) => {
+    const last = raw[raw.length-1];
+    if(Math.abs(last.x - x) < 0.5 && Math.abs(last.y - y) < 0.5) return;
+    raw.push({x, y});
+  };
+  if(!pins || !pins.length){
+    if(Q.x >= P.x + STUB * 2){
+      if(Math.abs(Q.y - P.y) < 1){
+        push(Q.x, Q.y);
+      }else{
+        const mx = Math.round((P.x + Q.x) / 2);
+        push(mx, P.y);
+        push(mx, Q.y);
+        push(Q.x, Q.y);
+      }
+    }else{
+      const x1 = P.x + STUB, x2 = Q.x - STUB;
+      const my = Math.abs(Q.y - P.y) >= 110
+        ? Math.round((P.y + Q.y) / 2)
+        : (Math.min(P.y, Q.y) - 76);
+      push(x1, P.y);
+      push(x1, my);
+      push(x2, my);
+      push(x2, Q.y);
+      push(Q.x, Q.y);
+    }
+  }else{
+    const p0 = pins[0];
+    if(p0.x >= P.x + 12){
+      push(p0.x, P.y);
+      push(p0.x, p0.y);
+    }else{
+      const x1 = P.x + STUB;
+      push(x1, P.y);
+      push(x1, p0.y);
+      push(p0.x, p0.y);
+    }
+    for(let i=1; i<pins.length; i++){
+      const prev = raw[raw.length-1], pk = pins[i];
+      push(pk.x, prev.y);
+      push(pk.x, pk.y);
+    }
+    const last = raw[raw.length-1];
+    if(Q.x >= last.x + 12){
+      push(last.x, Q.y);
+      push(Q.x, Q.y);
+    }else{
+      const x2 = Q.x - STUB;
+      push(x2, last.y);
+      push(x2, Q.y);
+      push(Q.x, Q.y);
+    }
   }
-  return segs;
+  const out = [raw[0]];
+  for(let i=1; i<raw.length; i++){
+    const pt = raw[i];
+    while(out.length >= 2){
+      const a = out[out.length-2], b = out[out.length-1];
+      const sameX = Math.abs(a.x - b.x) < 0.5 && Math.abs(b.x - pt.x) < 0.5;
+      const sameY = Math.abs(a.y - b.y) < 0.5 && Math.abs(b.y - pt.y) < 0.5;
+      if(sameX || sameY) out.pop();
+      else break;
+    }
+    out.push(pt);
+  }
+  return out;
+}
+function orthoGeom(P, pins, Q){
+  const W = orthoWaypoints(P, pins, Q);
+  let d = `M${Math.round(W[0].x)} ${Math.round(W[0].y)}`;
+  const pts = [{x:W[0].x, y:W[0].y}], lens = [];
+  let total = 0;
+  const addPt = (x, y) => {
+    const prev = pts[pts.length-1];
+    const segLen = Math.hypot(x - prev.x, y - prev.y);
+    if(segLen < 0.1) return;
+    lens.push(segLen);
+    total += segLen;
+    pts.push({x, y});
+  };
+  for(let i=1; i<W.length-1; i++){
+    const a = W[i-1], b = W[i], c = W[i+1];
+    const dx1 = b.x - a.x, dy1 = b.y - a.y, L1 = Math.hypot(dx1, dy1);
+    const dx2 = c.x - b.x, dy2 = c.y - b.y, L2 = Math.hypot(dx2, dy2);
+    const r = Math.min(ORTHO_R, L1 * 0.45, L2 * 0.45);
+    if(r >= 2 && L1 > 0 && L2 > 0){
+      const sx = b.x - (dx1 / L1) * r, sy = b.y - (dy1 / L1) * r;
+      const ex = b.x + (dx2 / L2) * r, ey = b.y + (dy2 / L2) * r;
+      d += `L${sx.toFixed(1)} ${sy.toFixed(1)}Q${b.x.toFixed(1)} ${b.y.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`;
+      addPt(sx, sy);
+      for(let s=1; s<=4; s++){
+        const t = s / 4, u = 1 - t;
+        const qx = u*u*sx + 2*u*t*b.x + t*t*ex;
+        const qy = u*u*sy + 2*u*t*b.y + t*t*ey;
+        addPt(qx, qy);
+      }
+    }else{
+      d += `L${Math.round(b.x)} ${Math.round(b.y)}`;
+      addPt(b.x, b.y);
+    }
+  }
+  const end = W[W.length-1];
+  d += `L${Math.round(end.x)} ${Math.round(end.y)}`;
+  addPt(end.x, end.y);
+  if(!lens.length){ lens.push(1); pts.push({x:end.x, y:end.y}); total = 1; }
+  return {pts, lens, total:Math.max(1, total), d, P, Q, pins:pins||[]};
 }
 function linkPts(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
@@ -2819,20 +2979,7 @@ function linkPts(l){
 const pinsOf = l => Array.isArray(l.pins) ? l.pins : [];
 function linkGeom(l){
   const r = linkPts(l); if(!r) return null;
-  const segs = curveSegs(r.P, r.pins, r.Q);
-  // 見た目はベジェ、粒の移動と取っ手は近似した折れ線で扱う
-  let d = `M${Math.round(r.P.x)} ${Math.round(r.P.y)}`;
-  for(const g of segs) d += `C${g[1].x.toFixed(1)} ${g[1].y.toFixed(1)}`
-    + ` ${g[2].x.toFixed(1)} ${g[2].y.toFixed(1)} ${g[3].x.toFixed(1)} ${g[3].y.toFixed(1)}`;
-  const pts=[r.P], lens=[]; let total=0;
-  for(const g of segs) for(let i=1;i<=CURVE_SEG;i++){
-    const q = bez4(g[0],g[1],g[2],g[3], i/CURVE_SEG);
-    const prev = pts[pts.length-1];
-    lens.push(Math.hypot(q.x-prev.x, q.y-prev.y));
-    total += lens[lens.length-1];
-    pts.push(q);
-  }
-  return {pts, lens, total:Math.max(1,total), d, segs, P:r.P, Q:r.Q, pins:r.pins};
+  return orthoGeom(r.P, r.pins, r.Q);
 }
 /* いま実際に打たれているピン */
 function bendOf(l){ return pinsOf(l); }
@@ -2842,7 +2989,7 @@ function segsOf(G){
   G.pins.forEach((p,i)=>o.push({j:i, pin:true, mid:p}));
   return o;
 }
-/* 曲線は端点かピンが動いたときだけ引き直す。
+/* 配線は端点かピンが動いたときだけ引き直す。
    毎コマ作り直すと、線の数がそのまま重さになる                      */
 function geomOf(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
@@ -2899,7 +3046,7 @@ function renderHandles(){
   }
   gwH.innerHTML = h;
 }
-/* 曲線の中ほどに置く、進む向きの「>」 */
+/* 配線の中ほどに置く、進む向きの「>」 */
 function arrowD(G){
   const mid = Math.max(1, Math.floor(G.pts.length/2));
   const a = G.pts[mid-1], b = G.pts[Math.min(G.pts.length-1, mid+1)];
@@ -2964,9 +3111,13 @@ function mkNodeEl(n){
     if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
   }
   const A = TYPES[n.type].aura;
+  const hr = isHuman(n) ? humanRangeOf(n) : 0;
   const auraEl = (A
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '')
+    + (hr
+      ? `<div class="hrange" style="width:${hr*2}px;height:${hr*2}px;left:${NW/2-hr}px;top:${45-hr}px"><span class="hrange-lbl">${tr.i} 行動範囲（半径${hr}px）</span></div>`
+      : `<div class="rng-badge">🚫 人の行動範囲外</div>`)
     + `<div class="polr" style="width:${POL_R*2}px;height:${POL_R*2}px;left:${NW/2-POL_R}px;top:${45-POL_R}px"></div>`;
   if(any) ports += `<div class="port pin any" style="top:${portY(anyRow)}px"`
     + ` title="${TYPES[n.type].chain==='sell' ? 'どんな素材でもここへ繋げます（届いたものから売ります）'
@@ -2983,7 +3134,9 @@ function mkNodeEl(n){
   n.el = {root:el, ic:el.querySelector('.ic'), nm:el.querySelector('.nm'),
           lv:el.querySelector('.lv'), bar:el.querySelector('.bar i'),
           nf:el.querySelector('.nf'), sk:el.querySelector('.sk'), no:el.querySelector('.no'),
-          polr:el.querySelector('.polr'), slots, sig: portSig(ik, ok)};
+          polr:el.querySelector('.polr'), hrange:el.querySelector('.hrange'),
+          hrangeLbl:el.querySelector('.hrange-lbl'), rngBadge:el.querySelector('.rng-badge'),
+          slots, sig: portSig(ik, ok)};
   el.style.left = n.x+'px'; el.style.top = n.y+'px';
   world.appendChild(el);
 }
@@ -3051,8 +3204,18 @@ function mkLinkEl(l){
     flow.setAttribute('class','flow cable');
     wire.setAttribute('stroke',c);
     flow.setAttribute('stroke',c);
-    gwC.append(hit,wire,flow);
-    l.el={hit,rail:null,wire,flow,cable:true};
+    const farTag = document.createElementNS(SVG,'g');
+    farTag.setAttribute('class','far-tag');
+    farTag.style.display = 'none';
+    const fbg = document.createElementNS(SVG,'rect');
+    fbg.setAttribute('x','-32'); fbg.setAttribute('y','-9');
+    fbg.setAttribute('width','64'); fbg.setAttribute('height','18');
+    const ftx = document.createElementNS(SVG,'text');
+    ftx.setAttribute('x','0'); ftx.setAttribute('y','0.5');
+    ftx.textContent = '🚫 距離外';
+    farTag.append(fbg, ftx);
+    gwC.append(hit,wire,flow,farTag);
+    l.el={hit,rail:null,wire,flow,farTag,cable:true};
   }else{
     const rail=document.createElementNS(SVG,'path');
     rail.setAttribute('class','rail');
@@ -3060,7 +3223,7 @@ function mkLinkEl(l){
     flow.setAttribute('class','flow tread');
     flow.setAttribute('stroke',c);
     gwL.append(hit,rail,wire,flow);
-    l.el={hit,rail,wire,flow,cable:false};
+    l.el={hit,rail,wire,flow,farTag:null,cable:false};
   }
   l._gk = null; l._dk = null; l.G = null; l._off = 0;   // 作り直したら必ず引き直す
 }
@@ -3155,6 +3318,7 @@ function removeLink(id){
     delPacket(l,0);
   }
   l.el.hit.remove(); if(l.el.rail) l.el.rail.remove(); l.el.wire.remove(); l.el.flow.remove();
+  if(l.el.farTag) l.el.farTag.remove();
   if(selLink === l.id){ selLink = null; renderHandles(); }
   S.links.splice(i,1);
   // 送る線が無くなったら、空いている枠は手放す
@@ -3247,7 +3411,7 @@ function tick(dt,fast){
   flowOff = !!fast;
   for(const n of S.nodes){
     const T=TYPES[n.type];
-    n.stall=false; n.why='';
+    n.stall=false; n.why=''; n._outOfRange=false; n._farInfo=null;
     const soft = softIns(n);
     if(Object.keys(soft).length){      // 届いたものをその場で受け取る
       for(const k in soft){
@@ -3279,6 +3443,15 @@ function tick(dt,fast){
         const q = Math.min(room, have);
         if(q > 0){ n.inBuf[k] -= q; n.outBuf[k] = (n.outBuf[k]||0) + q; }
       }
+      continue;
+    }
+    // 人（主人公・仲間）を動力にする場合、一定の距離内（HUMAN_R）にないと起動しない
+    const far = farHumanInfo(n);
+    if(far){
+      n.stall = true;
+      n._outOfRange = true;
+      n._farInfo = far;
+      n.why = `${tierOf(far.src).i}${tierOf(far.src).n}の行動範囲外（あと${far.over}px近づける）`;
       continue;
     }
     if(T.chain==='sell'){                        // 何でも売れる。届いているものから選ぶ
@@ -3368,7 +3541,10 @@ function tick(dt,fast){
     for(const item in n.outBuf){
       if((n.outBuf[item]||0)<=0) continue;
       n.cd[item]=(n.cd[item]||0)-dt; if(n.cd[item]>0) continue;
-      const ls=S.links.filter(l=>l.from===n.id&&l.item===item);
+      const allLs=S.links.filter(l=>l.from===n.id&&l.item===item);
+      if(!allLs.length) continue;
+      for(const l of allLs) l._outOfRange = isLinkOutOfRange(l);
+      const ls = allLs.filter(l => !l._outOfRange);
       if(!ls.length) continue;
       const isCab = !!CABLE_ITEM[item];
       const big = TYPES[n.type].layer || TYPES[n.type].port;   // 口はまとめて流す
@@ -4203,10 +4379,10 @@ function renderTree(force){
       if(!req || !posMap[req]) continue;
       const p1 = posMap[req], p2 = posMap[t];
       const x1 = p1.x + NW_T, y1 = p1.y + 42, x2 = p2.x, y2 = p2.y + 42;
-      const dx = Math.max(28, Math.abs(x2 - x1) * 0.45);
+      const dPath = orthoGeom({x:x1, y:y1}, [], {x:x2, y:y2}).d;
       const done = isDev(t), open = isDev(req);
       const cls = done ? 'done' : open ? 'open' : 'lock';
-      linesSvg += `<path class="rt-edge ${cls}" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}"/>`;
+      linesSvg += `<path class="rt-edge ${cls}" d="${dPath}"/>`;
     }
     const cardsHtml = nodesInEra.map(t => {
       const T = TYPES[t], p = posMap[t];
@@ -4924,7 +5100,7 @@ function wiresOf(n){
 function render(fdt){
   const vdt = fdt || 0.016;
   frameN++;
-  let jam = null;
+  let jam = null, farAlert = null;
   const R = viewRect();
   // 重い文字づくりは5コマに1回で足りる。開いた直後だけは毎コマ書く
   const slow = (frameN % 5) === 0 || frameN < 6;
@@ -4935,8 +5111,9 @@ function render(fdt){
   const F = focusOf();
   for(const n of S.nodes){
     const T=TYPES[n.type];
-    // 見えていなくても、詰まりの知らせだけは拾っておく
+    // 見えていなくても、詰まりや距離外停止の知らせだけは拾っておく
     if(n.stall && /満杯/.test(n.why||'')) jam = {n:tierOf(n).n, i:T.i, w:n.why};
+    if(n.stall && n._outOfRange && !farAlert) farAlert = {n:tierOf(n).n, i:T.i, w:n.why};
     const here = onBoard(n);
     if(n.el.hid !== !here){ n.el.hid = !here; n.el.root.classList.toggle('hid', !here); }
     if(!here || !inRect(n, R)) continue;   // 画面の外は書き換えない
@@ -4950,6 +5127,23 @@ function render(fdt){
     setCls(e.root,'lay', !!T.layer);
     setCls(e.root,'port', !!T.port);
     const need=insOf(n), give=outsOf(n), shown=portIns(n);
+    if(e.hrange){
+      const hr = humanRangeOf(n);
+      if(e.lastHr !== hr){
+        e.lastHr = hr;
+        e.hrange.style.width  = (hr*2)+'px';
+        e.hrange.style.height = (hr*2)+'px';
+      }
+      if(e.hrangeLbl) setTxt(e.hrangeLbl, `🧍 ${tr.n}の行動範囲（${hr}px）`);
+      const hasFarLink = S.links.some(l => l.from === n.id && isLinkOutOfRange(l));
+      setCls(e.hrange, 'warn', hasFarLink);
+    }
+    const farInfo = (!T.src && !T.layer && !T.port) ? farHumanInfo(n) : null;
+    setCls(e.root, 'out-range', !!farInfo);
+    setCls(e.root, 'in-hrange', !T.src && !T.layer && !T.port && !farInfo && !!(need.sta || T.power) && inAnyHumanRange(n));
+    if(e.rngBadge){
+      setTxt(e.rngBadge, farInfo ? `🚫 ${tierOf(farInfo.src).n}の範囲外（あと${farInfo.over}px近づける）` : '');
+    }
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
       const c=n.inBuf[k]||0, req=need[k];
@@ -5082,10 +5276,11 @@ function render(fdt){
     if(l.el.hidden !== hid){
       l.el.hidden = hid;
       for(const k of ['hit','rail','wire','flow']) if(l.el[k]) l.el[k].style.display = hid ? 'none' : '';
+      if(l.el.farTag && hid) l.el.farTag.style.display = 'none';
       for(const p of l.packets) if(p.el) p.el.style.display = hid ? 'none' : '';
     }
     if(hid) continue;
-    // 端点が動いていなければ、曲線を引き直す必要はない。
+    // 端点が動いていなければ、折れ線を引き直す必要はない。
     // ただし作りたての見た目には必ず1回描く（目印だけ合っていて線が無い状態を作らない）
     const G=geomOf(l); if(!G) continue;
     // 5コマに1回は「本当に線が入っているか」を DOM に直接聞く
@@ -5096,6 +5291,7 @@ function render(fdt){
       l.el.flow.setAttribute('d',G.d);
     }
     const off = !!F && l.from!==sel && l.to!==sel;
+    const isFar = isLinkOutOfRange(l);
     if(l.el.rail){
       setCls(l.el.rail,'dim',off);
       setCls(l.el.rail,'pick', selLink===l.id);
@@ -5104,9 +5300,19 @@ function render(fdt){
       setCls(l.el.wire,'pick', selLink===l.id);
     }
     setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off);
+    setCls(l.el.wire,'far',isFar); setCls(l.el.flow,'far',isFar);
+    if(l.el.farTag){
+      if(isFar){
+        l.el.farTag.style.display = '';
+        const mp = geomPt(G, 0.5);
+        l.el.farTag.setAttribute('transform', `translate(${mp.x.toFixed(1)},${mp.y.toFixed(1)})`);
+      }else{
+        l.el.farTag.style.display = 'none';
+      }
+    }
     if(l.el.cable){
       const r = (a.rate && a.rate[l.item]) || 0;
-      const on = (l._active||0) > 0 || r > 0.05;
+      const on = !isFar && ((l._active||0) > 0 || r > 0.05);
       setCls(l.el.flow, 'on', on);
       if(on && ( inRect(a,R) || inRect(b,R) )){
         l._off = ((l._off||0) - vdt * 90) % 14;
@@ -5228,6 +5434,8 @@ function render(fdt){
     al.innerHTML = /廃材/.test(jam.w)
       ? `${jam.i} <b>${jam.n}</b> が<b>廃材</b>で詰まって停止中。<br>♻️廃棄場に ⚡体力 と 🗑️廃材 を送って片付けてください。`
       : `${jam.i} <b>${jam.n}</b> が「${jam.w}」で停止中。<br>出力の行き先を作るか、配線を繋いでください。`; }
+  else if(farAlert){ al.classList.add('on');
+    al.innerHTML = `🚫 ${farAlert.i} <b>${farAlert.n}</b> が<b>人の行動範囲（${HUMAN_R}px）の外</b>にあるため起動できません。<br>施設または🧍主人公・仲間をドラッグして、<b>金色の点線円の中</b>に入れてください（🔌発電機なら距離制限なし）。`; }
   else al.classList.remove('on');
   const oc=offscreenCount(), ob=$('#offscr');
   ob.classList.toggle('on', oc>0);
@@ -5358,7 +5566,9 @@ function renderPlaceBar(){
   el.classList.toggle('on', !!placing);
   if(!placing){ el.innerHTML=''; return; }
   const T = TYPES[placing];
-  el.innerHTML = `<span>${T.i} <b>${T.n}</b> を置く場所をタップ</span><button id="pCancel">やめる</button>`;
+  const rNote = T.src ? `（周囲 ${HUMAN_R}px の施設に⚡を送れます）`
+              : `（🧍人の⚡で動かす場合は金色の円の中に配置）`;
+  el.innerHTML = `<span>${T.i} <b>${T.n}</b> を置く場所をタップ <small style="opacity:.85">${rNote}</small></span><button id="pCancel">やめる</button>`;
   el.querySelector('#pCancel').onclick = cancelPlace;
 }
 function placeAt(cx, cy){
@@ -5580,20 +5790,26 @@ function renderLinkInsp(){
   const a=N(l.from), b=N(l.to);
   if(!a||!b){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
   const n = pinsOf(l).length, isCab = !!CABLE_ITEM[l.item];
+  const isFar = isLinkOutOfRange(l), dist = Math.round(nodeDist(a, b)), rLim = humanRangeOf(a);
   geomOf(l);
-  const stTxt = isCab ? (((l._active||0)>0 || ((a.rate&&a.rate[l.item])||0)>0.05) ? '⚡ 送電中' : '待機')
+  const stTxt = isFar ? `<span style="color:var(--bad)">🚫 行動範囲外で停止（あと${Math.max(1, dist - rLim)}px近づける）</span>`
+              : isCab ? (((l._active||0)>0 || ((a.rate&&a.rate[l.item])||0)>0.05) ? '⚡ 送電中' : '待機')
               : l.jam ? '⚠ 送り先が満杯（詰まり中）'
               : l.packets.length ? `搬送中（${l.packets.length}/${beltCap(l)}個）`
               : '待機';
+  const distRow = (isHuman(a) && l.item==='sta')
+    ? `<div class="kv">人からの距離<b style="color:${isFar?'var(--bad)':'var(--acc)'}">${dist}px / 上限${rLim}px（${isFar?'範囲外':'範囲内'}）</b></div>`
+    : '';
   box.innerHTML =
     `<div class="t"><span class="ic2">${ITEMS[l.item].i}</span>`
     + `<span class="nm2">${ITEMS[l.item].n}の${isCab?'電力ケーブル':'ベルトコンベア'}</span></div>`
     + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
+    + distRow
     + `<div class="kv">状態<b>${stTxt}</b></div>`
-    + `<div class="kv">流れ<b>${fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
+    + `<div class="kv">流れ<b>${isFar ? '0' : fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
     + `<div class="kv">ピン<b>${n}本 / ${PIN_MAX}本</b></div>`
-    + `<div class="lnote">丸を掴むと、曲線がそのピンを通ります。`
-    + `線の上の「＋」を押すと、そこにピンが増えます</div>`
+    + `<div class="lnote">丸を掴むと、直角のラインがそのピンを通るように折れ曲がります。`
+    + `線の上の「＋」を押すと、そこに中継ピンが増えます</div>`
     + `<div class="btns"><button class="badd">＋ ピン</button>`
     + `<button class="bdel">− ピン</button>`
     + `<button class="bstr">まっすぐ</button></div>`
@@ -5648,6 +5864,7 @@ function renderInsp(){
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     (skillSlots(n) ? `<div class="kv gearhd">スキル<b class="ksum"></b></div><div class="skillsel"></div>` : '') +
     (perksOf(T).length ? `<div class="kv">世代の特性<b class="perk"></b></div>` : '') +
+    `<div class="kv rng-row" hidden><span class="rngk">行動範囲</span><b class="rngv"></b></div>` +
     `<div class="kv">状態<b class="st2"></b></div>`;
 
   // ── たたんでおく詳しい行 ──
@@ -5900,6 +6117,30 @@ function renderInspLive(){
     const t=Object.keys(TRAITS).filter(k=>bn[k]>0.01)
       .map(k=>`${TRAITS[k].i}×${gearMul(k).toFixed(2)}`).join(' ');
     gs.textContent = t || 'まだ何も効いていない'; }
+  const rngRow = box.querySelector('.rng-row');
+  if(rngRow){
+    const rngK = rngRow.querySelector('.rngk'), rngV = rngRow.querySelector('.rngv');
+    if(TYPES[n.type].src){
+      rngRow.hidden = false;
+      rngK.textContent = '🧍 行動範囲';
+      rngV.innerHTML = `<span style="color:var(--gold)">半径 ${humanRangeOf(n)}px（金色の円の中のみ⚡供給）</span>`;
+    }else{
+      const far = farHumanInfo(n);
+      const hLinks = S.links.filter(l => l.to===n.id && l.item==='sta' && isHuman(N(l.from)));
+      if(far){
+        rngRow.hidden = false;
+        rngK.textContent = '🧍 人からの距離';
+        rngV.innerHTML = `<span style="color:var(--bad)">🚫 ${tierOf(far.src).n}まで ${far.dist}px / 上限${far.lim}px（あと${far.over}px近づける）</span>`;
+      }else if(hLinks.length){
+        const src = N(hLinks[0].from), d = Math.round(nodeDist(src, n)), lim = humanRangeOf(src);
+        rngRow.hidden = false;
+        rngK.textContent = '🧍 人からの距離';
+        rngV.innerHTML = `<span style="color:var(--acc)">✓ ${tierOf(src).n}の範囲内（${d}px / 上限${lim}px）</span>`;
+      }else{
+        rngRow.hidden = true;
+      }
+    }
+  }
   box.querySelector('.st2').textContent=n.stall?('停止：'+n.why):'稼働中';
   box.querySelector('.pv').textContent=prioOf(n);
   const sr=box.querySelector('.srp');
@@ -6333,6 +6574,7 @@ function dragTo(cx, cy){
     const w=toWorld(cx,cy);
     const nx=Math.round((w.x-drag.ox)/10)*10, ny=Math.round((w.y-drag.oy)/10)*10;
     drag.moved+=Math.abs(nx-n.x)+Math.abs(ny-n.y);
+    if(drag.moved>=6) document.body.classList.add('dragging-node');
     n.x=nx; n.y=ny; n.el.root.style.left=nx+'px'; n.el.root.style.top=ny+'px';
   }else if(drag.mode==='wire'){
     const l=S.links.find(x=>x.id===drag.id); if(!l) return;
@@ -6364,8 +6606,17 @@ function dragTo(cx, cy){
     const a=N(drag.from); if(!a) return;
     const w=toWorld(cx,cy);
     const P = portPos(a,drag.item,'out');
-    $('#temp').setAttribute('d', `M${P.x} ${P.y}L${Math.round(w.x)} ${Math.round(w.y)}`);
+    const Q = {x:Math.round(w.x), y:Math.round(w.y)};
+    const tmpEl = $('#temp');
+    tmpEl.setAttribute('d', orthoGeom(P, [], Q).d);
     const el=document.elementFromPoint(cx,cy), tn=el&&el.closest('.node');
+    const bNode = tn ? N(+tn.dataset.id) : null;
+    if(isHuman(a) && drag.item==='sta'){
+      const dist = bNode ? nodeDist(a, bNode) : Math.hypot((a.x+NW/2)-w.x, (a.y+45)-w.y);
+      tmpEl.style.stroke = (dist > humanRangeOf(a)) ? 'var(--bad)' : '';
+    }else{
+      tmpEl.style.stroke = '';
+    }
     document.querySelectorAll('.node.over').forEach(x=>x.classList.remove('over'));
     if(tn && tn.classList.contains('tgt')) tn.classList.add('over');
   }
@@ -6388,7 +6639,8 @@ stage.addEventListener('pointermove', e=>{
 let tapLink = null;
 /* 引きかけの線を消す。ドラッグが途中で取り消されたときの後始末にも使う */
 function clearTemp(){
-  $('#temp').setAttribute('d','');
+  const tmpEl = $('#temp');
+  tmpEl.setAttribute('d',''); tmpEl.style.stroke = '';
   $('#lasso').setAttribute('d',''); $('#lasso').style.display='none';
   document.querySelectorAll('.node.over').forEach(x=>x.classList.remove('over'));
 }
@@ -6415,6 +6667,10 @@ function finishLink(a, item, b){
       toast(`${TYPES[b.type].n}を ${ITEMS[item].n} に合わせました`);
     }
     if(!S.links.some(l=>l.from===a.id && l.to===b.id && l.item===item)) addLink(a.id,item,b.id);
+    if(isHuman(a) && item==='sta' && !inHumanRange(a, b)){
+      const over = Math.max(1, Math.ceil(nodeDist(a, b) - humanRangeOf(a)));
+      toast(`🚫 ${tierOf(a).n}の行動範囲外です（あと${over}px近づけると起動します）`);
+    }
     return true;
   }
   const T=TYPES[b.type];
@@ -6428,6 +6684,9 @@ function markTargets(a, item){
   for(const m of S.nodes){
     if(!canLink(a, item, m)) continue;
     m.el.root.classList.add('tgt');
+    if(isHuman(a) && item==='sta' && !inHumanRange(a, m)){
+      m.el.root.classList.add('tgt-far');
+    }
     const p = m.el.root.querySelector(`.port.pin[data-item="${item}"]`)
            || m.el.root.querySelector('.port.pin.any');
     if(p) p.classList.add('hot');
@@ -6438,7 +6697,7 @@ function markTargets(a, item){
 }
 function clearTargets(){
   document.body.classList.remove('linking');
-  document.querySelectorAll('.node.tgt,.node.src,.node.over').forEach(x=>x.classList.remove('tgt','src','over'));
+  document.querySelectorAll('.node.tgt,.node.tgt-far,.node.src,.node.over').forEach(x=>x.classList.remove('tgt','tgt-far','src','over'));
   document.querySelectorAll('.port.hot,.slot.hot').forEach(x=>x.classList.remove('hot'));
 }
 function endPointer(e){
@@ -6450,6 +6709,7 @@ function endPointer(e){
    残すと、引いてもいない線が盤面に居座ってしまうので必ず後始末する      */
 function abortDrag(){
   if(drag && drag.mode==='lasso') setLasso(false);
+  document.body.classList.remove('dragging-node');
   drag=null; pinch=null; stage.classList.remove('panning');
   clearTemp(); if(!tapLink) clearTargets(); else showTapLink();
 }
@@ -6462,6 +6722,7 @@ window.addEventListener('pointerup', e=>{
 });
 stage.addEventListener('pointerup', e=>{
   endPointer(e);
+  document.body.classList.remove('dragging-node');
   if(!drag) return;
   if(drag.mode==='link'){
     const el=document.elementFromPoint(e.clientX,e.clientY), tn=el&&el.closest('.node');
@@ -6469,13 +6730,13 @@ stage.addEventListener('pointerup', e=>{
     // 動かさずに離した＝タップ。相手をタップするまで待つ
     if((drag.moved||0) < 8 && (!b || b.id===a.id)){
       tapLink = {from:a.id, item:drag.item};
-      $('#temp').setAttribute('d','');
+      clearTemp();
       toast(`${ITEMS[drag.item].i}${ITEMS[drag.item].n} の届け先をタップ（同じ口をもう一度で取り消し）`);
       drag=null; stage.classList.remove('panning');
       return;                                   // 光らせたままにする
     }
     if(b) finishLink(a, drag.item, b);
-    $('#temp').setAttribute('d','');
+    clearTemp();
     clearTargets();
   }else if(drag.mode==='wire'){
     if(!drag.handle && drag.moved<5){            // 動かさずに離したら、その線を選ぶ
@@ -7018,6 +7279,7 @@ function takeBaseSnapshot(){
     CURVE_INDEX: CURVE.index,
     CURVE_TAPER: CURVE.taper,
     CURVE_DEPTH: CURVE.depth,
+    HUMAN_R,
     VIT_K, TRAIN_P, EXP_STEP, CAP, PSPEED, PMAX, PMIN, SENDCD,
     BELT_GAP_PX, BELT_CAP_DIV, PRICE_K, UP_K, UP_RATE, MAT_RATE,
     SELL_TAKE, SELL_K, ARMOR_K, LV_STEP, LV_BASE, MAT_RP,
@@ -7102,6 +7364,7 @@ function applyDevCfg(){
   if(c.CURVE_TAPER != null) CURVE.taper = Math.max(10, +c.CURVE_TAPER);
   if(c.CURVE_DEPTH != null) CURVE.depth = Math.max(10, +c.CURVE_DEPTH);
   applyCurve();
+  if(c.HUMAN_R != null) HUMAN_R = Math.max(80, +c.HUMAN_R);
   if(c.VIT_K != null) VIT_K = +c.VIT_K;
   if(c.TRAIN_P != null) TRAIN_P = +c.TRAIN_P;
   if(c.EXP_STEP != null) EXP_STEP = Math.max(1, +c.EXP_STEP);
@@ -7250,8 +7513,8 @@ function renderDtTree(body){
     if(!req || !pos[req]) continue;
     const p1 = pos[req], p2 = pos[t];
     const x1 = p1.x + 176, y1 = p1.y + 30, x2 = p2.x, y2 = p2.y + 30;
-    const dx = Math.max(24, Math.abs(x2 - x1)*0.45);
-    svgLines += `<path class="rt-edge ${isDev(t)?'done':'open'}" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}"/>`;
+    const dPath = orthoGeom({x:x1, y:y1}, [], {x:x2, y:y2}).d;
+    svgLines += `<path class="rt-edge ${isDev(t)?'done':'open'}" d="${dPath}"/>`;
   }
   const nodesHtml = list.map(t => {
     const T = TYPES[t], p = pos[t];
@@ -7854,6 +8117,7 @@ function renderDtUi(body){
 /* --- Tab 4: 定数・数値バランス＆サンドボックス --- */
 function renderDtConst(body){
   const cFields = [
+    { k:'HUMAN_R',      n:'🧍人の行動範囲（⚡供給距離 px）',  step:10,   v:HUMAN_R },
     { k:'CURVE_INDEX',  n:'⚡消費の軽さ指標 (CURVE.index)',   step:5,    v:CURVE.index },
     { k:'CURVE_TAPER',  n:'訓練の重さ指標 (CURVE.taper)',     step:5,    v:CURVE.taper },
     { k:'CURVE_DEPTH',  n:'敵HPの緩やかさ指標 (CURVE.depth)', step:10,   v:CURVE.depth },
