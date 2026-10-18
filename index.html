@@ -71,34 +71,42 @@ button{font:inherit;color:inherit;cursor:pointer}
 #wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 /* ノードだけがクリックを受け、空白は下の配線に通す */
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
-path.hit{fill:none;stroke:transparent;stroke-width:22;pointer-events:stroke;cursor:move}
-/* ベルトコンベア（外枠 rail ＋ 暗い帯 wire.belt ＋ 動くローラー縞 flow.tread） */
-path.rail{fill:none;stroke:#2a3d56;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
-path.wire.belt{fill:none;stroke:#0b111a;stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
-path.flow.tread{fill:none;stroke-width:7.5;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:4 8;stroke-opacity:.35}
-path.flow.tread.on{stroke-opacity:.86}
-path.rail.jam{stroke:#d94e4e;filter:drop-shadow(0 0 6px rgba(240,90,79,.55))}
+path.hit{fill:none;stroke:transparent;stroke-width:24;pointer-events:stroke;cursor:move}
+/* ベルトコンベア＆エネルギーコンベア（外枠 rail ＋ 暗い帯 wire.belt ＋ 動くローラー/波動 flow.tread） */
+path.rail{fill:none;stroke:#2d435e;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s,filter .2s}
+path.rail.energy{stroke-width:14;stroke-opacity:.72;filter:drop-shadow(0 0 5px rgba(242,193,78,.22))}
+path.wire.belt{fill:none;stroke:#0a1019;stroke-width:11.5;stroke-linecap:round;stroke-linejoin:round}
+path.wire.belt.energy{stroke:#090e17;stroke-width:9.5}
+path.flow.tread{fill:none;stroke-width:8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:5 9;stroke-opacity:.28;transition:stroke-opacity .15s}
+path.flow.tread.energy{stroke-width:5.5;stroke-linecap:round;stroke-dasharray:6 10;stroke-opacity:.32}
+path.flow.tread.on{stroke-opacity:.92}
+path.flow.tread.energy.on{stroke-opacity:.95;filter:drop-shadow(0 0 4px currentColor)}
+path.rail.jam{stroke:#d94e4e !important;filter:drop-shadow(0 0 6px rgba(240,90,79,.55))}
 path.flow.tread.jam{stroke:#ff745c !important;stroke-opacity:.92}
-path.rail.pick{stroke:var(--acc);stroke-width:17;filter:drop-shadow(0 0 6px rgba(94,224,192,.45))}
-path.hit:hover + path.rail{stroke:#43628a}
-/* 電力ケーブル（細く控えめにして、ベルトコンベアを主役にする） */
-path.wire.cable{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:.26}
-path.flow.cable{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:4 10;stroke-opacity:.18}
-path.flow.cable.on{stroke-opacity:.75}
-path.wire.cable.pick{stroke-opacity:1;stroke-width:3.8}
-path.hit:hover + path.wire.cable{stroke-width:4;stroke-opacity:.75}
-/* 人の行動範囲外になって届いていない電力ケーブル */
-path.wire.cable.far{stroke:var(--bad) !important;stroke-width:2.8;stroke-dasharray:6 5;stroke-opacity:.92}
-path.flow.cable.far{stroke:var(--bad) !important;stroke-dasharray:3 9;stroke-opacity:.45}
+path.rail.pick{stroke:var(--acc) !important;stroke-width:18;filter:drop-shadow(0 0 7px rgba(94,224,192,.55))}
+path.hit:hover + path.rail{stroke:#4b6e9c}
+/* 人の行動範囲外になって届いていないコンベア */
+path.rail.far{stroke:var(--bad) !important;stroke-dasharray:7 5;stroke-opacity:.92}
+path.wire.belt.far{stroke:#240d12 !important}
+path.flow.tread.far{stroke:var(--bad) !important;stroke-dasharray:3 9;stroke-opacity:.45}
 g.far-tag{pointer-events:none}
 g.far-tag rect{fill:#261015;stroke:var(--bad);stroke-width:1.4;rx:5}
 g.far-tag text{fill:#ff8a98;font-size:9.5px;font-weight:700;text-anchor:middle;dominant-baseline:central}
-/* ベルトの上を流れる素材アイコン */
-g.pkt{pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))}
-g.pkt rect.pkbg{fill:#101928;stroke-width:2;transition:stroke .15s,fill .15s}
-g.pkt.jam rect.pkbg{fill:#2d1216;stroke:#ff6b5e !important}
-g.pkt text.pkic{font-size:12.5px;user-select:none}
-#gw.far g.pkt text.pkic{display:none}
+/* ベルトの上を流れる「モノ（素材コンテナ）」と「エネルギー（発光オーブ）」 */
+g.pkt{pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.68))}
+g.pkt rect.pk-sh{fill:rgba(0,0,0,.45)}
+g.pkt rect.pkbg{fill:#121c2d;stroke-width:2.2;transition:stroke .15s,fill .15s}
+g.pkt line.pk-hi{stroke:rgba(255,255,255,.22);stroke-width:1.4;stroke-linecap:round}
+g.pkt circle.pk-halo{opacity:.38;animation:pkpulse 1.1s ease-in-out infinite}
+g.pkt circle.pk-core{fill:#141b29;stroke-width:2.4;transition:stroke .15s,fill .15s}
+g.pkt circle.pk-spark{fill:rgba(255,255,255,.16)}
+@keyframes pkpulse{0%,100%{transform:scale(0.92);opacity:.30}50%{transform:scale(1.14);opacity:.55}}
+g.pkt.jam rect.pkbg, g.pkt.jam circle.pk-core{fill:#2d1216;stroke:#ff6b5e !important}
+g.pkt.jam circle.pk-halo{fill:#ff6b5e !important;opacity:.45}
+g.pkt text.pkic{font-size:13px;user-select:none}
+g.pkt rect.pkq-bg{fill:#080d14;stroke-width:1.2;rx:4}
+g.pkt text.pkq{fill:#fff;font-size:8.5px;font-weight:800;text-anchor:middle;dominant-baseline:central;user-select:none}
+#gw.far g.pkt text.pkic, #gw.far g.pkt g.pkq-g{display:none}
 #gw.far path.flow{display:none}        /* 引きの絵では細かい印は出さない */
 circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .wadd{pointer-events:all;cursor:pointer}
@@ -1208,10 +1216,11 @@ let CAP    = 10;    // バッファの基準値（必要数が大きいノード
 let PSPEED = 72;    // ベルトコンベアの上を素材が流れる速さ px/s
 let PMAX   = 3.6;   // どんなに長いベルトでも、渡りきるのにこれ以上はかけない（秒）
 let PMIN   = 1.4;   // 短いベルトでも、素材の動きが見えるよう最低これだけはかける（秒）
-let SENDCD = 0.22;  // ベルトへ1個ずつ送り出す間隔
-let BELT_GAP_PX = 24, BELT_CAP_DIV = 26;
-const CABLE_ITEM = {sta:1, power:1, nfl:1}; // 電力・体力系はベルトではなく細いケーブルで送る
-const beltGap = l => Math.min(0.18, BELT_GAP_PX / Math.max(96, (l.G && l.G.total) || 180));
+let SENDCD = 0.28;  // ベルトへ1個ずつ送り出す間隔
+let BELT_GAP_PX = 34, BELT_CAP_DIV = 30;
+const CABLE_ITEM = {}; // すべての動力・物理素材を視覚的なコンベアパケットとして流す（着弾＝入力一致）
+const ENERGY_ITEM = {sta:1, power:1, nfl:1, str:1, int:1, vit:1}; // エネルギー球（オーブ）として描画する動力・経験値系
+const beltGap = l => Math.min(0.24, BELT_GAP_PX / Math.max(96, (l.G && l.G.total) || 180));
 const beltCap = l => Math.max(4, Math.min(20, Math.floor(((l.G && l.G.total) || 180) / Math.max(10, BELT_CAP_DIV))));
 let PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
 let UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
@@ -3194,58 +3203,119 @@ function clearBoardEls(){
 function mkLinkEl(l){
   ensureItem(l.item);
   const c = (ITEMS[l.item] && ITEMS[l.item].c) || '#8aa';
-  const isCab = !!CABLE_ITEM[l.item];
+  const isEng = !!ENERGY_ITEM[l.item];
   const hit =document.createElementNS(SVG,'path');  hit.setAttribute('class','hit');
+  const rail=document.createElementNS(SVG,'path');
   const wire=document.createElementNS(SVG,'path');
   const flow=document.createElementNS(SVG,'path');
   hit.dataset.link=l.id;
-  if(isCab){
-    wire.setAttribute('class','wire cable');
-    flow.setAttribute('class','flow cable');
-    wire.setAttribute('stroke',c);
-    flow.setAttribute('stroke',c);
-    const farTag = document.createElementNS(SVG,'g');
-    farTag.setAttribute('class','far-tag');
-    farTag.style.display = 'none';
-    const fbg = document.createElementNS(SVG,'rect');
-    fbg.setAttribute('x','-32'); fbg.setAttribute('y','-9');
-    fbg.setAttribute('width','64'); fbg.setAttribute('height','18');
-    const ftx = document.createElementNS(SVG,'text');
-    ftx.setAttribute('x','0'); ftx.setAttribute('y','0.5');
-    ftx.textContent = '🚫 距離外';
-    farTag.append(fbg, ftx);
-    gwC.append(hit,wire,flow,farTag);
-    l.el={hit,rail:null,wire,flow,farTag,cable:true};
-  }else{
-    const rail=document.createElementNS(SVG,'path');
-    rail.setAttribute('class','rail');
-    wire.setAttribute('class','wire belt');
-    flow.setAttribute('class','flow tread');
-    flow.setAttribute('stroke',c);
-    gwL.append(hit,rail,wire,flow);
-    l.el={hit,rail,wire,flow,farTag:null,cable:false};
-  }
+  rail.setAttribute('class', isEng ? 'rail energy' : 'rail');
+  wire.setAttribute('class', isEng ? 'wire belt energy' : 'wire belt');
+  flow.setAttribute('class', isEng ? 'flow tread energy' : 'flow tread');
+  if(isEng) rail.setAttribute('stroke', `color-mix(in srgb, ${c} 28%, #0a0f18)`);
+  flow.setAttribute('stroke',c);
+  const farTag = document.createElementNS(SVG,'g');
+  farTag.setAttribute('class','far-tag');
+  farTag.style.display = 'none';
+  const fbg = document.createElementNS(SVG,'rect');
+  fbg.setAttribute('x','-32'); fbg.setAttribute('y','-9');
+  fbg.setAttribute('width','64'); fbg.setAttribute('height','18');
+  const ftx = document.createElementNS(SVG,'text');
+  ftx.setAttribute('x','0'); ftx.setAttribute('y','0.5');
+  ftx.textContent = '🚫 距離外';
+  farTag.append(fbg, ftx);
+  gwL.append(hit,rail,wire,flow,farTag);
+  l.el={hit,rail,wire,flow,farTag,cable:false,energy:isEng};
   l._gk = null; l._dk = null; l.G = null; l._off = 0;   // 作り直したら必ず引き直す
+}
+function updatePacketBadge(p){
+  if(!p || !p.el) return;
+  const q = p.q || 1;
+  let qg = p.el.querySelector('.pkq-g');
+  if(q <= 1){
+    if(qg) qg.remove();
+    return;
+  }
+  const txt = '×' + fmt(q);
+  const w = Math.max(15, 8 + txt.length * 4.8);
+  if(!qg){
+    qg = document.createElementNS(SVG,'g');
+    qg.setAttribute('class','pkq-g');
+    const qbg = document.createElementNS(SVG,'rect');
+    qbg.setAttribute('class','pkq-bg');
+    const qt = document.createElementNS(SVG,'text');
+    qt.setAttribute('class','pkq');
+    qg.append(qbg, qt);
+    p.el.appendChild(qg);
+  }
+  const qbg = qg.querySelector('.pkq-bg'), qt = qg.querySelector('.pkq');
+  qbg.setAttribute('x', (11.5 - w/2).toFixed(1));
+  qbg.setAttribute('y', '-15.5');
+  qbg.setAttribute('width', w.toFixed(1));
+  qbg.setAttribute('height', '11');
+  qt.setAttribute('x', '11.5');
+  qt.setAttribute('y', '-9.5');
+  qt.textContent = txt;
 }
 function mkPacketEl(p){
   ensureItem(p.item);
   const it = ITEMS[p.item] || ITEMS.ore1;
+  const isEng = !!ENERGY_ITEM[p.item];
   const g = document.createElementNS(SVG,'g');
-  g.setAttribute('class','pkt');
-  const r = document.createElementNS(SVG,'rect');
-  r.setAttribute('class','pkbg');
-  r.setAttribute('x','-10.5'); r.setAttribute('y','-10.5');
-  r.setAttribute('width','21'); r.setAttribute('height','21');
-  r.setAttribute('rx','6');
-  r.setAttribute('stroke', it.c);
-  const t = document.createElementNS(SVG,'text');
-  t.setAttribute('class','pkic');
-  t.setAttribute('x','0'); t.setAttribute('y','1');
-  t.setAttribute('text-anchor','middle');
-  t.setAttribute('dominant-baseline','central');
-  t.textContent = it.i;
-  g.append(r, t);
+  g.setAttribute('class', isEng ? 'pkt energy-pkt' : 'pkt item-pkt');
+  if(isEng){
+    // エネルギー・動力系：発光するプラズマ球（ハロー＋コア＋スパーク＋アイコン）
+    const halo = document.createElementNS(SVG,'circle');
+    halo.setAttribute('class','pk-halo');
+    halo.setAttribute('cx','0'); halo.setAttribute('cy','0'); halo.setAttribute('r','12.5');
+    halo.setAttribute('fill', `color-mix(in srgb, ${it.c} 26%, transparent)`);
+    halo.setAttribute('stroke', it.c);
+    halo.setAttribute('stroke-width','1.2');
+    halo.setAttribute('stroke-dasharray','4 3');
+    const core = document.createElementNS(SVG,'circle');
+    core.setAttribute('class','pk-core');
+    core.setAttribute('cx','0'); core.setAttribute('cy','0'); core.setAttribute('r','9.5');
+    core.setAttribute('fill', `color-mix(in srgb, ${it.c} 32%, #0c121d)`);
+    core.setAttribute('stroke', it.c);
+    const spark = document.createElementNS(SVG,'circle');
+    spark.setAttribute('class','pk-spark');
+    spark.setAttribute('cx','-3'); spark.setAttribute('cy','-3'); spark.setAttribute('r','2.2');
+    spark.setAttribute('fill', '#ffffff');
+    spark.setAttribute('opacity', '0.65');
+    const t = document.createElementNS(SVG,'text');
+    t.setAttribute('class','pkic');
+    t.setAttribute('x','0'); t.setAttribute('y','0.8');
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('dominant-baseline','central');
+    t.textContent = it.i;
+    g.append(halo, core, spark, t);
+  }else{
+    // 物理素材系：立体的なコンテナ箱（底面影＋本体＋上辺ハイライト＋アイコン）
+    const sh = document.createElementNS(SVG,'rect');
+    sh.setAttribute('class','pk-sh');
+    sh.setAttribute('x','-10.5'); sh.setAttribute('y','-8');
+    sh.setAttribute('width','21'); sh.setAttribute('height','21');
+    sh.setAttribute('rx','5.5');
+    const r = document.createElementNS(SVG,'rect');
+    r.setAttribute('class','pkbg');
+    r.setAttribute('x','-10.5'); r.setAttribute('y','-10.5');
+    r.setAttribute('width','21'); r.setAttribute('height','21');
+    r.setAttribute('rx','5.5');
+    r.setAttribute('stroke', it.c);
+    const hi = document.createElementNS(SVG,'line');
+    hi.setAttribute('class','pk-hi');
+    hi.setAttribute('x1','-6.5'); hi.setAttribute('y1','-8.2');
+    hi.setAttribute('x2','6.5');  hi.setAttribute('y2','-8.2');
+    const t = document.createElementNS(SVG,'text');
+    t.setAttribute('class','pkic');
+    t.setAttribute('x','0'); t.setAttribute('y','0.8');
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('dominant-baseline','central');
+    t.textContent = it.i;
+    g.append(sh, r, hi, t);
+  }
   gwP.appendChild(g); p.el=g; packetCount++;
+  if((p.q||1) > 1) updatePacketBadge(p);
 }
 function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCount--;} l.packets.splice(i,1); }
 
@@ -3536,7 +3606,7 @@ function tick(dt,fast){
     }
   }
 
-  // 出力バッファ → 配線（電力ケーブルは即座に送り、物理素材はベルトコンベアに載せる）
+  // 出力バッファ → コンベア配線（動力・体力・物理素材すべてを視覚パケットとして送り出し、到着時に入力バッファへ加算）
   for(const n of S.nodes){
     for(const item in n.outBuf){
       if((n.outBuf[item]||0)<=0) continue;
@@ -3547,11 +3617,14 @@ function tick(dt,fast){
       const ls = allLs.filter(l => !l._outOfRange);
       if(!ls.length) continue;
       const isCab = !!CABLE_ITEM[item];
-      const big = TYPES[n.type].layer || TYPES[n.type].port;   // 口はまとめて流す
+      const big = TYPES[n.type].layer || TYPES[n.type].port;   // レイヤー口はまとめて流す
       const cdStep = (isCab || big) ? 0.10 : SENDCD;
+      const bufNow = n.outBuf[item] || 0;
+      // 1個ずつ流れているのが目で見えるよう、在庫が12個以下なら必ず 1個＝1パケットで送り出す。
+      // 大量生産時（在庫13個超）のみ束ねて ×q バッジ付きで送る。
       const chunk = big ? Infinity
-                  : isCab ? Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8))
-                  : Math.max(1, Math.ceil(Math.max((n.outBuf[item]||0)/5, Math.min(capOut(n,item), CAP*20)/16)));
+                  : bufNow <= 12 ? 1
+                  : Math.max(1, Math.ceil(bufNow / 8));
       // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る
       const canSend = 1 + Math.floor(-n.cd[item]/cdStep);
       let left = big ? 400 : Math.min(isCab ? 200 : 30, canSend);
@@ -3610,7 +3683,7 @@ function tick(dt,fast){
   // ベルトコンベア上の移動と詰まり（先頭 i=0 から順に動かし、前の荷物との車間距離を保つ）
   for(const l of S.links){
     if((l._active||0) > 0) l._active = Math.max(0, l._active - dt);
-    if(!l.packets.length){ l.jam = false; l._moving = (l._active||0) > 0; continue; }
+    if(!l.packets.length){ l.jam = false; l._moving = false; continue; }
     const b=N(l.to); if(!b){ while(l.packets.length) delPacket(l,0); continue; }
     const G=geomOf(l); if(!G) continue;
     if(fast){
@@ -3624,6 +3697,7 @@ function tick(dt,fast){
       continue;
     }
     const spd = Math.min(1 / PMIN, Math.max(PSPEED / G.total, 1 / PMAX));
+    l._spdPx = spd * G.total;
     const gap = beltGap(l);
     let anyMoved = false, anyJam = false;
     for(let i=0;i<l.packets.length;i++){
@@ -3639,6 +3713,7 @@ function tick(dt,fast){
               b.inBuf[p.item] = (b.inBuf[p.item]||0) + take;
               p.q = (p.q||1) - take;
               if(p.q <= 0){ delPacket(l,0); i--; anyMoved = true; continue; }
+              updatePacketBadge(p);
               p.t = 0.94; p.jam = true; anyJam = true;
             }else{
               p.jam = false;
@@ -5296,6 +5371,7 @@ function render(fdt){
       setCls(l.el.rail,'dim',off);
       setCls(l.el.rail,'pick', selLink===l.id);
       setCls(l.el.rail,'jam', !!l.jam);
+      setCls(l.el.rail,'far', isFar);
     }else{
       setCls(l.el.wire,'pick', selLink===l.id);
     }
@@ -5320,11 +5396,15 @@ function render(fdt){
       }
     }else{
       const isJam = !!l.jam;
-      const moving = !isJam && (l._moving || l.packets.length > 0 || (l._active||0) > 0);
+      // コンベアのローラーは「実際に荷物・エネルギー球が流れているときだけ」その荷物の速度と完全同期して回る
+      const moving = !isFar && !isJam && l.packets.length > 0 && !!l._moving;
+      const hasLoad = !isFar && (moving || isJam || l.packets.length > 0);
       setCls(l.el.flow, 'jam', isJam);
-      setCls(l.el.flow, 'on', moving || isJam);
+      setCls(l.el.flow, 'on', hasLoad);
       if(moving && (inRect(a,R) || inRect(b,R))){
-        l._off = ((l._off||0) - vdt * PSPEED) % 12;
+        const pxSpd = l._spdPx || PSPEED;
+        const period = l.el.energy ? 16 : 12;
+        l._off = ((l._off||0) - vdt * pxSpd) % period;
         l.el.flow.style.strokeDashoffset = l._off.toFixed(1);
       }
     }
@@ -5336,7 +5416,14 @@ function render(fdt){
       setCls(p.el, 'jam', !!p.jam);
       setCls(p.el, 'dim', off);
       const q=geomPt(G,p.t);
-      p.el.setAttribute('transform', `translate(${q.x.toFixed(1)},${q.y.toFixed(1)})`);
+      const sc = p.t < 0.07 ? (0.68 + (p.t / 0.07) * 0.32)
+               : (p.t > 0.94 && !p.jam) ? Math.max(0.6, 1 - (p.t - 0.94) / 0.08)
+               : 1;
+      if(sc !== 1){
+        p.el.setAttribute('transform', `translate(${q.x.toFixed(1)},${q.y.toFixed(1)}) scale(${sc.toFixed(2)})`);
+      }else{
+        p.el.setAttribute('transform', `translate(${q.x.toFixed(1)},${q.y.toFixed(1)})`);
+      }
     }
   }
   if(selLink!==null) renderHandles();
@@ -5789,20 +5876,19 @@ function renderLinkInsp(){
   if(!l){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
   const a=N(l.from), b=N(l.to);
   if(!a||!b){ selLink=null; box.classList.remove('on'); box.innerHTML=''; return false; }
-  const n = pinsOf(l).length, isCab = !!CABLE_ITEM[l.item];
+  const n = pinsOf(l).length, isEng = !!ENERGY_ITEM[l.item];
   const isFar = isLinkOutOfRange(l), dist = Math.round(nodeDist(a, b)), rLim = humanRangeOf(a);
   geomOf(l);
   const stTxt = isFar ? `<span style="color:var(--bad)">🚫 行動範囲外で停止（あと${Math.max(1, dist - rLim)}px近づける）</span>`
-              : isCab ? (((l._active||0)>0 || ((a.rate&&a.rate[l.item])||0)>0.05) ? '⚡ 送電中' : '待機')
               : l.jam ? '⚠ 送り先が満杯（詰まり中）'
-              : l.packets.length ? `搬送中（${l.packets.length}/${beltCap(l)}個）`
+              : l.packets.length ? (isEng ? `⚡ 動力供給中（${l.packets.length}/${beltCap(l)}個）` : `📦 搬送中（${l.packets.length}/${beltCap(l)}個）`)
               : '待機';
   const distRow = (isHuman(a) && l.item==='sta')
     ? `<div class="kv">人からの距離<b style="color:${isFar?'var(--bad)':'var(--acc)'}">${dist}px / 上限${rLim}px（${isFar?'範囲外':'範囲内'}）</b></div>`
     : '';
   box.innerHTML =
     `<div class="t"><span class="ic2">${ITEMS[l.item].i}</span>`
-    + `<span class="nm2">${ITEMS[l.item].n}の${isCab?'電力ケーブル':'ベルトコンベア'}</span></div>`
+    + `<span class="nm2">${ITEMS[l.item].n}の${isEng?'動力コンベア':'ベルトコンベア'}</span></div>`
     + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
     + distRow
     + `<div class="kv">状態<b>${stTxt}</b></div>`
@@ -5813,7 +5899,7 @@ function renderLinkInsp(){
     + `<div class="btns"><button class="badd">＋ ピン</button>`
     + `<button class="bdel">− ピン</button>`
     + `<button class="bstr">まっすぐ</button></div>`
-    + `<div class="btns"><button class="del">${isCab?'ケーブル':'コンベア'}を切る</button></div>`;
+    + `<div class="btns"><button class="del">コンベアを切る</button></div>`;
   box.classList.add('on');
   box.querySelector('.badd').onclick=()=>addBend(l.id,'tail');
   box.querySelector('.bdel').onclick=()=>delBend(l.id);
@@ -8340,6 +8426,8 @@ function newGame(){
     spawned.unshift(h);
     S.counts.hero = 1;
   }
+  const initHero = spawned.find(n => n.type === 'hero');
+  if(initHero) initHero.outBuf.sta = 2; // 開始直後から⚡エネルギー球がコンベアを流れ出すように初期チャージ
   for(const lk of (ib.links || [])){
     const a = spawned[lk.from], b = spawned[lk.to];
     if(a && b && ITEMS[lk.item]) addLink(a.id, lk.item, b.id);
