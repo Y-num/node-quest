@@ -441,7 +441,104 @@ body.tut #offscr{display:none}
 .ecell.can button{border-color:var(--acc2);color:var(--acc2)}
 .ecell.can button:not(:disabled):hover{background:var(--acc2);color:#08131a}
 .ecell.lock{opacity:.45}
-@media (max-width:860px), (max-height:520px){ #tree{padding:8px} .tlab{width:56px;font-size:10px} }
+/* ---------- 研究ツリー（ノードグラフ） ---------- */
+.rt-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0 4px}
+.rt-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.rt-tab{background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:5px 10px;
+  font-size:11.5px;color:var(--dim);display:flex;align-items:center;gap:5px}
+.rt-tab b{font-size:10px;padding:1px 5px;border-radius:4px;background:#141c2b;color:var(--fg)}
+.rt-tab.on{border-color:var(--acc2);color:var(--acc2);background:rgba(122,184,255,.1)}
+.rt-tab.on b{background:var(--acc2);color:#08131a}
+.rt-hint{font-size:10.5px;color:var(--dim);margin-left:auto}
+.rt-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#070a10;
+  max-height:56vh;position:relative}
+.rt-canvas{position:relative;min-width:100%}
+.rt-svg{position:absolute;inset:0;pointer-events:none}
+.rt-edge{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:4 4;opacity:.55}
+.rt-edge.open{stroke:var(--acc2);stroke-dasharray:none;opacity:.85}
+.rt-edge.done{stroke:var(--acc);stroke-dasharray:none;stroke-width:2.5;opacity:.95}
+.rt-node{position:absolute;border:1px solid var(--line);border-radius:9px;padding:7px 9px;
+  background:#0d131f;display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 16px rgba(0,0,0,.4);
+  transition:border-color .15s,transform .15s}
+.rt-node .rt-hd{display:flex;align-items:center;gap:5px}
+.rt-node .rt-ic{font-size:14px}
+.rt-node .rt-nm{font-weight:700;font-size:11.5px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt-node .rt-cat{margin-left:auto;font-size:9px;color:var(--dim);background:#151d2c;padding:1px 5px;border-radius:4px;flex:none}
+.rt-node .rt-io{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt-node .rt-cond{display:flex;flex-wrap:wrap;gap:3px;font-size:9.5px}
+.rt-node .rt-cond.done{color:var(--acc);font-weight:600}
+.rt-node .rc{padding:1px 5px;border-radius:4px;background:#121926;border:1px solid var(--line)}
+.rt-node .rc.ok{color:var(--acc);border-color:rgba(94,224,192,.35)}
+.rt-node .rc.ng{color:var(--bad);border-color:rgba(255,107,122,.35)}
+.rt-node .rt-req{font-size:9.5px;color:var(--warn)}
+.rt-node .rt-btn{margin-top:2px;background:#0c1320;border:1px solid var(--line);border-radius:6px;
+  padding:4px 6px;font-size:10.5px;font-weight:600;color:var(--dim)}
+.rt-node.done{border-color:var(--acc);background:rgba(94,224,192,.07)}
+.rt-node.done .rt-nm{color:var(--acc)}
+.rt-node.can{border-color:var(--acc2);box-shadow:0 0 14px rgba(122,184,255,.22)}
+.rt-node.can .rt-btn{border-color:var(--acc2);color:#08131a;background:var(--acc2);cursor:pointer}
+.rt-node.can .rt-btn:hover{filter:brightness(1.1)}
+.rt-node.wait{border-color:#2b3a55}
+.rt-node.lock{opacity:.5}
+
+/* ---------- 🛠️ ゲーム開発ツール ---------- */
+.tbtn.dev{border-color:#f59e0b;color:#fbbf24;background:rgba(245,158,11,.1);font-weight:700}
+.tbtn.dev:hover{background:#f59e0b;color:#08131a}
+#devTool{position:fixed;inset:0;background:rgba(5,8,13,.86);z-index:115;display:none;
+  align-items:center;justify-content:center;padding:12px}
+#devTool.on{display:flex}
+#devTool .dt-box{width:min(1260px,100%);height:min(880px,94vh);display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid #f59e0b;border-radius:12px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.75)}
+#devTool .dt-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:#0c111a;flex-wrap:wrap}
+#devTool .dt-title{font-weight:800;font-size:14px;color:#fbbf24;display:flex;align-items:center;gap:6px}
+#devTool .dt-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-left:8px}
+#devTool .dt-tab{background:#121926;border:1px solid var(--line);border-radius:7px;padding:5px 11px;
+  font-size:11.5px;color:var(--dim);font-weight:600}
+#devTool .dt-tab.on{border-color:#f59e0b;color:#08131a;background:#fbbf24}
+#devTool .dt-acts{margin-left:auto;display:flex;gap:6px;align-items:center}
+#devTool .dt-acts button{background:#121926;border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600}
+#devTool .dt-acts button.pri{border-color:var(--acc);color:var(--acc)}
+#devTool .dt-acts button.pri:hover{background:var(--acc);color:#08131a}
+#devTool .dt-acts button.warn{border-color:var(--bad);color:var(--bad)}
+#devTool .dt-body{flex:1;overflow:hidden;display:flex;min-height:0}
+.dt-split{display:grid;grid-template-columns:1fr 370px;width:100%;height:100%;min-height:0}
+.dt-split.left-list{grid-template-columns:280px 1fr}
+.dt-pane{overflow:auto;padding:12px 14px;min-height:0;display:flex;flex-direction:column;gap:10px}
+.dt-pane.side{border-left:1px solid var(--line);background:#0b0f17}
+.dt-pane.list{border-right:1px solid var(--line);background:#0b0f17}
+.dt-sec{font-size:11.5px;font-weight:700;color:#fbbf24;border-bottom:1px solid var(--line);padding-bottom:4px;margin-top:4px;display:flex;align-items:center;justify-content:space-between}
+.dt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.dt-field{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dim)}
+.dt-field label{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:var(--dim)}
+.dt-field input,.dt-field select,.dt-field textarea{background:#080c13;border:1px solid var(--line);
+  border-radius:6px;padding:5px 7px;color:var(--fg);font-size:11.5px;font-family:inherit}
+.dt-field input:focus,.dt-field select:focus,.dt-field textarea:focus{outline:none;border-color:#f59e0b}
+.dt-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dt-btn{background:#131b29;border:1px solid var(--line);border-radius:6px;padding:5px 10px;
+  font-size:11px;color:var(--fg);font-weight:600;cursor:pointer}
+.dt-btn:hover{border-color:#fbbf24;color:#fbbf24}
+.dt-btn.acc{border-color:var(--acc);color:var(--acc)}
+.dt-btn.acc:hover{background:var(--acc);color:#08131a}
+.dt-btn.bad{border-color:var(--bad);color:var(--bad)}
+.dt-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--line);
+  border-radius:7px;background:#0e1420;cursor:pointer;font-size:11.5px;text-align:left}
+.dt-item:hover{border-color:#64748b}
+.dt-item.on{border-color:#fbbf24;background:rgba(245,158,11,.12)}
+.dt-item .sub{margin-left:auto;font-size:10px;color:var(--dim)}
+.dt-canvas-wrap{flex:1;overflow:auto;border:1px solid var(--line);border-radius:9px;background:#06090f;position:relative;min-height:360px}
+.dt-node{position:absolute;width:176px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;
+  background:#101725;cursor:grab;user-select:none;font-size:11px;box-shadow:0 4px 12px rgba(0,0,0,.45)}
+.dt-node.sel{border-color:#fbbf24;box-shadow:0 0 0 2px rgba(251,191,36,.35)}
+.dt-node.start{border-left:4px solid var(--acc)}
+.dt-node .nh{display:flex;align-items:center;gap:4px;font-weight:700}
+.dt-node .nc{font-size:9.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.dt-tbl th,.dt-tbl td{border-bottom:1px solid var(--line);padding:5px 7px;text-align:left}
+.dt-tbl th{color:var(--dim);font-weight:600;background:#0b0f18;position:sticky;top:0}
+.dt-tbl input,.dt-tbl select{background:#070a10;border:1px solid var(--line);border-radius:4px;padding:3px 5px;color:var(--fg);font-size:11px;width:78px}
+
+@media (max-width:860px), (max-height:520px){ #tree{padding:8px} .tlab{width:56px;font-size:10px} .dt-split,.dt-split.left-list{grid-template-columns:1fr} }
 /* スマホ幅では、上のバーに「待っている数字」だけを残す。
    現在階層と攻撃力は状態タブに出ているので省く */
 @media (max-width:560px){ #top .stat.f, #top .stat.a{display:none} }
@@ -785,6 +882,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <button class="tbtn" id="bComb" hidden>🔗 複合化</button>
     <button class="tbtn" id="bScrap">🗑 まとめて撤去</button>
     <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
+    <button class="tbtn dev" id="bDev">🛠️ 開発ツール</button>
     <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
     <button class="tbtn" id="bCode">引き継ぎ</button>
     <button class="tbtn" id="bSave">保存</button>
@@ -831,10 +929,10 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="alert"></div>
       <div class="sec">勇者</div>
       <div class="box">
-        <div class="hd"><span>⚡</span><span id="hName">電力</span><span class="sub num" id="hSta">0</span></div>
+        <div class="hd"><span>⚡</span><span id="hName">体力</span><span class="sub num" id="hSta">0</span></div>
         <div class="hbar sta"><i id="hStaBar"></i></div>
         <div class="rows">
-          <div class="row">発電（作 − 使）<b class="num" id="hRegen">0 /分</b></div>
+          <div class="row">体力収支（作 − 使）<b class="num" id="hRegen">0 /分</b></div>
           <div class="row">攻撃力<b class="num" id="hAtk">0</b></div>
           <div class="row s1"><span>💪 筋力<i class="rt" id="eStr"></i></span><b class="num" id="sStr">0</b></div>
           <div class="xbar s1"><i id="xStr"></i></div><div class="xnote" id="rStr"></div>
@@ -908,7 +1006,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="tpool">研究ポイント <b id="rpNow">0</b>　研究資材 <b id="matNow">0</b></div>
       <button id="tClose">閉じる</button>
     </div>
-    <p class="tnote">世代は施設ごとではなく、<b>工房ぜんたいの技術レベル</b>です。1つ上げると、その時代にしかない施設が建てられるようになります。同じ役割でも時代がちがえば別の施設で、<b>要る動力も出る副産物も変わります</b>（第5=⚫石炭／第6以降=🔌電力／第8=🟢核燃料）。厄介な副産物はまず出るようになり、<b>その解決は次の時代に来ます</b>。古い施設はそのまま動くので、乗り換えるかどうかは自分で決められます。</p>
+    <p class="tnote">各施設は<b>研究ツリーで前提と条件を満たしてアンロック</b>すると建設リストに並びます。最初は<b>🧍主人公・🕳️洞窟・⛏️採掘・♻️廃棄場・🏪露店・🔬研究室</b>の最小構成から始まり、🔬研究室で研究ポイントを貯めることで<b>🔥精錬炉・🔌発電機・🏋️訓練所・⚔️鍛冶屋</b>などを順番に開放できます。</p>
     <div id="treeGrid"></div>
   </div>
 </div>
@@ -958,6 +1056,26 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <span class="dnote">この画面は <code>?debug=1</code> か <code>#debug</code> を付けたときだけ開けます</span>
     </div>
     <div class="dwrap"><table id="dTable"></table></div>
+  </div>
+</div>
+
+<div id="devTool">
+  <div class="dt-box">
+    <div class="dt-head">
+      <div class="dt-title">🛠️ ゲーム開発ツール <span style="font-size:11px;font-weight:400;color:var(--dim)">研究ツリー・施設・UI配置・定数エディタ</span></div>
+      <div class="dt-tabs" id="dtTabs">
+        <button class="dt-tab on" data-dtab="tree">🔬 研究ツリー＆開放条件</button>
+        <button class="dt-tab" data-dtab="fac">🏭 施設の作成・機能編集</button>
+        <button class="dt-tab" data-dtab="ui">📐 UI・初期盤面配置</button>
+        <button class="dt-tab" data-dtab="const">⚖️ 定数・数値バランス</button>
+        <button class="dt-tab" data-dtab="io">💾 設定の保存・JSON出力</button>
+      </div>
+      <div class="dt-acts">
+        <button class="pri" id="dtSaveBtn">💾 変更を適用＆保存</button>
+        <button id="dtClose">閉じる</button>
+      </div>
+    </div>
+    <div class="dt-body" id="dtBody"></div>
   </div>
 </div>
 
@@ -1032,11 +1150,11 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
    index=⚡の重さ / taper=訓練の重さ / depth=敵HPの伸び（大きいほど緩やか） */
 const CURVE = { index:120, taper:100, depth:260 };
 
-const VIT_K = 1.065;             // ❤️体力1につき体力生成が6.5%増える（曲線の土台）
+let VIT_K = 1.065;             // ❤️体力1につき体力生成が6.5%増える（曲線の土台）
 /* 訓練の重さ。ただの指数だと1段目から急に重くなるので、肩に指数を乗せて
    「序盤はほとんど増えない・後半で一気に効く」形にする。
      能力値10 で ×2.9 ／ 20 で ×21 ／ 30 で ×326 ／ 50 で ×34万 ／ 70 で ×26億   */
-const TRAIN_P = 1.55;
+let TRAIN_P = 1.55;
 let COST_K, TRAIN_K, ENEMY_K;
 function applyCurve(){
   COST_K  = 100 / CURVE.index;                      // すべての⚡消費にかかる倍率
@@ -1048,23 +1166,24 @@ const trainMul = lv => Math.pow(TRAIN_K, Math.pow(Math.max(0, lv), TRAIN_P));
 const trainYield = n => 1 + Math.floor((n.level - 1) / 20);
 /* 能力を1つ上げるのに要る経験値。1回の訓練で1つ出るので、そのまま回数になる。
    序盤から少しずつ回数が増えるので、体力の重さと合わせて伸びが落ち着く */
-const EXP_STEP = 2;
+let EXP_STEP = 2;
 const expNeed  = lv => 1 + Math.floor(Math.max(0, lv) / EXP_STEP);
 applyCurve();
 
-const CAP    = 10;    // バッファの基準値（必要数が大きいノードは自動で広がる）
-const PSPEED = 72;    // ベルトコンベアの上を素材が流れる速さ px/s
-const PMAX   = 3.6;   // どんなに長いベルトでも、渡りきるのにこれ以上はかけない（秒）
-const PMIN   = 1.4;   // 短いベルトでも、素材の動きが見えるよう最低これだけはかける（秒）
-const SENDCD = 0.22;  // ベルトへ1個ずつ送り出す間隔
-const CABLE_ITEM = {sta:1, power:1, nfl:1}; // 電力系はベルトではなく細いケーブルで送る
-const beltGap = l => Math.min(0.18, 24 / Math.max(96, (l.G && l.G.total) || 180));
-const beltCap = l => Math.max(4, Math.min(12, Math.floor(((l.G && l.G.total) || 180) / 26)));
-const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
-const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
+let CAP    = 10;    // バッファの基準値（必要数が大きいノードは自動で広がる）
+let PSPEED = 72;    // ベルトコンベアの上を素材が流れる速さ px/s
+let PMAX   = 3.6;   // どんなに長いベルトでも、渡りきるのにこれ以上はかけない（秒）
+let PMIN   = 1.4;   // 短いベルトでも、素材の動きが見えるよう最低これだけはかける（秒）
+let SENDCD = 0.22;  // ベルトへ1個ずつ送り出す間隔
+let BELT_GAP_PX = 24, BELT_CAP_DIV = 26;
+const CABLE_ITEM = {sta:1, power:1, nfl:1}; // 電力・体力系はベルトではなく細いケーブルで送る
+const beltGap = l => Math.min(0.18, BELT_GAP_PX / Math.max(96, (l.G && l.G.total) || 180));
+const beltCap = l => Math.max(4, Math.min(20, Math.floor(((l.G && l.G.total) || 180) / Math.max(10, BELT_CAP_DIV))));
+let PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
+let UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
 
 const ITEMS = {
-  sta  :{n:'電力',   i:'⚡', c:'#f2c14e'},
+  sta  :{n:'体力',   i:'⚡', c:'#f2c14e'},
   waste:{n:'廃材',   i:'🗑️', c:'#8a6f5c'},
   // 原鉱（採掘で得る。深く潜るほど良いものが解放される）
   ore1 :{n:'銅鉱',   i:'🪨', c:'#b0764a'},
@@ -1260,11 +1379,12 @@ function itemVal(k){
   for(let i=0;i<c;i++) v *= eq ? EQP_COMP(i) : densStep(i);   // 圧縮ぶんは大きく効く
   return v;
 }
-const COMP_TAKE = 5, DECOMP_TAKE = 4;
+const COMP_TAKE_DEF = 5, DECOMP_TAKE_DEF = 4;
+let COMP_TAKE = 5, DECOMP_TAKE = 4;
 /* 出資：ゴールド → 研究ポイント。基準は「研究1つ＝1200G」で、
    レベルと🔮魔導の装備だけが割をよくする。1回に動かす額は時代で大きくなる。
    （素材を解体台に通す道に比べると桁違いに悪い。余ったゴールドの捨て場） */
-const FUND_G    = 4000;
+let FUND_G    = 4000;
 /* 仲間の給料。1回働くごとに払う。時代が進むほど金額も大きくなる。
    第9以降の人工の仲間は、ゴールドではなく研究ポイントで動く */
 const payOf   = n => { const T=TYPES[n.type];
@@ -1276,7 +1396,7 @@ const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1
 const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(n.level) * gearMul('arcane'));
 /* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
    間隔が長いぶん、1個の値段は高い                                        */
-const SELL_TAKE = 1, SELL_K = 200;
+let SELL_TAKE = 1, SELL_K = 200;
 // 副産物を燃やして得られる体力。厄介なものほど多い
 const bypVal = k => (BYP.find(b=>b.k===k)||{v:0}).v;
 const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(densStep(0), densOf(n.item))
@@ -1356,12 +1476,11 @@ function chainOpts(t){
 /* ノード＝主人公の「行動」。役割ごとに1つだけ基本を書き、
    時代ちがいの版は下の FAC 表から作る。                                   */
 const TYPES = {
-  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, unique:true, gear:3,
-          d:'この工房のあるじ。装備スロットが3つある。訓練で得た経験値はここへ戻す。'
-           +'ダンジョンや街に配属して働く'},
-  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, gear:1, pay:6,
-          d:'ゴールドを払って働いてもらう人。装備スロットが1つある。'
-           +'ダンジョンや街に配属して働く。給料が払えなくなると手が止まる'},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3, start:true,
+          d:'すべての行動の源。装備スロットが3つある。ここから伸ばす配線の本数が⚡体力の配分になる。経験値もここへ戻す'},
+  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:6,
+          d:'ゴールドを払って働いてもらう、もう一つの⚡体力の源。装備スロットが1つある。'
+           +'給料が払えなくなると手が止まる'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
           d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
            +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
@@ -1459,8 +1578,8 @@ const eraName  = e => ERAS[Math.max(0,Math.min(ERA_MAX-1, e-1))];
    ひとつ上がるごとに 速さ 1/0.30＝約3.3倍・⚡の食いぶち 0.42倍。
    かけ合わせると1世代でおよそ8倍。第3世代は第1世代の約11倍速く、
    ⚡は約0.18倍で動く                                                     */
-const ERA_SPD = 0.30, ERA_EFF = 0.42, ERA_COST = 14, ERA_UP = 18;
-const UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
+let ERA_SPD = 0.30, ERA_EFF = 0.42, ERA_COST = 14, ERA_UP = 18;
+let UP_RATE = 0.03;                       // 強化1回の基準＝建設費の3%
 /* その世代の施設が⚡のほかに要るもの。世代が上がるほど、
    新しいエネルギーが1種ずつ足される（作れるのは、その世代の発電機だけ） */
 const ERA_POW = {2:{power:1}, 3:{power:2, nfl:1}};
@@ -1695,23 +1814,81 @@ function tierOf(n){
 const effOf   = n => (TYPES[n.type].eff || 1) * Math.pow(ERA_EFF, (TYPES[n.type].era||1)-1);
 const baseName= t => TYPES[t].i + TYPES[t].n;
 
+/* 役割ごとの研究ツリー初期配置と解放条件（第1世代の基準値）。
+   start:true のものだけが最初から使え、それ以外は研究ツリーで条件を満たして解放する */
+const ROLE_TREE_DEFAULT = {
+  dive:   {start:true,  reqRole:null,     treeX:0, treeY:0, rp:0},
+  shop:   {start:true,  reqRole:null,     treeX:0, treeY:1, rp:0},
+  box:    {start:false, reqRole:'shop',   treeX:1, treeY:0, rp:20},
+  open:   {start:false, reqRole:'box',    treeX:2, treeY:0, rp:45,  reqFloor:3},
+  hout:   {start:false, reqRole:'open',   treeX:3, treeY:0, rp:90},
+  fund:   {start:false, reqRole:'shop',   treeX:1, treeY:1, rp:150, gold:1000},
+
+  mine:   {start:true,  reqRole:null,     treeX:0, treeY:2, rp:0},
+  smelt:  {start:false, reqRole:'mine',   treeX:1, treeY:2, rp:15},
+  forge:  {start:false, reqRole:'smelt',  treeX:2, treeY:2, rp:60,  reqFloor:5},
+  equip:  {start:false, reqRole:'forge',  treeX:3, treeY:2, rp:200, reqFloor:10},
+  anvil:  {start:false, reqRole:'equip',  treeX:4, treeY:2, rp:550, mat:30, reqFloor:15},
+  comp:   {start:false, reqRole:'smelt',  treeX:2, treeY:3, rp:120, reqFloor:8},
+  tool:   {start:false, reqRole:'comp',   treeX:3, treeY:3, rp:280, mat:15},
+  alloy:  {start:false, reqRole:'forge',  treeX:4, treeY:3, rp:320, reqFloor:12},
+
+  dump:   {start:true,  reqRole:null,     treeX:0, treeY:4, rp:0},
+  fuel:   {start:false, reqRole:'dump',   treeX:1, treeY:4, rp:50},
+  purify: {start:false, reqRole:'dump',   treeX:2, treeY:4, rp:160},
+  boost:  {start:false, reqRole:'purify', treeX:3, treeY:4, rp:350, mat:20},
+
+  lab:    {start:true,  reqRole:null,     treeX:0, treeY:5, rp:0},
+  tstr:   {start:false, reqRole:'lab',    treeX:1, treeY:5, rp:20},
+  tvit:   {start:false, reqRole:'lab',    treeX:1, treeY:6, rp:20},
+  tint:   {start:false, reqRole:'lab',    treeX:1, treeY:7, rp:20},
+  decomp: {start:false, reqRole:'tstr',   treeX:2, treeY:5, rp:80},
+  mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:6, rp:180, reqVit:2},
+  gen:    {start:false, reqRole:'tint',   treeX:2, treeY:7, rp:400, mat:25, reqInt:3},
+  wood:   {start:false, reqRole:'gen',    treeX:3, treeY:7, rp:650, mat:40},
+  coal:   {start:false, reqRole:'wood',   treeX:4, treeY:7, rp:1000, mat:80},
+};
+
 const ORDER = ['hero'];
 function buildFac(){
+  ORDER.length = 0; ORDER.push('hero');
   for(const role in FAC){
-    const base = TYPES[role];
+    const base = TYPES[role]; if(!base) continue;
+    const rt = ROLE_TREE_DEFAULT[role] || {start:false, reqRole:null, treeX:0, treeY:0, rp:50};
     for(const f of FAC[role]){
       const key = role + f.e, g = f.e - 1;
+      const e = f.e;
+      const defReq = e === 1
+        ? (rt.reqRole ? rt.reqRole + '1' : null)
+        : (rt.reqRole ? rt.reqRole + e : role + (e - 1));
+      const defRp = e === 1 ? (rt.rp || 0)
+        : Math.round(Math.max(25, rt.rp || 25) * (e === 2 ? 220 : 220000));
+      const defMat = e === 1 ? (rt.mat || 0)
+        : Math.round(Math.max(5, rt.mat || 8) * (e === 2 ? 25 : 4000));
+      const defFloor = e === 1 ? (rt.reqFloor || 0)
+        : (rt.reqFloor ? rt.reqFloor + (e - 1) * 20 : (e === 2 ? 18 : 50));
       const T = Object.assign({}, base, {
         n:f.n, i:f.i, line:role, era:f.e, d:f.d || base.d,
         time: +(base.time * Math.pow(ERA_SPD, g)).toFixed(4),
         cost: Math.round(base.cost * Math.pow(ERA_COST, g)),
         up:   Math.max(1, Math.round(base.cost * UP_RATE * (base.upK||1) * Math.pow(ERA_UP, g))),
+        start: e === 1 ? !!rt.start : false,
+        req:   defReq,
+        rp:    defRp,
+        mat:   defMat,
+        gold:  e === 1 ? (rt.gold || 0) : 0,
+        reqFloor: defFloor,
+        reqStr: e === 1 ? (rt.reqStr || 0) : 0,
+        reqInt: e === 1 ? (rt.reqInt || 0) : 0,
+        reqVit: e === 1 ? (rt.reqVit || 0) : 0,
+        treeX: rt.treeX ?? 0,
+        treeY: rt.treeY ?? 0,
       });
       if(f.eff)  T.eff  = f.eff;               // ⚡の食いぶちの上乗せ
       if(f.payRp){ T.payRp = f.payRp; delete T.pay; }   // 研究で動く仲間
-      if(f.ins)  T.ins  = f.ins;
-      if(f.outs) T.outs = f.outs;
-      if(f.hd)   T.hd   = f.hd;
+      if(f.ins)  T.ins  = Object.assign({}, f.ins);
+      if(f.outs) T.outs = Object.assign({}, f.outs);
+      if(f.hd)   T.hd   = f.hd.slice();
       if(ERA_EXTRA[role]) Object.assign(T, ERA_EXTRA[role](g));
       // 共鳴：第8以降。世代が上がるほど強く届く
       if(hasPerk(T,'aura') && !T.aura)
@@ -1745,7 +1922,7 @@ const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',e
 /* レベルによる強化は逓減する。
    レベル50でちょうど次の時代ぶん、レベル250でその次の時代ぶんに追いつく。
    時代を進めるのは研究、施設そのものを強くするのはゴールドだけ、という住み分け */
-const LV_STEP = 5, LV_BASE = 12.25;
+let LV_STEP = 5, LV_BASE = 12.25;
 const lvPow = L => Math.pow(1/ERA_SPD, Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP));
 const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP);  // 何時代ぶんか
 
@@ -1759,12 +1936,12 @@ const rpGain   = n  => lvPow(n.level) * (1 + S.stats.int * 0.15) * Math.pow(2.6,
 const matMul   = n  => lvPow(n.level) * Math.pow(2.2, (TYPES[n.type].era||1)-1) * gearMul('arcane');
 /* 送り込んだ素材は🧱になると同時に🔬にもなる。
    ⚡だけを元手にしていると、素材がいくら余っても研究が伸びなかった      */
-const MAT_RP   = 1.0;
+let MAT_RP   = 1.0;
 const matRp    = n  => matMul(n) * MAT_RP;
 const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1));
 const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
 const enemyGold= f  => Math.floor(10 * Math.pow(1.12, f-1) * (f%10===0 ? 5 : 1));
-const ARMOR_K  = 8;   // 装甲は引き算ではなく減衰率。1ダメージ固定の壁ができない
+let ARMOR_K  = 8;   // 装甲は引き算ではなく減衰率。1ダメージ固定の壁ができない
 const dmg      = () => Math.max(1, Math.round(atk() * 100 / (100 + enemyArm(S.floor) * ARMOR_K)));
 const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 
@@ -2131,7 +2308,7 @@ const buyCost = t => {
    その世代に見合った地金が要るので、上の世代へ進むには
    その地金の元になる鉱石＝遠くのダンジョンが要ることになる。
    資材は盤面の貯蔵・倉庫と、自宅の在庫からまとめて数える        */
-const MAT_RATE = 0.045;        // 建設費のこれくらいを、地金の数に換算する
+let MAT_RATE = 0.045;        // 建設費のこれくらいを、地金の数に換算する
 const MAT_ITEM = e => 'ing' + Math.min(CHAIN.length, Math.max(1, e||1));
 function buyMat(t){
   const T = TYPES[t];
@@ -2383,24 +2560,100 @@ const scrapRp = (type, level, grade) =>
    （時代を上げると建てられる施設が一気に増えるので、施設の数では数えない） */
 let devN=null, frontN=null;
 const devDirty  = () => { devN=null; frontN=null; };
-const devCount  = () => { if(devN===null) devN=ORDER.reduce((a,t)=>a+((TYPES[t].era&&TYPES[t].era<=(S.era||1))?1:0),0); return devN; };
+/* 研究：条件と研究ツリーで施設ごとに解放していく（start:true の初期施設だけは最初から使える） */
+const isDev  = t => {
+  const T = TYPES[t]; if(!T) return false;
+  if(T.port || T.layer || T.raid || t==='hero') return true;
+  if((T.era || 1) > (S ? (S.era || 1) : 1)) return false;
+  if(T.start) return true;
+  return !!(S && S.dev && S.dev[t]);
+};
+const devCount  = () => {
+  if(devN===null) devN=ORDER.reduce((a,t)=>a+((TYPES[t]&&TYPES[t].era&&isDev(t))?1:0),0);
+  return devN;
+};
+/* その役割の施設が、いまひとつでも解放済みか */
+const devHas = role => !!FAC[role] && FAC[role].some(f => isDev(role + f.e));
+const isSeen = t => (TYPES[t].era || 1) <= (S.era || 1) + 1;   // 次の時代のぶんまで覗ける
+const gotRp  = () => Math.floor(S.rp || 0);
+const gotMat = () => Math.floor(S.stock || 0);
+/* 研究ツリーで前提ノード（親）および前世代の同系統が解放されているか */
+function treeReqMet(t){
+  const T = TYPES[t]; if(!T) return false;
+  if((T.era || 1) > (S.era || 1)) return false;
+  if(T.req && TYPES[T.req] && !isDev(T.req)) return false;
+  if(T.line && (T.era || 1) > 1){
+    const prev = T.line + ((T.era || 1) - 1);
+    if(TYPES[prev] && !isDev(prev)) return false;
+  }
+  return true;
+}
+/* 解放条件（コスト・階層・能力値・前提ノード）をすべて満たしているか */
+function condMet(t){
+  const T = TYPES[t]; if(!T) return false;
+  if(!treeReqMet(t)) return false;
+  if((T.rp || 0) > gotRp()) return false;
+  if((T.mat || 0) > gotMat()) return false;
+  if((T.gold || 0) > S.gold) return false;
+  if((T.reqFloor || 0) > S.best) return false;
+  if((T.reqStr || 0) > S.stats.str) return false;
+  if((T.reqInt || 0) > S.stats.int) return false;
+  if((T.reqVit || 0) > S.stats.vit) return false;
+  return true;
+}
+/* 施設の解放条件を文字列で返す */
+function condParts(t){
+  const T = TYPES[t]; if(!T) return [];
+  const p = [];
+  if(T.rp)       p.push({txt:`🔬${fmt(T.rp)}`,       ok: gotRp() >= T.rp});
+  if(T.mat)      p.push({txt:`🧱${fmt(T.mat)}`,      ok: gotMat() >= T.mat});
+  if(T.gold)     p.push({txt:`💰${fmt(T.gold)}G`,    ok: S.gold >= T.gold});
+  if(T.reqFloor) p.push({txt:`🕳️${T.reqFloor}層`,    ok: S.best >= T.reqFloor});
+  if(T.reqStr)   p.push({txt:`💪${T.reqStr}`,        ok: S.stats.str >= T.reqStr});
+  if(T.reqInt)   p.push({txt:`🧠${T.reqInt}`,        ok: S.stats.int >= T.reqInt});
+  if(T.reqVit)   p.push({txt:`❤️${T.reqVit}`,        ok: S.stats.vit >= T.reqVit});
+  return p;
+}
+function doResearchNode(t){
+  const T = TYPES[t];
+  if(!T || isDev(t)) return false;
+  if(!condMet(t)){ toast('まだ解放条件を満たしていません'); return false; }
+  if(T.rp)   S.rp -= T.rp;
+  if(T.mat)  S.stock -= T.mat;
+  if(T.gold) S.gold -= T.gold;
+  S.dev = S.dev || {};
+  S.dev[t] = 1;
+  devDirty();
+  addLog(`【研究解放】${T.i}${T.n} が建設できるようになった！`, 'b');
+  toast(`🔬 ${T.i}${T.n} を解放しました！`);
+  buildShop(); renderShop(); renderTree(true);
+  save();
+  return true;
+}
 /* 次に上がる時代 */
 function nextResearch(){ return (S.era||1) < ERA_MAX ? (S.era||1)+1 : null; }
+/* 右パネルに出す「次に開けるもの」の案内 */
+function nextResearchText(){
+  const cands = ORDER.filter(t => {
+    const T = TYPES[t];
+    return T && T.era && T.era <= (S.era||1) && !isDev(t) && treeReqMet(t);
+  }).sort((a,b) => (TYPES[a].rp||0) - (TYPES[b].rp||0));
+  if(cands.length){
+    const T = TYPES[cands[0]];
+    const cp = condParts(cands[0]).map(x=>x.txt).join(' ');
+    return `${T.i}${T.n} ${cp || '解放可'}`;
+  }
+  const nx = nextResearch();
+  return nx
+    ? `${eraName(nx).i}${eraName(nx).n} 🔬${fmt(eraRp(nx))}${eraMat(nx)?' ＋🧱'+fmt(eraMat(nx)):''}`
+    : 'すべて解放済';
+}
 const offSteps  = () => ((S.era||1) - 1) + depthTier();
 const OFF_RATE  = 1/3;                                      // 留守は実時間の1/3の働き
 const offRate   = () => OFF_RATE;
 const offCapH   = () => Math.min(24, 6 + offSteps() * 0.8); // 時間上限 6〜24時間（一晩は数えられる）
 const OFF_SIM_MAX = 48 * 3600;                              // 一度に計算する上限
 
-/* 研究：🧠知力で「判明」→ 🔬研究所で「開発」→ ようやく建設できる */
-/* 研究ポイントは共通のプール。時代を上げるのに使う */
-/* 施設は「その時代に達していれば建てられる」。個別の研究はもう無い */
-const isDev  = t => (TYPES[t].era || 1) <= (S.era || 1);
-/* その役割の施設が、いまの時代にひとつでもあるか */
-const devHas = role => !!FAC[role] && FAC[role].some(f => f.e <= (S.era||1));
-const isSeen = t => (TYPES[t].era || 1) <= (S.era || 1) + 1;   // 次の時代のぶんまで覗ける
-const gotRp  = () => Math.floor(S.rp || 0);
-const gotMat = () => Math.floor(S.stock || 0);
 /* 時代を1つ上げるのに要るもの。桁は時代ごとに大きく変わる */
 /* 世代は2回しか上がらないので、1回ぶんの重さをはっきりさせる。
    第2世代は「装備を作れるようになったころ」、第3世代は「じっくり育てた先」 */
@@ -2430,13 +2683,13 @@ const ZONES = [
   {f:400, n:'極点',          i:'✴️', c:'#5ee0c0', e:['深層の主','終焉','忘却','■■■■']},
 ];
 const zoneOf = f => { let z=ZONES[0]; for(const q of ZONES) if(f>=q.f) z=q; return z; };
-const BOSS_EVERY = 10;
+let BOSS_EVERY = 10;
 const isBoss = f => f % BOSS_EVERY === 0;
 /* 踏破報酬：10層ごとに攻撃力が恒久的に伸びる。
    伸び幅そのものが段とともに増えるので、深く潜るほど加速する（後半で効く曲線）
      3段(30層) ×1.4 ／ 6段 ×2.3 ／ 12段(120層) ×9.4 ／ 17段(175層) ×47 ／ 25段 ×1,300 */
-const DEPTH_K    = 1.09;
-const DEPTH_Q    = 11;
+let DEPTH_K    = 1.09;
+let DEPTH_Q    = 11;
 const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
 const depthBonus = () => { const t = depthTier();
   return Math.pow(DEPTH_K, t + t*t/DEPTH_Q); };
@@ -3018,7 +3271,6 @@ function tick(dt,fast){
     if(T.layer){ n.stall=false; n.why=''; layerFlow(n); continue; }
     if(T.port){ n.stall=false; n.why=''; continue; }   // 入口・出口はただの受け渡し口
     if(T.raid && n.clear){ n.stall=false; n.why=''; continue; }   // 受け取り待ちは⚡を食わない
-    if(T.src){ n.stall=false; n.why=''; continue; }   // 人は物を作らない（配属して働く）
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store){                                 // 貯蔵：しまって、選んだものだけ外へ出す
       n.stall=false; n.why='';
@@ -3835,16 +4087,16 @@ const expRouted = n => !!TYPES[n.type].stat && !expMiss(n);
 /* 主人公・仲間のノードに出す一行。受け取った経験値を数字で見せる */
 function srcFace(n){
   const T=TYPES[n.type];
-  const role = n.pname ? `${T.i}${T.n}／` : `${T.i}${T.n}／`;
+  const role = n.pname ? `${T.i}${T.n}／` : '';
   const sk = skillOf(n).filter(Boolean);
   const skl = sk.length ? '　' + sk.map(k=>SKILL[k].i+SKILL[k].n).join('・') : '';
   const e=n.ex||{}, got=(e.str||0)+(e.int||0)+(e.vit||0);
   const r=exRate.str+exRate.int+exRate.vit;
   const pay = payOf(n)   ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分`
             : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分` : '';
-  if(!got) return role+'待機中'+pay+'／経験値はまだ戻っていない'+skl;
+  if(!got) return role+'⚡供給中'+pay+'／経験値はまだ戻っていない'+skl;
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
-  return `${role}待機中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
+  return `${role}⚡供給中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
 }
 function doDive(fast, node){
   if(!S.enemy) spawnEnemy();
@@ -3920,37 +4172,109 @@ function eraBrings(e){
   for(const role in FAC) for(const f of FAC[role]) if(f.e===e) o.push(f.i+f.n);
   return o;
 }
-let treeKey='';
+let treeKey='', treeEraTab=1;
 function renderTree(force){
   const g=$('#treeGrid'); if(!g) return;
   $('#rpNow').textContent=fmt(gotRp()); $('#matNow').textContent=fmt(gotMat());
   const cur=S.era||1;
-  const k = cur+'|'+(canEra()?1:0);
-  if(k!==treeKey || force){
-    treeKey=k;
-    g.innerHTML = '<p class="ttip">世代は施設ごとではなく、工房ぜんたいの技術レベルです。'
-      + '1つ上げると、その時代にしかない施設が建てられるようになります。'
-      + '古い施設はそのまま動くので、乗り換えるかどうかは自分で決められます。</p>'
-      + '<div class="eras">' + ERAS.map((E,idx)=>{
+  if(!treeEraTab || treeEraTab > ERA_MAX) treeEraTab = cur;
+  const nodesInEra = ORDER.filter(t => TYPES[t] && TYPES[t].era === treeEraTab && !TYPES[t].port && !TYPES[t].layer && !TYPES[t].raid && t!=='hero');
+  const sig = cur + '|' + treeEraTab + '|' + (canEra()?1:0) + '|'
+    + nodesInEra.map(t => (isDev(t)?'2':condMet(t)?'1':treeReqMet(t)?'0':'-')).join('');
+  if(sig!==treeKey || force){
+    treeKey=sig;
+    const NW_T = 188, NH_T = 96, GX = 224, GY = 134, PADX = 20, PADY = 20;
+    let maxX = 4, maxY = 6;
+    for(const t of nodesInEra){
+      const T = TYPES[t];
+      if((T.treeX||0) > maxX) maxX = T.treeX||0;
+      if((T.treeY||0) > maxY) maxY = T.treeY||0;
+    }
+    const cw = Math.max(880, Math.ceil((maxX + 1) * GX + PADX * 2));
+    const ch = Math.max(540, Math.ceil((maxY + 1) * GY + PADY * 2));
+    const posMap = {};
+    for(const t of nodesInEra){
+      const T = TYPES[t];
+      posMap[t] = { x: Math.round((T.treeX||0) * GX + PADX), y: Math.round((T.treeY||0) * GY + PADY) };
+    }
+    let linesSvg = '';
+    for(const t of nodesInEra){
+      const T = TYPES[t], req = T.req;
+      if(!req || !posMap[req]) continue;
+      const p1 = posMap[req], p2 = posMap[t];
+      const x1 = p1.x + NW_T, y1 = p1.y + 42, x2 = p2.x, y2 = p2.y + 42;
+      const dx = Math.max(28, Math.abs(x2 - x1) * 0.45);
+      const done = isDev(t), open = isDev(req);
+      const cls = done ? 'done' : open ? 'open' : 'lock';
+      linesSvg += `<path class="rt-edge ${cls}" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}"/>`;
+    }
+    const cardsHtml = nodesInEra.map(t => {
+      const T = TYPES[t], p = posMap[t];
+      const dev = isDev(t), rMet = treeReqMet(t), cMet = condMet(t);
+      const stCls = dev ? 'done' : cMet ? 'can' : rMet ? 'wait' : 'lock';
+      const parts = condParts(t);
+      const reqNode = (T.req && TYPES[T.req]) ? TYPES[T.req] : null;
+      const prevEraNode = (T.line && T.era > 1 && TYPES[T.line + (T.era - 1)]) ? TYPES[T.line + (T.era - 1)] : null;
+      let reqTxt = '';
+      if(!dev){
+        const miss = [];
+        if(T.era > cur) miss.push(`第${T.era}世代が未解放`);
+        if(reqNode && !isDev(T.req)) miss.push(`前提:${reqNode.i}${reqNode.n}`);
+        if(prevEraNode && !isDev(T.line + (T.era - 1))) miss.push(`前世代:${prevEraNode.i}${prevEraNode.n}`);
+        reqTxt = miss.join(' / ');
+      }
+      const condHtml = dev
+        ? `<div class="rt-cond done">${T.start ? '✓ 初期から解放済' : '✓ 研究解放済'}</div>`
+        : `<div class="rt-cond">${parts.length ? parts.map(c=>`<span class="rc ${c.ok?'ok':'ng'}">${c.txt}</span>`).join(' ') : '<span class="rc ok">条件なし</span>'}</div>`
+          + (reqTxt ? `<div class="rt-req">🔒 ${reqTxt}</div>` : '');
+      const btnHtml = dev
+        ? ''
+        : `<button class="rt-btn" data-rt="${t}" ${cMet?'':'disabled'}>${cMet?'🔬 研究して解放':'条件未達'}</button>`;
+      return `<div class="rt-node ${stCls}" style="left:${p.x}px;top:${p.y}px;width:${NW_T}px">
+        <div class="rt-hd"><span class="rt-ic">${T.i}</span><span class="rt-nm">${T.n}</span>
+          <span class="rt-cat">${LINE_LABEL[T.line]||'施設'}</span></div>
+        <div class="rt-io">${ioText(T)}</div>
+        ${condHtml}
+        ${btnHtml}
+      </div>`;
+    }).join('');
+
+    const eraTabsHtml = ERAS.map((E, idx) => {
+      const e = idx + 1;
+      const list = ORDER.filter(t => TYPES[t] && TYPES[t].era === e && !TYPES[t].port && !TYPES[t].layer && !TYPES[t].raid && t!=='hero');
+      const unlk = list.filter(isDev).length;
+      return `<button class="rt-tab ${treeEraTab===e?'on':''}" data-eratab="${e}">
+        ${E.i} 第${e}世代 ${E.n} <b>${unlk}/${list.length}</b></button>`;
+    }).join('');
+
+    g.innerHTML = `<div class="eras">` + ERAS.map((E,idx)=>{
         const e=idx+1, done=e<=cur, next=e===cur+1;
         const rp=eraRp(e), mt=eraMat(e);
-        const brings=eraBrings(e);
         return `<div class="ecell ${done?'done':next?'can':'lock'}">
           <div class="eh"><span class="ei">${E.i}</span><span class="en">${E.n}</span>
-            <span class="eg">第${e}時代</span></div>
+            <span class="eg">第${e}世代</span></div>
           <div class="ed">${E.d}</div>
-          <div class="eb">${brings.length?brings.join('　'):'—'}</div>
           ${done ? '<div class="ec">到達済み</div>'
-                 : `<div class="ec">🔬${fmt(rp)}${mt?` ＋🧱${fmt(mt)}`:''}</div>`
-                   + (next ? `<button class="rs" ${canEra()?'':'disabled'}>この時代へ</button>` : '')}
+                 : `<div class="ec">世代進化: 🔬${fmt(rp)}${mt?` ＋🧱${fmt(mt)}`:''}</div>`
+                   + (next ? `<button class="rs" ${canEra()?'':'disabled'}>第${e}世代へ進化</button>` : '')}
         </div>`;
-      }).join('<span class="tarrow">▸</span>') + '</div>';
+      }).join('<span class="tarrow">▸</span>') + `</div>`
+      + `<div class="rt-bar"><div class="rt-tabs">${eraTabsHtml}</div>
+          <span class="rt-hint">前提ノードから順番に条件（🔬研究ポイント等）を満たして施設をアンロックできます</span></div>`
+      + `<div class="rt-wrap"><div class="rt-canvas" style="width:${cw}px;height:${ch}px">
+          <svg class="rt-svg" width="${cw}" height="${ch}">${linesSvg}</svg>
+          ${cardsHtml}
+        </div></div>`;
+
     const b=g.querySelector('.rs');
-    if(b) b.onclick=()=>{ if(doEra()){ renderTree(true); buildShop(); renderShop(); }
+    if(b) b.onclick=()=>{ if(doEra()){ treeEraTab = S.era; renderTree(true); buildShop(); renderShop(); }
                           else toast('研究ポイントか研究資材が足りません'); };
-    const cell=g.querySelector('.ecell.can')||g.querySelector('.ecell.done:last-of-type');
-    const wrap=g.querySelector('.eras');
-    if(cell&&wrap) wrap.scrollLeft=Math.max(0, cell.offsetLeft-wrap.offsetLeft-8);
+    g.querySelectorAll('.rt-tab').forEach(tb => tb.onclick = () => {
+      treeEraTab = +tb.dataset.eratab; renderTree(true);
+    });
+    g.querySelectorAll('.rt-btn').forEach(btn => btn.onclick = () => {
+      doResearchNode(btn.dataset.rt);
+    });
   }
   const b=g.querySelector('.rs'); if(b) b.disabled=!canEra();
 }
@@ -4831,13 +5155,14 @@ function render(fdt){
   $('#dTier').textContent=dt+'段階';
   $('#dBonus').textContent='×'+depthBonus().toFixed(2);
   $('#dNext').textContent='第'+((dt+1)*BOSS_EVERY)+'層';
-  // ⚡は発電機が作る。盤面ぜんたいの手持ちと、作り／使いの差を見せる
-  let held=0; for(const n of S.nodes) held += (n.outBuf.sta||0)+(n.inBuf.sta||0);
+  // ⚡は主人公（と仲間・発電機）が作る。主人公の手持ちと全体の収支を見せる
   const pr=rateOf('sta'), net=pr.i-pr.o;
-  $('#hName').textContent = '電力';
-  $('#hSta').textContent = fmt(held);
-  $('#hStaBar').style.width = Math.min(100, pr.i>0 ? (1-pr.o/Math.max(pr.i,1e-9))*100 : 0)+'%';
-  $('#hRegen').textContent = `+${fmtR(pr.i)} − ${fmtR(pr.o)} = ${sign(net)}`;
+  $('#hName').textContent = S.name || ITEMS.sta.n;
+  $('#hSta').textContent = `${fmt(sta)} / ${fmt(mx)}`;
+  $('#hStaBar').style.width = Math.min(100, sta/Math.max(1,mx)*100)+'%';
+  $('#hRegen').textContent = hero
+    ? `${(1/staRate(hero)).toFixed(2)} /秒（収支 ${sign(net)}/分）`
+    : `+${fmtR(pr.i)} − ${fmtR(pr.o)} = ${sign(net)}`;
   $('#hAtk').textContent=fmt(atk());
   $('#sStr').textContent=S.stats.str; $('#sInt').textContent=S.stats.int; $('#sVit').textContent=S.stats.vit;
   // 能力値がどう溜まっているか。棒＋「次の+1まで」＋いまの入り
@@ -4883,11 +5208,8 @@ function render(fdt){
   $('#rSpd').textContent = labs.length
     ? '🔬'+fmt(labs.reduce((a,n)=>a + rpGain(n)/Math.max(1e-6,craftTime(n)) * 60, 0))+' /分'
     : '研究所がない';
-  const nx = nextResearch();
-  $('#rNext').textContent = nx
-    ? `${eraName(nx).i}${eraName(nx).n} 🔬${fmt(eraRp(nx))}${eraMat(nx)?' ＋🧱'+fmt(eraMat(nx)):''}`
-    : '最終時代';
-  $('#rEra').textContent = `${eraName(S.era||1).i}${eraName(S.era||1).n}（第${S.era||1}時代）`;
+  $('#rNext').textContent = nextResearchText();
+  $('#rEra').textContent = `${eraName(S.era||1).i}${eraName(S.era||1).n}（第${S.era||1}世代）`;
   if(S.enemy){
     const z=zoneOf(S.floor);
     $('#zIc').textContent=z.i; $('#zName').textContent=z.n; $('#zName').style.color=z.c;
@@ -4919,7 +5241,7 @@ function render(fdt){
 /* ========================= ショップ ========================= */
 const shopEls={};
 function ioText(T){
-  const f=o=>Object.keys(o).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
+  const f=o=>Object.keys(o||{}).filter(k=>ITEMS[k]).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
 
   if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
   if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント＋🧱研究資材`;
@@ -4954,30 +5276,40 @@ function ioText(T){
   const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='equip'?'🎽装備':T.effect==='lab'?'🔬研究力':'—');
   return `${a}<span class="ar">→</span>${b}`;
 }
-/* 建設リストは役割ごとに1枚。いま建てられる中でいちばん新しい版が並ぶ */
-const SHOP_ROWS = ['hero'].concat(LINE_ORDER);
+/* 建設リストは役割ごとに1枚。いま解放済みの中でいちばん新しい版が並ぶ */
+let SHOP_ROWS = ['hero'].concat(LINE_ORDER);
 function rowType(r){
   if(r==='hero') return 'hero';
-  const list=FAC[r]; let best=null;
-  for(const f of list) if(f.e <= (S.era||1)) best=f;
-  return best ? r+best.e : r+list[0].e;      // まだ時代が来ていなければ最初の版を見せる
+  const list=FAC[r];
+  if(!list || !list.length) return TYPES[r] ? r : 'mine1';
+  let best=null;
+  for(const f of list){
+    const k = r + f.e;
+    if(f.e <= (S.era||1) && isDev(k)) best = f;
+  }
+  return best ? r+best.e : r+list[0].e;      // まだ解放していなければ最初の版を返す
 }
 function buildShop(){
-  const box=$('#shopList'); box.innerHTML='';
+  const box=$('#shopList'); if(!box) return;
+  box.innerHTML='';
+  for(const k in shopEls) delete shopEls[k];
   for(const r of SHOP_ROWS){
-    const T=TYPES[rowType(r)], b=document.createElement('button');
+    const t=rowType(r), T=TYPES[t]; if(!T) continue;
+    const b=document.createElement('button');
     b.className='card';
     b.innerHTML=`<div class="r1"><span class="ic">${T.i}</span><span class="nm">${T.n}</span><span class="price"></span></div>
-                 <div class="io"></div><div class="d">${T.d}</div><div class="rq"></div>`;
+                 <div class="io">${ioText(T)}</div><div class="d">${T.d}</div><div class="rq"></div>`;
     b.onclick=()=>startPlace(shopEls[r].cur);
     box.appendChild(b);
-    shopEls[r]={root:b, cur:rowType(r), ic:b.querySelector('.ic'), name:b.querySelector('.nm'),
+    shopEls[r]={root:b, cur:t, ic:b.querySelector('.ic'), name:b.querySelector('.nm'),
                 price:b.querySelector('.price'), io:b.querySelector('.io'), rq:b.querySelector('.rq')};
   }
 }
 function renderShop(){
   for(const r of SHOP_ROWS){
-    const t=rowType(r), T=TYPES[t], e=shopEls[r], dev=isDev(t);
+    const e=shopEls[r]; if(!e) continue;
+    const t=rowType(r), T=TYPES[t]; if(!T) continue;
+    const dev=isDev(t);
     e.root.hidden = !dev;                       // 研究で開けたものだけ並べる
     if(!dev) continue;
     if(e.cur!==t){ e.cur=t; e.ic.textContent=T.i; e.io.innerHTML=ioText(T); }
@@ -5013,7 +5345,7 @@ function startPlace(t){
   if(placing === t) return cancelPlace();          // もう一度押したら取り消し
   const T = TYPES[t];
   if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
-  if(!isDev(t)) return toast(`${eraName(T.era).n}の世代に上げると建てられます`);
+  if(!isDev(t)) return toast(`🔬 研究ツリーで解放すると建てられます`);
   if(S.gold < buyCost(t)) return toast('ゴールドが足りません');
   const need = buyMat(t);
   if(!matOk(need)) return toast(`資材が足りません（${matText(need)} が要ります）`);
@@ -5048,7 +5380,7 @@ function placeAt(cx, cy){
 function buy(t){
   const T=TYPES[t];
   if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
-  if(!isDev(t)) return toast(`${eraName(TYPES[t].era).n}の時代に上げると建てられます`);
+  if(!isDev(t)) return toast(`🔬 研究ツリーで解放すると建てられます`);
   const cost=buyCost(t), need=buyMat(t);
   if(S.gold<cost) return toast('ゴールドが足りません');
   if(!matOk(need)) return toast(`資材が足りません（${matText(need)}）`);
@@ -5632,14 +5964,16 @@ const roleOf = t => TYPES[t] ? (TYPES[t].line || t) : t;
 const linkFrom = (a,item,b) => S.links.some(l =>
   N(l.from) && N(l.to) && roleOf(N(l.from).type)===a && roleOf(N(l.to).type)===b && l.item===item);
 
+const linkPowerTo = b => linkFrom('hero','sta',b) || linkFrom('gen','sta',b) || linkFrom('mate','sta',b);
+
 const TUT = [
   { t:'ようこそ',
-    d:'これは <b>⚡電力の配り方</b>を考える放置RPGです。電力を生むのは <b>🔌発電機</b>。'
-     +'そこから伸ばす配線が、そのまま電力の配分になります。',
+    d:'これは <b>⚡体力の配り方とベルトコンベア</b>を考える自動化RPGです。最初のエネルギーを生むのは <b>🧍主人公</b>。'
+     +'そこから伸ばす配線が、そのまま体力の配分になります。',
     manual:true },
 
   { t:'まずは放っておく',
-    d:'🔌発電機 ⚡→ 🕳️洞窟の入口 はもう繋がっています。何もしなくても自動で潜り、ゴールドが貯まります。'
+    d:'🧍主人公 ⚡→ 🕳️洞窟の入口 はもう繋がっています。何もしなくても自動で潜り、ゴールドが貯まります。'
      +'<b>⛏️採掘機が買えるまで待ってください。</b>',
     check:()=> S.gold >= buyCost('mine1') },
 
@@ -5649,37 +5983,36 @@ const TUT = [
     pane:'shop', hi:()=> shopEls.mine && shopEls.mine.root,
     check:()=> S.nodes.some(n=>roleOf(n.type)==='mine') },
 
-  { t:'電力を分ける',
-    d:'建てただけでは動きません。<b>発電機の右にある緑の丸</b>から、'
+  { t:'体力を分ける',
+    d:'建てただけでは動きません。<b>主人公の右にある緑の丸（⚡）</b>から、'
      +'<b>採掘機</b>まで線を引いてください。'
      +'（そのままドラッグしても、丸をタップしてから相手をタップしても引けます）',
-    pane:'stage', hi:()=> { const g=genNode(); return g && g.el.root.querySelector('.pout'); },
-    check:()=> linkFrom('gen','sta','mine') },
+    pane:'stage', hi:()=> { const h=heroNode()||genNode(); return h && h.el.root.querySelector('.pout'); },
+    check:()=> linkPowerTo('mine') },
 
   { t:'戦利品を売る',
     d:'ダンジョンは撃破のたびに <b>🎁戦利品</b> を出します。自分の中には5個までしか積めず、'
      +'あふれたぶんは手に入りません（潜るのは続きます）。<b>🏪 露店</b>を建て、'
-     +'<b>発電機の⚡</b> と <b>洞窟の入口の🎁</b> の2本を繋いでください。',
+     +'<b>主人公の⚡</b> と <b>洞窟の入口の🎁</b> の2本を繋いでください。',
     pane:'shop', hi:()=> shopEls.shop && shopEls.shop.root,
-    check:()=> linkFrom('gen','sta','shop') && linkFrom('dive','lot1','shop') },
+    check:()=> linkPowerTo('shop') && linkFrom('dive','lot1','shop') },
 
   { t:'廃材を片付ける',
     d:'採掘機は <b>🗑廃材</b> も出します。溜めても止まりはしませんが、'
      +'<b>溜まるほどまわりが汚染されて仕事が遅くなります</b>。'
-     +'<b>♻️ 廃棄場</b>を建て、そこへ <b>発電機の⚡</b> と <b>採掘機の🗑</b> の2本を繋いでください。',
+     +'<b>♻️ 廃棄場</b>を建て、そこへ <b>主人公の⚡</b> と <b>採掘機の🗑</b> の2本を繋いでください。',
     pane:'shop', hi:()=> shopEls.dump && shopEls.dump.root,
-    check:()=> linkFrom('gen','sta','dump') && linkFrom('mine','waste','dump') },
+    check:()=> linkPowerTo('dump') && linkFrom('mine','waste','dump') },
 
-  { t:'発電機を増やす',
-    d:'⚡が足りなくなったら <b>🔌発電機</b> をもう1台建てます。'
-     +'施設が増えるほど電力が要るので、発電を伸ばすことが工房を伸ばすことになります。',
-    pane:'shop', hi:()=> shopEls.gen && shopEls.gen.root,
-    check:()=> S.nodes.filter(n=>TYPES[n.type].gen).length >= 2 },
+  { t:'研究室を建てて新施設を解放する',
+    d:'第1世代の施設も最初は一部しか開いていません。<b>🔬 研究室</b>を建てて採掘機の🪨鉱石を送り、'
+     +'上の <b>🔬 研究ツリー</b> から <b>🔥精錬炉・🔌発電機・🏋️訓練所</b> などをアンロックしましょう。',
+    pane:'shop', hi:()=> shopEls.lab && shopEls.lab.root,
+    check:()=> S.nodes.some(n=>roleOf(n.type)==='lab') },
 
   { t:'あとは自由に',
-    d:'基本はこれだけです。🏋️訓練の経験値は<b>主人公に配線を戻す</b>と能力になります。'
-     +'🔬研究室で研究ポイントを貯めると<b>世代</b>を進められ、'
-     +'<b>⚡高性能発電機</b>と、それで動く新しい施設が使えるようになります。'
+    d:'基本はこれだけです。🔬研究ツリーで <b>🔌発電機</b> や <b>🧍仲間</b> を開放すれば⚡供給を大きく増やせます。'
+     +'🏋️訓練の経験値は<b>主人公に配線を戻す</b>と能力になり、体力の自然回復も伸びます。'
      +'目標は <b>どこまで深く潜れるか</b> です。',
     manual:true, last:true },
 ];
@@ -6197,7 +6530,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest2';          // 旧版（/v1/）とはセーブを分ける
-const SAVE_V=19;                 // 18 は地図あり版（取り下げ）で使った番号なので飛ばす
+const SAVE_V=20;                 // 18 は地図あり版（取り下げ）、20 は研究ツリー個別解放＋主人公初期エネルギー版
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -6404,6 +6737,19 @@ function migrate(d){
     d.counts = {};
     for(const n of d.nodes) d.counts[n.type] = (d.counts[n.type]||0) + 1;
     d.parts = d.parts || {};
+  }
+  if(d.v < 20){
+    // 第1世代も含め、各施設を研究ツリーで個別に解放する方式に変更。
+    // すでに盤面に建っている施設（とその前提ノード）は解放済みにする
+    d.dev = d.dev || {};
+    for(const n of d.nodes||[]){
+      let cur = n && n.type;
+      let guard = 0;
+      while(cur && TYPES[cur] && guard++ < 20){
+        if(!TYPES[cur].start) d.dev[cur] = 1;
+        cur = TYPES[cur].req;
+      }
+    }
   }
   d.v = SAVE_V;
   return d;
@@ -6662,22 +7008,1083 @@ if(DEBUG){
   });
 }
 
+/* ========================= 🛠️ ゲーム開発ツール =========================
+   研究ツリー・開放条件・施設作成・UI/初期配置・定数バランスを自在に編集し、
+   localStorage(DEV_KEY) または JSON で保存・入出力できる開発環境 */
+const DEV_KEY = 'nodequest2.devcfg';
+const BASE_SNAPSHOT = {};
+function takeBaseSnapshot(){
+  BASE_SNAPSHOT.consts = {
+    CURVE_INDEX: CURVE.index,
+    CURVE_TAPER: CURVE.taper,
+    CURVE_DEPTH: CURVE.depth,
+    VIT_K, TRAIN_P, EXP_STEP, CAP, PSPEED, PMAX, PMIN, SENDCD,
+    BELT_GAP_PX, BELT_CAP_DIV, PRICE_K, UP_K, UP_RATE, MAT_RATE,
+    SELL_TAKE, SELL_K, ARMOR_K, LV_STEP, LV_BASE, MAT_RP,
+    ERA_SPD, ERA_EFF, ERA_COST, ERA_UP,
+    ERA_RP: {...ERA_RP}, ERA_MAT: {...ERA_MAT}
+  };
+  BASE_SNAPSHOT.types = {};
+  for(const k of ORDER){
+    const T = TYPES[k]; if(!T) continue;
+    BASE_SNAPSHOT.types[k] = JSON.parse(JSON.stringify({
+      n:T.n, i:T.i, d:T.d, era:T.era, line:T.line, cost:T.cost, up:T.up, time:T.time, cap:T.cap,
+      unique:!!T.unique, start:!!T.start, req:T.req||null,
+      rp:T.rp||0, mat:T.mat||0, gold:T.gold||0, reqFloor:T.reqFloor||0,
+      reqStr:T.reqStr||0, reqInt:T.reqInt||0, reqVit:T.reqVit||0,
+      treeX:T.treeX||0, treeY:T.treeY||0,
+      ins:T.ins||{}, outs:T.outs||{},
+      src:!!T.src, gen:!!T.gen, effect:T.effect||null, chain:T.chain||null, stat:T.stat||null,
+      power:T.power||0, slots:T.slots||0, store:!!T.store, ware:!!T.ware,
+      tool:!!T.tool, take:T.take||0, sta:T.sta||0, mul:T.mul||0,
+      aura:T.aura ? {...T.aura} : null
+    }));
+  }
+}
+takeBaseSnapshot();
+
+function defaultDevCfg(){
+  return {
+    v: 1,
+    initBoard: {
+      initGold: 0,
+      initIng1: 40,
+      nodes: [
+        { type:'hero',  x:80,  y:150 },
+        { type:'dive1', x:420, y:150 }
+      ],
+      links: [
+        { from:0, item:'sta', to:1 }
+      ]
+    },
+    ui: {
+      shopW: 230,
+      sideW: 256,
+      swapSide: false,
+      hideHint: false,
+      shopRows: [...SHOP_ROWS]
+    },
+    consts: JSON.parse(JSON.stringify(BASE_SNAPSHOT.consts)),
+    typeOverrides: {},
+    customFacs: {}
+  };
+}
+let DEV_CFG = defaultDevCfg();
+
+function registerFacType(k, def){
+  const T = Object.assign({
+    n:'新規施設', i:'🏭', d:'開発ツールで作成した施設', era:1, line:'mine',
+    cost:50, up:40, time:2.0, cap:CAP,
+    ins:{sta:1}, outs:{ore1:1},
+    start:false, req:'mine1', rp:15, mat:0, gold:0,
+    reqFloor:0, reqStr:0, reqInt:0, reqVit:0, treeX:2, treeY:2
+  }, JSON.parse(JSON.stringify(def)));
+  TYPES[k] = T;
+  if(!ORDER.includes(k)) ORDER.push(k);
+  if(T.line){
+    FAC[T.line] = FAC[T.line] || [];
+    if(!FAC[T.line].some(f => (T.line + f.e) === k)){
+      FAC[T.line].push({ e:T.era||1, n:T.n, i:T.i, d:T.d, cost:T.cost, up:T.up, time:T.time, ins:T.ins, outs:T.outs });
+    }
+    if(!SHOP_ROWS.includes(T.line) && !SHOP_ROWS.includes(k)){
+      SHOP_ROWS.push(FAC[T.line].some(f => (T.line + f.e) === k) ? T.line : k);
+    }
+  } else if(!SHOP_ROWS.includes(k)){
+    SHOP_ROWS.push(k);
+  }
+}
+
+function applyDevCfg(){
+  if(!DEV_CFG) return;
+  // 1. 定数の反映
+  const c = DEV_CFG.consts || {};
+  if(c.CURVE_INDEX != null) CURVE.index = Math.max(10, +c.CURVE_INDEX);
+  if(c.CURVE_TAPER != null) CURVE.taper = Math.max(10, +c.CURVE_TAPER);
+  if(c.CURVE_DEPTH != null) CURVE.depth = Math.max(10, +c.CURVE_DEPTH);
+  applyCurve();
+  if(c.VIT_K != null) VIT_K = +c.VIT_K;
+  if(c.TRAIN_P != null) TRAIN_P = +c.TRAIN_P;
+  if(c.EXP_STEP != null) EXP_STEP = Math.max(1, +c.EXP_STEP);
+  if(c.CAP != null) CAP = +c.CAP;
+  if(c.PSPEED != null) PSPEED = +c.PSPEED;
+  if(c.PMAX != null) PMAX = +c.PMAX;
+  if(c.PMIN != null) PMIN = +c.PMIN;
+  if(c.SENDCD != null) SENDCD = +c.SENDCD;
+  if(c.BELT_GAP_PX != null) BELT_GAP_PX = +c.BELT_GAP_PX;
+  if(c.BELT_CAP_DIV != null) BELT_CAP_DIV = +c.BELT_CAP_DIV;
+  if(c.PRICE_K != null) PRICE_K = +c.PRICE_K;
+  if(c.UP_K != null) UP_K = +c.UP_K;
+  if(c.UP_RATE != null) UP_RATE = +c.UP_RATE;
+  if(c.MAT_RATE != null) MAT_RATE = +c.MAT_RATE;
+  if(c.SELL_TAKE != null) SELL_TAKE = +c.SELL_TAKE;
+  if(c.SELL_K != null) SELL_K = +c.SELL_K;
+  if(c.ARMOR_K != null) ARMOR_K = +c.ARMOR_K;
+  if(c.LV_STEP != null) LV_STEP = Math.max(1, +c.LV_STEP);
+  if(c.LV_BASE != null) LV_BASE = +c.LV_BASE;
+  if(c.MAT_RP != null) MAT_RP = +c.MAT_RP;
+  if(c.ERA_SPD != null) ERA_SPD = +c.ERA_SPD;
+  if(c.ERA_EFF != null) ERA_EFF = +c.ERA_EFF;
+  if(c.ERA_COST != null) ERA_COST = +c.ERA_COST;
+  if(c.ERA_UP != null) ERA_UP = +c.ERA_UP;
+  if(c.ERA_RP && typeof c.ERA_RP === 'object'){
+    for(const k in c.ERA_RP) ERA_RP[k] = +c.ERA_RP[k];
+  }
+  if(c.ERA_MAT && typeof c.ERA_MAT === 'object'){
+    for(const k in c.ERA_MAT) ERA_MAT[k] = +c.ERA_MAT[k];
+  }
+  // 2. カスタム施設の登録
+  for(const k in (DEV_CFG.customFacs||{})){
+    registerFacType(k, DEV_CFG.customFacs[k]);
+  }
+  // 3. 既存施設へのオーバーライド反映
+  for(const k in BASE_SNAPSHOT.types){
+    if(TYPES[k]) Object.assign(TYPES[k], JSON.parse(JSON.stringify(BASE_SNAPSHOT.types[k])));
+  }
+  for(const k in (DEV_CFG.typeOverrides||{})){
+    if(TYPES[k]) Object.assign(TYPES[k], JSON.parse(JSON.stringify(DEV_CFG.typeOverrides[k])));
+  }
+  // 4. UI配置設定の反映
+  const u = DEV_CFG.ui || {};
+  const mid = $('#mid'), shop = $('#shop'), side = $('#side'), hint = $('#hint');
+  if(mid && u.shopW && u.sideW){
+    mid.style.gridTemplateColumns = u.swapSide
+      ? `${u.sideW}px 1fr ${u.shopW}px`
+      : `${u.shopW}px 1fr ${u.sideW}px`;
+  }
+  if(shop && side){
+    shop.style.order = u.swapSide ? '3' : '';
+    side.style.order = u.swapSide ? '1' : '';
+    const stg = $('#stage'); if(stg) stg.style.order = u.swapSide ? '2' : '';
+  }
+  if(hint) hint.style.display = u.hideHint ? 'none' : '';
+  if(Array.isArray(u.shopRows) && u.shopRows.length){
+    SHOP_ROWS = u.shopRows.filter(r => r==='hero' || FAC[r] || TYPES[r]);
+  }
+  if(S){
+    devDirty(); gearDirty(); skillDirty();
+    buildShop(); renderShop(); renderTree(true); renderBoard(); renderInsp(); render();
+  }
+}
+
+function saveDevCfg(){
+  try{
+    localStorage.setItem(DEV_KEY, JSON.stringify(DEV_CFG));
+    applyDevCfg();
+    return true;
+  }catch(e){ console.error(e); return false; }
+}
+function loadDevCfg(){
+  try{
+    const raw = localStorage.getItem(DEV_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(d && typeof d === 'object'){
+      DEV_CFG = Object.assign(defaultDevCfg(), d);
+      DEV_CFG.consts = Object.assign(defaultDevCfg().consts, d.consts||{});
+      DEV_CFG.ui = Object.assign(defaultDevCfg().ui, d.ui||{});
+      DEV_CFG.initBoard = Object.assign(defaultDevCfg().initBoard, d.initBoard||{});
+      applyDevCfg();
+      return true;
+    }
+  }catch(e){ console.error(e); }
+  return false;
+}
+function recordTypeOverride(k){
+  const T = TYPES[k]; if(!T) return;
+  const fields = ['n','i','d','era','line','cost','up','time','cap','unique','start','req',
+                  'rp','mat','gold','reqFloor','reqStr','reqInt','reqVit','treeX','treeY',
+                  'ins','outs','src','gen','effect','chain','stat','power','slots','store','ware',
+                  'tool','take','sta','mul','aura'];
+  const o = {};
+  for(const f of fields) o[f] = JSON.parse(JSON.stringify(T[f] !== undefined ? T[f] : null));
+  if(DEV_CFG.customFacs && DEV_CFG.customFacs[k]) DEV_CFG.customFacs[k] = o;
+  else { DEV_CFG.typeOverrides = DEV_CFG.typeOverrides || {}; DEV_CFG.typeOverrides[k] = o; }
+}
+
+let dtTab = 'tree', dtEra = 1, dtSelNode = 'smelt1', dtSelFac = 'mine1', dtFacFilter = '';
+function openDevTool(){
+  renderDevTool();
+  $('#devTool').classList.add('on');
+}
+$('#bDev').onclick = openDevTool;
+$('#dtClose').onclick = () => $('#devTool').classList.remove('on');
+$('#devTool').onclick = e => { if(e.target === $('#devTool')) $('#devTool').classList.remove('on'); };
+$('#dtSaveBtn').onclick = () => {
+  if(saveDevCfg()) toast('🛠️ 開発設定を適用＆保存しました');
+  else toast('保存に失敗しました');
+};
+document.querySelectorAll('#dtTabs .dt-tab').forEach(b => b.onclick = () => {
+  dtTab = b.dataset.dtab;
+  document.querySelectorAll('#dtTabs .dt-tab').forEach(x => x.classList.toggle('on', x.dataset.dtab === dtTab));
+  renderDevTool();
+});
+
+function renderDevTool(){
+  const body = $('#dtBody'); if(!body) return;
+  if(dtTab === 'tree') return renderDtTree(body);
+  if(dtTab === 'fac')  return renderDtFac(body);
+  if(dtTab === 'ui')   return renderDtUi(body);
+  if(dtTab === 'const')return renderDtConst(body);
+  if(dtTab === 'io')   return renderDtIo(body);
+}
+
+/* --- Tab 1: 研究ツリー＆開放条件エディタ --- */
+function renderDtTree(body){
+  const list = ORDER.filter(t => TYPES[t] && TYPES[t].era === dtEra && !TYPES[t].port && !TYPES[t].layer && !TYPES[t].raid && t !== 'hero');
+  if(!dtSelNode || !TYPES[dtSelNode] || TYPES[dtSelNode].era !== dtEra) dtSelNode = list[0] || 'mine1';
+  const ST = TYPES[dtSelNode] || TYPES.mine1;
+  const GX = 205, GY = 96, PAD = 18;
+  let maxX = 4, maxY = 6;
+  for(const t of list){
+    if((TYPES[t].treeX||0) > maxX) maxX = TYPES[t].treeX||0;
+    if((TYPES[t].treeY||0) > maxY) maxY = TYPES[t].treeY||0;
+  }
+  const cw = Math.max(820, Math.ceil((maxX + 1.2) * GX + PAD * 2));
+  const ch = Math.max(520, Math.ceil((maxY + 1.2) * GY + PAD * 2));
+  const pos = {};
+  for(const t of list) pos[t] = { x: Math.round((TYPES[t].treeX||0)*GX + PAD), y: Math.round((TYPES[t].treeY||0)*GY + PAD) };
+
+  let svgLines = '';
+  for(const t of list){
+    const req = TYPES[t].req;
+    if(!req || !pos[req]) continue;
+    const p1 = pos[req], p2 = pos[t];
+    const x1 = p1.x + 176, y1 = p1.y + 30, x2 = p2.x, y2 = p2.y + 30;
+    const dx = Math.max(24, Math.abs(x2 - x1)*0.45);
+    svgLines += `<path class="rt-edge ${isDev(t)?'done':'open'}" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}"/>`;
+  }
+  const nodesHtml = list.map(t => {
+    const T = TYPES[t], p = pos[t];
+    const conds = [];
+    if(T.start) conds.push('初期解放');
+    else {
+      if(T.rp) conds.push(`🔬${T.rp}`);
+      if(T.mat) conds.push(`🧱${T.mat}`);
+      if(T.gold) conds.push(`💰${T.gold}`);
+      if(T.reqFloor) conds.push(`🕳️${T.reqFloor}F`);
+      if(T.reqStr) conds.push(`💪${T.reqStr}`);
+      if(T.reqInt) conds.push(`🧠${T.reqInt}`);
+      if(T.reqVit) conds.push(`❤️${T.reqVit}`);
+    }
+    return `<div class="dt-node ${dtSelNode===t?'sel':''} ${T.start?'start':''}" data-dtn="${t}" style="left:${p.x}px;top:${p.y}px">
+      <div class="nh"><span>${T.i}</span><span>${T.n}</span><span style="margin-left:auto;font-size:9.5px;color:${isDev(t)?'var(--acc)':'var(--dim)'}">${isDev(t)?'解放済':'未解放'}</span></div>
+      <div class="nc">${T.req && TYPES[T.req] ? '親:'+TYPES[T.req].n+' → ' : ''}${conds.join(' ')||'条件なし'}</div>
+    </div>`;
+  }).join('');
+
+  const reqOpts = `<option value="">（なし / ルートノード）</option>` + list.filter(k => k !== dtSelNode).map(k =>
+    `<option value="${k}" ${ST.req===k?'selected':''}>${TYPES[k].i} ${TYPES[k].n} (${k})</option>`
+  ).join('');
+
+  body.innerHTML = `<div class="dt-split">
+    <div class="dt-pane">
+      <div class="dt-row">
+        ${ERAS.map((E,i)=>{ const e=i+1; return `<button class="dt-btn ${dtEra===e?'acc':''}" data-dtera="${e}">${E.i} 第${e}世代</button>`; }).join('')}
+      </div>
+      <div class="dt-row" style="justify-content:space-between">
+        <span style="font-size:11px;color:var(--dim)">💡 ノードをドラッグして研究ツリーの配置座標 (treeX, treeY) を直接変更できます（緑枠＝最初から解放）</span>
+        <div class="dt-row">
+          <button class="dt-btn acc" id="dtUnlockEra">🔓 この世代を全てアンロック</button>
+          <button class="dt-btn" id="dtResetEraLock">🔒 この世代を未解放に戻す</button>
+          <button class="dt-btn" id="dtAutoLayoutTree">📐 自動整列</button>
+        </div>
+      </div>
+      <div class="dt-canvas-wrap" id="dtTreeWrap">
+        <div class="rt-canvas" id="dtTreeCanvas" style="width:${cw}px;height:${ch}px">
+          <svg class="rt-svg" width="${cw}" height="${ch}">${svgLines}</svg>
+          ${nodesHtml}
+        </div>
+      </div>
+    </div>
+    <div class="dt-pane side">
+      <div class="dt-sec"><span>選択中: ${ST.i} ${ST.n} (<code>${dtSelNode}</code>)</span>
+        <button class="dt-btn ${isDev(dtSelNode)?'bad':'acc'}" id="dtToggleDev">${isDev(dtSelNode)?'🔒 ロックする':'🔓 今すぐ解放'}</button>
+      </div>
+      <div class="dt-field">
+        <label><input type="checkbox" id="dtFStart" ${ST.start?'checked':''}> 最初からアンロック済み（研究不要で初期ショップに並ぶ）</label>
+      </div>
+      <div class="dt-field">
+        <label>前提となる親ノード (req)</label>
+        <select id="dtFReq">${reqOpts}</select>
+      </div>
+      <div class="dt-grid">
+        <div class="dt-field"><label>ツリーX座標 (列)</label><input type="number" step="0.25" id="dtFX" value="${ST.treeX||0}"></div>
+        <div class="dt-field"><label>ツリーY座標 (行)</label><input type="number" step="0.25" id="dtFY" value="${ST.treeY||0}"></div>
+      </div>
+      <div class="dt-sec">開放条件（研究ツリーでのアンロック要件）</div>
+      <div class="dt-grid">
+        <div class="dt-field"><label>🔬 必要研究P (rp)</label><input type="number" min="0" id="dtFRp" value="${ST.rp||0}"></div>
+        <div class="dt-field"><label>🧱 必要研究資材 (mat)</label><input type="number" min="0" id="dtFMat" value="${ST.mat||0}"></div>
+        <div class="dt-field"><label>💰 必要ゴールド (gold)</label><input type="number" min="0" id="dtFGold" value="${ST.gold||0}"></div>
+        <div class="dt-field"><label>🕳️ 到達階層 (reqFloor)</label><input type="number" min="0" id="dtFFloor" value="${ST.reqFloor||0}"></div>
+        <div class="dt-field"><label>💪 必要筋力 (reqStr)</label><input type="number" min="0" id="dtFStr" value="${ST.reqStr||0}"></div>
+        <div class="dt-field"><label>🧠 必要知力 (reqInt)</label><input type="number" min="0" id="dtFInt" value="${ST.reqInt||0}"></div>
+        <div class="dt-field"><label>❤️ 必要体力 (reqVit)</label><input type="number" min="0" id="dtFVit" value="${ST.reqVit||0}"></div>
+      </div>
+      <div class="dt-sec">この世代 (${dtEra}世代) の一括条件調整</div>
+      <div class="dt-row">
+        <button class="dt-btn" data-scale-rp="0.5">必要RP ×0.5</button>
+        <button class="dt-btn" data-scale-rp="2">必要RP ×2.0</button>
+        <button class="dt-btn" data-scale-mat="0.5">必要資材 ×0.5</button>
+        <button class="dt-btn" data-scale-mat="2">必要資材 ×2.0</button>
+      </div>
+      <div class="dt-sec">世代進化そのもののコスト（第${dtEra}世代へ進化）</div>
+      <div class="dt-grid">
+        <div class="dt-field"><label>世代進化 🔬RP</label><input type="number" min="0" id="dtEraRp" value="${ERA_RP[dtEra]||0}" ${dtEra===1?'disabled':''}></div>
+        <div class="dt-field"><label>世代進化 🧱資材</label><input type="number" min="0" id="dtEraMat" value="${ERA_MAT[dtEra]||0}" ${dtEra===1?'disabled':''}></div>
+      </div>
+    </div>
+  </div>`;
+
+  body.querySelectorAll('[data-dtera]').forEach(b => b.onclick = () => { dtEra = +b.dataset.dtera; renderDtTree(body); });
+  body.querySelector('#dtUnlockEra').onclick = () => {
+    if(S.era < dtEra) S.era = dtEra;
+    for(const t of list) S.dev[t] = 1;
+    devDirty(); buildShop(); renderShop(); renderTree(true); renderDtTree(body);
+    toast(`第${dtEra}世代の施設をすべてアンロックしました`);
+  };
+  body.querySelector('#dtResetEraLock').onclick = () => {
+    for(const t of list) delete S.dev[t];
+    devDirty(); buildShop(); renderShop(); renderTree(true); renderDtTree(body);
+    toast(`第${dtEra}世代の施設を初期ロック状態に戻しました`);
+  };
+  body.querySelector('#dtAutoLayoutTree').onclick = () => {
+    // 親からの深さごとに列(treeX)を割り当て、同じ列の中で行(treeY)を並べる
+    const depth = {};
+    const calcD = (t, seen=new Set()) => {
+      if(depth[t] != null) return depth[t];
+      const r = TYPES[t] && TYPES[t].req;
+      if(!r || !TYPES[r] || TYPES[r].era !== dtEra || seen.has(t)) return (depth[t] = 0);
+      seen.add(t);
+      return (depth[t] = calcD(r, seen) + 1);
+    };
+    const cols = {};
+    for(const t of list){
+      const d = calcD(t);
+      (cols[d] = cols[d] || []).push(t);
+    }
+    for(const d in cols){
+      cols[d].forEach((t, idx) => {
+        TYPES[t].treeX = +d;
+        TYPES[t].treeY = idx;
+        recordTypeOverride(t);
+      });
+    }
+    saveDevCfg(); renderDtTree(body);
+    toast('研究ツリーを自動整列しました');
+  };
+  body.querySelector('#dtToggleDev').onclick = () => {
+    if(isDev(dtSelNode)){
+      TYPES[dtSelNode].start = false;
+      delete S.dev[dtSelNode];
+      recordTypeOverride(dtSelNode);
+    } else {
+      if(S.era < ST.era) S.era = ST.era;
+      S.dev[dtSelNode] = 1;
+    }
+    devDirty(); buildShop(); renderShop(); renderTree(true); renderDtTree(body);
+  };
+  const bindTreeField = () => {
+    ST.start    = body.querySelector('#dtFStart').checked;
+    ST.req      = body.querySelector('#dtFReq').value || null;
+    ST.treeX    = +body.querySelector('#dtFX').value || 0;
+    ST.treeY    = +body.querySelector('#dtFY').value || 0;
+    ST.rp       = Math.max(0, +body.querySelector('#dtFRp').value || 0);
+    ST.mat      = Math.max(0, +body.querySelector('#dtFMat').value || 0);
+    ST.gold     = Math.max(0, +body.querySelector('#dtFGold').value || 0);
+    ST.reqFloor = Math.max(0, +body.querySelector('#dtFFloor').value || 0);
+    ST.reqStr   = Math.max(0, +body.querySelector('#dtFStr').value || 0);
+    ST.reqInt   = Math.max(0, +body.querySelector('#dtFInt').value || 0);
+    ST.reqVit   = Math.max(0, +body.querySelector('#dtFVit').value || 0);
+    recordTypeOverride(dtSelNode);
+    saveDevCfg();
+    renderDtTree(body);
+  };
+  ['#dtFStart','#dtFReq','#dtFX','#dtFY','#dtFRp','#dtFMat','#dtFGold','#dtFFloor','#dtFStr','#dtFInt','#dtFVit'].forEach(sel => {
+    const el = body.querySelector(sel);
+    if(el) el.onchange = bindTreeField;
+  });
+  body.querySelector('#dtEraRp').onchange = e => {
+    ERA_RP[dtEra] = Math.max(0, +e.target.value||0);
+    DEV_CFG.consts.ERA_RP = {...ERA_RP}; saveDevCfg();
+  };
+  body.querySelector('#dtEraMat').onchange = e => {
+    ERA_MAT[dtEra] = Math.max(0, +e.target.value||0);
+    DEV_CFG.consts.ERA_MAT = {...ERA_MAT}; saveDevCfg();
+  };
+  body.querySelectorAll('[data-scale-rp]').forEach(b => b.onclick = () => {
+    const m = +b.dataset.scaleRp;
+    for(const t of list){ TYPES[t].rp = Math.round((TYPES[t].rp||0)*m); recordTypeOverride(t); }
+    saveDevCfg(); renderDtTree(body);
+  });
+  body.querySelectorAll('[data-scale-mat]').forEach(b => b.onclick = () => {
+    const m = +b.dataset.scaleMat;
+    for(const t of list){ TYPES[t].mat = Math.round((TYPES[t].mat||0)*m); recordTypeOverride(t); }
+    saveDevCfg(); renderDtTree(body);
+  });
+
+  // キャンバス上のドラッグで treeX, treeY を直接変更
+  body.querySelectorAll('.dt-node').forEach(nd => {
+    nd.onpointerdown = e => {
+      e.stopPropagation();
+      const t = nd.dataset.dtn;
+      const sx = e.clientX, sy = e.clientY;
+      const origX = parseFloat(nd.style.left)||0, origY = parseFloat(nd.style.top)||0;
+      let moved = false;
+      const onMove = ev => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        if(Math.abs(dx)>4 || Math.abs(dy)>4) moved = true;
+        if(!moved) return;
+        nd.style.left = Math.max(0, origX + dx) + 'px';
+        nd.style.top  = Math.max(0, origY + dy) + 'px';
+      };
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        dtSelNode = t;
+        if(moved){
+          const nx = Math.max(0, Math.round(((parseFloat(nd.style.left)||0) - PAD) / (GX/4)) / 4);
+          const ny = Math.max(0, Math.round(((parseFloat(nd.style.top)||0)  - PAD) / (GY/4)) / 4);
+          TYPES[t].treeX = nx;
+          TYPES[t].treeY = ny;
+          recordTypeOverride(t);
+          saveDevCfg();
+        }
+        renderDtTree(body);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    };
+  });
+}
+
+/* --- Tab 2: 施設の作成・機能編集 --- */
+function facModeOf(T){
+  if(T.src) return 'src';
+  if(T.gen) return 'gen';
+  if(T.effect === 'dive') return 'dive';
+  if(T.effect === 'lab')  return 'lab';
+  if(T.stat)  return 'stat:' + T.stat;
+  if(T.chain) return 'chain:' + T.chain;
+  if(T.ware)  return 'ware';
+  if(T.store) return 'store';
+  if(T.tool)  return 'tool';
+  if(T.aura)  return 'aura:' + (T.aura.k||'boost');
+  return 'recipe';
+}
+function applyFacMode(T, mode){
+  delete T.src; delete T.gen; delete T.effect; delete T.chain; delete T.stat;
+  delete T.store; delete T.ware; delete T.tool; delete T.aura;
+  if(mode === 'src'){ T.src = true; T.outs = Object.keys(T.outs||{}).length ? T.outs : {sta:1}; }
+  else if(mode === 'gen'){ T.gen = true; T.outs = Object.keys(T.outs||{}).length ? T.outs : {sta:1}; }
+  else if(mode === 'dive'){ T.effect = 'dive'; T.power = T.power || 1; }
+  else if(mode === 'lab'){ T.effect = 'lab'; T.power = T.power || 2; }
+  else if(mode.startsWith('stat:')){ T.stat = mode.split(':')[1]; T.power = T.power || 1; }
+  else if(mode.startsWith('chain:')){
+    T.chain = mode.split(':')[1];
+    if(T.chain === 'sell') T.slots = T.slots || 2;
+    if(T.chain === 'armory' || T.chain === 'anvil') T.effect = 'equip';
+  }
+  else if(mode === 'ware'){ T.ware = true; T.store = true; T.cap = T.cap || 500; }
+  else if(mode === 'store'){ T.store = true; T.slots = T.slots || 2; T.cap = T.cap || 50; }
+  else if(mode === 'tool'){ T.tool = true; T.take = T.take || 3; T.sta = T.sta || 1; T.mul = T.mul || 2; }
+  else if(mode.startsWith('aura:')){ T.aura = { k: mode.split(':')[1], r: (T.aura&&T.aura.r)||260, v: (T.aura&&T.aura.v)||0.25 }; }
+}
+
+function renderDtFac(body){
+  const allFacs = ORDER.filter(k => TYPES[k] && !TYPES[k].port && !TYPES[k].layer);
+  const filtered = allFacs.filter(k => {
+    if(!dtFacFilter) return true;
+    const q = dtFacFilter.toLowerCase();
+    return k.toLowerCase().includes(q) || (TYPES[k].n||'').toLowerCase().includes(q) || (TYPES[k].line||'').toLowerCase().includes(q);
+  });
+  if(!dtSelFac || !TYPES[dtSelFac]) dtSelFac = filtered[0] || 'mine1';
+  const T = TYPES[dtSelFac];
+  const curMode = facModeOf(T);
+  const itemOpts = Object.keys(ITEMS).map(k => `<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n} (${k})</option>`).join('');
+
+  const insRows = Object.entries(T.ins||{}).map(([k,v]) => `
+    <div class="dt-row" style="justify-content:space-between;background:#0a0f18;padding:4px 8px;border-radius:6px">
+      <span>${ITEMS[k]?ITEMS[k].i:''} <b>${ITEMS[k]?ITEMS[k].n:k}</b> (<code>${k}</code>)</span>
+      <div class="dt-row">
+        <input type="number" min="1" step="1" value="${v}" data-in-qty="${k}" style="width:64px">
+        <button class="dt-btn bad" data-in-del="${k}">削除</button>
+      </div>
+    </div>`).join('') || `<div style="font-size:11px;color:var(--dim)">入力素材なし（またはチェーン自動決定）</div>`;
+
+  const outsRows = Object.entries(T.outs||{}).map(([k,v]) => `
+    <div class="dt-row" style="justify-content:space-between;background:#0a0f18;padding:4px 8px;border-radius:6px">
+      <span>${ITEMS[k]?ITEMS[k].i:''} <b>${ITEMS[k]?ITEMS[k].n:k}</b> (<code>${k}</code>)</span>
+      <div class="dt-row">
+        <input type="number" min="1" step="1" value="${v}" data-out-qty="${k}" style="width:64px">
+        <button class="dt-btn bad" data-out-del="${k}">削除</button>
+      </div>
+    </div>`).join('') || `<div style="font-size:11px;color:var(--dim)">出力素材なし（またはチェーン自動決定）</div>`;
+
+  body.innerHTML = `<div class="dt-split left-list">
+    <div class="dt-pane list">
+      <div class="dt-row">
+        <input type="text" id="dtFacSearch" placeholder="🔍 施設名・IDで検索..." value="${dtFacFilter}" style="flex:1;background:#080c13;border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--fg);font-size:11.5px">
+        <button class="dt-btn acc" id="dtNewFacBtn">＋ 新規作成</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;overflow:auto;flex:1">
+        ${filtered.map(k => {
+          const F = TYPES[k];
+          return `<button class="dt-item ${dtSelFac===k?'on':''}" data-dtf="${k}">
+            <span>${F.i}</span><b>${F.n}</b>
+            <span class="sub">E${F.era||1} / ${k}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="dt-pane">
+      <div class="dt-sec">
+        <span>🏭 施設エディタ: ${T.i} ${T.n} (ID: <code>${dtSelFac}</code>)</span>
+        <div class="dt-row">
+          <button class="dt-btn acc" id="dtSpawnFacBtn">📦 現在の盤面に1台テスト設置</button>
+          <button class="dt-btn" id="dtCloneFacBtn">📋 複製して新規施設を作る</button>
+        </div>
+      </div>
+      <div class="dt-grid">
+        <div class="dt-field"><label>施設名 (n)</label><input type="text" id="dtFn" value="${T.n||''}"></div>
+        <div class="dt-field"><label>アイコン絵文字 (i)</label><input type="text" id="dtFi" value="${T.i||'🏭'}"></div>
+        <div class="dt-field"><label>世代 (era: 1〜10)</label><input type="number" min="1" max="10" id="dtFera" value="${T.era||1}"></div>
+        <div class="dt-field"><label>系統・カテゴリ (line)</label><input type="text" id="dtFline" value="${T.line||''}"></div>
+        <div class="dt-field"><label>建設ゴールド (cost)</label><input type="number" min="0" id="dtFcost" value="${T.cost||0}"></div>
+        <div class="dt-field"><label>強化基本費 (up)</label><input type="number" min="0" id="dtFup" value="${T.up||0}"></div>
+        <div class="dt-field"><label>1回の作業時間 (time 秒)</label><input type="number" min="0.1" step="0.1" id="dtFtime" value="${T.time||1}"></div>
+        <div class="dt-field"><label>バッファ上限 (cap)</label><input type="number" min="1" id="dtFcap" value="${T.cap||CAP}"></div>
+      </div>
+      <div class="dt-field">
+        <label>説明文 (d)</label>
+        <input type="text" id="dtFd" value="${T.d||''}">
+      </div>
+      <div class="dt-grid">
+        <div class="dt-field">
+          <label>施設の機能タイプ (役割・動作ロジック)</label>
+          <select id="dtFmode">
+            <option value="recipe" ${curMode==='recipe'?'selected':''}>通常レシピ生産（指定した入力 → 出力）</option>
+            <option value="src" ${curMode==='src'?'selected':''}>エネルギー供給：主人公/仲間 (src)</option>
+            <option value="gen" ${curMode==='gen'?'selected':''}>発電機・動力源 (gen)</option>
+            <option value="dive" ${curMode==='dive'?'selected':''}>ダンジョン探索・攻撃 (effect=dive)</option>
+            <option value="lab" ${curMode==='lab'?'selected':''}>研究室・RP生成 (effect=lab)</option>
+            <option value="stat:str" ${curMode==='stat:str'?'selected':''}>訓練：💪筋力経験値 (stat=str)</option>
+            <option value="stat:int" ${curMode==='stat:int'?'selected':''}>訓練：🧠知力経験値 (stat=int)</option>
+            <option value="stat:vit" ${curMode==='stat:vit'?'selected':''}>訓練：❤️体力経験値 (stat=vit)</option>
+            <option value="chain:mine" ${curMode==='chain:mine'?'selected':''}>採掘機チェーン (chain=mine)</option>
+            <option value="chain:smelt" ${curMode==='chain:smelt'?'selected':''}>精錬炉チェーン (chain=smelt)</option>
+            <option value="chain:forge" ${curMode==='chain:forge'?'selected':''}>鍛造炉チェーン (chain=forge)</option>
+            <option value="chain:armory" ${curMode==='chain:armory'?'selected':''}>武具工房チェーン (chain=armory)</option>
+            <option value="chain:anvil" ${curMode==='chain:anvil'?'selected':''}>金床・圧縮鍛造 (chain=anvil)</option>
+            <option value="chain:sell" ${curMode==='chain:sell'?'selected':''}>露店・売却 (chain=sell)</option>
+            <option value="chain:dump" ${curMode==='chain:dump'?'selected':''}>廃棄場・副産物処理 (chain=dump)</option>
+            <option value="store" ${curMode==='store'?'selected':''}>貯蔵箱 (store)</option>
+            <option value="ware" ${curMode==='ware'?'selected':''}>大型倉庫 (ware)</option>
+            <option value="tool" ${curMode==='tool'?'selected':''}>増幅工具 (tool)</option>
+            <option value="aura:clean" ${curMode==='aura:clean'?'selected':''}>周囲浄化オーラ (aura=clean)</option>
+            <option value="aura:boost" ${curMode==='aura:boost'?'selected':''}>周囲加速オーラ (aura=boost)</option>
+          </select>
+        </div>
+        <div class="dt-field"><label>基礎出力/効力 (power / slots / mul)</label><input type="number" step="0.1" id="dtFpower" value="${T.power || T.slots || T.mul || 1}"></div>
+        <div class="dt-field" style="justify-content:center">
+          <label style="gap:6px;justify-content:flex-start;margin-top:16px"><input type="checkbox" id="dtFuniq" ${T.unique?'checked':''}> 盤面に1台だけ設置可能 (unique)</label>
+        </div>
+      </div>
+
+      <div class="dt-split" style="grid-template-columns:1fr 1fr;gap:12px;height:auto">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="dt-sec"><span>📥 入力素材 (ins)</span></div>
+          ${insRows}
+          <div class="dt-row">
+            <select id="dtAddInItem" style="flex:1;background:#080c13;border:1px solid var(--line);border-radius:6px;padding:4px;color:var(--fg);font-size:11px">${itemOpts}</select>
+            <input type="number" id="dtAddInQty" value="1" min="1" style="width:54px;background:#080c13;border:1px solid var(--line);border-radius:6px;padding:4px;color:var(--fg);font-size:11px">
+            <button class="dt-btn acc" id="dtAddInBtn">＋ 追加</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="dt-sec"><span>📤 出力素材 (outs)</span></div>
+          ${outsRows}
+          <div class="dt-row">
+            <select id="dtAddOutItem" style="flex:1;background:#080c13;border:1px solid var(--line);border-radius:6px;padding:4px;color:var(--fg);font-size:11px">${itemOpts}</select>
+            <input type="number" id="dtAddOutQty" value="1" min="1" style="width:54px;background:#080c13;border:1px solid var(--line);border-radius:6px;padding:4px;color:var(--fg);font-size:11px">
+            <button class="dt-btn acc" id="dtAddOutBtn">＋ 追加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  const sInput = body.querySelector('#dtFacSearch');
+  sInput.oninput = () => { dtFacFilter = sInput.value; renderDtFac(body); sInput.focus(); };
+  body.querySelectorAll('[data-dtf]').forEach(b => b.onclick = () => { dtSelFac = b.dataset.dtf; renderDtFac(body); });
+
+  const createCustomFac = baseType => {
+    let idx = 1;
+    while(TYPES['custom' + idx]) idx++;
+    const newKey = prompt('新しい施設のID（英数字）を入力してください:', 'custom' + idx);
+    if(!newKey || !/^[a-zA-Z0-9_]+$/.test(newKey)) return toast('有効な英数字IDを入力してください');
+    if(TYPES[newKey]) return toast('そのIDはすでに存在します');
+    const src = TYPES[baseType] || TYPES.mine1;
+    const def = JSON.parse(JSON.stringify(src));
+    def.n = (src.n || '施設') + '改';
+    def.line = newKey;
+    def.start = true;
+    def.treeX = (src.treeX||0) + 1;
+    DEV_CFG.customFacs[newKey] = def;
+    registerFacType(newKey, def);
+    saveDevCfg();
+    dtSelFac = newKey;
+    renderDtFac(body);
+    toast(`新規施設 ${def.i}${def.n} (${newKey}) を作成しました`);
+  };
+  body.querySelector('#dtNewFacBtn').onclick = () => createCustomFac('mine1');
+  body.querySelector('#dtCloneFacBtn').onclick = () => createCustomFac(dtSelFac);
+  body.querySelector('#dtSpawnFacBtn').onclick = () => {
+    S.dev[dtSelFac] = 1;
+    devDirty();
+    dbgSpawn(dtSelFac);
+  };
+
+  const saveFacProps = () => {
+    T.n    = body.querySelector('#dtFn').value || T.n;
+    T.i    = body.querySelector('#dtFi').value || T.i;
+    T.era  = Math.max(1, Math.min(10, +body.querySelector('#dtFera').value || 1));
+    T.line = body.querySelector('#dtFline').value || dtSelFac;
+    T.cost = Math.max(0, +body.querySelector('#dtFcost').value || 0);
+    T.up   = Math.max(0, +body.querySelector('#dtFup').value || 0);
+    T.time = Math.max(0.05, +body.querySelector('#dtFtime').value || 1);
+    T.cap  = Math.max(1, +body.querySelector('#dtFcap').value || CAP);
+    T.d    = body.querySelector('#dtFd').value || '';
+    T.unique = body.querySelector('#dtFuniq').checked;
+    applyFacMode(T, body.querySelector('#dtFmode').value);
+    const pv = +body.querySelector('#dtFpower').value || 1;
+    if(T.store && !T.ware) T.slots = Math.max(1, Math.round(pv));
+    else if(T.chain === 'sell') T.slots = Math.max(1, Math.round(pv));
+    else if(T.tool) T.mul = Math.max(1, pv);
+    else T.power = pv;
+    recordTypeOverride(dtSelFac);
+    saveDevCfg();
+    renderDtFac(body);
+  };
+  ['#dtFn','#dtFi','#dtFera','#dtFline','#dtFcost','#dtFup','#dtFtime','#dtFcap','#dtFd','#dtFmode','#dtFpower','#dtFuniq'].forEach(sel => {
+    const el = body.querySelector(sel);
+    if(el) el.onchange = saveFacProps;
+  });
+
+  body.querySelectorAll('[data-in-qty]').forEach(inp => inp.onchange = () => {
+    T.ins = T.ins || {};
+    T.ins[inp.dataset.inQty] = Math.max(1, +inp.value || 1);
+    recordTypeOverride(dtSelFac); saveDevCfg(); renderDtFac(body);
+  });
+  body.querySelectorAll('[data-in-del]').forEach(btn => btn.onclick = () => {
+    if(T.ins) delete T.ins[btn.dataset.inDel];
+    recordTypeOverride(dtSelFac); saveDevCfg(); renderDtFac(body);
+  });
+  body.querySelector('#dtAddInBtn').onclick = () => {
+    const k = body.querySelector('#dtAddInItem').value;
+    const q = Math.max(1, +body.querySelector('#dtAddInQty').value || 1);
+    T.ins = T.ins || {}; T.ins[k] = q;
+    recordTypeOverride(dtSelFac); saveDevCfg(); renderDtFac(body);
+  };
+
+  body.querySelectorAll('[data-out-qty]').forEach(inp => inp.onchange = () => {
+    T.outs = T.outs || {};
+    T.outs[inp.dataset.outQty] = Math.max(1, +inp.value || 1);
+    recordTypeOverride(dtSelFac); saveDevCfg(); renderDtFac(body);
+  });
+  body.querySelectorAll('[data-out-del]').forEach(btn => btn.onclick = () => {
+    if(T.outs) delete T.outs[btn.dataset.outDel];
+    recordTypeOverride(dtSelFac); saveDevCfg(); renderDtFac(body);
+  });
+  body.querySelector('#dtAddOutBtn').onclick = () => {
+    const k = body.querySelector('#dtAddOutItem').value;
+    const q = Math.max(1, +body.querySelector('#dtAddOutQty').value || 1);
+    T.outs = T.outs || {}; T.outs[k] = q;
+    recordTypeOverride(dtSelFac); saveDevCfg(); renderDtFac(body);
+  };
+}
+
+/* --- Tab 3: UI・初期盤面配置エディタ --- */
+function renderDtUi(body){
+  const ib = DEV_CFG.initBoard;
+  const u  = DEV_CFG.ui;
+  const typeOpts = ORDER.filter(k => TYPES[k] && !TYPES[k].port && !TYPES[k].layer).map(k =>
+    `<option value="${k}">${TYPES[k].i} ${TYPES[k].n} (${k})</option>`
+  ).join('');
+  const itemOpts = Object.keys(ITEMS).map(k => `<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n} (${k})</option>`).join('');
+
+  body.innerHTML = `<div class="dt-split" style="grid-template-columns:1fr 1fr">
+    <div class="dt-pane">
+      <div class="dt-sec">
+        <span>🏁 初期盤面（ニューゲーム開始時のノード＆配線）</span>
+        <div class="dt-row">
+          <button class="dt-btn acc" id="dtCaptureBoard">📸 今の盤面を初期配置に取り込む</button>
+          <button class="dt-btn warn" id="dtTestNewGame">🔄 この初期配置で最初からテスト</button>
+        </div>
+      </div>
+      <div class="dt-grid">
+        <div class="dt-field"><label>初期ゴールド (G)</label><input type="number" min="0" id="dtInitGold" value="${ib.initGold||0}"></div>
+        <div class="dt-field"><label>初期の自宅🟫地金 (ing1)</label><input type="number" min="0" id="dtInitIng" value="${ib.initIng1!=null?ib.initIng1:40}"></div>
+      </div>
+      <div class="dt-sec"><span>初期設置ノード一覧</span><button class="dt-btn acc" id="dtAddInitNode">＋ 初期ノード追加</button></div>
+      <table class="dt-tbl">
+        <thead><tr><th>#</th><th>施設タイプ</th><th>X座標</th><th>Y座標</th><th></th></tr></thead>
+        <tbody>
+          ${(ib.nodes||[]).map((nd, idx) => `<tr>
+            <td>#${idx}</td>
+            <td><select data-ib-ntype="${idx}" style="width:155px">${ORDER.filter(k=>TYPES[k]&&!TYPES[k].port&&!TYPES[k].layer).map(k=>`<option value="${k}" ${nd.type===k?'selected':''}>${TYPES[k].i} ${TYPES[k].n}</option>`).join('')}</select></td>
+            <td><input type="number" step="10" data-ib-nx="${idx}" value="${nd.x}"></td>
+            <td><input type="number" step="10" data-ib-ny="${idx}" value="${nd.y}"></td>
+            <td><button class="dt-btn bad" data-ib-ndel="${idx}">削除</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="dt-sec"><span>初期配線（ベルト/ケーブル）一覧</span><button class="dt-btn acc" id="dtAddInitLink">＋ 初期配線追加</button></div>
+      <table class="dt-tbl">
+        <thead><tr><th>出力ノード(#)</th><th>流す素材</th><th>入力ノード(#)</th><th></th></tr></thead>
+        <tbody>
+          ${(ib.links||[]).map((lk, idx) => `<tr>
+            <td><input type="number" min="0" max="${Math.max(0,(ib.nodes||[]).length-1)}" data-ib-lfrom="${idx}" value="${lk.from}"></td>
+            <td><select data-ib-litem="${idx}" style="width:130px">${Object.keys(ITEMS).map(k=>`<option value="${k}" ${lk.item===k?'selected':''}>${ITEMS[k].i} ${ITEMS[k].n}</option>`).join('')}</select></td>
+            <td><input type="number" min="0" max="${Math.max(0,(ib.nodes||[]).length-1)}" data-ib-lto="${idx}" value="${lk.to}"></td>
+            <td><button class="dt-btn bad" data-ib-ldel="${idx}">削除</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="dt-pane side">
+      <div class="dt-sec">📐 画面UIレイアウト・パネル配置設定</div>
+      <div class="dt-grid">
+        <div class="dt-field"><label>左パネル（建設）幅 (px)</label><input type="number" min="160" max="420" id="dtUiShopW" value="${u.shopW||230}"></div>
+        <div class="dt-field"><label>右パネル（状態）幅 (px)</label><input type="number" min="180" max="450" id="dtUiSideW" value="${u.sideW||256}"></div>
+      </div>
+      <div class="dt-field">
+        <label style="justify-content:flex-start;gap:8px"><input type="checkbox" id="dtUiSwap" ${u.swapSide?'checked':''}> 左右パネルを入れ替える（左に状態パネル・右に建設リスト）</label>
+      </div>
+      <div class="dt-field">
+        <label style="justify-content:flex-start;gap:8px"><input type="checkbox" id="dtUiHint" ${u.hideHint?'checked':''}> 盤面左下の「ⓘ 操作方法ヒント」を非表示にする</label>
+      </div>
+      <div class="dt-sec">🏗 建設ショップの並び順 (SHOP_ROWS)</div>
+      <div style="display:flex;flex-direction:column;gap:4px;max-height:420px;overflow:auto">
+        ${SHOP_ROWS.map((r, i) => {
+          const t = rowType(r), T = TYPES[t] || {i:'❔', n:r};
+          return `<div class="dt-item" style="cursor:default">
+            <span>${T.i}</span><b>${T.n}</b> <span style="font-size:10px;color:var(--dim)">(${r})</span>
+            <span class="sub" style="display:flex;gap:4px">
+              <button class="dt-btn" data-row-up="${i}" ${i===0?'disabled':''}>▲</button>
+              <button class="dt-btn" data-row-dn="${i}" ${i===SHOP_ROWS.length-1?'disabled':''}>▼</button>
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  body.querySelector('#dtInitGold').onchange = e => { ib.initGold = Math.max(0, +e.target.value||0); saveDevCfg(); };
+  body.querySelector('#dtInitIng').onchange  = e => { ib.initIng1 = Math.max(0, +e.target.value||0); saveDevCfg(); };
+  body.querySelectorAll('[data-ib-ntype]').forEach(el => el.onchange = () => { ib.nodes[+el.dataset.ibNtype].type = el.value; saveDevCfg(); });
+  body.querySelectorAll('[data-ib-nx]').forEach(el => el.onchange = () => { ib.nodes[+el.dataset.ibNx].x = +el.value||0; saveDevCfg(); });
+  body.querySelectorAll('[data-ib-ny]').forEach(el => el.onchange = () => { ib.nodes[+el.dataset.ibNy].y = +el.value||0; saveDevCfg(); });
+  body.querySelectorAll('[data-ib-ndel]').forEach(el => el.onclick = () => {
+    const idx = +el.dataset.ibNdel;
+    ib.nodes.splice(idx, 1);
+    ib.links = (ib.links||[]).filter(l => l.from !== idx && l.to !== idx).map(l => ({
+      from: l.from > idx ? l.from - 1 : l.from,
+      item: l.item,
+      to:   l.to > idx ? l.to - 1 : l.to
+    }));
+    saveDevCfg(); renderDtUi(body);
+  });
+  body.querySelector('#dtAddInitNode').onclick = () => {
+    ib.nodes = ib.nodes || [];
+    ib.nodes.push({ type:'mine1', x:250, y:300 });
+    saveDevCfg(); renderDtUi(body);
+  };
+  body.querySelectorAll('[data-ib-lfrom]').forEach(el => el.onchange = () => { ib.links[+el.dataset.ibLfrom].from = +el.value||0; saveDevCfg(); });
+  body.querySelectorAll('[data-ib-litem]').forEach(el => el.onchange = () => { ib.links[+el.dataset.ibLitem].item = el.value; saveDevCfg(); });
+  body.querySelectorAll('[data-ib-lto]').forEach(el => el.onchange = () => { ib.links[+el.dataset.ibLto].to = +el.value||0; saveDevCfg(); });
+  body.querySelectorAll('[data-ib-ldel]').forEach(el => el.onclick = () => {
+    ib.links.splice(+el.dataset.ibLdel, 1);
+    saveDevCfg(); renderDtUi(body);
+  });
+  body.querySelector('#dtAddInitLink').onclick = () => {
+    ib.links = ib.links || [];
+    ib.links.push({ from:0, item:'sta', to:Math.min(1, Math.max(0, (ib.nodes||[]).length-1)) });
+    saveDevCfg(); renderDtUi(body);
+  };
+  body.querySelector('#dtCaptureBoard').onclick = () => {
+    const topNodes = S.nodes.filter(n => !n.parent && !TYPES[n.type].port && !TYPES[n.type].layer);
+    const idToIdx = new Map();
+    ib.nodes = topNodes.map((n, i) => { idToIdx.set(n.id, i); return { type:n.type, x:Math.round(n.x), y:Math.round(n.y) }; });
+    ib.links = S.links.filter(l => idToIdx.has(l.from) && idToIdx.has(l.to)).map(l => ({
+      from: idToIdx.get(l.from), item: l.item, to: idToIdx.get(l.to)
+    }));
+    saveDevCfg(); renderDtUi(body);
+    toast('📸 現在の盤面を初期配置として取り込みました');
+  };
+  body.querySelector('#dtTestNewGame').onclick = () => {
+    saveDevCfg();
+    for(const l of [...S.links]) removeLink(l.id);
+    for(const n of [...S.nodes]) removeNode(n.id);
+    sel=null; tutHi=null; tutShown=-1;
+    newGame(); spawnEnemy();
+    buildShop(); renderShop(); renderTree(true); renderInsp(); tutRender(); render(); save();
+    toast('🔄 設定した初期配置で最初から開始しました');
+  };
+  const saveUi = () => {
+    u.shopW = Math.max(160, +body.querySelector('#dtUiShopW').value || 230);
+    u.sideW = Math.max(180, +body.querySelector('#dtUiSideW').value || 256);
+    u.swapSide = body.querySelector('#dtUiSwap').checked;
+    u.hideHint = body.querySelector('#dtUiHint').checked;
+    saveDevCfg();
+  };
+  ['#dtUiShopW','#dtUiSideW','#dtUiSwap','#dtUiHint'].forEach(sel => {
+    const el = body.querySelector(sel); if(el) el.onchange = saveUi;
+  });
+  body.querySelectorAll('[data-row-up]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.rowUp;
+    if(i > 0){ const tmp = SHOP_ROWS[i-1]; SHOP_ROWS[i-1] = SHOP_ROWS[i]; SHOP_ROWS[i] = tmp; u.shopRows = [...SHOP_ROWS]; saveDevCfg(); renderDtUi(body); }
+  });
+  body.querySelectorAll('[data-row-dn]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.rowDn;
+    if(i < SHOP_ROWS.length - 1){ const tmp = SHOP_ROWS[i+1]; SHOP_ROWS[i+1] = SHOP_ROWS[i]; SHOP_ROWS[i] = tmp; u.shopRows = [...SHOP_ROWS]; saveDevCfg(); renderDtUi(body); }
+  });
+}
+
+/* --- Tab 4: 定数・数値バランス＆サンドボックス --- */
+function renderDtConst(body){
+  const cFields = [
+    { k:'CURVE_INDEX',  n:'⚡消費の軽さ指標 (CURVE.index)',   step:5,    v:CURVE.index },
+    { k:'CURVE_TAPER',  n:'訓練の重さ指標 (CURVE.taper)',     step:5,    v:CURVE.taper },
+    { k:'CURVE_DEPTH',  n:'敵HPの緩やかさ指標 (CURVE.depth)', step:10,   v:CURVE.depth },
+    { k:'VIT_K',        n:'❤️体力1あたりの⚡回復倍率 (VIT_K)',step:0.005,v:VIT_K },
+    { k:'TRAIN_P',      n:'訓練曲線の肩指数 (TRAIN_P)',       step:0.05, v:TRAIN_P },
+    { k:'EXP_STEP',     n:'必要経験値の増加幅 (EXP_STEP)',    step:1,    v:EXP_STEP },
+    { k:'PRICE_K',      n:'同種施設の建設費倍率 (PRICE_K)',   step:0.02, v:PRICE_K },
+    { k:'UP_K',         n:'Lv強化コスト倍率 (UP_K)',          step:0.02, v:UP_K },
+    { k:'UP_RATE',      n:'強化基準費の割合 (UP_RATE)',       step:0.005,v:UP_RATE },
+    { k:'MAT_RATE',     n:'建設時の地金要求率 (MAT_RATE)',    step:0.02, v:MAT_RATE },
+    { k:'PSPEED',       n:'ベルト流速 px/秒 (PSPEED)',        step:4,    v:PSPEED },
+    { k:'PMAX',         n:'ベルト最大所要秒 (PMAX)',          step:0.2,  v:PMAX },
+    { k:'PMIN',         n:'ベルト最小所要秒 (PMIN)',          step:0.1,  v:PMIN },
+    { k:'SENDCD',       n:'送り出し間隔秒 (SENDCD)',          step:0.02, v:SENDCD },
+    { k:'BELT_GAP_PX',  n:'ベルト上の最小間隔px',             step:2,    v:BELT_GAP_PX },
+    { k:'CAP',          n:'施設の基本バッファ容量 (CAP)',     step:1,    v:CAP },
+    { k:'ARMOR_K',      n:'敵の装甲減衰係数 (ARMOR_K)',       step:1,    v:ARMOR_K },
+    { k:'ERA_SPD',      n:'世代ごとの作業時間倍率 (ERA_SPD)', step:0.02, v:ERA_SPD },
+    { k:'ERA_EFF',      n:'世代ごとの⚡消費倍率 (ERA_EFF)',    step:0.02, v:ERA_EFF },
+    { k:'ERA_COST',     n:'世代ごとの建設費倍率 (ERA_COST)',  step:1,    v:ERA_COST },
+    { k:'ERA_UP',       n:'世代ごとの強化費倍率 (ERA_UP)',    step:1,    v:ERA_UP },
+  ];
+  const sampleFloors = [1, 5, 10, 20, 50, 100];
+
+  body.innerHTML = `<div class="dt-split">
+    <div class="dt-pane">
+      <div class="dt-sec">⚖️ ゲーム定数・物理・経済パラメータ</div>
+      <div class="dt-grid">
+        ${cFields.map(f => `<div class="dt-field">
+          <label>${f.n}</label>
+          <input type="number" step="${f.step}" data-const-k="${f.k}" value="${f.v}">
+        </div>`).join('')}
+      </div>
+      <div class="dt-sec">📈 世代別（第1〜第${ERA_MAX}世代）進化コスト＆倍率プレビュー</div>
+      <div style="overflow:auto">
+        <table class="dt-tbl">
+          <thead><tr><th>世代</th><th>速度倍率</th><th>⚡消費倍率</th><th>建設費倍率</th><th>進化必要🔬RP</th><th>進化必要🧱資材</th></tr></thead>
+          <tbody>
+            ${ERAS.map((E, i) => {
+              const e = i + 1;
+              return `<tr>
+                <td><b>${E.i} 第${e}世代 (${E.n})</b></td>
+                <td>×${(1/Math.pow(ERA_SPD, i)).toFixed(2)}</td>
+                <td>×${Math.pow(ERA_EFF, i).toFixed(2)}</td>
+                <td>×${Math.round(Math.pow(ERA_COST, i))}</td>
+                <td>${e===1 ? '初期' : `<input type="number" step="100" data-era-rp="${e}" value="${ERA_RP[e]||0}">`}</td>
+                <td>${e===1 ? '初期' : `<input type="number" step="10"  data-era-mat="${e}" value="${ERA_MAT[e]||0}">`}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="dt-pane side">
+      <div class="dt-sec">🧪 テスト用サンドボックス操作（即時反映）</div>
+      <div class="dt-field"><label>💰 ゴールド操作</label>
+        <div class="dt-row">
+          <button class="dt-btn acc" data-sb="g1k">+1,000 G</button>
+          <button class="dt-btn acc" data-sb="g1m">+100万 G</button>
+          <button class="dt-btn bad" data-sb="g0">0にする</button>
+        </div>
+      </div>
+      <div class="dt-field"><label>🔬 研究ポイント＆🧱研究資材</label>
+        <div class="dt-row">
+          <button class="dt-btn acc" data-sb="rp100">+100 RP</button>
+          <button class="dt-btn acc" data-sb="rp10k">+1万 RP</button>
+          <button class="dt-btn acc" data-sb="mat100">+100 資材</button>
+          <button class="dt-btn acc" data-sb="mat10k">+1万 資材</button>
+        </div>
+      </div>
+      <div class="dt-field"><label>🏠 自宅の初期地金・主人公ステータス</label>
+        <div class="dt-row">
+          <button class="dt-btn acc" data-sb="ing100">🟫地金 +100</button>
+          <button class="dt-btn acc" data-sb="stat10">全能力 +10</button>
+          <button class="dt-btn acc" data-sb="stat100">全能力 +100</button>
+        </div>
+      </div>
+      <div class="dt-field"><label>🕳️ ダンジョン階層ジャンプ ＆ 時間経過シミュレート</label>
+        <div class="dt-row">
+          <input type="number" min="1" id="dtJumpFloor" value="${S.floor||1}" style="width:72px">
+          <button class="dt-btn acc" id="dtJumpBtn">階層へ移動</button>
+          <button class="dt-btn" data-sb="sim60">⏩ 1分進める</button>
+          <button class="dt-btn" data-sb="sim600">⏩ 10分進める</button>
+        </div>
+      </div>
+      <div class="dt-field"><label>🔓 研究ロック一括操作</label>
+        <div class="dt-row">
+          <button class="dt-btn acc" data-sb="unlockAll">全世代・全施設を解放</button>
+          <button class="dt-btn bad" data-sb="lockAll">初期状態（第1世代初期のみ）に戻す</button>
+        </div>
+      </div>
+      <div class="dt-sec">📊 現在の定数によるダンジョン数値プレビュー</div>
+      <table class="dt-tbl">
+        <thead><tr><th>階層</th><th>敵HP</th><th>敵装甲</th><th>撃破報酬G</th></tr></thead>
+        <tbody>
+          ${sampleFloors.map(f => {
+            const boss = (f % 10 === 0);
+            return `<tr><td>第${f}層${boss?'(BOSS)':''}</td><td>${fmt(enemyHp(f))}</td><td>${fmt(enemyArm(f))}</td><td>${fmt(enemyGold(f))} G</td></tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  body.querySelectorAll('[data-const-k]').forEach(inp => inp.onchange = () => {
+    DEV_CFG.consts[inp.dataset.constK] = +inp.value;
+    saveDevCfg(); renderDtConst(body);
+  });
+  body.querySelectorAll('[data-era-rp]').forEach(inp => inp.onchange = () => {
+    const e = +inp.dataset.eraRp;
+    ERA_RP[e] = Math.max(0, +inp.value||0);
+    DEV_CFG.consts.ERA_RP = {...ERA_RP};
+    saveDevCfg(); renderDtConst(body);
+  });
+  body.querySelectorAll('[data-era-mat]').forEach(inp => inp.onchange = () => {
+    const e = +inp.dataset.eraMat;
+    ERA_MAT[e] = Math.max(0, +inp.value||0);
+    DEV_CFG.consts.ERA_MAT = {...ERA_MAT};
+    saveDevCfg(); renderDtConst(body);
+  });
+  body.querySelector('#dtJumpBtn').onclick = () => {
+    const f = Math.max(1, +body.querySelector('#dtJumpFloor').value || 1);
+    S.floor = f; if(f > S.best) S.best = f;
+    spawnEnemy(); render(); renderDtConst(body);
+    toast(`第${f}層へ移動しました`);
+  };
+  body.querySelectorAll('[data-sb]').forEach(b => b.onclick = () => {
+    const a = b.dataset.sb;
+    if(a === 'g1k') S.gold += 1000;
+    else if(a === 'g1m') S.gold += 1e6;
+    else if(a === 'g0') S.gold = 0;
+    else if(a === 'rp100') S.rp = (S.rp||0) + 100;
+    else if(a === 'rp10k') S.rp = (S.rp||0) + 10000;
+    else if(a === 'mat100') S.stock = (S.stock||0) + 100;
+    else if(a === 'mat10k') S.stock = (S.stock||0) + 10000;
+    else if(a === 'ing100') S.home.ing1 = (S.home.ing1||0) + 100;
+    else if(a === 'stat10'){ S.stats.str+=10; S.stats.int+=10; S.stats.vit+=10; }
+    else if(a === 'stat100'){ S.stats.str+=100; S.stats.int+=100; S.stats.vit+=100; }
+    else if(a === 'sim60'){ for(let i=0;i<60;i++) tick(1, true); }
+    else if(a === 'sim600'){ for(let i=0;i<600;i++) tick(1, true); }
+    else if(a === 'unlockAll'){
+      S.era = ERA_MAX;
+      for(const k of ORDER) if(TYPES[k] && !TYPES[k].port && !TYPES[k].layer) S.dev[k] = 1;
+    }
+    else if(a === 'lockAll'){
+      S.era = 1; S.dev = {};
+    }
+    devDirty(); gearDirty(); skillDirty();
+    buildShop(); renderShop(); renderTree(true); render();
+    toast('サンドボックス操作を反映しました');
+  });
+}
+
+/* --- Tab 5: 設定の保存・JSON出力 --- */
+function renderDtIo(body){
+  const jsonStr = JSON.stringify(DEV_CFG, null, 2);
+  body.innerHTML = `<div class="dt-pane" style="width:100%">
+    <div class="dt-sec">
+      <span>💾 開発ツール設定データ (JSON) のエクスポート / インポート</span>
+      <div class="dt-row">
+        <button class="dt-btn acc" id="dtCopyJson">📋 JSONをコピー</button>
+        <button class="dt-btn acc" id="dtImportJson">📥 下のJSONを読み込んで適用</button>
+        <button class="dt-btn bad" id="dtResetAllCfg">🗑️ 開発設定をすべて初期値に戻す</button>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--dim);margin:0">研究ツリーの開放条件・座標、新規作成した施設、初期盤面配置、UI設定、バランス定数がすべてこのJSONに含まれます。ブラウザの <code>localStorage (${DEV_KEY})</code> に自動保存されるほか、JSONとして保存・共有できます。</p>
+    <textarea id="dtJsonArea" style="flex:1;min-height:420px;background:#070a10;border:1px solid var(--line);border-radius:8px;padding:10px;color:var(--fg);font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.5">${jsonStr}</textarea>
+  </div>`;
+
+  body.querySelector('#dtCopyJson').onclick = async () => {
+    const ta = body.querySelector('#dtJsonArea'); ta.select();
+    try{ await navigator.clipboard.writeText(ta.value); toast('📋 開発設定JSONをコピーしました'); }
+    catch(_){ document.execCommand('copy'); toast('📋 開発設定JSONをコピーしました'); }
+  };
+  body.querySelector('#dtImportJson').onclick = () => {
+    try{
+      const parsed = JSON.parse(body.querySelector('#dtJsonArea').value);
+      DEV_CFG = Object.assign(defaultDevCfg(), parsed);
+      saveDevCfg();
+      renderDtIo(body);
+      toast('📥 JSONから開発設定を読み込みました');
+    }catch(e){ toast('JSONの形式が正しくありません: ' + e.message); }
+  };
+  body.querySelector('#dtResetAllCfg').onclick = () => {
+    if(!confirm('開発ツールで変更したすべての設定（研究ツリー・施設・定数・初期配置）を初期値に戻しますか？')) return;
+    try{ localStorage.removeItem(DEV_KEY); }catch(_){}
+    DEV_CFG = defaultDevCfg();
+    applyDevCfg();
+    renderDtIo(body);
+    toast('開発設定を初期値にリセットしました');
+  };
+}
+
 /* ========================= 起動 ========================= */
 troLoad();
+loadDevCfg();
 function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
-  // 出発点は「発電機・主人公・洞窟」の3つ。発電機が⚡を作り、
-  // その⚡を配線で分けた先が動く                                   */
-  const g=addNode('gen1',60,150), h=addNode('hero',60,340), d=addNode('dive1',420,150);
-  S.counts={hero:1, gen1:1, dive1:1};
-  S.home = {ing1: 40};                 // 持ち出した資材。最初の数台はこれで建てる
-  addLink(g.id,'sta',d.id);
-  addLog('🔌発電機 ⚡→ 🕳️洞窟 が接続済み。まずは潜ってゴールドを貯めよう','u');
-  addLog('建設には💰ゴールドと🟫地金の両方が要る。手持ちの地金は 🟫40（🎒持ち物→自宅）','u');
-  addLog('⛏採掘機を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
+  // 出発点は「主人公・洞窟」の2つ（発電機は初期からは無く、研究ツリーで解放する）。
+  // 主人公自身が⚡体力を生み、その⚡を配線で分けた先が動く。
+  // 開発ツール（DEV_CFG.initBoard）で初期配置が編集されていればそれに従う。
+  const ib = (DEV_CFG && DEV_CFG.initBoard) || {
+    initGold: 0, initIng1: 40,
+    nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:420, y:150}],
+    links: [{from:0, item:'sta', to:1}]
+  };
+  S.gold = ib.initGold || 0;
+  S.home = { ing1: ib.initIng1 != null ? ib.initIng1 : 40 };
+  S.counts = {};
+  const spawned = [];
+  for(const nd of (ib.nodes || [])){
+    if(!TYPES[nd.type]) continue;
+    const created = addNode(nd.type, nd.x, nd.y);
+    spawned.push(created);
+    S.counts[nd.type] = (S.counts[nd.type]||0) + 1;
+  }
+  if(!spawned.some(n => n.type === 'hero')){
+    const h = addNode('hero', 80, 150);
+    spawned.unshift(h);
+    S.counts.hero = 1;
+  }
+  for(const lk of (ib.links || [])){
+    const a = spawned[lk.from], b = spawned[lk.to];
+    if(a && b && ITEMS[lk.item]) addLink(a.id, lk.item, b.id);
+  }
+  addLog('🧍主人公 ⚡→ 🕳️洞窟 が接続済み。まずは主人公の体力で潜ってゴールドを貯めよう','u');
+  addLog('第1世代の施設も最初は一部のみ。🔬研究室を建てて「🔬研究ツリー」から新施設や🔌発電機を解放しよう','u');
+  addLog('🛠️ 上の「開発ツール」から研究ツリー・施設・初期配置・定数をいつでも自由に編集できます','u');
   S.at = null; renderBoard();
-  fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
+  fitView(1);                       // 窓が狭くても最初のノードが必ず見えるように
 }
 if(!load()) newGame();
 for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が未配線なので一度だけ繋ぐ
