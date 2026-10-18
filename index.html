@@ -71,39 +71,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 #wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 /* ノードだけがクリックを受け、空白は下の配線に通す */
 #world{position:absolute;inset:0;transform-origin:0 0;pointer-events:none}
-/* 地形。小さな地形画像を、画面の大きさのカンバスへ毎回描き写す。
-   10000×8000 の要素を置くと、引いたときに端末が抱えきれなくなる       */
-#mapc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-#mapg{position:absolute;inset:0;pointer-events:none;
-  background-image:linear-gradient(rgba(140,170,200,.05) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(140,170,200,.05) 1px,transparent 1px)}
-#mapd{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
-body.far #mapg{display:none}
-/* 引いたときは細かい格子を出さない（目が詰まって地形が読めなくなる） */
-body.far #stage{background-image:none}
-.dgm{position:absolute;width:200px;height:200px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:2px;pointer-events:none;
-  transform:scale(var(--iz,1))}
-.dgm .ic{font-size:54px;filter:grayscale(.4) brightness(1.05)}
-.dgm .lb{font-size:22px;font-weight:700;color:var(--dim);white-space:nowrap;
-  background:rgba(10,13,20,.7);border:1px solid var(--line);border-radius:6px;padding:2px 10px}
-.dgm.open .ic{filter:none}
-.dgm.open .lb{color:var(--acc);border-color:var(--acc)}
-/* 引いた地図では、名前まで読ませると混み合う。素材と強さだけにする */
-.dgm .lb2{display:none;font-size:20px;font-weight:700;color:var(--dim);white-space:nowrap;
-  background:rgba(10,13,20,.72);border:1px solid var(--line);border-radius:6px;padding:1px 8px}
-body.far .dgm .lb{display:none}
-body.far .dgm .lb2{display:block}
-.node.onsea{border-color:var(--bad)}
 path.hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:move}
-path.wire{fill:none;stroke-linecap:round;
-  filter:drop-shadow(0 0 4px rgba(4,7,11,1))}
-/* 細くて点線の線＝遠すぎて運べていない線。見ただけで手を入れる場所が分かる */
-path.wire.thin{stroke-dasharray:9 7}
+path.wire{fill:none;stroke-width:3.5;stroke-linecap:round}
 /* 線の向き。動きっぱなしの点線はやめ、真ん中に「>」を1つ置くだけにした。
    実際に物が動いたときは粒が走るので、そちらで流れが分かる            */
-path.flow{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
-  stroke-opacity:.55}
+path.flow{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+  stroke-opacity:.35}
 path.flow.on{stroke-width:3;stroke-opacity:1}   /* いま流れている線だけ濃く */
 #gw.far path.flow{display:none}        /* 引きの絵では細かい印は出さない */
 path.hit:hover + .wire{stroke-width:6;stroke-opacity:.85}
@@ -112,171 +85,9 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .wadd circle{fill:#0b1119;stroke:var(--acc);stroke-width:2}
 .wadd path{stroke:var(--acc);stroke-width:2;stroke-linecap:round;fill:none}
 .wadd:hover circle{fill:var(--acc)} .wadd:hover path{stroke:#08131a}
-path.wire.pick{stroke-opacity:1;stroke-width:6}
+path.wire.pick{stroke-opacity:1;stroke-width:4.5}
 #temp{fill:none;stroke:var(--acc);stroke-width:3;stroke-dasharray:6 6;opacity:.85}
 
-
-/* ---------- 山場の演出 ---------- */
-#fxFlash{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:30;
-  mix-blend-mode:screen}
-#fxCry{position:absolute;left:0;right:0;top:20%;pointer-events:none;z-index:31;
-  text-align:center;opacity:0}
-#fxCry.on{animation:cry 1.9s cubic-bezier(.16,1,.3,1) forwards}
-#fxCry .cry1{font-size:44px;font-weight:900;letter-spacing:.06em;color:var(--cc);
-  text-shadow:0 0 26px var(--cc),0 0 60px var(--cc),0 3px 10px #000}
-#fxCry .cry2{margin-top:6px;font-size:15px;font-weight:700;color:#e8eefc;
-  text-shadow:0 0 12px var(--cc),0 2px 6px #000}
-@keyframes cry{
-  0%  {opacity:0; transform:scale(.6) translateY(16px)}
-  10% {opacity:1; transform:scale(1.14) translateY(0)}
-  22% {opacity:1; transform:scale(1) translateY(0)}
-  72% {opacity:1; transform:scale(1) translateY(-6px)}
-  100%{opacity:0; transform:scale(1.06) translateY(-26px)}}
-/* 坑から広がる輪 */
-.node .shock{position:absolute;left:50%;top:50%;width:14px;height:14px;
-  margin:-7px 0 0 -7px;border-radius:50%;pointer-events:none;
-  border:2px solid var(--sc);opacity:.9;animation:shockw .9s ease-out forwards;z-index:-1}
-@keyframes shockw{
-  0%  {transform:scale(1);   opacity:.9;  border-width:3px}
-  100%{transform:scale(26);  opacity:0;   border-width:0.4px}}
-/* 共鳴。溜まるほど坑が熱を持つ */
-/* 守護者の体力。削れていくのが見えないと、戦っている気がしない */
-.node .hpwrap{position:absolute;left:8px;right:8px;top:-9px;height:5px;
-  border-radius:3px;background:#0a0f16;border:1px solid #3a1f27;overflow:hidden;
-  pointer-events:none;display:none}
-.node.boss .hpwrap,.node.guard .hpwrap{display:block}
-.node .hpwrap i{display:block;height:100%;width:100%;background:#d9576b;
-  box-shadow:0 0 7px #d9576b;transition:width .12s linear}
-.node.boss .hpwrap{border-color:#7a4fb0;height:7px;top:-11px}
-.node.boss .hpwrap i{background:linear-gradient(90deg,#ff5f6d,#c08bff);
-  box-shadow:0 0 12px #c08bff}
-.node .dmg{position:absolute;right:-6px;top:6px;pointer-events:none;
-  font-size:12px;font-weight:900;color:#ffd7a0;
-  text-shadow:0 0 8px #ff9a4d,0 1px 3px #000;
-  animation:dmgf .75s ease-out forwards;z-index:5}
-.node .dmg.crit{font-size:16px;color:#fff1b8;text-shadow:0 0 14px #ffd24d,0 1px 3px #000}
-@keyframes dmgf{
-  0%  {opacity:0; transform:translate(0,4px)   scale(.7)}
-  18% {opacity:1; transform:translate(6px,-4px) scale(1.15)}
-  100%{opacity:0; transform:translate(16px,-26px) scale(.95)}}
-@media (prefers-reduced-motion: reduce){ .node .dmg{animation:none;opacity:1} }
-.node .resbar{position:absolute;left:8px;right:8px;bottom:3px;height:3px;
-  border-radius:2px;background:#0a0f16;overflow:hidden;pointer-events:none}
-.node .resbar i{display:block;height:100%;width:0;background:var(--rcol,#5a6b82);
-  box-shadow:0 0 7px var(--rcol,#5a6b82);transition:width .25s linear}
-@keyframes riftp{
-  0%,100%{box-shadow:0 0 0 1px #c08bff,0 0 14px 2px rgba(192,139,255,.55),0 8px 22px rgba(0,0,0,.45)}
-  50%    {box-shadow:0 0 0 2px #c08bff,0 0 34px 10px rgba(192,139,255,.8),0 8px 22px rgba(0,0,0,.45)}}
-/* 裂け目の印。名前を押し出さないよう、角に出す */
-.node.rift::after{content:'🌀 裂け目';position:absolute;right:-4px;top:-11px;
-  font-size:9.5px;font-weight:900;color:#08131a;background:#c08bff;
-  border-radius:5px;padding:1px 6px;letter-spacing:.04em;
-  box-shadow:0 0 12px rgba(192,139,255,.9);pointer-events:none}
-@media (prefers-reduced-motion: reduce){
-  #fxCry.on{animation:none;opacity:1}
-  .node .shock{animation:none;display:none}
-  .node.rift{animation:none;box-shadow:0 0 0 2px #c08bff,0 0 20px 6px rgba(192,139,255,.6)}
-}
-/* 拾った瞬間の光。等級の色で一瞬ふくらむ。
-   数字が増えるだけでは「当たった」感じが出ない                    */
-.node .pop{position:absolute;left:50%;top:-6px;transform:translateX(-50%);
-  pointer-events:none;white-space:nowrap;font-size:12px;font-weight:700;
-  color:var(--rc);text-shadow:0 0 8px var(--rc),0 1px 3px #000;
-  background:rgba(8,12,18,.86);border:1px solid var(--rc);border-radius:7px;
-  padding:2px 9px;opacity:0;animation:popup 1.5s ease-out forwards;z-index:6}
-@keyframes popup{
-  0%  {opacity:0; transform:translateX(-50%) translateY(6px)  scale(.8)}
-  14% {opacity:1; transform:translateX(-50%) translateY(-6px) scale(1.12)}
-  30% {opacity:1; transform:translateX(-50%) translateY(-12px) scale(1)}
-  100%{opacity:0; transform:translateX(-50%) translateY(-42px) scale(1)}}
-.node.flash{animation:nflash .7s ease-out}
-/* 動きを控える設定の人には、動かさずに色だけ見せる */
-@media (prefers-reduced-motion: reduce){
-  .node .pop{animation:none;opacity:1;transform:translateX(-50%) translateY(-10px)}
-  .node.flash{animation:none;box-shadow:0 0 14px 3px var(--fc),0 8px 22px rgba(0,0,0,.45)}
-}
-@keyframes nflash{
-  0%  {box-shadow:0 0 0 0 var(--fc), 0 8px 22px rgba(0,0,0,.45)}
-  35% {box-shadow:0 0 22px 6px var(--fc), 0 8px 22px rgba(0,0,0,.45)}
-  100%{box-shadow:0 0 0 0 transparent, 0 8px 22px rgba(0,0,0,.45)}}
-/* ---------- 収集庫（遺物） ---------- */
-.stbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
-.stbar select{flex:1 1 auto;min-width:104px;background:#0b1119;color:var(--fg);
-  border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px}
-.stacts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
-.stacts button{background:#111a26;color:var(--fg);border:1px solid var(--line);
-  border-radius:7px;padding:6px 11px;font-size:12px;cursor:pointer}
-.stacts button:hover{border-color:var(--acc)}
-.sthint{font-size:11px;color:var(--dim)}
-.rlist{display:grid;gap:7px}
-.rcard{border:1px solid var(--line);border-left:4px solid var(--rc);border-radius:9px;
-  padding:8px 10px;background:#0c131c;cursor:pointer}
-.rcard:hover{border-color:var(--rc)}
-.rcard.sel{box-shadow:0 0 0 1px var(--rc);background:#101a25}
-.rcard.worn{background:#0e1721}
-.rtop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.rtop .ric{font-size:15px}
-.rtop .rnm{font-weight:700;font-size:13px;color:var(--rc)}
-.rtag{font-size:9.5px;font-weight:700;color:var(--rc);border:1px solid var(--rc);
-  border-radius:4px;padding:0 5px;opacity:.9}
-.rwo{font-size:9.5px;font-weight:700;color:#0a0f16;background:var(--acc);
-  border-radius:4px;padding:0 5px}
-.rsub{font-size:10.5px;color:var(--dim);margin:2px 0 4px}
-.rsub .rset{color:var(--acc)}
-.raf{display:flex;flex-wrap:wrap;gap:4px}
-.raf span{font-size:11px;background:#111a26;border:1px solid var(--line);
-  border-radius:5px;padding:1px 6px}
-.raf span.fx{border-color:#35506e;color:#bcd2ee}
-.raf span.lk{border-color:var(--acc)}
-.raf span.cur{border-color:#6d3a45;color:#ff8b9a}
-.raf span.cor{border-color:#7a4fb0;color:#c08bff}
-.raf .aft{font-style:normal;font-size:9px;color:var(--dim);margin-left:3px}
-.rfl{font-size:10.5px;color:#c8b48a;margin-top:4px;font-style:italic}
-.stsel{margin-bottom:10px}
-.cmp{border:1px dashed var(--line);border-radius:9px;padding:7px 8px;margin:0 0 10px}
-.cmp.win{border-color:#2f6b60} .cmp.lose{border-color:#6d3a45}
-.cmph{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:5px}
-#insp .resline{height:6px;border-radius:3px;background:#0a0f16;overflow:hidden;margin:2px 0 6px}
-#insp .resline i{display:block;height:100%;transition:width .3s linear;
-  box-shadow:0 0 8px currentColor}
-#insp .kv.rift b{color:#c08bff}
-#insp .kv.prize b{color:#e0b366}
-.cmp.win .cmph{color:var(--acc)} .cmp.lose .cmph{color:#ff8b9a}
-#insp .btns.deprow button{flex:1 1 0;display:flex;flex-direction:column;
-  align-items:center;gap:1px;padding:7px 4px;line-height:1.2}
-#insp .btns.deprow button i{font-style:normal;font-size:9.5px;color:var(--dim)}
-#insp .btns.deprow button:hover i{color:var(--acc)}
-.orbs{display:grid;gap:7px}
-.orb{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#0c131c;cursor:pointer}
-.orb:hover{border-color:var(--acc)}
-.orb.off{opacity:.42;cursor:default}
-.orb.off:hover{border-color:var(--line)}
-.on1{display:flex;align-items:center;gap:6px;font-size:12.5px}
-.on1 .oic{font-size:15px}
-.on1 .onum{margin-left:auto;font-weight:700;color:var(--acc)}
-.orb .od{font-size:10.5px;color:var(--dim);margin-top:2px}
-.orb .ong{font-size:10.5px;color:#ff8b9a;margin-top:3px}
-.setbox{border:1px solid var(--line);border-left:4px solid var(--rc);border-radius:9px;
-  padding:9px 11px;background:#0c131c;margin-bottom:8px}
-.setbox.done{background:#101c19;border-color:var(--rc)}
-.seth{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.seth b{color:var(--rc);font-size:13px}
-.setn{font-size:10.5px;color:var(--dim);margin-left:auto}
-.setp{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0}
-.setp span{font-size:11px;background:#111a26;border:1px solid var(--line);
-  border-radius:5px;padding:1px 6px;opacity:.45}
-.setp span.ok{opacity:1;border-color:var(--rc)}
-.setb{font-size:11px;color:var(--acc)}
-.setl{font-size:10px;color:var(--dim);margin-top:2px}
-.uqhead{font-size:12px;font-weight:700;margin:14px 0 6px;color:var(--fg)}
-.uqlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
-.uqi{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#0c131c;opacity:.5}
-.uqi.got{opacity:1;border-color:#e0b366}
-.uqn{font-size:11.5px;font-weight:700}
-.uqi.got .uqn{color:#e0b366}
-.uqd{font-size:10px;color:var(--dim);margin-top:1px}
-.rsel{width:100%}
-.rinfo .cur{color:#ff8b9a;font-style:normal}
 /* ---------- ノード ---------- */
 .node{--pol:0;position:absolute;width:176px;padding:7px 9px;pointer-events:auto;
   background:var(--panel2);border:1px solid var(--line);border-radius:11px;
@@ -289,10 +100,6 @@ path.wire.pick{stroke-opacity:1;stroke-width:6}
 .node.stall{border-color:#6d3a45}
 .node.run{border-color:#2f6b60}
 .node.tgt{border-color:var(--acc2);box-shadow:0 0 0 2px var(--acc2)}
-.node.hot{border-color:var(--rcol);box-shadow:0 0 0 1px var(--rcol),
-  0 0 var(--rglow,0px) var(--rcol),0 8px 22px rgba(0,0,0,.45)}
-.node.rift{border-color:#c08bff;animation:riftp 1.05s ease-in-out infinite}
-
 .node.over{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc),0 0 22px rgba(94,224,192,.45)}
 /* 配線を伸ばしているあいだ、受け取れる口だけをはっきり光らせる */
 body.linking .port.hot{background:var(--acc2);color:#08131a;border-color:var(--acc2);
@@ -315,8 +122,8 @@ body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;backgroun
 body.linking .node.dim, body.placing .node.dim{opacity:1;filter:none}
 body.linking path.wire.dim, body.placing path.wire.dim{stroke-opacity:.32}
 .node.near{border-color:var(--acc2)}
-path.wire.dim{stroke-opacity:.1}
-path.flow.dim{stroke-opacity:.1}
+path.wire.dim{stroke-opacity:.05}
+path.flow.dim{stroke-opacity:.05}
 circle.wph.dim{opacity:.15}
 .nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
   background:#0b1119;border:1px solid var(--line);padding:0 5px;border-radius:4px}
@@ -350,10 +157,6 @@ circle.wph.dim{opacity:.15}
 .slot.o .dm{margin:0 0 0 1px}
 .node .aura.clean{border:1px dashed rgba(94,224,192,.30);
   background:radial-gradient(circle,rgba(94,224,192,.09),transparent 70%)}
-.node .aura.reach{border:1px dashed rgba(122,162,255,.34);
-  background:radial-gradient(circle,rgba(122,162,255,.07),transparent 72%)}
-.node .aura.sea{border:1px dashed rgba(90,170,220,.30);
-  background:radial-gradient(circle,rgba(90,170,220,.06),transparent 72%)}
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
 .node.stall .aura{opacity:.25}
@@ -538,7 +341,6 @@ body.tut #offscr{display:none}
 .tbtn.fast{background:rgba(242,193,78,.18);color:var(--acc);border-color:var(--acc)}
 .tbtn.dbg:hover{background:var(--warn);color:#0a0d14}
 /* ---------- 研究ツリー ---------- */
-.tbtn.fxoff{opacity:.5}
 .tbtn.tree{border-color:var(--acc2);color:var(--acc2)}
 .tbtn.tree:hover{background:var(--acc2);color:#08131a}
 #stats{position:fixed;inset:0;background:rgba(6,9,14,.85);z-index:108;display:none;
@@ -711,8 +513,6 @@ table.dtbl td .dn{color:var(--bad)}
 #insp .nflow .fnm{overflow:hidden;text-overflow:ellipsis}
 #insp .nflow .fi{color:var(--acc)} #insp .nflow .fo{color:var(--bad)}
 #insp .nflow .fn{font-weight:700;min-width:54px;text-align:right;color:var(--fg)}
-#insp .nflow .fn.nup{color:var(--acc)} #insp .nflow .fn.ndn{color:var(--bad)}
-#insp .nflow .fn.nflat{color:var(--dim)}
 /* トロフィー */
 #tro{position:fixed;inset:0;background:rgba(6,9,14,.82);z-index:107;display:none;
   align-items:center;justify-content:center;padding:16px}
@@ -957,7 +757,6 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <div class="stat m"><span class="k">🧱<em>資材</em></span><span class="v num" id="tMat">0</span></div>
     <span class="sp"></span>
     <button class="tbtn" id="bSpeed">⏩ ×1</button>
-    <button class="tbtn" id="bFx">✨ 演出</button>
     <button class="tbtn" id="bFit">全体表示</button>
     <button class="tbtn" id="bTidy">整列</button>
     <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
@@ -984,22 +783,13 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div id="shopList"></div>
     </div>
     <div id="stage">
-      <canvas id="mapc"></canvas><div id="mapg"></div>
       <svg id="wires"><g id="gw"><g id="gwL"></g><g id="gwP"></g><g id="gwH"></g><path id="temp"></path><path id="lasso"></path></g></svg>
-      <div id="world"><div id="mapd"></div></div>
-      <div id="fxFlash"></div>
-      <div id="fxCry"></div>
+      <div id="world"></div>
       <div id="hint">
         <div class="ttl">ⓘ 操作方法</div>
         <div class="body">
         <b>⚡体力がすべての元</b>。勇者から伸ばす配線の本数がそのまま配分になります<br>
         緑の<b>丸(出力)</b>をドラッグ → 相手の青い<b>角(入力)</b>へ。素材ごとに口が分かれています<br>
-        <b>地形</b>：施設はタイルの上に置きます。配線が横切った地形で流れの速さが変わります<br>
-        <b>遺物</b>：ダンジョンで拾う、一つずつ中身の違う装置。施設のスロットに挿して強くします。
-        いらないものは⚗️錬成台で溶かすと、打ち直しの品になります<br>
-        <b>深度</b>：攻略済みのダンジョンは深度を上げられます。守護者が戻ってくる代わりに、
-        採れる量と落ちる遺物の深さが上がります<br>
-        　🌱平地 ×1 ／ ⛰️山 ×1/2 ／ 💧川 ×1/3 ／ 🌊海は⚓港がないと渡れません<br>
         <b>🔗複合化</b>=つながる生産施設を2〜10台囲むと、ひとつにまとまります（⚡が3割減）<br>
         配線を<b>タップ</b>=選ぶ（ピンの足し引き・切断ができます）<br>
         配線を<b>ドラッグ</b>=ピンを打って曲げる / <b>ダブルタップ</b>=まっすぐに戻す<br>
@@ -1123,9 +913,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       <div class="btabs">
         <button class="bt1 on" data-t="gear">🎽 装備 <b id="bcGear">0</b></button>
         <button class="bt1" data-t="home">🏠 自宅 <b id="bcHome">0</b></button>
-        <button class="bt1" data-t="part">🔮 遺物 <b id="bcPart">0</b></button>
-        <button class="bt1" data-t="orb">⚗️ 錬成 <b id="bcOrb">0</b></button>
-        <button class="bt1" data-t="set">🏛 揃い <b id="bcSet">0</b></button>
+        <button class="bt1" data-t="part">🔧 パーツ <b id="bcPart">0</b></button>
         <button class="bt1" data-t="skill">✨ スキル <b id="bcSkill">0</b></button>
         <button class="bt1" data-t="drop">🎁 クリア報酬 <b id="bcDrop">0</b></button>
         <button class="bt1" data-t="ware" id="bcWareTab" hidden>📦 倉庫</button>
@@ -1250,13 +1038,11 @@ const CAP    = 10;    // バッファの基準値（必要数が大きいノー�
 const PSPEED = 380;   // 配線上を素材が流れる速さ px/s
 const PMAX   = 0.7;   // どんなに長い経路でも、渡りきるのにこれ以上はかけない（秒）
 const SENDCD = 0.10;  // 1回送り出すごとの間隔
-const LINK_BURST = 12;// 1本の線が貯めておける送り出しの回数（まとめ送りのため）
 const PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
 const UP_K   = 1.02;  // 強化コストの伸び（1レベルごと）。効果の逓減に合わせてゆるやか
 
 const ITEMS = {
   sta  :{n:'電力',   i:'⚡', c:'#f2c14e'},
-  crew :{n:'人手',   i:'🧑', c:'#e8785a'},
   waste:{n:'廃材',   i:'🗑️', c:'#8a6f5c'},
   // 原鉱（採掘で得る。深く潜るほど良いものが解放される）
   ore1 :{n:'銅鉱',   i:'🪨', c:'#b0764a'},
@@ -1465,7 +1251,7 @@ const payOf   = n => { const T=TYPES[n.type];
 const payRpOf = n => { const T=TYPES[n.type];
   return T.payRp ? Math.max(1, Math.round(T.payRp * Math.pow(2.6, (T.era||1)-1))) : 0; };
 const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
-const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(nLv(n)) * gearMul('arcane'));
+const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(n.level) * gearMul('arcane'));
 /* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
    間隔が長いぶん、1個の値段は高い                                        */
 const SELL_TAKE = 1, SELL_K = 200;
@@ -1477,8 +1263,7 @@ const fuelOut = n => Math.max(1, Math.round(bypVal(baseOf(n.item)) * Math.pow(de
 const SELL_CLASS = k => { const b=baseOf(k);
   return /^ore/.test(b) ? 0.5 : /^ing/.test(b) ? 1.2 : /^prt/.test(b) ? 1.8 : 1; };
 /* 目利き（第5以降の売り場）：売値が5割増しになる */
-const sellMul = n => (hasPerk(TYPES[n.type],'rich') ? 1.5 : 1)
-                   * (1 + (modsOf(n).sp.sellUp||0)/100) * goldMul();
+const sellMul = n => hasPerk(TYPES[n.type],'rich') ? 1.5 : 1;
 function sellPrice(k, lv){
   return Math.max(1, Math.round(itemVal(k) * SELL_CLASS(k) * SELL_TAKE * SELL_K * lvPow(lv)
                                 * gearMul('rich') * skillMul('gold')));
@@ -1549,16 +1334,15 @@ function chainOpts(t){
 /* ノード＝主人公の「行動」。役割ごとに1つだけ基本を書き、
    時代ちがいの版は下の FAC 表から作る。                                   */
 const TYPES = {
-  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{crew:1}, src:true, unique:true, gear:3,
-          d:'この工房のあるじ。🧑人手を出す。ダンジョンへ配線でつなぐと、そこへ配属される。'
-           +'装備スロットが3つ。訓練で得た経験値はここへ戻す。❤️体力が高いほど人手が速く出る'},
-  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{crew:1}, src:true, gear:1, pay:6,
-          d:'ゴールドを払って働いてもらう人。🧑人手を出す。装備スロットが1つ。'
-           +'給料が払えなくなると手が止まる'},
-  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8, crew:1}, outs:{}, effect:'dive', loot:true,
-          d:'🧑人手を送りこんで1回攻撃する。人がいないと誰も潜れない。'
-           +'撃破すると戦利品が出る。地図のダンジョンは守護者を倒すと制圧でき、'
-           +'そこに眠る鉱石が採れるようになる'},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, unique:true, gear:3,
+          d:'この工房のあるじ。装備スロットが3つある。訓練で得た経験値はここへ戻す。'
+           +'ダンジョンや街に配属して働く'},
+  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{}, src:true, gear:1, pay:6,
+          d:'ゴールドを払って働いてもらう人。装備スロットが1つある。'
+           +'ダンジョンや街に配属して働く。給料が払えなくなると手が止まる'},
+  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
+          d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
+           +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore',
           d:'原鉱を掘る。掘る鉱石は選ぶ。かならず副産物が出る'},
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean',
@@ -1620,15 +1404,6 @@ const TYPES = {
            +'ほどけば元に戻る'},
   raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
           d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
-  orbf  :{n:'錬成台',    i:'⚗️', cost:9000, up:11000, time:9.0, ins:{sta:24}, outs:{}, effect:'orbf',
-          d:'いらない遺物を溶かして、錬成の品に変える。等級と深さが高いほど多く取れる。'
-           +'溶かす等級は施設ごとに決める'},
-  relay :{n:'中継塔',    i:'📡', cost:1200, up:1500, time:3.0, ins:{}, outs:{}, relay2:true,
-          d:'まわりの土地を「近い」ことにする。塔の下を通る配線は、距離が1/4に数えられる。'
-           +'遠くの鉱山から運びたいなら、途中に点々と建てて道をつなぐ'},
-  port  :{n:'港',        i:'⚓', cost:6000, up:7000, time:3.0, ins:{sta:6}, outs:{}, port2:true,
-          d:'海に面した土地にだけ置ける。まわり6タイルの海を、配線が渡れるようになる。'
-           +'ただし海の上は流れが半分になる'},
   purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:3.0, ins:{sta:4}, outs:{},
           aura:{k:'clean', v:1.0, r:280},
           d:'置いた場所のまわりの汚染を抑える。範囲は点線で見える'},
@@ -1759,9 +1534,6 @@ const FAC = {
   hout:  [{e:1,n:'搬出口',      i:'🏠'},{e:2,n:'荷出し場',  i:'🚚'},{e:3,n:'自動搬出機',i:'🤖'}],
   purify:[{e:1,n:'送風機',      i:'🌬️'},{e:2,n:'空気清浄機',i:'🌀'},{e:3,n:'浄化場',    i:'🧱'}],
   boost: [{e:1,n:'作業灯',      i:'💡'},{e:2,n:'監督塔',    i:'🔔'},{e:3,n:'管制塔',    i:'🤖'}],
-  orbf:  [{e:1,n:'錬成台',      i:'⚗️'},{e:2,n:'錬成炉',    i:'🧪'},{e:3,n:'万象炉',    i:'🌌'}],
-  relay: [{e:1,n:'中継塔',      i:'📡'},{e:2,n:'中継基地',  i:'🗼'},{e:3,n:'転送塔',    i:'🛰'}],
-  port:  [{e:1,n:'港',          i:'⚓'},{e:2,n:'大型港',    i:'🛳'},{e:3,n:'空中港',    i:'🛸'}],
 };
 
 /* =========================================================================
@@ -1935,7 +1707,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  wood:'薪',coal:'石炭',gen:'発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',port:'港'};
+  wood:'薪',coal:'石炭',gen:'発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -1956,15 +1728,13 @@ const lvPow = L => Math.pow(1/ERA_SPD, Math.log(1 + (Math.max(1,L)-1)/LV_BASE) /
 const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP);  // 何時代ぶんか
 
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
-// 1人が抱えておける🧑人手。❤️体力が高いほど続けて働ける
-const crewCap  = () => Math.max(4, Math.floor(4 * Math.pow(VIT_K, S.stats.vit)));
-const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / lvPow(nLv(n)) / (1 + (tierOf(n).t-1)*0.5);
+const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / lvPow(n.level) / (1 + (tierOf(n).t-1)*0.5);
 const intBoost = () => 1 + S.stats.int * 0.02;
 const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15)
                        * depthBonus() * gearMul('firm') * skillMul('atk'));
-const rpGain   = n  => lvPow(nLv(n)) * (1 + S.stats.int * 0.15) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
+const rpGain   = n  => lvPow(n.level) * (1 + S.stats.int * 0.15) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
 /* 素材を研究資材に変えるときの取り分。研究所の世代とレベルで増える */
-const matMul   = n  => lvPow(nLv(n)) * Math.pow(2.2, (TYPES[n.type].era||1)-1) * gearMul('arcane');
+const matMul   = n  => lvPow(n.level) * Math.pow(2.2, (TYPES[n.type].era||1)-1) * gearMul('arcane');
 /* 送り込んだ素材は🧱になると同時に🔬にもなる。
    ⚡だけを元手にしていると、素材がいくら余っても研究が伸びなかった      */
 const MAT_RP   = 1.0;
@@ -2084,8 +1854,6 @@ function modIns(n, o){
   const r = {};
   // 切り上げだと、⚡の少ない施設では節電が効かなくなる。四捨五入にする
   for(const k in o) r[k] = k==='sta' ? Math.max(1, Math.round(o[k]*m.sta)) : o[k];
-  if(m.sp.noSta){ delete r.sta; delete r.power; delete r.nfl; }   // 永久機関
-  if(m.sp.ins2) for(const k in r) if(k!=='crew') r[k] = Math.max(1, Math.round(r[k]*2));
   for(const k in m.need) r[k] = (r[k]||0) + m.need[k];
   return r;
 }
@@ -2151,7 +1919,6 @@ function outsOf(n){
   }
   if(T.loot){ const o = {[lootItem(n)]:1};
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
-    const d = dgOf(n); if(d && dgCl(d) >= 0) o[d.ore] = 1;   // 制圧したダンジョンの鉱石
     return modOuts(n, o); }
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
@@ -2278,22 +2045,17 @@ function takeEquip(k){
   return pick(S.nodes.filter(n=>TYPES[n.type].store)) || pick(S.nodes);
 }
 const giveEquip = k => { const P=homeOf(); P[k]=(P[k]||0)+1; };
-/* 遺物を挿す・外す。遺物は持ち物に残り続けるので、外すのは枠を空けるだけ */
-function setPart(n, i, id){
+/* パーツを挿す・外す。外したぶんは持ち物へ戻る */
+function setPart(n, i, key){
   const g = partsOf(n); if(i >= g.length) return;
   const old = g[i] || null;
-  id = id ? +id : null;
-  if(old === id) return;
-  if(id){
-    const it = invGet(id); if(!it) return toast('その遺物を持っていません');
-    const at = wornAt(id);
-    if(at && at !== n) return toast(`${relName(it)} は #${at.no} に挿さっています`);
-    if(at === n){ const j = n.parts.indexOf(id); if(j >= 0) n.parts[j] = null; }
-  }
-  n.parts[i] = id;
-  modsDirty(n); partsOf(n); rebuildNodeEl(n); renderBag(); renderInsp();
-  const it = id && invGet(id);
-  toast(it ? `${relName(it)} を挿した` : '遺物を外した');
+  if(old === (key||null)) return;
+  if(key && !partStock(key)) return toast('そのパーツを持っていません');
+  if(old) addPart(old, 1);
+  if(key) usePart(key);
+  n.parts[i] = key || null;
+  modsDirty(n); rebuildNodeEl(n); renderBag();
+  toast(key ? `${partName(key)} を挿した` : 'パーツを外した');
 }
 function setGear(n, i, k){
   const g = gearOf(n)[i]; if(!g || g.item===k) return;
@@ -2331,7 +2093,7 @@ function craftTime(n){
   // 工房ぜんたいがそのぶん速くまわる（片方だけだと⚡が足りなくなる）
   if(T.src) return staRate(n) * sp * env / skillMul('sta') / troMul();
   const base = n.comb ? combCalc(n).time : T.time;
-  return base / lvPow(nLv(n)) / intBoost() * sp * env / skillMul('spd') / troMul();
+  return base / lvPow(n.level) / intBoost() * sp * env / skillMul('spd') / troMul();
 }
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
@@ -2410,7 +2172,7 @@ const layerWide = (n,item) => (TYPES[n.type].layer) ? Math.max(1, layerUsers(n)[
 const capIn   = (n,item) => Math.ceil(capMul(n) * layerWide(n,item)
                         * (TYPES[n.type].chain==='sell' ? CAP*4
                           : (TYPES[n.type].store||TYPES[n.type].ware)
-                          ? TYPES[n.type].cap * lvPow(nLv(n))
+                          ? TYPES[n.type].cap * lvPow(n.level)
                           : Math.max(CAP, (allIns(n)[item]||0) * 2)));
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
 const BYP_CAP  = 100;                     // 副産物はここまでしか溜まらない。満杯になると施設が止まる
@@ -2418,7 +2180,7 @@ const isByp    = k => BYP.some(b=>b.k===k);
 /* 副産物を抱えておける量。複合施設は中の段の数だけ、ふつうの施設ぶん持てる */
 const bypCap = n => BYP_CAP * (n.comb ? n.comb.length + 1 : 1);
 const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
-                          : (TYPES[n.type].src && item==='crew') ? crewCap()
+                          : (TYPES[n.type].src && item==='sta') ? maxSta()
                           : isByp(item) ? bypCap(n)
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
@@ -2446,413 +2208,26 @@ const AFFIX = [
                                                           m.need[c.part]=(m.need[c.part]||0)+1; }},
 ];
 function newMods(){ return {spd:1, sta:1, yld:0, wst:0, cap:1, clean:0, need:{},
-                            gear:0, skill:0, payK:1, tags:[],
-                            // 遺物で増えるもの
-                            reach:0, mf:0, mq:0, gold:0, rp:0, pol:0, twin:0,
-                            lvl:0, slot:0, foul:0, aura:null, sp:{}}; }
-/* ========================= 遺物（トレハン） =========================
-   ダンジョンで拾う、一つひとつ中身の違う装置。
-   等級・接辞の段・振れ幅があるので、同じ名前でも当たり外れが出る。
-   これが「もう一回潜る」理由になる。                              */
-const RAR = [
-  {n:'並',   c:'#95a3b8', af:[0,0], w:560, s:1},
-  {n:'魔法', c:'#5aa9ff', af:[1,2], w:330, s:3},
-  {n:'希少', c:'#f2c14e', af:[3,4], w:108, s:9},
-  {n:'英雄', c:'#ff9a4d', af:[5,6], w:23,  s:26},
-  {n:'固有', c:'#e0b366', af:[2,3], w:4.6, s:70},   // 名前と特殊効果が決まっている
-  {n:'神話', c:'#ff5f6d', af:[3,4], w:0.5, s:220},  // 固有＋呪い＋桁違い
+                            gear:0, skill:0, payK:1, tags:[]}; }
+/* ── 強化パーツ ──
+   施設のスロットに挿して、その1台だけを強くする。
+   等級（1〜3）があり、深いダンジョンほど良いものが出る。
+   ふつうの施設はスロット1つ、ダンジョン産は2〜5つ                 */
+const PARTS = [
+  {k:'acc', i:'⚙️', n:'加速装置', d:'この施設が速くなる',
+   v:g=>`速さ ×${(1/Math.max(.35,1-0.18*g)).toFixed(2)}`, f:(m,g)=>m.spd *= Math.max(.35, 1-0.18*g)},
+  {k:'eco', i:'🪶', n:'節電装置', d:'⚡の消費が減る',
+   v:g=>`⚡ ×${Math.max(.30,1-0.16*g).toFixed(2)}`,        f:(m,g)=>m.sta *= Math.max(.30, 1-0.16*g)},
+  {k:'yld', i:'📈', n:'増産装置', d:'出来上がりが増える',
+   v:g=>`出来高 +${g}`,                                    f:(m,g)=>m.yld += g},
+  {k:'cap', i:'📦', n:'大型貯蔵', d:'抱えられる量が増える',
+   v:g=>`容量 ×${(1+0.8*g).toFixed(1)}`,                   f:(m,g)=>m.cap *= 1+0.8*g},
+  {k:'cln', i:'🌬', n:'集塵装置', d:'廃材を出さなくなる',
+   v:()=>'廃材なし',                                        f:(m)  =>m.clean = 1},
+  {k:'arm', i:'🔧', n:'拡張架台', d:'装備とスキルの枠が増える',
+   v:g=>`装備 +${g}／スキル +${Math.ceil(g/2)}`,            f:(m,g)=>{ m.gear+=g; m.skill+=Math.ceil(g/2); }},
 ];
-const RAR_MAX = 3;                       // 錬成で届く上限（固有以上は拾うしかない）
-/* 遺物の器。それぞれ「その器らしい接辞」が必ず1つ付く */
-const REL_BASE = [
-  {k:'acc', i:'⚙️', n:'加速炉',     b:'spd'},
-  {k:'eco', i:'🪶', n:'節電器',     b:'sta'},
-  {k:'yld', i:'📈', n:'増産盤',     b:'yld'},
-  {k:'cap', i:'📦', n:'貯蔵庫',     b:'cap'},
-  {k:'cln', i:'🌬', n:'集塵機',     b:'cln'},
-  {k:'arm', i:'🔧', n:'拡張架台',   b:'gear'},
-  {k:'lns', i:'🔭', n:'遠見レンズ', b:'reach'},
-  {k:'luc', i:'🍀', n:'幸運環',     b:'mf'},
-  {k:'prs', i:'💠', n:'稜晶',       b:'mq'},
-  {k:'gld', i:'💰', n:'徴収印',     b:'gold'},
-  {k:'stu', i:'📖', n:'記録板',     b:'rp'},
-  {k:'pur', i:'💧', n:'浄化器',     b:'pol'},
-];
-const RB = {}; for(const x of REL_BASE) RB[x.k] = x;
-/* 接辞。t は [この段が出る最低の深さ, 下限, 上限]。深いほど上の段が出る。
-   p=1 は名前の前につく語（接頭）、p=0 は後ろにつく語（接尾）        */
-const AF = [
- {k:'spd', g:'spd', p:1, n:['粗い','鋭い','疾い','迅雷の','烈風の','時断ちの'],
-  t:[[1,6,12],[10,12,20],[22,20,32],[38,32,48],[58,48,72],[82,72,104]],
-  f:(m,v)=>m.spd/=1+v/100, d:v=>`速さ +${v}%`},
- {k:'sta', g:'sta', p:1, n:['倹しい','省エネの','静かな','無音の','虚空の','永久の'],
-  t:[[1,6,11],[10,11,18],[22,18,27],[38,27,38],[58,38,52],[82,52,70]],
-  f:(m,v)=>m.sta*=Math.max(0.05, 1-v/100), d:v=>`⚡消費 −${v}%`},
- {k:'yld', g:'yld', p:0, n:['実り','豊穣','多産','黄金律','無尽蔵','豊穣神'],
-  t:[[1,1,1],[14,1,2],[28,2,3],[46,3,4],[66,4,6],[88,6,9]],
-  f:(m,v)=>m.yld+=v, d:v=>`出来高 +${v}`},
- {k:'cap', g:'cap', p:1, n:['広い','嵩張る','大容の','深淵の','底無しの','次元の'],
-  t:[[1,30,60],[12,60,110],[26,110,190],[44,190,320],[64,320,520],[86,520,900]],
-  f:(m,v)=>m.cap*=1+v/100, d:v=>`容量 +${v}%`},
- {k:'cln', g:'wst', p:1, n:['清い','澄んだ','無垢の','聖なる','原初の','無垢なる'],
-  t:[[6,1,1]], f:m=>m.clean=1, d:()=>'廃材を出さない', rw:0.35},
- {k:'gear',g:'gear',p:0, n:['器用','熟達','多芸','万能','神技','全知'],
-  t:[[8,1,1],[30,1,2],[55,2,3],[78,3,4]],
-  f:(m,v)=>m.gear+=v, d:v=>`装備枠 +${v}`, rw:0.6},
- {k:'skl', g:'skl', p:0, n:['閃き','覚醒','啓示','天啓','悟り','神託'],
-  t:[[14,1,1],[40,1,2],[70,2,3]],
-  f:(m,v)=>m.skill+=v, d:v=>`スキル枠 +${v}`, rw:0.5},
- {k:'reach',g:'reach',p:1,n:['遠い','長射程の','遠見の','地平の','彼方の','無限遠の'],
-  t:[[1,15,30],[16,30,55],[32,55,90],[52,90,140],[72,140,210],[92,210,320]],
-  f:(m,v)=>m.reach+=v, d:v=>`配線の届き +${v}%`},
- {k:'mf',  g:'mf',  p:0, n:['幸運','僥倖','強運','天運','宿星','運命'],
-  t:[[1,8,16],[14,16,28],[30,28,45],[50,45,70],[70,70,105],[90,105,160]],
-  f:(m,v)=>m.mf+=v, d:v=>`発見量 +${v}%`},
- {k:'mq',  g:'mq',  p:0, n:['選別','目利き','鑑識','審美','神眼','天啓'],
-  t:[[6,5,10],[20,10,18],[36,18,30],[56,30,46],[76,46,68],[95,68,100]],
-  f:(m,v)=>m.mq+=v, d:v=>`発見質 +${v}%`},
- {k:'gold',g:'gold',p:0, n:['実入り','蓄財','富貴','黄金','王侯','竜宝'],
-  t:[[1,10,22],[14,22,40],[30,40,68],[50,68,110],[70,110,175],[90,175,280]],
-  f:(m,v)=>m.gold+=v, d:v=>`ゴールド +${v}%`},
- {k:'rp',  g:'rp',  p:0, n:['聡明','学識','叡智','賢者','大賢者','悟達'],
-  t:[[1,8,18],[14,18,32],[30,32,54],[50,54,88],[70,88,140],[90,140,220]],
-  f:(m,v)=>m.rp+=v, d:v=>`🔬研究 +${v}%`},
- {k:'pol', g:'pol', p:1, n:['清澄な','浄化の','祓いの','聖別の','不朽の','不滅の'],
-  t:[[1,20,35],[16,35,55],[34,55,75],[56,75,90],[78,90,99]],
-  f:(m,v)=>m.pol+=v, d:v=>`汚染耐性 +${v}%`},
- {k:'twin',g:'twin',p:0, n:['双子','分裂','増殖','万華','無限','創世'],
-  t:[[20,4,8],[42,8,14],[64,14,22],[86,22,33]],
-  f:(m,v)=>m.twin+=v, d:v=>`${v}%で出来高2倍`, rw:0.45},
- {k:'lvl', g:'lvl', p:1, n:['熟練の','鍛えた','練達の','至高の','極致の','神域の'],
-  t:[[16,2,4],[38,4,7],[60,7,11],[82,11,16]],
-  f:(m,v)=>m.lvl+=v, d:v=>`実質レベル +${v}`, rw:0.5},
- {k:'slot',g:'slot',p:0, n:['拡張','増設','多孔','万孔','神殿','虚空'],
-  t:[[24,1,1],[62,1,2]],
-  f:(m,v)=>m.slot+=v, d:v=>`遺物スロット +${v}`, rw:0.16},
-];
-const AFM = {}; for(const a of AF) AFM[a.k] = a;
-/* 呪い。神話にだけ付く。とんでもない強さと引き換えの重り */
-const CURSE = [
- {k:'cspd', n:'鈍重',   f:(m,v)=>m.spd*=1+v/100, d:v=>`速さ −${v}%`,       t:[35,60]},
- // 容量を減らす呪いは 100% を超えないよう、割合ではなく割り算にしている
- {k:'csta', n:'大食い', f:(m,v)=>m.sta*=1+v/100, d:v=>`⚡消費 +${v}%`,     t:[45,90]},
- {k:'cwst', n:'汚濁',   f:(m,v)=>m.wst+=v,       d:v=>`廃材 +${v}`,        t:[2,5]},
- {k:'ccap', n:'脆弱',   f:(m,v)=>m.cap/=1+v/100,  d:v=>`容量 −${v}%`,       t:[40,65]},
- {k:'cpol', n:'瘴気',   f:(m,v)=>m.foul+=v,      d:v=>`汚染 +${v}%`,       t:[50,140]},
-];
-/* 希少・英雄の名づけ。二語をつないで、それらしい名前にする */
-const RN1 = ['深淵','業火','氷結','雷鳴','黄昏','暁','虚空','鉄血','翠玉','星屑',
-             '灰燼','黒曜','白銀','紅蓮','蒼天','終末','黎明','静寂','咆哮','無窮'];
-const RN2 = ['の遺構','の残響','の刻印','の鼓動','の証','の欠片','の核','の輪郭',
-             'の囁き','の重み','の約束','の残滓','の兆し','の秤','の座'];
-/* ── 固有品 ──
-   名前と効きが決まっている一点物。数字ではなく「決まりごと」を曲げる。
-   これを引くために潜る、という目印になる                            */
-const UNIQ = [
- {k:'u_perp', b:'eco', n:'永久機関',     lv:24, fl:'炉は止まらない。ただし、あたりは汚れる',
-  af:[{k:'spd',v:28}], sp:{noSta:1, foul:120}},
- {k:'u_lens', b:'lns', n:'遠見の水晶',   lv:30, fl:'ここから伸びる線は、距離を忘れる',
-  af:[{k:'reach',v:120}], sp:{farLink:1}},
- {k:'u_twin', b:'yld', n:'双生の歯車',   lv:34, fl:'同じものが、もう一つ',
-  af:[{k:'twin',v:45}], sp:{}},
- {k:'u_sage', b:'stu', n:'賢者の石',     lv:40, fl:'捨てるものなど無い',
-  af:[{k:'rp',v:140}], sp:{wasteRp:1}},
- {k:'u_glut', b:'acc', n:'貪食の炉',     lv:28, fl:'速さは、飢えと引き換えに',
-  af:[{k:'spd',v:150}], sp:{ins2:1}},
- {k:'u_dice', b:'luc', n:'賭博師の骰子', lv:20, fl:'当たるも八卦',
-  af:[{k:'mf',v:180},{k:'mq',v:60}], sp:{yldHalf:1}},
- {k:'u_hart', b:'acc', n:'時計仕掛けの心臓', lv:46, fl:'年季が、そのまま腕になる',
-  af:[{k:'lvl',v:26}], sp:{}},
- {k:'u_void', b:'cap', n:'虚無の器',     lv:36, fl:'いくらでも入る。出すのが遅いだけだ',
-  af:[{k:'cap',v:1400}], sp:{slow50:1}},
- {k:'u_pure', b:'pur', n:'白亜の浄炉',   lv:26, fl:'汚れを知らない',
-  af:[{k:'pol',v:100}], sp:{aura:{k:'clean', v:3.0, r:420}}},
- {k:'u_mint', b:'gld', n:'錬金王の印',   lv:32, fl:'触れるものすべてが金に',
-  af:[{k:'gold',v:260}], sp:{sellUp:60}},
- {k:'u_node', b:'arm', n:'多面体の骨格', lv:38, fl:'枠は、増やせばいい',
-  af:[{k:'slot',v:2},{k:'gear',v:3}], sp:{}},
- {k:'u_leyl', b:'lns', n:'地脈の導管',   lv:44, fl:'土地の起伏を、なかったことにする',
-  af:[{k:'reach',v:200}], sp:{flat:1}},
- {k:'u_bell', b:'prs', n:'呼び鈴',       lv:22, fl:'良いものは、呼べば来る',
-  af:[{k:'mq',v:85}], sp:{rarePlus:1}},
- {k:'u_forg', b:'yld', n:'原初の鋳型',   lv:50, fl:'はじまりの形',
-  af:[{k:'yld',v:8}], sp:{noWaste:1}},
- {k:'u_stor', b:'cln', n:'嵐の目',       lv:42, fl:'中心は、いつも静かだ',
-  af:[{k:'spd',v:40}], sp:{aura:{k:'speed', v:1.6, r:400}}},
- {k:'u_wyrm', b:'cap', n:'竜の胃袋',     lv:54, fl:'ひと呑みで、四倍を運ぶ',
-  af:[{k:'cap',v:700}], sp:{bulk:1}},
- {k:'u_mirr', b:'prs', n:'合わせ鏡',     lv:58, fl:'映したものが、そこに在る',
-  af:[{k:'twin',v:30},{k:'mq',v:60}], sp:{}},
- {k:'u_anvl', b:'arm', n:'不滅の金床',   lv:48, fl:'壊れないものを、作る側に',
-  af:[{k:'gear',v:4},{k:'skl',v:2}], sp:{}},
- {k:'u_star', b:'stu', n:'星図の断片',   lv:62, fl:'空の写しは、地の理になる',
-  af:[{k:'rp',v:220},{k:'lvl',v:10}], sp:{}},
- {k:'u_root', b:'pur', n:'世界樹の根',   lv:66, fl:'根は、どこまでも伸びる',
-  af:[{k:'pol',v:99},{k:'reach',v:180}], sp:{aura:{k:'clean', v:4.0, r:520}}},
- {k:'u_gate', b:'lns', n:'転移門の礎',   lv:74, fl:'距離という考えが、そもそも古い',
-  af:[{k:'reach',v:320}], sp:{farLink:1, flat:1}},
- {k:'u_kron', b:'acc', n:'クロノスの牙', lv:80, fl:'時を噛み千切る',
-  af:[{k:'spd',v:70},{k:'lvl',v:18}], sp:{}},
- {k:'u_gaia', b:'yld', n:'豊穣の角笛',   lv:88, fl:'尽きることがない',
-  af:[{k:'yld',v:12},{k:'twin',v:40}], sp:{noWaste:1}},
- {k:'u_omni', b:'prs', n:'全知の瞳',     lv:96, fl:'見えないものは、無い',
-  af:[{k:'mf',v:220},{k:'mq',v:150}], sp:{rarePlus:2}},
-];
-const UQ = {}; for(const u of UNIQ) UQ[u.k] = u;
-/* ── 揃い（セット） ──
-   ばらばらに刺しても効くが、全部そろえると工房ぜんたいに効く         */
-const SETS = [
- {k:'s_craft', n:'工匠の遺産', c:'#6fe3c4', lv:18,
-  p:[{k:'acc', n:'工匠の加速炉',   af:[{k:'spd',v:26}]},
-     {k:'cap', n:'工匠の貯蔵庫',   af:[{k:'cap',v:230}]},
-     {k:'cln', n:'工匠の集塵機',   af:[{k:'cln',v:1}]}],
-  bo:'すべての施設の速さ +18%', f:b=>{ b.spd /= 1.18; }},
- {k:'s_abyss', n:'深淵の徴',   c:'#c08bff', lv:34,
-  p:[{k:'luc', n:'深淵の幸運環', af:[{k:'mf',v:60}]},
-     {k:'prs', n:'深淵の稜晶',   af:[{k:'mq',v:40}]},
-     {k:'pur', n:'深淵の浄化器', af:[{k:'pol',v:70}]}],
-  bo:'発見量 +80%／発見質 +60%', f:b=>{ b.mf += 80; b.mq += 60; }},
- {k:'s_road',  n:'街道の護り', c:'#7aa2ff', lv:26,
-  p:[{k:'lns', n:'街道の遠見レンズ', af:[{k:'reach',v:80}]},
-     {k:'arm', n:'街道の拡張架台',   af:[{k:'gear',v:2}]},
-     {k:'eco', n:'街道の節電器',     af:[{k:'sta',v:30}]}],
-  bo:'すべての配線の実効距離 −35%', f:b=>{ b.reach += 54; }},
- {k:'s_crown', n:'豊穣の輪',   c:'#f2c14e', lv:44,
-  p:[{k:'yld', n:'豊穣の増産盤', af:[{k:'yld',v:4}]},
-     {k:'gld', n:'豊穣の徴収印', af:[{k:'gold',v:120}]},
-     {k:'stu', n:'豊穣の記録板', af:[{k:'rp',v:110}]}],
-  bo:'すべての施設の出来高 +2／ゴールドと🔬 +40%', f:b=>{ b.yld += 2; b.gold += 40; b.rp += 40; }},
- {k:'s_myth',  n:'神々の残響', c:'#ff5f6d', lv:70,
-  p:[{k:'acc', n:'神々の加速炉', af:[{k:'spd',v:52},{k:'lvl',v:8}]},
-     {k:'prs', n:'神々の稜晶',   af:[{k:'mq',v:70},{k:'twin',v:16}]},
-     {k:'lns', n:'神々の遠見',   af:[{k:'reach',v:190}]},
-     {k:'arm', n:'神々の架台',   af:[{k:'gear',v:4},{k:'skl',v:2}]}],
-  bo:'すべての施設の速さ +30%／出来高が15%で2倍', f:b=>{ b.spd /= 1.30; b.twin += 15; }},
-];
-const SETM = {}; for(const s of SETS) SETM[s.k] = s;
-/* ── ダンジョンごとの好み ──
-   どの坑でも同じものが出るなら、地図はただの距離でしかない。
-   坑ごとに出やすい器・落ちる揃い・そこにしか眠っていない固有品を決める。
-   「あれが欲しいから、あそこへ行く」を作るための表                    */
-const DG_THEME = [
-  {n:'試練の洞窟', i:'🕳️', b:['acc','yld'], set:null,      uq:[]},
-  {n:'鉄の坑',     i:'⛏️', b:['acc','arm'], set:'s_craft', uq:['u_glut']},
-  {n:'静かな窯',   i:'🏺', b:['eco','cln'], set:'s_craft', uq:['u_perp','u_stor']},
-  {n:'溜まりの間', i:'🫙', b:['cap','yld'], set:'s_crown', uq:['u_void']},
-  {n:'風の回廊',   i:'🌬', b:['lns','eco'], set:'s_road',  uq:['u_lens','u_leyl']},
-  {n:'賭場の跡',   i:'🎲', b:['luc','gld'], set:'s_abyss', uq:['u_dice','u_mint']},
-  {n:'沈んだ書庫', i:'📚', b:['stu','prs'], set:'s_crown', uq:['u_sage','u_star']},
-  {n:'白い泉',     i:'⛲', b:['pur','cln'], set:'s_abyss', uq:['u_pure','u_root']},
-  {n:'歯車の谷',   i:'⚙️', b:['yld','acc'], set:'s_craft', uq:['u_twin','u_forg','u_hart']},
-  {n:'鏡の間',     i:'🪞', b:['prs','luc'], set:'s_abyss', uq:['u_mirr','u_bell','u_omni']},
-  {n:'鍛冶場の跡', i:'🔨', b:['arm','cap'], set:'s_myth',
-   uq:['u_anvl','u_wyrm','u_node','u_gate','u_kron','u_gaia']},
-];
-const dgTheme = d => DG_THEME[Math.min(DG_THEME.length-1, Math.max(0, (d && d.n) || 0))];
-/* ── 錬成（拾ったものを打ち直す） ── */
-const ORBS = [
- {k:'polish',i:'✨', n:'精錬の雫',     d:'接辞の数値だけを振り直す',                 w:34},
- {k:'reroll',i:'🔄', n:'再構成の触媒', d:'接辞をすべて振り直す（🔒は残る）',         w:24},
- {k:'lock',  i:'🔒', n:'刻印の鎖',     d:'接辞をひとつ固定する（振り直しで残る）',   w:14},
- {k:'raise', i:'⬆️', n:'昇華の粉',     d:'等級をひとつ上げ、接辞を足す（英雄まで）', w:11},
- {k:'deep',  i:'💠', n:'深化の核',     d:'深さを +12 して打ち直す',                  w:8},
- {k:'chaos', i:'🜂', n:'混沌の種',     d:'器だけを変える（接辞はそのまま）',         w:6},
- {k:'bless', i:'💎', n:'聖別の結晶',   d:'英雄を固有に変える',                       w:1.6},
- {k:'warp',  i:'🜏', n:'歪みの楔',     d:'賭け。大化けするか、呪いを背負うか、'
-   + '別物になるか。一度使うと二度と打ち直せない',                                    w:5},
-];
-const ORB = {}; for(const o of ORBS) ORB[o.k] = o;
-const orbStock = k => Math.floor((S.orb && S.orb[k]) || 0);
-const addOrb   = (k,q) => { S.orb = S.orb || {}; S.orb[k] = (S.orb[k]||0) + (q||1); };
-const useOrb   = k => { if(orbStock(k) <= 0) return false;
-  S.orb[k]--; if(S.orb[k] <= 0) delete S.orb[k]; return true; };
-const orbCount = () => Object.keys(S.orb||{}).reduce((a,k)=>a+orbStock(k), 0);
-function rollOrb(rnd){
-  rnd = rnd || Math.random;
-  const tot = ORBS.reduce((a,b)=>a+b.w, 0);
-  let r = rnd()*tot;
-  for(const o of ORBS){ r -= o.w; if(r < 0) return o.k; }
-  return 'polish';
-}
-/* ── 生成 ── */
-function afTier(a, lv, rnd){
-  let ti = -1;
-  for(let i=0;i<a.t.length;i++) if(lv >= a.t[i][0]) ti = i;
-  if(ti < 0) return null;
-  // 深いところでも下の段は出る。だから「良い段を引けるか」が楽しみになる
-  const span = Math.min(ti + 1, 3);
-  const pick = Math.max(0, ti - Math.floor(Math.pow(rnd(), 1.8) * span));
-  const t = a.t[pick], lo = t[1], hi = t[2];
-  return {k:a.k, t:pick, v: lo===hi ? lo : lo + Math.floor(rnd()*(hi-lo+1))};
-}
-function rollRar(lv, mq, rnd){
-  // 発見質は魔法〜英雄までは指数で効くが、固有・神話にはゆるくしか効かない。
-  // ここを素直に boost^i にすると、発見質を積んだ終盤で神話が当たり前になり、
-  // 「掘り当てた」という手ごたえが消えてしまう
-  const q = mq || 0;
-  const boost = 1 + q/200;
-  const w = RAR.map((r,i)=>{
-    if(i>=4 && !UNIQ.some(u=>u.lv<=lv)) return 0;
-    const ex = r.w * Math.pow(boost, Math.min(i, 3));
-    const top = i >= 4 ? (1 + q/900) : 1;      // 固有・固有以上はここまで
-    return ex * top * (i>=3 ? Math.min(1, lv/20) : 1);
-  });
-  const tot = w.reduce((a,b)=>a+b, 0);
-  let x = rnd()*tot;
-  for(let i=0;i<w.length;i++){ x -= w[i]; if(x < 0) return i; }
-  return 0;
-}
-// 重みは変わらないので、あらかじめ持っておく（裂け目の最中は毎秒何十回も通る）
-for(const a of AF){ a._w = Math.max(1, Math.round(10 * (a.rw==null ? 1 : a.rw)));
-                    a._min = a.t[0][0]; }
-function addAffixes(it, want, rnd){
-  const used = new Set(it.af.map(a => AFM[a.k] ? AFM[a.k].g : a.k));
-  for(let i=0;i<want;i++){
-    let tot = 0;
-    for(const a of AF) if(!used.has(a.g) && a._min <= it.lv) tot += a._w;
-    if(tot <= 0) break;
-    let x = rnd() * tot, pick = null;
-    for(const a of AF){
-      if(used.has(a.g) || a._min > it.lv) continue;
-      x -= a._w; if(x < 0){ pick = a; break; }
-    }
-    if(!pick) break;
-    const r = afTier(pick, it.lv, rnd);
-    if(!r) break;
-    used.add(pick.g); it.af.push(r);
-  }
-}
-function rollRelic(lv, opt){
-  opt = opt || {};
-  const rnd = opt.rnd || Math.random;
-  const th = opt.theme || null;                 // その坑の好み
-  lv = Math.max(1, Math.round(lv));
-  let r = opt.rar != null ? opt.rar : rollRar(lv, opt.mq||0, rnd);
-  let uni = null;
-  if(r >= 4){
-    // その坑にしか眠っていない固有品を、まず引く
-    const mine = th && th.uq ? UNIQ.filter(u => u.lv <= lv && th.uq.includes(u.k)) : [];
-    const any  = UNIQ.filter(u => u.lv <= lv);
-    const pool = (mine.length && rnd() < 0.75) ? mine : any;
-    if(pool.length) uni = pool[Math.floor(rnd()*pool.length)]; else r = 3;
-  }
-  let set = null;
-  if(!uni && r === 2 && rnd() < 0.24){
-    // 揃いは坑ごとに決まっている。そろえたければ、その坑に通うことになる
-    const want = th && th.set ? SETS.filter(x => x.k === th.set && x.lv <= lv) : [];
-    const pool = want.length ? want : SETS.filter(s => s.lv <= lv);
-    if(pool.length){ const s = pool[Math.floor(rnd()*pool.length)];
-      set = {s, p: s.p[Math.floor(rnd()*s.p.length)]}; }
-  }
-  // 器は坑の好みに寄る（好みのものは3倍出やすい）
-  let base;
-  if(uni) base = RB[uni.b];
-  else if(set) base = RB[set.p.k];
-  else {
-    let tot = 0;
-    for(const b of REL_BASE) tot += (th && th.b && th.b.indexOf(b.k) >= 0) ? 3 : 1;
-    let x = rnd() * tot;
-    base = REL_BASE[0];
-    for(const b of REL_BASE){ x -= (th && th.b && th.b.indexOf(b.k) >= 0) ? 3 : 1;
-      if(x < 0){ base = b; break; } }
-  }
-  const it = {id:S.nextId++, b:base.k, r, lv, af:[], lk:[]};
-  if(uni){ it.u = uni.k; for(const a of uni.af) it.af.push({k:a.k, t:9, v:a.v, fx:1}); }
-  else if(set){ it.s = set.s.k; it.sn = set.p.n;
-    for(const a of set.p.af) it.af.push({k:a.k, t:9, v:a.v, fx:1}); }
-  else { const ba = afTier(AFM[base.b], lv, rnd); if(ba){ ba.fx = 1; it.af.push(ba); } }
-  const rr = RAR[r];
-  addAffixes(it, rr.af[0] + Math.floor(rnd()*(rr.af[1]-rr.af[0]+1)), rnd);
-  if(r === 5){                                   // 神話は呪いを背負う代わりに桁が違う
-    const c = CURSE[Math.floor(rnd()*CURSE.length)];
-    it.cu = {k:c.k, v: c.t[0] + Math.floor(rnd()*(c.t[1]-c.t[0]+1))};
-    for(const a of it.af) if(!a.fx) a.v = Math.round(a.v * 1.7);
-  }
-  return it;
-}
-/* ── 名前と見た目 ── */
-const hash32 = n => { n = (n*2654435761) >>> 0; return (n ^ (n >>> 15)) >>> 0; };
-function relName(it){
-  if(it.u) return (UQ[it.u]||{}).n || '？';
-  if(it.s) return it.sn || '？';
-  const B = RB[it.b] || REL_BASE[0];
-  if(it.r === 0) return B.n;
-  // 打ち直しで中身がまるきり変わったものは、名前も変わってほしい
-  if(it.r >= 2){ const h = hash32(it.seed || it.id);
-    return RN1[h % RN1.length] + RN2[(h >>> 7) % RN2.length]; }
-  const pre = it.af.filter(a => AFM[a.k] && AFM[a.k].p).sort((a,b)=>b.t-a.t)[0];
-  const suf = it.af.filter(a => AFM[a.k] && !AFM[a.k].p).sort((a,b)=>b.t-a.t)[0];
-  const nm = a => { const A = AFM[a.k]; return A.n[Math.min(a.t, A.n.length-1)]; };
-  return (pre ? nm(pre) : '') + B.n + (suf ? 'の' + nm(suf) : '');
-}
-const relIcon = it => (RB[it.b] || REL_BASE[0]).i;
-const relBaseName = it => (RB[it.b] || REL_BASE[0]).n;
-const relColor = it => RAR[it.r] ? RAR[it.r].c : RAR[0].c;
-const relRarName = it => RAR[it.r] ? RAR[it.r].n : '並';
-const afText = a => { const A = AFM[a.k]; if(!A) return '';
-  return A.d(a.v) + (a.fx ? '' : `　<i class="aft">T${A.t.length - a.t}</i>`); };
-/* その遺物の「良さ」。並べ替えと自動仕分けに使う */
-function relScore(it){
-  if(it._s != null && it._sv === relicVer0(it)) return it._s;
-  let s = RAR[it.r].s * 10;
-  for(const a of it.af){ const A = AFM[a.k]; if(!A) continue;
-    const top = A.t[A.t.length-1], hi = top[2] || 1;
-    s += 24 * (a.v / hi) * (1 + a.t * 0.35);
-  }
-  if(it.cu) s *= 0.8;
-  if(it.s)  s *= 1.7;        // 揃いの品は、自動で挿すときに優先して残す
-  it._sv = relicVer0(it);
-  return it._s = Math.round(s + it.lv * 0.6);
-}
-const relSell = it => Math.max(4, Math.round(RAR[it.r].s * (6 + it.lv * 1.9)));
-/* 点数の作り直しが要るかどうかの目印。中身が変わると値も変わる */
-const relicVer0 = it => it.r + ':' + it.lv + ':' + it.af.length + ':'
-                      + (it.af[0] ? it.af[0].v : 0) + ':' + (it.cu?1:0) + ':' + (it.s?1:0);
-/* ── 持ち物 ── */
-const invAll = () => (S.inv = S.inv || []);
-const invGet = id => invAll().find(x => x.id === id) || null;
-function invAdd(it){ invAll().push(it); return it; }
-function invDel(id){ const a = invAll(), i = a.findIndex(x => x.id === id);
-  if(i >= 0) a.splice(i, 1); }
-/* いま施設に挿さっている遺物の id */
-let wornV = -1, wornC = null;
-function wornIds(){
-  if(wornC && wornV === relicVer) return wornC;
-  const s = new Set();
-  for(const n of S.nodes) for(const id of (n.parts || [])) if(id) s.add(id);
-  wornV = relicVer;
-  return wornC = s;
-}
-const isWorn = id => wornIds().has(id);
-/* どの施設に挿さっているか */
-function wornAt(id){ for(const n of S.nodes) if((n.parts||[]).includes(id)) return n; return null; }
-/* ── 揃いの数え上げ ── */
-let setV = -1, setCache = null;
-function setBonus(){
-  const w = wornIds(), key = [...w].sort().join(',');
-  if(setCache && setV === key) return setCache;
-  setV = key;
-  const cnt = {};
-  for(const id of w){ const it = invGet(id); if(it && it.s) cnt[it.s] = (cnt[it.s]||0) + 1; }
-  const b = {spd:1, mf:0, mq:0, gold:0, rp:0, yld:0, twin:0, reach:0, done:[]};
-  for(const k in cnt){ const S2 = SETM[k]; if(!S2) continue;
-    if(cnt[k] >= S2.p.length){ S2.f(b); b.done.push(k);
-      if(typeof milestone === 'function')
-        milestone('set_'+k, S2.n + ' 完成', S2.c, S2.bo); } }
-  b.cnt = cnt;
-  return setCache = b;
-}
-const setDirty = () => { setV = -1; };
-/* ── 施設に効かせる ── */
-function applyRelic(m, it){
-  if(!it) return;
-  for(const a of it.af){ const A = AFM[a.k]; if(A) A.f(m, a.v); }
-  if(it.cu){ const c = CURSE.find(x => x.k === it.cu.k); if(c) c.f(m, it.cu.v); }
-  if(it.u){ const u = UQ[it.u]; if(u && u.sp) for(const k in u.sp){
-    if(k === 'aura') m.aura = u.sp.aura;
-    else if(k === 'foul') m.foul += u.sp.foul;
-    else m.sp[k] = (m.sp[k] || 0) + u.sp[k]; } }
-}
+const PART = {}; for(const x of PARTS) PART[x.k] = x;
 /* ── 換装コア ──
    設置済みの施設を、そのまま1世代ぶん引き上げる。
    建て直しではないので、レベル・パーツ・配線・名前がそのまま残る。
@@ -2888,88 +2263,46 @@ function useCore(n){
   addLog(`🔩 ${was} を ${tierOf(n).n}（第${TYPES[t].era}世代）に引き上げた`, 'b');
   toast(`${tierOf(n).n} に引き上げました`);
 }
-/* 換装コアだけは今まで通り「個数」で持つ（個体差の無い道具なので） */
-const partName = key => key==='core' ? `${CORE.i}${CORE.n}` : '—';
+const PART_MAX = 3;                                   // 等級の上限
+const partKey  = (k,g) => k + g;                      // 'acc2' のような持ち物のキー
+const partOf   = key => ({p: PART[String(key).slice(0,3)], g: +String(key).slice(3) || 1});
+const partName = key => { if(key==='core') return `${CORE.i}${CORE.n}`;
+  const {p,g} = partOf(key);
+  return p ? `${p.i}${p.n}${'＋'.repeat(g-1)}` : '—'; };
+const partInfo = key => { if(key==='core') return CORE.d;
+  const {p,g} = partOf(key); return p ? p.v(g) : ''; };
+/* 持ち物のなかのパーツ（S.parts） */
 const partStock = key => Math.floor((S.parts && S.parts[key]) || 0);
 function addPart(key, q){ S.parts = S.parts || {};
   S.parts[key] = (S.parts[key]||0) + (q||1); }
 function usePart(key){ if(partStock(key) <= 0) return false;
   S.parts[key]--; if(S.parts[key] <= 0) delete S.parts[key]; return true; }
-
-/* ── 遺物のスロット ──
-   ふつうの施設は1つ、ダンジョン産は2〜5つ。〈拡張〉の接辞でさらに増える。
-   スロット数を数えるのに modsOf を呼ぶと堂々巡りになるので、
-   ここでは挿さっている遺物の〈拡張〉だけを直に見る                  */
-const baseSlots = n => (TYPES[n.type].port || TYPES[n.type].layer) ? 0
-                     : Math.max(1, Math.min(5, n.pslot || 1));
-function slotsOf(n){
-  const b = baseSlots(n); if(!b) return 0;
-  let x = 0;
-  for(const id of (n.parts || [])){
-    const it = id && invGet(id); if(!it) continue;
-    for(const a of it.af) if(a.k === 'slot') x += a.v;
-  }
-  return Math.max(1, Math.min(9, b + x));
-}
+/* 施設のスロットの数。ダンジョン産はばらつく */
+const slotsOf = n => TYPES[n.type].port || TYPES[n.type].layer ? 0
+                   : Math.max(1, Math.min(5, n.pslot || 1));
 function partsOf(n){
-  const k = slotsOf(n);
-  if(!k) return (n.parts = []);
-  n.parts = n.parts || [];
-  while(n.parts.length < k) n.parts.push(null);
-  if(n.parts.length > k) n.parts.length = k;      // 外れた遺物は持ち物に残る
-  for(let i=0;i<n.parts.length;i++)
-    if(n.parts[i] && !invGet(n.parts[i])) n.parts[i] = null;
+  const k = slotsOf(n); if(!k) return [];
+  if(!n.parts || n.parts.length !== k){
+    const old = n.parts || [];
+    n.parts = Array.from({length:k}, (_,i) => (old[i] && PART[String(old[i]).slice(0,3)]) ? old[i] : null);
+  }
   return n.parts;
 }
-/* 遺物の挿し替えがあったら、揃いの数えと施設の効きをまとめて捨てる */
-let relicVer = 0;
-const relicDirty = () => { relicVer++; setCache = null; setV = -1; };
-const modsDirty = n => { if(n) n._mk = null; relicDirty(); };
-/* 拾い物の癖（mods）＋ 挿した遺物 ＋ 揃いの恩恵 を合わせた、その施設の効き */
+/* 拾い物の癖（mods）と、挿したパーツを合わせた、その施設の効き */
 function modsOf(n){
-  const key = (n.parts||[]).join(',') + '|' + (n.mods ? 'd' : '-') + '|' + relicVer;
+  const key = (n.parts||[]).join(',') + '|' + (n.mods ? 'd' : '-');
   if(n._md && n._mk === key) return n._md;
   const m = newMods();
-  if(n.mods){ for(const x in m) if(x!=='need' && x!=='tags' && x!=='sp' && n.mods[x]!==undefined) m[x] = n.mods[x];
-    m.need = Object.assign({}, n.mods.need); m.tags = n.mods.tags || []; m.sp = {}; }
-  for(const id of partsOf(n)) if(id) applyRelic(m, invGet(id));
-  const b = setBonus();                       // 揃いは工房ぜんたいに効く
-  m.spd *= b.spd; m.yld += b.yld; m.twin += b.twin;
-  m.mf += b.mf; m.mq += b.mq; m.gold += b.gold; m.rp += b.rp; m.reach += b.reach;
-  m.spd = Math.max(0.05, m.spd); m.sta = Math.max(0.05, m.sta);
-  m.cap = Math.max(0.2, m.cap);  m.pol = Math.min(99, m.pol);
-  if(m.sp.yldHalf) m.yld = Math.floor(m.yld / 2);
-  if(m.sp.slow50)  m.spd *= 2;
-  if(m.sp.noWaste) m.clean = 1;
+  if(n.mods){ for(const x in m) if(x!=='need' && x!=='tags') m[x] = n.mods[x];
+    m.need = Object.assign({}, n.mods.need); m.tags = n.mods.tags; }
+  for(const key2 of partsOf(n)){
+    if(!key2) continue;
+    const {p,g} = partOf(key2); if(p) p.f(m, g);
+  }
   n._mk = key;
   return n._md = m;
 }
-/* 工房ぜんたいの合計。発見量・発見質・ゴールド・研究はここで足し合わせる */
-let sumVer = -1, sumCache = null;
-function relSum(){
-  if(sumCache && sumVer === relicVer) return sumCache;
-  sumVer = relicVer;
-  const o = {mf:0, mq:0, gold:0, rp:0};
-  for(const n of S.nodes){ const m = modsOf(n);
-    o.mf += m.mf; o.mq += m.mq; o.gold += m.gold; o.rp += m.rp; }
-  return sumCache = o;
-}
-/* 発見量・発見質は「そのダンジョンに挿さっている遺物」で決まる。
-   工房ぜんたいで足すと、施設を増やすほど雪だるま式に膨らんで
-   拾い物の手ごたえが消えてしまう。潜る場所に幸運を持たせる形にした */
-const mfMul   = n => 1 + ((n ? modsOf(n).mf : 0)) / 100;
-const mqBonus = n => n ? modsOf(n).mq : 0;
-/* 見出し用：いちばん幸運なダンジョンの値 */
-function bestMf(){
-  let mf = 0, mq = 0;
-  for(const n of S.nodes){ if(TYPES[n.type].effect !== 'dive') continue;
-    const m = modsOf(n); if(m.mf > mf) mf = m.mf; if(m.mq > mq) mq = m.mq; }
-  return {mf, mq};
-}
-const goldMul = () => 1 + relSum().gold / 100;
-const relRpMul= () => 1 + relSum().rp / 100;
-/* その施設の実質レベル。〈熟練〉の接辞ぶん底上げされる */
-const nLv = n => Math.max(1, (n.level || 1) + (modsOf(n).lvl || 0));
+const modsDirty = n => { n._mk = null; };
 /* 仲間の拾い物にだけ付く接辞。装備枠・スキル枠・給料がばらつく */
 const MATE_AFFIX = [
   {grp:'gear', n:'多才',   good:1, w:8,  f:(m,g)=>m.gear  += 1 + Math.floor(g/8)},
@@ -3086,128 +2419,6 @@ const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
 const depthBonus = () => { const t = depthTier();
   return Math.pow(DEPTH_K, t + t*t/DEPTH_Q); };
 const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
-
-/* ========================= マップ =========================
-   遊びはじめに 50×40＝2000タイルの土地を作る。
-   海・平地・山・川があり、施設はタイルの上に置く。
-   配線が横切った地形で、流れる速さが変わる。
-     平地 ×1 ／ 山 ×1/2 ／ 川 ×1/3 ／ 海は港が要る
-   拠点は中心。ダンジョンは11個（すぐ隣のチュートリアル＋10個）で、
-   遠いほど強く、採れる鉱石も良くなる。                              */
-const MAP_W = 50, MAP_H = 40, TILE = 200;
-const SEA = 0, PLAIN = 1, MOUNT = 2, RIVER = 3;
-const TERR = [
-  {k:'海',   i:'🌊', c:'#20395b', spd:0},
-  {k:'平地', i:'🌱', c:'#2c492f', spd:1},
-  {k:'山',   i:'⛰️', c:'#4c412f', spd:0.5},
-  {k:'川',   i:'💧', c:'#2c699b', spd:1/3},
-];
-const mapW = () => (S.map && S.map.w) || MAP_W;
-const mapH = () => (S.map && S.map.h) || MAP_H;
-/* 世界の座標 ⇄ タイル */
-const tileX  = x => Math.floor(x / TILE);
-const tileY  = y => Math.floor(y / TILE);
-const tileAt = (x,y) => terrAt(tileX(x), tileY(y));
-function terrAt(tx,ty){
-  if(!S.map) return PLAIN;
-  if(tx<0||ty<0||tx>=S.map.w||ty>=S.map.h) return SEA;
-  return S.map.t[ty*S.map.w+tx];
-}
-/* タイルの中央に置くときの、左上の座標 */
-const tileLeft = tx => tx*TILE + (TILE-NW)/2;
-const tileTop  = ty => ty*TILE + (TILE-90)/2;
-const nodeTx = n => tileX(n.x + NW/2);
-const nodeTy = n => tileY(n.y + 45);
-
-/* 土地を作る。高さの雲を重ねて島の形にし、山から海へ川を流す */
-function genMap(seed){
-  let s = (seed>>>0) || ((Math.random()*4294967296)>>>0) || 1;
-  const rnd = () => ((s = (s*1664525 + 1013904223) >>> 0) / 4294967296);
-  const W=MAP_W, H=MAP_H, N=W*H, at=(x,y)=>y*W+x;
-  const h=new Float32Array(N);
-  for(const [step,amp] of [[16,1.0],[8,0.55],[4,0.3],[2,0.16]]){
-    const gw=Math.ceil(W/step)+2, gh=Math.ceil(H/step)+2;
-    const g=[]; for(let i=0;i<gw*gh;i++) g.push(rnd());
-    const sm=t=>t*t*(3-2*t);
-    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-      const fx=x/step, fy=y/step, ix=Math.floor(fx), iy=Math.floor(fy);
-      const tx=fx-ix, ty=fy-iy;
-      const a=g[iy*gw+ix], b=g[iy*gw+ix+1], c=g[(iy+1)*gw+ix], d=g[(iy+1)*gw+ix+1];
-      h[at(x,y)] += (a+(b-a)*sm(tx)+(c-a)*sm(ty)+(a-b-c+d)*sm(tx)*sm(ty))*amp;
-    }
-  }
-  for(let y=0;y<H;y++) for(let x=0;x<W;x++){       // 外周ほど低く＝島になる
-    const dx=(x/(W-1)-0.5)*2, dy=(y/(H-1)-0.5)*2;
-    h[at(x,y)] -= Math.max(0, Math.sqrt(dx*dx+dy*dy)-0.48)*3.0;
-  }
-  let lo=1e9, hi=-1e9; for(const v of h){ lo=Math.min(lo,v); hi=Math.max(hi,v); }
-  for(let i=0;i<N;i++) h[i]=(h[i]-lo)/(hi-lo);
-  const t=new Uint8Array(N);
-  for(let i=0;i<N;i++) t[i] = h[i]<0.44 ? SEA : h[i]>0.78 ? MOUNT : PLAIN;
-  // 川：高い頂から低い隣へ落ちていく
-  const peaks=[]; for(let i=0;i<N;i++) if(h[i]>0.84) peaks.push(i);
-  peaks.sort((a,b)=>h[b]-h[a]);
-  let rivers=0;
-  for(const st of peaks){
-    if(rivers>=7) break;
-    if(rnd()<0.7) continue;
-    let cur=st, guard=0; const path=[];
-    while(guard++<300){
-      path.push(cur); if(t[cur]===SEA) break;
-      const x=cur%W, y=(cur/W)|0; let best=-1, bh=h[cur];
-      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-        const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue;
-        const ni=at(nx,ny); if(h[ni]<bh){ bh=h[ni]; best=ni; }
-      }
-      if(best<0) break; cur=best;
-    }
-    if(path.length>=8 && t[path[path.length-1]]===SEA){
-      for(const i of path) if(t[i]!==SEA) t[i]=RIVER;
-      rivers++;
-    }
-  }
-  // 拠点：中心にいちばん近い平地
-  let base=-1, bd=1e9;
-  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-    const i=at(x,y); if(t[i]!==PLAIN) continue;
-    const d=Math.hypot(x-W/2, y-H/2); if(d<bd){ bd=d; base=i; }
-  }
-  const bx=base%W, by=(base/W)|0;
-  // 拠点のまわりは平らにならす。出だしから山と川に囲まれていると身動きが取れない
-  for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){
-    const x=bx+dx, y=by+dy;
-    if(x<0||y<0||x>=W||y>=H) continue;
-    if(Math.hypot(dx,dy) > 3.2) continue;
-    if(t[at(x,y)] !== SEA) t[at(x,y)] = PLAIN;
-  }
-  const land=[]; for(let i=0;i<N;i++) if(t[i]===PLAIN||t[i]===MOUNT) land.push(i);
-  const dist=i=>Math.hypot(i%W-bx, ((i/W)|0)-by);
-  const far=(i,gs)=>gs.every(g=>Math.hypot(i%W-g.x, ((i/W)|0)-g.y)>3);
-  const dg=[];
-  {                                             // チュートリアルは拠点のすぐ隣
-    const near=land.filter(i=>{const d=dist(i); return d>=1.5&&d<=3;}).sort((a,b)=>dist(a)-dist(b));
-    const i = near.length ? near[0] : land[0];
-    dg.push({x:i%W, y:(i/W)|0, n:0});
-  }
-  const maxD=Math.max(...land.map(dist));
-  for(let k=1;k<=10;k++){
-    const lo2=maxD*(k+0.4)/11.4, hi2=maxD*(k+1.4)/11.4;
-    const band=land.filter(i=>{const d=dist(i); return d>=lo2 && d<hi2 && far(i,dg);});
-    const pool = band.length ? band
-      : land.filter(i=>far(i,dg)).sort((a,b)=>Math.abs(dist(a)-lo2)-Math.abs(dist(b)-lo2)).slice(0,20);
-    if(!pool.length) continue;
-    const i = pool[Math.floor(rnd()*pool.length)];
-    dg.push({x:i%W, y:(i/W)|0, n:k});
-  }
-  // ダンジョンごとに採れる鉱石。遠いほど良いものが出る
-  for(const d of dg){
-    const k = Math.min(CHAIN.length-1, Math.floor(d.n * CHAIN.length / 11));
-    d.ore = CHAIN[k].ore;
-    d.dist = Math.round(Math.hypot(d.x-bx, d.y-by));
-    d.done = false;
-  }
-  return {w:W, h:H, t:Array.from(t), bx, by, seed:s, dg};
-}
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
 const anyPort = n => { const T=TYPES[n.type];
@@ -3237,193 +2448,6 @@ function setCls(el, name, on){
   if(c[name] === on) return;
   c[name] = on; el.classList.toggle(name, on);
 }
-const mapc = $('#mapc'), mapg = $('#mapg');
-const MAP_SUB = 8;          // 1タイルを何画素で描くか
-const MAP_ALPHA = 0.5;      // 盤面の上にどれくらい薄く重ねるか
-let mapSrc = null;          // 地形そのものの絵（小さい。作るのは1回だけ）
-/* 地形の絵を1回だけ作る。画面へは drawMapView が毎回、必要なぶんだけ描き写す */
-function drawMap(){
-  if(!S.map || !mapc) return;
-  drawDungeons();
-  const W=S.map.w, H=S.map.h, SUB=MAP_SUB;
-  mapSrc = document.createElement('canvas');
-  mapSrc.width=W*SUB; mapSrc.height=H*SUB;
-  const g=mapSrc.getContext('2d'), im=g.createImageData(W*SUB,H*SUB);
-  const hex=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
-  const cols=TERR.map(t=>hex(t.c));
-  const cl=(v,m)=>v<0?0:v>m?m:v;
-  const col=(tx,ty)=>cols[S.map.t[cl(ty,H-1)*W+cl(tx,W-1)]] || cols[1];
-  // タイルの中心どうしを混ぜて、境目の角をなくす（地形の位置はそのまま）
-  for(let py=0; py<H*SUB; py++){
-    const fy=(py+0.5)/SUB-0.5, y0=Math.floor(fy), v=fy-y0;
-    for(let px=0; px<W*SUB; px++){
-      const fx=(px+0.5)/SUB-0.5, x0=Math.floor(fx), u=fx-x0;
-      const a=col(x0,y0), b=col(x0+1,y0), c=col(x0,y0+1), d=col(x0+1,y0+1);
-      const i=(py*W*SUB+px)*4;
-      for(let k=0;k<3;k++)
-        im.data[i+k] = (a[k]*(1-u)+b[k]*u)*(1-v) + (c[k]*(1-u)+d[k]*u)*v;
-      im.data[i+3]=255;
-    }
-  }
-  g.putImageData(im,0,0);
-  drawMapView();
-}
-/* いま映っているぶんの地形を、画面の大きさのカンバスへ描き写す。
-   持つ絵は常に画面ぶんなので、どれだけ引いても重さが変わらない        */
-function drawMapView(){
-  if(!mapc) return;
-  const W=stage.clientWidth, H=stage.clientHeight;
-  if(!W || !H) return;
-  const dpr=Math.min(2, window.devicePixelRatio||1);
-  const cw=Math.round(W*dpr), ch=Math.round(H*dpr);
-  if(mapc.width!==cw || mapc.height!==ch){ mapc.width=cw; mapc.height=ch; }
-  const g=mapc.getContext('2d');
-  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,cw,ch);
-  if(!mapSrc) return;
-  const v=S.view, k=(TILE/MAP_SUB)*v.s*dpr;   // 地形1画素ぶんの、画面での大きさ
-  g.globalAlpha=MAP_ALPHA; g.imageSmoothingEnabled=true;
-  g.setTransform(k,0,0,k, v.x*dpr, v.y*dpr);
-  g.drawImage(mapSrc,0,0);
-  g.setTransform(1,0,0,1,0,0); g.globalAlpha=1;
-}
-/* ========== 地図のダンジョン ==========
-   拠点から遠いほど守護者が硬い。倒すと制圧となり、そのダンジョン固有の鉱石が採れる */
-const dgOf   = n => (S.map && n.dgn != null) ? S.map.dg[n.dgn] : null;
-const dgName = d => dgTheme(d).n;
-const dgIcon = d => dgTheme(d).i;
-// 守護者の強さは本編の層に合わせる。拠点から1タイル遠いごとに約4層ぶん手強い。
-// さらに「深度」を上げると、そのぶん深いところの守護者と品物になる。
-// 深度は自分で上げる。上げたぶん守護者が戻ってくるが、採掘は前の深度で続く
-const DEP_STEP= 8;                                   // 深度1つぶんの層
-const dgDep   = d => d.dep || 0;                     // いま挑んでいる深度
-const dgCl    = d => d.cl != null ? d.cl : (d.done ? 0 : -1);   // 攻略済みの深度
-const dgFloor = (d, dep) => 1 + Math.round(d.dist * 4)
-                          + (dep == null ? dgDep(d) : dep) * DEP_STEP;
-const dgLoot  = d => Math.max(1, 1 + Math.round(d.dist * 4) + Math.max(0, dgCl(d)) * DEP_STEP);
-const dgHp    = d => Math.floor(enemyHp(dgFloor(d)) * 10 * (dgIsBoss(d) ? 3 : 1));
-const dgOpen  = d => dgDep(d) > dgCl(d);             // 守護者が立ちはだかっているか
-/* 深度5ごとに「主」が出る。硬い代わりに、固有品が確定で落ちる。
-   運任せの山にひとつだけ、狙って取りにいける的を置く                */
-const BOSS_EVERY_DEP = 5;
-const BOSS_NAME = ['','深淵の主','地底の王','虚ろの番人','終の門番','原初の影','名も無き底'];
-const dgIsBoss  = d => dgDep(d) > 0 && dgDep(d) % BOSS_EVERY_DEP === 0;
-const dgBossName= d => BOSS_NAME[Math.min(BOSS_NAME.length-1, Math.floor(dgDep(d)/BOSS_EVERY_DEP))];
-/* その主が抱えている固有品。まだ持っていないものから選ぶ */
-function pickPrize(d){
-  // 倒す相手の強さ（層）で決める。深く潜るほど、抱えている品も良くなる
-  const th = dgTheme(d), lv = dgFloor(d);
-  const all  = (th.uq||[]).filter(k => UQ[k].lv <= lv);
-  const left = all.filter(k => !invAll().some(x=>x.u===k));
-  const pool = left.length ? left : all;
-  if(pool.length) return pool[Math.floor(Math.random()*pool.length)];
-  // その坑の品を取り尽くしていたら、まだ持っていない固有品から
-  const any = UNIQ.filter(u => u.lv <= lv && !invAll().some(x=>x.u===u.k));
-  if(any.length) return any[Math.floor(Math.random()*any.length)].k;
-  const low = UNIQ.filter(u => u.lv <= lv);
-  return low.length ? low[Math.floor(Math.random()*low.length)].k : null;
-}
-// 施設を置いたとき、その足元が未攻略のダンジョンならそこに結びつける
-function bindDungeon(n){
-  if(!S.map || !TYPES[n.type].loot || n.dgn != null) return;
-  const tx = nodeTx(n), ty = nodeTy(n);
-  for(let i=0;i<S.map.dg.length;i++){
-    const d = S.map.dg[i];
-    if(d.node || Math.abs(d.x-tx) > 1 || Math.abs(d.y-ty) > 1) continue;
-    n.dgn = i; d.node = n.id; drawDungeons(); return;
-  }
-}
-// 制圧したダンジョンから採れるもの。深度を上げるほど多く採れる
-function dgYield(n){
-  const d = dgOf(n);
-  if(!d || dgCl(d) < 0) return {};
-  return {[d.ore]: 1 + Math.ceil(dgCl(d) * 0.6)};
-}
-function dgWin(d, n, fast){
-  const first = !d.done;
-  const dep = dgDep(d);
-  const jump = Math.max(1, dep - Math.max(0, dgCl(d)));   // 何段ぶん飛んだか
-  d.done = true; d.cl = dep; d.hp = 0;
-  S.dgDone = (S.dgDone||0) + 1;
-  S.atkBonus = (S.atkBonus||0) + Math.round(8 * (1 + d.dist/5) * (1 + dep*0.5));
-  if(n){ modsDirty(n); }
-  drawDungeons();
-  // 深度を越えるたび、確実に落ちる。一気に飛んだぶんだけ取り分が増える
-  const bonus = (1 + Math.min(4, dep)) * jump;
-  const floorR = jump >= 5 ? 3 : jump >= 3 ? 2 : undefined;
-  const nGuar  = floorR != null ? jump : 0;     // 底上げされるのは先頭の数個だけ
-  for(let i=0;i<Math.min(30,bonus);i++)
-    lootRelic(dgLoot(d), fast, n, i < nGuar ? {rar: floorR} : undefined);
-  if(dep >= 1) addOrb(rollOrb(), (1 + Math.floor(dep/3)) * jump);
-  if(jump >= 5){                        // 大跳びに賭けて勝った褒美
-    const it = lootRelic(dgLoot(d), fast, n, {rar: 4});
-    if(it && !fast){ bigCry('大跳び成功', '#e0b366',
-      `${jump}段ぶん飛んで ${relIcon(it)}${relName(it)}`, 7); flashBoard('#e0b366', 0.6); }
-  } else if(jump >= 3 && !fast){
-    bigCry(`深度 ${dep}`, '#ff9a4d', `${jump}段ぶん飛んだ`, 5); flashBoard('#ff9a4d', 0.4);
-  }
-  // 主が抱えていた固有品は、確定で手に入る
-  if(d.prize && UQ[d.prize]){
-    S.bossKill = (S.bossKill||0) + 1;
-    const u = UQ[d.prize];
-    const it = {id:S.nextId++, b:u.b, r:4, lv:dgLoot(d), lk:[],
-                af:u.af.map(a=>({k:a.k, t:9, v:a.v, fx:1})), u:u.k};
-    addAffixes(it, 2 + Math.floor(Math.random()*2), Math.random);
-    invAdd(it); relicDirty();
-    S.found = (S.found||0) + 1; S.foundUq = (S.foundUq||0) + 1;
-    if(4 > (S.bestRar||0)) S.bestRar = 4;
-    d.prize = null;
-    if(!fast){
-      addLog(`【討伐】${dgBossName(d)} を退けた → ${relIcon(it)}${u.n} を手にした`, 'b');
-      bigCry(u.n, '#e0b366', `「${u.fl}」`, 7);
-      flashBoard('#e0b366', 0.6);
-      shock(n, '#e0b366');
-    }
-  }
-  if(!fast){
-    if(first){
-      addLog(`【制圧】${dgName(d)}（拠点から${d.dist}）を攻略。`
-           + `${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れるようになった`,'b');
-      toast(`${dgName(d)} 制圧！ ${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れます`);
-    }else{
-      addLog(`【深度${dep}】${dgName(d)} の守護者を退けた。`
-           + `採れる量と落ちる品が良くなった`,'b');
-      toast(`${dgName(d)} 深度${dep} 突破！`);
-    }
-  }
-}
-/* 深度を上げる。守護者が新しい強さで立ちはだかるが、採掘は前の深度のまま続く */
-function dgRaise(d, n, by){
-  d.dep = dgDep(d) + (by||1);
-  d.hp = dgHp(d);
-  d.prize = dgIsBoss(d) ? pickPrize(d) : null;
-  if(n) modsDirty(n);
-  drawDungeons(); renderInsp();
-  if(d.prize){
-    addLog(`【${dgBossName(d)}】${dgName(d)} 深度${dgDep(d)}。`
-         + `倒すと〈${UQ[d.prize].n}〉が確定で落ちる`, 'b');
-    bigCry(dgBossName(d), '#ff5f6d', `倒すと〈${UQ[d.prize].n}〉が確定`, 7);
-    flashBoard('#ff5f6d', 0.35);
-  } else {
-    toast(`${dgName(d)} 深度${dgDep(d)}（第${dgFloor(d)}層相当）に挑みます`);
-  }
-}
-/* まだ開けていないダンジョンの在りかを、地図の上に出す */
-function drawDungeons(){
-  const w = $('#mapd'); if(!w || !S.map) return;
-  const key = S.map.dg.map(d=>(d.node?1:0)+(d.done?2:0)).join('');
-  if(w._k === key) return; w._k = key;
-  w.innerHTML = S.map.dg.map(d=>{
-    if(d.node) return '';                       // すでに施設になっているものは出さない
-    const nm = dgName(d);
-    return `<div class="dgm" style="left:${d.x*TILE}px;top:${d.y*TILE}px">`
-      + `<div class="ic">${dgIcon(d)}</div>`
-      + `<div class="lb">${nm}　${ITEMS[d.ore].i}${ITEMS[d.ore].n}`
-      + `　${dgTheme(d).b.map(b=>RB[b].i).join('')}`
-      + `　第${dgFloor(d,0)}層相当　拠点から${d.dist}</div>`
-      + `<div class="lb2">${ITEMS[d.ore].i}${dgTheme(d).b.map(b=>RB[b].i).join('')}`
-      + ` 第${dgFloor(d,0)}層</div></div>`;
-  }).join('');
-}
 const world = $('#world'), stage = $('#stage'), gwL = $('#gwL'), gwP = $('#gwP'),
       gwH = $('#gwH'), gw = $('#gw');
 const SVG = 'http://www.w3.org/2000/svg';
@@ -3434,8 +2458,7 @@ function freshState(){
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, home:{}, parts:{}, inv:[], orb:{}, found:0, foundUq:0, bestRar:0,
-    maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -3498,29 +2521,18 @@ function bez4(a,b,c,d,t){
   const u=1-t, w0=u*u*u, w1=3*u*u*t, w2=3*u*t*t, w3=t*t*t;
   return {x:w0*a.x+w1*b.x+w2*c.x+w3*d.x, y:w0*a.y+w1*b.y+w2*c.y+w3*d.y};
 }
-/* ピンを通る曲線を、三次ベジェの列にする。
-   両端は口から横向きに出入りさせ、途中のピンは Catmull-Rom で滑らかに通す */
+/* ピンを通る曲線を、三次ベジェの列にする（Catmull-Rom を変換） */
 function curveSegs(P, pins, Q){
   const pts = [P, ...pins, Q];
-  const n = pts.length;
-  const out = [], inn = [];            // その点から出る／その点へ入る制御点のずれ
-  // 横へ伸びる線はゆったり、真上・真下へ向かう線は張り出しを控える
-  const lead = (a,b) => Math.max(30, Math.min(190, Math.abs(a.x-b.x)*0.45
-                                                 + Math.abs(a.y-b.y)*0.06));
-  for(let i=0;i<n;i++){
-    if(i===0){            const L=lead(pts[0],pts[1]);     out.push({x:L,y:0}); inn.push({x:0,y:0}); }
-    else if(i===n-1){     const L=lead(pts[n-1],pts[n-2]); out.push({x:0,y:0}); inn.push({x:L,y:0}); }
-    else {
-      const m = {x:(pts[i+1].x-pts[i-1].x)/5, y:(pts[i+1].y-pts[i-1].y)/5};
-      out.push(m); inn.push(m);
-    }
-  }
+  const lead = Math.max(46, Math.abs(Q.x-P.x)*0.34);
+  // 口からは横向きに出入りしてほしいので、両端に仮想の点を足す
+  const ext = [{x:P.x-lead, y:P.y}, ...pts, {x:Q.x+lead, y:Q.y}];
   const segs = [];
-  for(let i=0;i<n-1;i++){
-    const p1=pts[i], p2=pts[i+1];
+  for(let i=1;i<ext.length-2;i++){
+    const p0=ext[i-1], p1=ext[i], p2=ext[i+1], p3=ext[i+2];
     segs.push([p1,
-               {x:p1.x+out[i].x,   y:p1.y+out[i].y},
-               {x:p2.x-inn[i+1].x, y:p2.y-inn[i+1].y},
+               {x:p1.x+(p2.x-p0.x)/6, y:p1.y+(p2.y-p0.y)/6},
+               {x:p2.x-(p3.x-p1.x)/6, y:p2.y-(p3.y-p1.y)/6},
                p2]);
   }
   return segs;
@@ -3545,87 +2557,8 @@ function linkGeom(l){
     total += lens[lens.length-1];
     pts.push(q);
   }
-  const g = {pts, lens, total:Math.max(1,total), d, segs, P:r.P, Q:r.Q, pins:r.pins};
-  // 街の中の配線は「建物の中」。座標も街の中の値なので、地図の地形にかけてはいけない
-  const a2=N(l.from), b2=N(l.to);
-  if((a2&&a2.layer) || (b2&&b2.layer)){
-    Object.assign(g, {spd:1, sea:0, blocked:false, eff:0, cap:1, relayed:0});
-    return g;
-  }
-  // 両端の施設に挿さっている〈遠見〉の遺物ぶん、届く距離が伸びる
-  const ma = a2 ? modsOf(a2) : null, mb = b2 ? modsOf(b2) : null;
-  const rch = Math.max(ma ? ma.reach : 0, mb ? mb.reach : 0);
-  const far = (ma && ma.sp.farLink) || (mb && mb.sp.farLink);   // 遠見の水晶：距離を忘れる
-  const flat= (ma && ma.sp.flat)    || (mb && mb.sp.flat);      // 地脈の導管：起伏を無かったことに
-  Object.assign(g, terrCost(pts, flat));
-  if(far) g.cap = 1;
-  else if(rch > 0) g.cap = Math.min(1, g.cap * (1 + rch/100));
-  g.reach = rch; g.far = !!far; g.flat = !!flat;
-  return g;
+  return {pts, lens, total:Math.max(1,total), d, segs, P:r.P, Q:r.Q, pins:r.pins};
 }
-/* ========== 配線の「実効距離」 ==========
-   この作りの肝。1本の線が運べる量は、通った土地の遠さで決まる。
-   平地1・山2・川3タイルぶんとして数え、中継塔の下は1/4に数える。
-   だから「遠くの鉱山から直に引く」は成り立たず、
-   途中に塔を建てるか、その場で精錬して価値を濃くしてから運ぶことになる。 */
-const PORT_R    = 6;      // 港が海を渡せる範囲（タイル）
-const RELAY_CUT = 0.25;   // 中継塔の下を通ったときの、距離の数え方
-const LINK_REACH= 6;      // ここまでの実効距離なら、まるごと運べる
-const SEA_COST  = 2;      // 港ごしの海は、平地2タイルぶん
-const TERR_COST = [SEA_COST, 1, 2, 3];   // 海・平地・山・川
-const relayR = n => 4 + 2 * ((TYPES[n.type].era||1) - 1) + Math.floor(lvGen(n.level||1) * 2);
-/* 港と塔が覆っているタイルを、まとめて持っておく。
-   1点ずつ全ノードを見にいくと、盤面が育ったときに描き直しが追いつかない */
-let coverV = 0, coverKey = '', covSea = null, covRly = null;
-const cvKey = (tx,ty) => (ty+64)*8192 + (tx+64);
-function stampCover(set, cx, cy, r){
-  for(let dy=-r; dy<=r; dy++) for(let dx=-r; dx<=r; dx++)
-    if(dx*dx + dy*dy <= r*r) set.add(cvKey(cx+dx, cy+dy));
-}
-function buildCover(){
-  covSea = new Set(); covRly = new Set();
-  const sig = [];
-  for(const n of S.nodes){
-    const T = TYPES[n.type];
-    if(!T.port2 && !T.relay2) continue;
-    const tx = nodeTx(n), ty = nodeTy(n);
-    if(T.port2)  stampCover(covSea, tx, ty, PORT_R);
-    if(T.relay2) stampCover(covRly, tx, ty, relayR(n));
-    sig.push(n.id + ':' + tx + ',' + ty + ',' + n.type + ',' + n.level);
-  }
-  const k = sig.join('|');
-  if(k !== coverKey){ coverKey = k; coverV++; }   // 覆いが変われば線を引き直す
-}
-const portsNear  = (tx,ty) => !!covSea && covSea.has(cvKey(tx,ty));
-const relaysNear = (tx,ty) => !!covRly && covRly.has(cvKey(tx,ty));
-function terrCost(pts, flat){
-  if(!S.map) return {spd:1, sea:0, blocked:false, eff:0, cap:1, relayed:0};
-  if(!covSea) buildCover();
-  let sum=0, n=0, sea=0, bad=false, eff=0, rly=0, tiles=0;
-  const step = Math.max(2, Math.floor(pts.length/40)) & ~1;   // 長い線は間引いて数える
-  for(let i=0;i<pts.length;i+=step){
-    const tx=tileX(pts[i].x), ty=tileY(pts[i].y);
-    const t=terrAt(tx,ty);
-    n++;
-    // 実効距離：通りにくい土地ほど遠い。塔の下なら近い
-    let c = flat ? 1 : TERR_COST[t];                        // 地脈の導管は起伏を均す
-    if(t===SEA && !portsNear(tx,ty)) c = TERR_COST[PLAIN];   // 渡れないので距離には数えない
-    if(relaysNear(tx,ty)){ c *= RELAY_CUT; rly++; }
-    eff += c; tiles++;
-    if(t===SEA){ sea++; if(portsNear(tx,ty)) sum += 0.5; else { bad=true; sum += 0; } }
-    else sum += TERR[t].spd;
-  }
-  // 数えた点を、実際のタイル数に直す
-  const len = tiles ? eff * (pathTiles(pts) / tiles) : 0;
-  return {spd: n ? Math.max(0.05, sum/n) : 1, sea, blocked:bad,
-          eff: +len.toFixed(2), relayed: tiles ? rly/tiles : 0,
-          cap: Math.min(1, LINK_REACH / Math.max(LINK_REACH, len))};
-}
-// 経路そのものの長さ（タイル数）
-const pathTiles = pts => {
-  let d=0; for(let i=1;i<pts.length;i++) d += Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y);
-  return d / TILE;
-};
 /* いま実際に打たれているピン */
 function bendOf(l){ return pinsOf(l); }
 /* ピンの取っ手（そのピン）と、区間ごとの「＋」（そこにピンを足す）  */
@@ -3640,8 +2573,7 @@ function geomOf(l){
   const a=N(l.from), b=N(l.to); if(!a||!b) return null;
   const gk = a.x+','+a.y+','+b.x+','+b.y
            + ',' + pinsOf(l).map(p=>p.x+'_'+p.y).join(';')
-           + '|' + (a.el&&a.el.sig||'') + '|' + (b.el&&b.el.sig||'')
-           + '|' + coverV + '|' + relicVer;
+           + '|' + (a.el&&a.el.sig||'') + '|' + (b.el&&b.el.sig||'');
   if(l._gk !== gk || !l.G){ l._gk = gk; l.G = linkGeom(l); }
   return l.G;
 }
@@ -3757,14 +2689,10 @@ function mkNodeEl(n){
     if(b) ports += `<div class="port pout" data-item="${b}" style="top:${portY(i)}px" title="出力口: ${ITEMS[b].n}">▸</div>`;
   }
   const A = TYPES[n.type].aura;
-  const RK = TYPES[n.type].relay2 ? 'reach' : TYPES[n.type].port2 ? 'sea' : '';
-  const auraEl = (RK ? `<div class="aura ${RK}"></div>` : '')
-    + (A
+  const auraEl = (A
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '')
-    + `<div class="polr" style="width:${POL_R*2}px;height:${POL_R*2}px;left:${NW/2-POL_R}px;top:${45-POL_R}px"></div>`
-    + (TYPES[n.type].loot ? `<div class="resbar"><i></i></div>`
-        + `<div class="hpwrap"><i></i></div>` : '');
+    + `<div class="polr" style="width:${POL_R*2}px;height:${POL_R*2}px;left:${NW/2-POL_R}px;top:${45-POL_R}px"></div>`;
   if(any) ports += `<div class="port pin any" style="top:${portY(anyRow)}px"`
     + ` title="${TYPES[n.type].chain==='sell' ? 'どんな素材でもここへ繋げます（届いたものから売ります）'
         : TYPES[n.type].ware ? 'どんな素材でもここへ繋げます'
@@ -3841,8 +2769,7 @@ function mkLinkEl(l){
   const wire=document.createElementNS(SVG,'path');  wire.setAttribute('class','wire');
   const flow=document.createElementNS(SVG,'path');  flow.setAttribute('class','flow');
 
-  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','1');
-  wire.setAttribute('stroke-width','4.5');   // 太さは「運べる量」で毎秒つけ直す
+  wire.setAttribute('stroke',c); wire.setAttribute('stroke-opacity','.32');
   flow.setAttribute('stroke',c); flow.setAttribute('stroke-opacity','.9');
   hit.dataset.link=l.id;
   gwL.append(hit,wire,flow);
@@ -3867,16 +2794,13 @@ function addNode(type,x,y){
   }
   if(TYPES[type].src && type!=='hero') n.pname = randPerson();
   n.no = S.nextNo = (S.nextNo || 0) + 1;      // 見分けるための通し番号（一度ついたら変わらない）
-  S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n);
-  if(!n.layer) bindDungeon(n);                // 足元が地図のダンジョンならそこに結びつける
-  return n;
+  S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n); return n;
 }
 function removeNode(id){
   gearDirty(); skillDirty();
   for(const l of [...S.links]) if(l.from===id||l.to===id) removeLink(l.id);
   const i=S.nodes.findIndex(n=>n.id===id); if(i<0) return;
   const wasIn = S.nodes[i].layer;
-  const dRel = dgOf(S.nodes[i]); if(dRel){ dRel.node = null; drawDungeons(); }
   S.nodes[i].el.root.remove(); S.nodes.splice(i,1); reindex();
   if(wasIn) layerDirty();
   if(sel===id){ sel=null; renderInsp(); }
@@ -4040,7 +2964,7 @@ function tick(dt,fast){
     if(T.layer){ n.stall=false; n.why=''; layerFlow(n); continue; }
     if(T.port){ n.stall=false; n.why=''; continue; }   // 入口・出口はただの受け渡し口
     if(T.raid && n.clear){ n.stall=false; n.why=''; continue; }   // 受け取り待ちは⚡を食わない
-
+    if(T.src){ n.stall=false; n.why=''; continue; }   // 人は物を作らない（配属して働く）
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store){                                 // 貯蔵：しまって、選んだものだけ外へ出す
       n.stall=false; n.why='';
@@ -4082,7 +3006,7 @@ function tick(dt,fast){
         if(ok && T.pay && S.gold < payOf(n)){ ok=false; n.why=`給料が払えない（${fmt(payOf(n))}G）`; }
         if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`研究ポイントが足りない（${fmt(payRpOf(n))}）`; }
 
-        if(!ok){ if(T.loot && !n.stall) resTick(n, false); n.stall=true; break; }
+        if(!ok){ n.stall=true; break; }
         for(const k in need){ n.inBuf[k]-=need[k]; flowOut(k, need[k]); nodeFlow(n, k, need[k], 'o'); }
         if(T.pay)   S.gold -= payOf(n);
         if(T.payRp) S.rp = (S.rp||0) - payRpOf(n);
@@ -4091,25 +3015,15 @@ function tick(dt,fast){
       const rest=n.need-n.prog;
       if(budget < rest){ n.prog+=budget; break; }
       budget-=rest;
-      let give = T.loot ? dgYield(n) : outsOf(n); // 戦利品は撃破したときだけ。制圧後は鉱石が出る
+      let give = T.loot ? {} : outsOf(n);        // 戦利品は撃破したときだけ積む
       if(T.chain==='hout'){                      // 自宅の在庫を1つ減らして出す
         const H=homeOf(), have=Math.floor(H[n.item]||0);
         if(have < 1) give = {};
         else { H[n.item]=have-1; if(H[n.item]<=0) delete H[n.item]; }
       }
-      const mm2 = modsOf(n);
-      const twP = (hasPerk(T,'twin') ? 25 : 0) + (mm2.twin||0);
-      const dbl = twP > 0 && Math.random() < twP/100;         // 複製・覚醒・並列・〈双子〉
+      const dbl = hasPerk(T,'twin') && Math.random() < 0.25;   // 複製・覚醒・並列
       if(dbl){ const g2={}; for(const k in give) g2[k]=give[k]*2; give=g2; }
-      if(mm2.sp.wasteRp && give.waste){        // 賢者の石：捨てるものが研究になる
-        grantRp(give.waste * itemVal('waste') * 12 * lvPow(nLv(n)), fast);
-        const g2 = Object.assign({}, give); delete g2.waste; give = g2;
-      }
-      for(const k in give){
-        // 戦利品の口は満杯でも止めない代わりに、溜まる量には蓋をする
-        n.outBuf[k] = T.loot ? Math.min(capOut(n,k), (n.outBuf[k]||0)+give[k])
-                             : (n.outBuf[k]||0)+give[k];
-        flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
+      for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k]; flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
           const c=compOf(k); if(c>(S.maxComp||0)) S.maxComp=c; }
@@ -4128,28 +3042,11 @@ function tick(dt,fast){
       }
       if(T.chain==='decomp' && n.item){
         S.stock = (S.stock||0) + itemVal(n.item) * DECOMP_TAKE * 0.5
-                  * lvPow(nLv(n)) * Math.pow(2.2, (TYPES[n.type].era||1)-1);
-        const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(nLv(n)) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
+                  * lvPow(n.level) * Math.pow(2.2, (TYPES[n.type].era||1)-1);
+        const rp = itemVal(n.item) * DECOMP_TAKE * lvPow(n.level) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
-      if(T.effect==='orbf') doMelt(n, fast);
-      if(T.effect==='dive'){
-        // 地図の坑は「潜った回数」で回る。共有の層を倒しきれなくても、
-        // 坑そのものは動き続けるので、共鳴もドロップもここで進む
-        const dgN = dgOf(n);
-        if(dgN){
-          resTick(n, true);
-          if(dgCl(dgN) >= 0) diveLoot(n, fast, dgLoot(dgN), false);
-        }
-        doDive(fast, n);                        // 潜って戦う（戦利品と層は今まで通り）
-        const d = dgOf(n);                      // 地図のダンジョンは守護者も削れる
-        if(d && dgOpen(d)){
-          const hit = dmg();
-          d.hp = (d.hp == null ? dgHp(d) : d.hp) - hit;
-          if(!fast) hitNum(n, hit, dgIsBoss(d) && d.hp <= dgHp(d)*0.12);
-          if(d.hp <= 0) dgWin(d, n, fast);
-        }
-      }
+      if(T.effect==='dive') doDive(fast, n);
       if(T.effect==='raid'){
         n.hp = (n.hp || raidHp()) - atk();     // 階層の装甲は関係しない
         if(n.hp <= 0){ raidDone(n); break; }
@@ -4168,8 +3065,7 @@ function tick(dt,fast){
       const ls=S.links.filter(l=>l.from===n.id&&l.item===item);
       if(!ls.length) continue;
       const big = TYPES[n.type].layer || TYPES[n.type].port;   // 口はまとめて流す
-      const bulk = modsOf(n).sp.bulk ? 4 : 1;      // 竜の胃袋：一度に多く押し出す
-      const chunk = big ? Infinity : Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8) * bulk);
+      const chunk = big ? Infinity : Math.max(1, Math.ceil(Math.min(capOut(n,item), CAP*20)/8));
       // 更新間隔が長いときは、その間に送れたはずの回数ぶんまとめて送る。
       // 使ったぶんだけ間隔を戻す（余りを捨てると、コマが粗いほど流れが細くなる）
       const canSend = 1 + Math.floor(-n.cd[item]/SENDCD);
@@ -4194,10 +3090,8 @@ function tick(dt,fast){
         let sent=false;
         for(const i of order){
           const l=ls[i], dst=N(l.to);
-          const gg = l.G || geomOf(l);
-          const sp = (gg && gg.blocked) ? 0 : (dst ? spaceIn(dst,item) : 0);
-          if(sp>0 && (big || (l.tok||0) >= 1)){
-            if(!big) l.tok -= 1;
+          const sp=dst?spaceIn(dst,item):0;
+          if(sp>0){
             const q=Math.min(n.outBuf[item], chunk, sp);
             n.outBuf[item]-=q; st[i]-=wtot;
             n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
@@ -4213,13 +3107,6 @@ function tick(dt,fast){
     }
   }
 
-  // 線ごとの持ち分を戻す。遠い線は、戻る速さそのものが遅い
-  for(const l of S.links){
-    const G = l.G || geomOf(l);
-    const f = G ? (G.cap==null ? 1 : G.cap) : 1;
-    const room = Math.max(LINK_BURST, dt / SENDCD);
-    l.tok = Math.min(room, (l.tok||0) + dt / SENDCD * f);
-  }
   // 配線上の移動
   for(const l of S.links){
     if(!l.packets.length) continue;
@@ -4229,13 +3116,12 @@ function tick(dt,fast){
       const p=l.packets[i];
       // 直角に曲がると経路が長くなる。速さを固定したままだと粒が這うので、
       // 「長いほど速く」して、渡りきる時間が延びすぎないようにする
-      p.t += dt * Math.max(PSPEED / G.total, 1 / PMAX) * (G.spd || 1);
+      p.t += dt * Math.max(PSPEED / G.total, 1 / PMAX);
       if(p.t>=1){ b.inBuf[p.item]=(b.inBuf[p.item]||0)+(p.q||1); delPacket(l,i); }
     }
   }
   if(!S.enemy) spawnEnemy();
   polTick(dt);
-  riftTick(dt);                        // 裂け目の残り時間
   if(!fast) troTick(dt);
   flowTick(dt, fast);
   rateTick(dt);
@@ -4664,10 +3550,8 @@ function raidTick(dt){
 /* 削りきった時点で報酬を確定させ、その場に置いておく。タップで受け取る */
 function raidDone(n){
   n.clear = true; n.hp = 0;
-  // 突発は確定で良いものが出る。深さは到達した層に合わせる
   n.reward = { g: raidGold(), m: raidMat(), d: rollDrop(Math.max(DROP_FROM, S.best)),
-               lv: Math.max(DROP_FROM, S.best), rel: 2 + Math.floor(Math.random()*2),
-               orb: rollOrb() };
+               p: rollPart(Math.max(DROP_FROM, S.best)) };
   addLog(`【突発】裂け目を閉じた。ノードをタップして報酬を受け取ろう`, 'b');
   toast('🌀 クリア！ ノードをタップで受け取り');
 }
@@ -4675,18 +3559,10 @@ function raidClaim(n){
   const r = n.reward || { g: raidGold(), m: raidMat(), d: null };
   S.gold += r.g; S.stock = (S.stock||0) + r.m;
   if(r.d) S.drops.push(r.d);
-  const got = [];
-  for(let i=0;i<(r.rel||0);i++){
-    // 突発は1つだけ等級を底上げする（確定の当たり枠）
-    const it = lootRelic(r.lv || S.best, false, null, i===0 ? {mq: 260} : null);
-    if(it) got.push(it);
-  }
-  if(r.orb){ addOrb(r.orb, 2); }
+  if(r.p) addPart(r.p, 1);
   addLog(`【突発】報酬を受け取った → +${fmt(r.g)}G ＋🧱${fmt(r.m)}`
-    + (r.d ? ` ＋${dropName(r.d)}` : '')
-    + (got.length ? ` ＋遺物${got.length}` : '')
-    + (r.orb ? ` ＋${ORB[r.orb].i}${ORB[r.orb].n}×2` : ''), 'b');
-  toast(`+${fmt(r.g)}G ＋🧱${fmt(r.m)}` + (got.length ? ` ＋遺物${got.length}個` : ''));
+    + (r.d ? ` ＋${dropName(r.d)}` : '') + (r.p ? ` ＋${partName(r.p)}` : ''), 'b');
+  toast(`+${fmt(r.g)}G ＋🧱${fmt(r.m)}` + (r.d ? ' ＋拾得品' : '') + (r.p ? ' ＋パーツ' : ''));
   if(sel===n.id) sel=null;
   removeNode(n.id); reindex(); renderInsp(); renderBag();
 }
@@ -4718,7 +3594,7 @@ function polSource(n){
   }
   return v;
 }
-const auraOf = n => n.stall ? null : (modsOf(n).aura || TYPES[n.type].aura || null);
+const auraOf = n => (TYPES[n.type].aura && !n.stall) ? TYPES[n.type].aura : null;
 const nodeCx = n => n.x + NW/2, nodeCy = n => n.y + 45;
 /* 中身が空で、入る線も出る線も無い枠は手放す。
    線を切ったあとだけでなく、読み込んだデータにも効くよう定期的に見る */
@@ -4805,8 +3681,7 @@ function polTick(dt){
     const v = a.v + (e ? e.v : 0);
     n.spd = 1 + a.boost + (e ? e.boost : 0);
     // 上がる速さは溜め込み具合、下がる速さは自然回復＋清浄ピン＋清浄の装備
-    const mm = modsOf(n);
-    const up   = Math.max(0, v) * POL_UP * (1 - (mm.pol||0)/100) * (1 + (mm.foul||0)/100);
+    const up   = Math.max(0, v) * POL_UP;
     const down = (POL_HEAL + Math.max(0, a.clean + (e ? e.clean : 0)) * POL_CLEAN) * pure;
     const nv = Math.max(0, Math.min(1, (n.pol||0) + (up - down) * d));
     // 端数を0に丸めるのは「薄まっているとき」だけ。
@@ -4853,13 +3728,9 @@ function srcFace(n){
   const r=exRate.str+exRate.int+exRate.vit;
   const pay = payOf(n)   ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分`
             : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分` : '';
-  const held = Math.floor(n.outBuf.crew||0), cap = crewCap();
-  const sent = S.links.some(l=>l.from===n.id && l.item==='crew');
-  const crew = `🧑${held}/${cap}　${fmt(60/craftTime(n))}人/分`
-             + (sent ? '' : '　⚠ 送り先がない（ダンジョンや街へ配線）');
-  if(!got) return role+crew+pay+skl;
+  if(!got) return role+'待機中'+pay+'／経験値はまだ戻っていない'+skl;
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
-  return `${role}${crew}${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
+  return `${role}待機中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
 }
 function doDive(fast, node){
   if(!S.enemy) spawnEnemy();
@@ -4871,7 +3742,7 @@ function doDive(fast, node){
   }
   S.enemy.hp -= dmg();
   if(S.enemy.hp>0) return;
-  const f=S.floor, g=Math.round(enemyGold(f)*goldMul()), wasTier=depthTier(), wasZone=zoneOf(f);
+  const f=S.floor, g=enemyGold(f), wasTier=depthTier(), wasZone=zoneOf(f);
   S.gold += g;
   if(node){                                  // 撃破すると戦利品と、たまに宝箱が出る
     const k = lootItem(node);
@@ -4890,338 +3761,22 @@ function doDive(fast, node){
     const nz = zoneOf(S.floor);
     if(nz !== wasZone && !fast) addLog(`【新区域】${nz.i} ${nz.n} に到達`,'b');
   }
-  if(!dgOf(node)) diveLoot(node, fast, f, isBoss(f));   // 突発・クエストの坑は撃破のときだけ
+  // 撃破でのドロップ（ボス層は確定、通常層は8%）
+  // 施設と仲間は低確率。ボス層だけは確定で落ちる
+  const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;   // 宝探し
+  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * skillMul('drop') * findK)) tryDrop(f, fast);
+  // 強化パーツは施設より出やすい
+  if(Math.random() < 0.05 * skillMul('drop') * findK){
+    const k = rollPart(f);
+    addPart(k, 1);
+    if(!fast) addLog(`【入手】${partName(k)}`, 'b');
+  }
   // 換装コアは節目の層でだけ。世代を上げたあとの「移行」が仕事になる
   if(isBoss(f) && f >= 20 && Math.random() < 0.30 * skillMul('drop')){
     addPart('core', 1);
     if(!fast) addLog(`【入手】${CORE.i}${CORE.n}（設置済みの施設を1世代ぶん引き上げられる）`, 'b');
   }
   spawnEnemy();
-}
-/* 拾ったものを、その場に一瞬出す。等級が高いほど長く強く光る */
-let popN = 0, popAt = 0;
-function popRelic(node, it){
-  if(!fxOn || !node || !node.el || !node.el.root) return;
-  const now = performance.now();
-  // 裂け目の最中は何十個も同時に落ちる。並のものは間引かないと画面が埋まる
-  if(it.r < 4){
-    if(popN > 5) return;
-    if(now - popAt < (it.r >= 3 ? 90 : 240)) return;
-  }
-  popAt = now;
-  const R = node.el.root;
-  const c = relColor(it);
-  const e = document.createElement('div');
-  e.className = 'pop';
-  e.style.setProperty('--rc', c);
-  e.textContent = `${relIcon(it)}${it.r>=2 ? relName(it) : relBaseName(it)}`;
-  R.appendChild(e); popN++;
-  setTimeout(()=>{ e.remove(); popN--; }, 1500);
-  if(it.r >= 2){
-    R.style.setProperty('--fc', c);
-    R.classList.remove('flash'); void R.offsetWidth; R.classList.add('flash');
-  }
-}
-/* ========================= 共鳴と裂け目 =========================
-   ここがこのゲームの山場。
-   坑を止めずに回し続けると「共鳴」が溜まっていく。溜まるほど落ちる量も
-   等級も跳ね上がるが、⚡か🧑人手が一瞬でも切れると根こそぎ崩れる。
-   だから「工房を太らせる」ことが、そのまま「当たりを引く」ことになる。
-   振り切ると【裂け目】が開き、45秒のあいだ滅茶苦茶に降る。          */
-const RES_MAX  = 100;                 // ここまで溜めると裂け目が開く
-const RES_GAIN = 1.0;                 // 1撃破あたり
-/* 止まったときに残る割合。低いうちは優しく、高く積むほど失うものが大きい */
-const resKeep = v => v >= RES_T[4].at ? 0.45
-                   : v >= RES_T[3].at ? 0.58
-                   : v >= RES_T[2].at ? 0.70
-                   : 0.82;
-const RIFT_SEC = 45;                  // 裂け目が開いている長さ
-const RIFT_Q   = 8;                   // 裂け目のあいだ、落ちる量
-const RIFT_MQ  = 130;                 // 裂け目のあいだ、上がる発見質
-/* 共鳴の段。色と名前と倍率 */
-const RES_T = [
-  {at:0,   n:'静',  c:'#5a6b82', q:1.0,  mq:0},
-  {at:20,  n:'熱',  c:'#5aa9ff', q:1.6,  mq:25},
-  {at:40,  n:'灼',  c:'#f2c14e', q:2.6,  mq:60},
-  {at:62,  n:'燦',  c:'#ff9a4d', q:4.2,  mq:120},
-  {at:84,  n:'極',  c:'#ff5f6d', q:7.0,  mq:200},
-];
-const resOf  = n => Math.max(0, n.res || 0);
-function resTier(v){ let t = RES_T[0];
-  for(const x of RES_T) if(v >= x.at) t = x; return t; }
-const inRift = n => (n.rift || 0) > 0;
-/* その坑の、いまの落ちやすさ */
-function resMul(n){
-  if(inRift(n)) return {q: RIFT_Q, mq: RIFT_MQ, t:{n:'裂', c:'#c08bff'}};
-  const t = resTier(resOf(n));
-  return {q: t.q, mq: t.mq, t};
-}
-/* 1回まわるたびに共鳴が溜まる。止まると崩れる。
-   n.stall は毎コマ立て直されるので、それとは別に「前は回っていたか」を持つ */
-function resTick(n, ok){
-  if(!TYPES[n.type].loot) return;
-  if(n.rift > 0) return;                // 裂け目のあいだは溜まらない。時間だけ減る
-  if(!ok){                              // 止まった＝崩れる（止まった瞬間に1回だけ）
-    if(!n._resRun) return;              // すでに止まっている
-    n._resRun = false;
-    const before = resOf(n);
-    if(before <= 0) return;
-    n.res = before * resKeep(before);
-    addLog(`【共鳴が崩れた】${nodeTitle(n)} が止まった`
-         + `（${resTier(before).n}${Math.floor(before)} → ${resTier(n.res).n}${Math.floor(n.res)}）`, 'w');
-    flashBoard('#6d3a45', 0.22);
-    return;
-  }
-  n._resRun = true;
-  n.res = resOf(n) + RES_GAIN;
-  const t = resTier(n.res), was = resTier(n.res - RES_GAIN);
-  if(t.n !== was.n){
-    addLog(`【共鳴 ${t.n}】${nodeTitle(n)}　落ちる量 ×${t.q}／発見質 +${t.mq}%`, 'b');
-    toast(`共鳴【${t.n}】 落ちる量 ×${t.q}`);
-    flashBoard(t.c, 0.22);
-  }
-  if(n.res >= RES_MAX) openRift(n);
-}
-function openRift(n){
-  n.res = 0; n.rift = RIFT_SEC;
-  S.rifts = (S.rifts||0) + 1;
-  addLog(`【裂け目】${nodeTitle(n)} の底が抜けた。${RIFT_SEC}秒のあいだ、`
-       + `落ちる量 ×${RIFT_Q}・発見質 +${RIFT_MQ}%`, 'b');
-  toast(`🌀 裂け目が開いた！ ${RIFT_SEC}秒`);
-  flashBoard('#c08bff', 0.55);
-  bigCry('裂け目', '#c08bff', `${RIFT_SEC}秒のあいだ、滅茶苦茶に降る`, 6);
-  if(n.el && n.el.root) n.el.root.classList.add('rift');
-}
-const RES_LEAK = 2.2;                 // 止まっているあいだ、1秒に抜けていく量
-function riftTick(dt){
-  for(const n of S.nodes){
-    // 止まったままなら、共鳴はじわじわ抜ける。放っておいて戻ることはない
-    if(TYPES[n.type].loot && !n.rift && n.stall && resOf(n) > 0)
-      n.res = Math.max(0, resOf(n) - RES_LEAK * dt);
-    if(!(n.rift > 0)) continue;
-    n.rift -= dt;
-    if(n.rift <= 0){
-      n.rift = 0;
-      if(n.el && n.el.root) n.el.root.classList.remove('rift');
-      addLog(`【裂け目が閉じた】${nodeTitle(n)}`, 'w');
-    }
-  }
-}
-/* 守護者を削った量を、ときどき数字にして出す。
-   毎回出すと画面が埋まるので、溜めて0.22秒ごとに1つ            */
-function hitNum(n, v, big){
-  if(!fxOn || !n || !n.el || !n.el.root) return;
-  n._dmgA = (n._dmgA || 0) + v;
-  const now = performance.now();
-  if(!big && now - (n._dmgT || 0) < 220) return;
-  n._dmgT = now;
-  const q = n._dmgA; n._dmgA = 0;
-  if(q <= 0) return;
-  const e = document.createElement('div');
-  e.className = 'dmg' + (big ? ' crit' : '');
-  e.textContent = '-' + fmt(q);
-  n.el.root.appendChild(e);
-  setTimeout(()=>e.remove(), 760);
-}
-/* ── 見せ方 ──
-   数字が増えるだけでは手ごたえにならない。当たったら、画面がそう言う */
-const nodeTitle = n => { const d = dgOf(n);
-  return d ? dgName(d) : `#${n.no||'-'} ${tierOf(n).n}`; };
-let fxOn = true;                       // 演出を切りたい人のための栓（S.fx で覚える）
-function setFx(v){
-  fxOn = !!v; S.fx = fxOn ? 1 : 0;
-  const b = $('#bFx'); if(b){ b.classList.toggle('fxoff', !fxOn);
-    b.textContent = fxOn ? '✨ 演出' : '✨ 演出OFF'; }
-  if(!fxOn){ const f=$('#fxFlash'); if(f) f.style.opacity='0';
-    const c=$('#fxCry'); if(c) c.classList.remove('on'); }
-}
-function flashBoard(color, alpha){
-  if(!fxOn) return;
-  const el = $('#fxFlash'); if(!el) return;
-  el.style.background = color;
-  el.style.transition = 'none'; el.style.opacity = String(alpha);
-  void el.offsetWidth;
-  el.style.transition = 'opacity .55s ease-out'; el.style.opacity = '0';
-}
-/* 画面のまんなかに、大きく出す。ここぞの一回だけに使う。
-   出しすぎると「ここぞ」でなくなるので、間隔を空け、格の高いものを優先する */
-let cryT = null, cryAt = 0, cryRank = 0;
-const CRY_GAP = 1400;
-function bigCry(text, color, sub, rank){
-  if(!fxOn) return;
-  const now = performance.now(), r = rank || 1;
-  // まだ前の掛け声が生きているときは、より格の高いものだけが割り込める
-  if(now - cryAt < CRY_GAP && r <= cryRank) return;
-  cryAt = now; cryRank = r;
-  setTimeout(()=>{ if(performance.now() - cryAt >= CRY_GAP) cryRank = 0; }, CRY_GAP + 60);
-  const el = $('#fxCry'); if(!el) return;
-  el.style.setProperty('--cc', color);
-  el.innerHTML = `<div class="cry1">${text}</div>`
-    + (sub ? `<div class="cry2">${sub}</div>` : '');
-  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
-  clearTimeout(cryT); cryT = setTimeout(()=>el.classList.remove('on'), 1900);
-}
-/* 節目はその一度だけ、大きく祝う。二度目からは静かにする */
-function milestone(key, title, color, sub){
-  S.ms = S.ms || {};
-  if(S.ms[key]) return false;
-  S.ms[key] = 1;
-  addLog(`【${title}】${sub||''}`, 'b');
-  bigCry(title, color, sub, 9);          // 節目はいちばん優先
-  flashBoard(color, 0.6);
-  return true;
-}
-/* 坑から外へ広がる輪。どこで当たったのかが目で分かる */
-function shock(node, color){
-  if(!fxOn || !node || !node.el || !node.el.root) return;
-  const e = document.createElement('div');
-  e.className = 'shock'; e.style.setProperty('--sc', color);
-  node.el.root.appendChild(e);
-  setTimeout(()=>e.remove(), 900);
-}
-/* ── 連鎖 ──
-   良いものが出たとき、そこで終わらない。もう一段、もっと良いものが出ることがある。
-   稀に5段6段と続く。この「まだ続く」が、いちばん効く                */
-const CHAIN_P   = 0.32;                // 次へ続く確率
-const CHAIN_MAX = 6;
-const CHAIN_TOP = 4;                   // 連鎖で届く上限（固有まで。神話は素引きの特権）
-function cascade(lv, node, fast, baseR, mqAdd){
-  const got = [];
-  let floor = baseR;
-  for(let i=0;i<CHAIN_MAX;i++){
-    if(Math.random() >= CHAIN_P * (1 - i*0.14)) break;
-    floor = Math.min(CHAIN_TOP, floor + 1);
-    const it = lootRelic(lv, fast, node, {rar: floor, mqAdd});
-    if(!it) break;
-    got.push(it);
-    if(!fast){
-      addLog(`　↳ 連鎖 ${i+1}：${relIcon(it)}${relName(it)}【${relRarName(it)}】`, 'b');
-      shock(node, relColor(it));
-    }
-  }
-  if(got.length > (S.bestChain||0)) S.bestChain = got.length;
-  if(got.length >= 2 && !fast){
-    const best = got[got.length-1];
-    bigCry(`${got.length}連鎖`, relColor(best), `${relIcon(best)}${relName(best)}`, 2 + got.length);
-    flashBoard(relColor(best), 0.4);
-  }
-  return got;
-}
-
-const RELIC_MAX = 600;                 // 持ち物に積める遺物の数（裂け目で一気に降るので広め）
-const FRAG_PER  = 100;                 // 錬成の品ひとつぶんのかけら
-/* ── 仕分け ──
-   数が増えると見るのも大変になる。決めた等級以下は拾った瞬間に売る */
-const filtOf = () => (S.filt = S.filt || {sell:-1});
-/* ── 錬成台 ──
-   いらない遺物を溶かして錬成の品にする。工房が拾い物を currency に変える段 */
-function doMelt(n, fast){
-  const th = n.mlt == null ? 0 : n.mlt;
-  const w = wornIds();
-  const pool = invAll().filter(x => !w.has(x.id) && x.r <= th && !x.u && !x.s);
-  if(!pool.length){ n.stall = true;
-    n.why = `溶かす遺物がない（${RAR[th].n}以下）`; return; }
-  pool.sort((a,b)=>relScore(a)-relScore(b));
-  const it = pool[0];
-  const frag = (1 + RAR[it.r].s * 1.6) * (1 + it.lv/50)
-             * lvPow(nLv(n)) * Math.pow(1.9, (TYPES[n.type].era||1)-1);
-  invDel(it.id); relicDirty();
-  S.frag = (S.frag||0) + frag;
-  S.melted = (S.melted||0) + 1;
-  let made = 0;
-  while(S.frag >= FRAG_PER && made < 40){ S.frag -= FRAG_PER; made++;
-    const k = rollOrb(); addOrb(k, 1);
-    if(!fast && made <= 3) addLog(`⚗️ ${ORB[k].i}${ORB[k].n} ができた`, 'w'); }
-  n.gain = (n.gain||0) + made;
-}
-/* 遺物をひとつ落とす。工房ぜんたいの発見量・発見質がここに効く */
-function lootRelic(lv, fast, node, opt){
-  const sp = node ? modsOf(node).sp : {};
-  const dgN = node ? dgOf(node) : null;
-  const o = opt || {};
-  const it = rollRelic(lv, Object.assign({}, o, {
-    mq: mqBonus(node) + (sp.rarePlus ? sp.rarePlus * 50 : 0) + (o.mqAdd || 0),
-    theme: dgN ? dgTheme(dgN) : null}));
-  // 拾った数は、仕分けで売ったぶんも含めて数える（実績の基準になるので）
-  S.found = (S.found||0) + 1;
-  if(it.r > (S.bestRar||0)) S.bestRar = it.r;
-  // 仕分け：決めた等級以下は、その場で売って収集庫に入れない
-  const f = filtOf();
-  if(f.sell >= 0 && it.r <= f.sell && !it.s && !it.u){
-    const g = relSell(it); S.gold += g;
-    S.autoG = (S.autoG||0) + g; S.autoN = (S.autoN||0) + 1;
-    return null;
-  }
-  // いっぱいなら、いちばん良くないものと入れ替える（拾えなくなるより良い）。
-  // 全部を並べ替えると、裂け目の最中に何千回も走って描画が追いつかなくなる。
-  // 何十個か抜き取って、その中でいちばん良くないものと比べるだけにする
-  if(invAll().length >= RELIC_MAX){
-    const w = wornIds(), a = invAll();
-    const mine = relScore(it);
-    let worst = null, ws = Infinity, wi = -1;
-    for(let k=0;k<28;k++){
-      const i = (Math.random() * a.length) | 0, x = a[i];
-      if(!x || w.has(x.id)) continue;
-      const sc = relScore(x);
-      if(sc < ws){ ws = sc; worst = x; wi = i; }
-    }
-    if(!worst || ws >= mine){
-      const g = relSell(it); S.gold += g;
-      S.autoG = (S.autoG||0) + g; S.autoN = (S.autoN||0) + 1;
-      return null;
-    }
-    S.gold += relSell(worst); S.autoG = (S.autoG||0) + relSell(worst);
-    S.autoN = (S.autoN||0) + 1;
-    a.splice(wi, 1);
-  }
-  invAdd(it); relicDirty();
-  if(!S.relSeen){ S.relSeen = 1;
-    addLog('【遺物】ダンジョンから遺物が出た。🎒持ち物→🔮遺物 から施設のスロットに挿すと、'
-         + 'その1台だけが強くなる。等級が高いほど接辞が多い','u');
-    toast('🔮遺物を拾った！ 持ち物から施設に挿せます'); }
-  if(it.r >= 4) S.foundUq = (S.foundUq||0) + 1;
-  if(!fast){
-    addLog(`【${relRarName(it)}】${relIcon(it)}${relName(it)}`
-      + `（${relBaseName(it)}・深さ${it.lv}）`, it.r>=3 ? 'b' : 'w');
-    if(it.r >= 1) popRelic(node, it);            // 等級の色で盤面に出す
-    // 等級が上がるほど、画面のほうが大きく反応する
-    if(it.r >= 3){ shock(node, relColor(it)); flashBoard(relColor(it), 0.18 + it.r*0.09); }
-    if(it.r === 4) bigCry(relName(it), relColor(it),
-      `${relBaseName(it)}・深さ${it.lv}${it.u?`「${UQ[it.u].fl}」`:''}`, 5);
-    if(it.r >= 5){
-      if(!milestone('myth', 'はじめての神話', relColor(it),
-           `${relIcon(it)}${relName(it)}　—　ここから先は、別の景色になる`)){
-        bigCry('神話', relColor(it), `${relIcon(it)}${relName(it)}`, 8);
-        flashBoard(relColor(it), 0.75);
-      }
-    }
-    if(it.r >= 4) toast(`${relIcon(it)}${relName(it)} を掘り当てた！`);
-  }
-  return it;
-}
-/* 遺物が落ちるところ。地図の坑はもぐるたび、突発の坑は撃破のときに呼ばれる。
-   共鳴と裂け目の倍率がここに乗る。止めずに回すほど、降り方が変わる      */
-function diveLoot(node, fast, f, boss){
-  const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;
-  const dg = node ? dgOf(node) : null;
-  const lv = dg ? dgLoot(dg) : f;
-  const rm = node ? resMul(node) : {q:1, mq:0};
-  const q  = skillMul('drop') * findK * mfMul(node) * rm.q
-           * (dg ? 1 + Math.max(0,dgCl(dg)) * 0.25 : 1);
-  if(f >= DROP_FROM && (boss || Math.random() < 0.02 * q)) tryDrop(f, fast);
-  let n2 = Math.floor(0.34 * q);
-  if(Math.random() < 0.34 * q - n2) n2++;
-  if(boss) n2 += 2;
-  for(let i=0;i<Math.min(24,n2);i++){
-    const it = lootRelic(lv, fast, node, {mqAdd: rm.mq});
-    // 良いものが出たら、そこで終わらない。もう一段、もっと良いものが来ることがある
-    if(it && it.r >= 2) cascade(lv, node, fast, it.r, rm.mq);
-  }
-  let n3 = Math.floor(0.085 * q);
-  if(Math.random() < 0.085 * q - n3) n3++;
-  if(boss) n3 += 1;
-  for(let i=0;i<Math.min(12,n3);i++){ const k = rollOrb(); addOrb(k, 1);
-    if(!fast && i===0) addLog(`【入手】${ORB[k].i}${ORB[k].n}`, 'w'); }
 }
 function tryDrop(f, fast){
   if(S.drops.length >= DROP_MAX) return;      // クリア報酬スタックの上限
@@ -5239,7 +3794,7 @@ function spawnEnemy(){
 /* 研究ポイントを、判明済みでまだ開発していない対象に均等に配る */
 function grantRp(amount){
   if(!(amount>0)) return 0;
-  amount *= skillMul('rp') * relRpMul();
+  amount *= skillMul('rp');
   S.rp = (S.rp||0) + amount;
   return amount;
 }
@@ -5331,17 +3886,10 @@ function renderStats(){
   const b=$('#statsBody'); if(!b) return;
   $('#sPlay').textContent = '遊んだ時間 '+hTime(S.playT||0);
   const h=S.hist||[];
-  const uq = new Set(invAll().filter(x=>x.u).map(x=>x.u)).size;
-  const deepest = (S.map&&S.map.dg||[]).reduce((m,d)=>Math.max(m,dgCl(d)), 0);
   const now=[['遊んだ時間',hTime(S.playT||0)],['ゴールド',fmt(S.gold)],['最深階層','第'+S.best+'層'],
     ['攻撃力',fmt(atk())],['開発した施設',devCount()+'種'],
     ['能力値',`${S.stats.str}/${S.stats.int}/${S.stats.vit}`],
-    ['ノード',S.nodes.length+'台'],['研究ポイント',fmt(gotRp())],
-    ['拾った遺物',fmt(S.found||0)+'個'],['いちばん良い等級',RAR[S.bestRar||0].n],
-    ['見つけた固有品',uq+' / '+UNIQ.length],
-    ['そろえた揃い',setBonus().done.length+' / '+SETS.length],
-    ['溶かした遺物',fmt(S.melted||0)+'個'],['自動で売った',fmt(S.autoN||0)+'個'],
-    ['いちばん深い坑','深度'+deepest],['錬成の持ち',fmt(orbCount())+'個']];
+    ['ノード',S.nodes.length+'台'],['研究ポイント',fmt(gotRp())]];
   let html='<div class="snow">'+now.map(k=>`<div><div class="k">${k[0]}</div><div class="v">${k[1]}</div></div>`).join('')+'</div>';
   if(h.length<2){
     html+='<div class="sempty">まだ記録がありません。<br>遊んだ時間ぶんだけ書き留めていくので、しばらくするとここに折れ線が出ます。</div>';
@@ -5364,7 +3912,12 @@ function renderStats(){
 
 /* ========================= 拾得品 ========================= */
 /* ダンジョンで拾ったパーツ。等級は深さで上がる */
-
+function rollPart(floor, rnd){
+  rnd = rnd || Math.random;
+  const g = Math.max(1, Math.min(PART_MAX, 1 + Math.floor(dropGrade(floor)/3)));
+  const p = PARTS[Math.floor(rnd()*PARTS.length)];
+  return partKey(p.k, g);
+}
 function placeDrop(id){
   const i = S.drops.findIndex(d=>d.id===id); if(i<0) return;
   const d = S.drops[i];
@@ -5398,67 +3951,6 @@ const TROPHY = [
   {k:'atk3', i:'🔥', n:'一騎当千',      d:'攻撃力 1,000万 をこえた',      p:3, f:()=>atk()>=1e7},
   {k:'atk4', i:'💥', n:'天災',          d:'攻撃力 10億 をこえた',         p:4, f:()=>atk()>=1e9},
   {k:'atk5', i:'🌟', n:'神話',          d:'攻撃力 1兆 をこえた',          p:5, f:()=>atk()>=1e12},
-  // ── 共鳴と裂け目 ──
-  {k:'res1', i:'🔥', n:'熱が入る',      d:'共鳴【灼】まで上げた',          p:1,
-   f:()=>S.nodes.some(n=>TYPES[n.type].loot && resOf(n)>=RES_T[2].at)},
-  {k:'res2', i:'☄️', n:'燦然',          d:'共鳴【極】まで上げた',          p:3,
-   f:()=>S.nodes.some(n=>TYPES[n.type].loot && resOf(n)>=RES_T[4].at)},
-  {k:'rif1', i:'🌀', n:'底が抜けた',    d:'裂け目を1回ひらいた',           p:2,
-   f:()=>(S.rifts||0)>=1},
-  {k:'rif2', i:'🌪', n:'常在の渦',      d:'裂け目を25回ひらいた',          p:4,
-   f:()=>(S.rifts||0)>=25},
-  {k:'rif3', i:'🕸', n:'世界の裂け目',  d:'裂け目を200回ひらいた',         p:5,
-   f:()=>(S.rifts||0)>=200},
-  {k:'bos1', i:'👁', n:'主を退けた',    d:'★主を1体 倒した',              p:2,
-   f:()=>(S.bossKill||0)>=1},
-  {k:'bos2', i:'☠️', n:'主狩り',        d:'★主を20体 倒した',             p:4,
-   f:()=>(S.bossKill||0)>=20},
-  {k:'cas1', i:'⛓', n:'連鎖',          d:'4連鎖を起こした',               p:3,
-   f:()=>(S.bestChain||0)>=4},
-  {k:'cas2', i:'⚡', n:'極限連鎖',      d:'6連鎖を起こした',               p:5,
-   f:()=>(S.bestChain||0)>=6},
-  // ── トレハン ──
-  {k:'rel1', i:'🔮', n:'はじめの遺物',  d:'遺物を 1つ 拾った',            p:1,
-   f:()=>(S.found||0)>=1},
-  {k:'rel2', i:'💎', n:'収集癖',        d:'遺物を 500個 拾った',          p:2,
-   f:()=>(S.found||0)>=500},
-  {k:'rel3', i:'🏺', n:'遺物商',        d:'遺物を 10,000個 拾った',       p:4,
-   f:()=>(S.found||0)>=1e4},
-  {k:'rar1', i:'🟡', n:'目利き',        d:'希少の遺物を手にした',         p:1,
-   f:()=>(S.bestRar||0)>=2},
-  {k:'rar2', i:'🟠', n:'英雄譚',        d:'英雄の遺物を手にした',         p:2,
-   f:()=>(S.bestRar||0)>=3},
-  {k:'rar3', i:'🌟', n:'固有の一点',    d:'固有品を掘り当てた',           p:3,
-   f:()=>(S.bestRar||0)>=4},
-  {k:'rar4', i:'🔴', n:'神話の器',      d:'神話の遺物を掘り当てた',       p:5,
-   f:()=>(S.bestRar||0)>=5},
-  {k:'uq1',  i:'📜', n:'図鑑の三頁',    d:'固有品を 3種 見つけた',        p:2,
-   f:()=>new Set(invAll().filter(x=>x.u).map(x=>x.u)).size>=3},
-  {k:'uq2',  i:'📚', n:'蒐集家',        d:'固有品を 10種 見つけた',       p:4,
-   f:()=>new Set(invAll().filter(x=>x.u).map(x=>x.u)).size>=10},
-  {k:'set1', i:'🏛', n:'ひと揃い',      d:'揃いをひとつ完成させた',       p:3,
-   f:()=>setBonus().done.length>=1},
-  {k:'set2', i:'👑', n:'全き調べ',      d:'揃いを3つ完成させた',          p:5,
-   f:()=>setBonus().done.length>=3},
-  {k:'mlt1', i:'⚗️', n:'溶かす人',      d:'遺物を 300個 溶かした',        p:2,
-   f:()=>(S.melted||0)>=300},
-  {k:'dpt1', i:'🕯', n:'もっと深く',    d:'ダンジョンの深度を 3 まで上げた', p:2,
-   f:()=>(S.map&&S.map.dg||[]).some(d=>dgCl(d)>=3)},
-  {k:'dpt2', i:'🌑', n:'奈落',          d:'ダンジョンの深度を 10 まで上げた', p:4,
-   f:()=>(S.map&&S.map.dg||[]).some(d=>dgCl(d)>=10)},
-  {k:'dpt3', i:'🕳', n:'底無し',        d:'ダンジョンの深度を 25 まで上げた', p:5,
-   f:()=>(S.map&&S.map.dg||[]).some(d=>dgCl(d)>=25)},
-  // ── 運び ──
-  {k:'rly1', i:'📡', n:'道をつなぐ',    d:'📡中継塔を 3本 建てた',        p:1,
-   f:()=>S.nodes.filter(n=>TYPES[n.type].relay2).length>=3},
-  {k:'rly2', i:'🗼', n:'街道',          d:'📡中継塔を 12本 建てた',       p:2,
-   f:()=>S.nodes.filter(n=>TYPES[n.type].relay2).length>=12},
-  {k:'rly3', i:'🛰', n:'大動脈',        d:'拠点から15タイル以上はなれた場所と、満載の配線でつながった', p:4,
-   f:()=>S.links.some(l=>{ const g=l.G, a=N(l.from), b=N(l.to);
-     if(!g||!a||!b||a.layer||b.layer||g.cap<0.99||!S.map) return false;
-     const d=Math.max(Math.hypot(nodeTx(a)-S.map.bx, nodeTy(a)-S.map.by),
-                      Math.hypot(nodeTx(b)-S.map.bx, nodeTy(b)-S.map.by));
-     return d>=15; })},
   // ── 深さ ──
   {k:'dep1', i:'🕳', n:'洞窟を抜けて',  d:'ダンジョン 25層 をこえた',      p:1, f:()=>S.best>=25},
   {k:'dep2', i:'💧', n:'水路の主',      d:'ダンジョン 50層 をこえた',      p:1, f:()=>S.best>=50},
@@ -5602,10 +4094,6 @@ const EFF_ROWS = () => [
   ['💰 売値',          skillMul('gold') * gearMul('rich')],
   ['💧 汚染への強さ',  skillMul('pure') * gearMul('pure')],
   ['🍀 拾い物',        skillMul('drop')],
-  ['🔮 発見量（最良の坑）', 1 + bestMf().mf/100],
-  ['💠 発見質（最良の坑）', 1 + bestMf().mq/100],
-  ['💰 遺物のゴールド', goldMul()],
-  ['📖 遺物の研究',    relRpMul()],
   ['🏆 祝福',          troMul()],
 ];
 /* 骨組みを組む（顔ぶれが変わったときだけ走る） */
@@ -5750,8 +4238,7 @@ function gearKeys(){
     .filter(k => isEqp(k)).sort((a,b)=>itemVal(b)-itemVal(a));
 }
 const partCount = () => Object.keys(S.parts||{}).reduce((a,k)=>a+partStock(k),0);
-function bagCount(){ return homeCount() + S.drops.length + partCount()
-                          + invAll().length + orbCount(); }
+function bagCount(){ return homeCount() + S.drops.length + partCount(); }
 function sellHome(k, all){
   const P=homeOf(), q = all ? (P[k]||0) : Math.min(1, P[k]||0);
   if(q<1) return;
@@ -5780,9 +4267,7 @@ function renderBag(){
   $('#bcGear').textContent = nG; $('#bcDrop').textContent = nD+' / '+DROP_MAX;
   const bs=$('#bcSkill');
   if(bs) bs.textContent = SKILLS.filter(x=>hasSkill(x.k)).length+' / '+SKILLS.length;
-  const bp=$('#bcPart'); if(bp) bp.textContent = fmt(invAll().length);
-  const bo=$('#bcOrb');  if(bo) bo.textContent = fmt(orbCount());
-  const bst=$('#bcSet'); if(bst) bst.textContent = setBonus().done.length+' / '+SETS.length;
+  const bp=$('#bcPart'); if(bp) bp.textContent = fmt(partCount());
   const wt2=$('#bcHome');
   if(wt2) wt2.textContent = Object.keys(homeOf()).filter(k=>!isEqp(k)).length;
   document.querySelectorAll('#bag .btabs button')
@@ -5845,9 +4330,22 @@ function renderBag(){
     return;
   }
 
-  if(bagTab==='part'){ renderStash(box); return; }
-  if(bagTab==='orb'){  renderOrbs(box);  return; }
-  if(bagTab==='set'){  renderSets(box);  return; }
+  if(bagTab==='part'){
+    $('#bagNote').textContent = 'ダンジョンで拾う強化パーツ。施設のアイテムスロットに挿すと、'
+      + 'その1台だけが強くなります。ふつうの施設はスロット1つ、⛏ダンジョン産は2〜5つ。';
+    const ks = Object.keys(S.parts||{}).filter(k=>partStock(k)>0).sort();
+    if(!ks.length){ box.innerHTML = `<div class="bempty">まだ持っていません。ダンジョンに潜ると拾えます。</div>`; return; }
+    box.innerHTML = ks.map(k=>{
+      if(k==='core') return `<div class="bitem"><div class="bmain">
+        <div class="bname">${CORE.i}${CORE.n} <span class="bon">×${fmt(coreStock())}</span></div>
+        <div class="bsub">${CORE.d}（施設を選んで「引き上げる」）</div></div></div>`;
+      const {p,g} = partOf(k); if(!p) return '';
+      return `<div class="bitem"><div class="bmain">
+        <div class="bname">${p.i}${p.n}${'＋'.repeat(g-1)} <span class="bon">×${fmt(partStock(k))}</span></div>
+        <div class="bsub">${p.d}　／　${p.v(g)}</div></div></div>`;
+    }).join('');
+    return;
+  }
   if(bagTab==='home'){
     $('#bagNote').textContent = '📦開封所で宝箱を開けると、中身がここに入ります。'
       + '素材はここから売ったり捨てたりできます（装備は「装備」のタブへ）。';
@@ -5942,357 +4440,14 @@ function renderBag(){
   box.querySelectorAll('.dtoss').forEach(b=>b.onclick=()=>tossDrop(+b.dataset.id));
 }
 
-/* ========================= 収集庫 =========================
-   拾った遺物はここに全部たまる。数が増えるので、並べ替えと絞り込みが要る。
-   選ぶと下に詳しい中身が出て、そこから錬成もできる                */
-let stSort = 'score', stRar = 0, stBase = '', stWorn = 'all', stSel = null;
-const RAR_TAG = it => `<span class="rtag" style="--rc:${relColor(it)}">${relRarName(it)}</span>`;
-function relCard(it, opt){
-  opt = opt || {};
-  const at = wornAt(it.id);
-  const u = it.u ? UQ[it.u] : null;
-  return `<div class="rcard ${stSel===it.id?'sel':''} ${at?'worn':''}" data-id="${it.id}"
-      style="--rc:${relColor(it)}">
-    <div class="rtop">
-      <span class="ric">${relIcon(it)}</span>
-      <span class="rnm">${relName(it)}</span>
-      ${RAR_TAG(it)}
-      ${at ? `<span class="rwo">#${at.no}</span>` : ''}
-    </div>
-    <div class="rsub">${relBaseName(it)}　深さ${it.lv}
-      ${it.s ? `　<b class="rset">${(SETM[it.s]||{}).n||''}</b>` : ''}</div>
-    <div class="raf">${it.af.map(a=>`<span class="${a.fx?'fx':''}${(it.lk||[]).includes(a.k)?' lk':''}">`
-       + `${(it.lk||[]).includes(a.k)?'🔒':''}${afText(a)}</span>`).join('')}
-      ${it.cu ? (()=>{ const c=CURSE.find(x=>x.k===it.cu.k);
-        return c ? `<span class="cur">呪 ${c.d(it.cu.v)}</span>` : ''; })() : ''}
-      ${it.cor ? `<span class="cor">🜏 歪み（打ち直せない）</span>` : ''}</div>
-    ${u ? `<div class="rfl">「${u.fl}」</div>` : ''}
-  </div>`;
-}
-function stashList(){
-  let a = invAll().slice();
-  if(stRar)  a = a.filter(x => x.r >= stRar);
-  if(stBase) a = a.filter(x => x.b === stBase);
-  const w = wornIds();
-  if(stWorn === 'on')  a = a.filter(x => w.has(x.id));
-  if(stWorn === 'off') a = a.filter(x => !w.has(x.id));
-  if(stWorn === 'set') a = a.filter(x => !!x.s || x.r >= 4);
-  if(stSort === 'score') a.sort((x,y)=>relScore(y)-relScore(x));
-  if(stSort === 'lv')    a.sort((x,y)=>y.lv-x.lv || relScore(y)-relScore(x));
-  if(stSort === 'base')  a.sort((x,y)=>x.b.localeCompare(y.b) || relScore(y)-relScore(x));
-  if(stSort === 'new')   a.sort((x,y)=>y.id-x.id);
-  return a;
-}
-function renderStash(box){
-  const all = invAll();
-  $('#bagNote').innerHTML = `ダンジョンで拾う<b>遺物</b>。施設のスロットに挿すと、その1台だけが強くなります。`
-    + `等級が上がるほど接辞が増え、深いところほど良い段が出ます。`
-    + `　持ち物 <b>${all.length}/${RELIC_MAX}</b>`
-    + `　いちばん幸運な坑 発見量 <b>+${Math.round(bestMf().mf)}%</b>`
-    + `　発見質 <b>+${Math.round(bestMf().mq)}%</b>`;
-  if(!all.length){ box.innerHTML = `<div class="bempty">まだ何も拾っていません。`
-    + `ダンジョンに人を送りこむと落ちはじめます。</div>`; return; }
-  const list = stashList();
-  const bases = [...new Set(all.map(x=>x.b))];
-  box.innerHTML =
-    `<div class="stbar">
-      <select id="stSort">
-        <option value="score">良い順</option><option value="lv">深い順</option>
-        <option value="base">器の種類</option><option value="new">新しい順</option></select>
-      <select id="stRar"><option value="0">等級すべて</option>`
-      + RAR.map((r,i)=> i? `<option value="${i}">${r.n}以上</option>`:'').join('') + `</select>
-      <select id="stBase"><option value="">器すべて</option>`
-      + bases.map(b=>`<option value="${b}">${RB[b].i}${RB[b].n}</option>`).join('') + `</select>
-      <select id="stWorn"><option value="all">挿し具合すべて</option>
-        <option value="on">挿してある</option><option value="off">余っている</option>
-        <option value="set">揃い・固有だけ</option></select>
-    </div>
-    <div class="stacts">
-      <button id="stAuto">空いている枠にまとめて挿す</button>
-      <button id="stSellJunk">並をまとめて売る</button>
-      <button id="stSellMag">魔法以下をまとめて売る</button>
-      <span class="sthint">挿してあるものは売れません</span>
-    </div>
-    <div class="stacts">
-      <span class="sthint">拾った瞬間に売る：</span>
-      <select id="stFilt">
-        <option value="-1">しない（全部ためる）</option>`
-      + RAR.slice(0,3).map((r,i)=>`<option value="${i}">${r.n}以下</option>`).join('') + `
-      </select>
-      <span class="sthint">${(S.autoN||0) ? `これまで ${fmt(S.autoN)}個を自動で売って +${fmt(S.autoG||0)}G` : '揃い・固有は仕分けしません'}</span>
-      <span class="sthint">⚗️錬成台があるなら、売るより溶かすほうが実入りが良いです</span>
-    </div>
-    <div class="rlist">${list.map(it=>relCard(it)).join('')}</div>`;
-  $('#stSort').value=stSort; $('#stRar').value=stRar;
-  $('#stBase').value=stBase; $('#stWorn').value=stWorn;
-  $('#stSort').onchange=e=>{ stSort=e.target.value; renderBag(); };
-  $('#stRar').onchange =e=>{ stRar=+e.target.value;  renderBag(); };
-  $('#stBase').onchange=e=>{ stBase=e.target.value;  renderBag(); };
-  $('#stWorn').onchange=e=>{ stWorn=e.target.value;  renderBag(); };
-  const sf=$('#stFilt'); if(sf){ sf.value = String(filtOf().sell);
-    sf.onchange=e=>{ filtOf().sell = +e.target.value;
-      toast(+e.target.value < 0 ? '仕分けを止めました'
-            : `${RAR[+e.target.value].n}以下は拾った瞬間に売ります`); renderBag(); }; }
-  const sa2=$('#stAuto'); if(sa2) sa2.onclick=()=>autoEquipAll();
-  $('#stSellJunk').onclick=()=>bulkSell(0);
-  $('#stSellMag').onclick =()=>bulkSell(1);
-  box.querySelectorAll('.rcard').forEach(c=>c.onclick=()=>{
-    stSel = stSel === +c.dataset.id ? null : +c.dataset.id;
-    bagTab='orb'; renderBag();
-  });
-}
-function bulkSell(maxR){
-  const w = wornIds();
-  const a = invAll().filter(x => x.r <= maxR && !w.has(x.id));
-  if(!a.length) return toast('売れるものがありません');
-  const g = a.reduce((s,x)=>s+relSell(x), 0);
-  ask('まとめて売る', `${a.length}個を売って +${fmt(g)}G にします。よろしいですか？`, [
-    {n:'売る', c:'acc', f:()=>{ for(const x of a) invDel(x.id);
-      S.gold += g; relicDirty(); addLog(`遺物 ${a.length}個を売った → +${fmt(g)}G`,'w');
-      toast(`${a.length}個を売って +${fmt(g)}G`); renderBag(); }},
-    {n:'やめる', f:()=>{}}]);
-}
-/* 空いている枠に、余っている中でいちばん良い遺物を挿す。
-   数が増えたあと、ひとつずつ選ぶのは現実的ではない                */
-function autoEquip(n){
-  const worn = wornIds();
-  const pool = invAll().filter(x => !worn.has(x.id)).sort((a,b)=>relScore(b)-relScore(a));
-  let k = 0;
-  // 枠が増える遺物から先に挿すと、その場で枠が広がる
-  pool.sort((a,b)=>{
-    const sa = a.af.some(x=>x.k==='slot') ? 1 : 0, sb = b.af.some(x=>x.k==='slot') ? 1 : 0;
-    return (sb - sa) || (relScore(b) - relScore(a));
-  });
-  for(let guard=0; guard<12; guard++){
-    const g = partsOf(n);
-    const i = g.indexOf(null);
-    if(i < 0) break;
-    const it = pool.shift();
-    if(!it) break;
-    g[i] = it.id; k++; modsDirty(n);
-  }
-  partsOf(n); rebuildNodeEl(n); renderInsp(); renderBag();
-  toast(k ? `${k}個 挿しました` : '余っている遺物がありません');
-}
-/* 盤面ぜんぶの空き枠を、良いものから順に埋める */
-function autoEquipAll(){
-  const worn = new Set(wornIds());
-  const pool = invAll().filter(x => !worn.has(x.id)).sort((a,b)=>relScore(b)-relScore(a));
-  let k = 0;
-  // 枠の多い施設から埋めると、良い遺物がまとまって効く
-  const ns = S.nodes.filter(n=>slotsOf(n)>0).sort((a,b)=>slotsOf(b)-slotsOf(a));
-  for(const n of ns){
-    for(let guard=0; guard<12; guard++){
-      const g = partsOf(n); const i = g.indexOf(null);
-      if(i < 0) break;
-      const it = pool.shift(); if(!it) break;
-      g[i] = it.id; k++; modsDirty(n); partsOf(n);
-    }
-    rebuildNodeEl(n);
-  }
-  renderInsp(); renderBag();
-  toast(k ? `${k}個を盤面に挿しました` : '余っている遺物がありません');
-}
-/* ── 錬成 ── */
-function renderOrbs(box){
-  const it = stSel ? invGet(stSel) : null;
-  $('#bagNote').innerHTML = `拾った遺物を打ち直します。`
-    + `<b>収集庫</b>で遺物を選んでから、使いたい品を押してください。`
-    + `　🔒をかけた接辞は振り直しで残ります`;
-  const owned = ORBS.filter(o=>orbStock(o.k)>0);
-  let h = '';
-  if(it){
-    h += `<div class="stsel">${relCard(it)}</div>`;
-    // いま挿してある同じ器と見比べる。良いか悪いかを言葉で言い切る
-    const w = wornIds();
-    const rival = invAll().filter(x => x.b === it.b && x.id !== it.id && w.has(x.id))
-                          .sort((a,b)=>relScore(b)-relScore(a))[0];
-    if(rival){
-      const d = relScore(it) - relScore(rival);
-      h += `<div class="cmp ${d>0?'win':d<0?'lose':''}">`
-        + `<div class="cmph">${d>0 ? '▲ いま挿してある同じ器より良い'
-            : d<0 ? '▼ いま挿してある同じ器より劣る' : '＝ ほぼ同じ'}`
-        + `（${d>0?'+':''}${d} 点）</div>`
-        + relCard(rival) + `</div>`;
-    } else if(!w.has(it.id)){
-      h += `<div class="cmp"><div class="cmph">同じ器はまだ挿していません</div></div>`;
-    }
-    h += `<div class="stacts"><button id="orbClear">選択を外す</button>`
-       + (wornAt(it.id) ? `<span class="sthint">#${wornAt(it.id).no} に挿さっています</span>`
-          : `<button id="orbSell">売る +${fmt(relSell(it))}G</button>`) + `</div>`;
-  } else {
-    h += `<div class="bempty">遺物が選ばれていません。「🔮 遺物」で一つ選んでください。</div>`;
-  }
-  h += `<div class="orbs">` + ORBS.map(o=>{
-    const nq = orbStock(o.k);
-    const ok = it && nq > 0 && orbOk(o.k, it);
-    return `<div class="orb ${ok?'':'off'}" data-k="${o.k}">
-      <div class="on1"><span class="oic">${o.i}</span><b>${o.n}</b>
-        <span class="onum">×${fmt(nq)}</span></div>
-      <div class="od">${o.d}</div>
-      ${it && nq>0 && !ok ? `<div class="ong">${orbWhy(o.k, it)}</div>` : ''}
-    </div>`; }).join('') + `</div>`;
-  box.innerHTML = h;
-  const c=$('#orbClear'); if(c) c.onclick=()=>{ stSel=null; renderBag(); };
-  const sb=$('#orbSell'); if(sb) sb.onclick=()=>{ const x=invGet(stSel); if(!x) return;
-    S.gold += relSell(x); invDel(x.id); stSel=null; relicDirty();
-    toast('売りました'); renderBag(); };
-  box.querySelectorAll('.orb').forEach(e=>e.onclick=()=>useOrbOn(e.dataset.k));
-}
-function orbOk(k, it){
-  if(!it) return false;
-  if(it.cor) return false;                                // 歪めたものは触れない
-  if(k === 'warp') return true;                           // 賭けは何にでも打てる
-  if(it.u) return k === 'polish' || k === 'lock';        // 固有は数値だけ直せる
-  if(k === 'raise') return it.r < RAR_MAX;
-  if(k === 'bless') return it.r === 3;
-  if(k === 'lock')  return (it.lk||[]).length < Math.min(3, it.af.length) && it.af.length > 0;
-  return true;
-}
-function orbWhy(k, it){
-  if(it.cor) return '🜏歪めた遺物は、もう打ち直せません';
-  if(it.u) return '固有品は作り変えられません（数値の精錬と刻印だけ）';
-  if(k === 'raise') return `${RAR[RAR_MAX].n}より上には上げられません`;
-  if(k === 'bless') return '英雄の遺物にだけ使えます';
-  if(k === 'lock')  return '刻印は3つまでです';
-  return '';
-}
-/* 錬成を実際にかける。鍵（🔒）をかけた接辞は振り直しでも残る */
-function useOrbOn(k){
-  const it = stSel ? invGet(stSel) : null;
-  if(!it) return toast('遺物を選んでください');
-  if(orbStock(k) <= 0) return toast(`${ORB[k].i}${ORB[k].n}を持っていません`);
-  if(!orbOk(k, it)) return toast(orbWhy(k, it) || '使えません');
-  const lk = new Set(it.lk || []);
-  const rnd = Math.random;
-  const reroll = (keepTier) => {
-    const keep = it.af.filter(a => a.fx || lk.has(a.k));
-    const want = it.af.length - keep.length;
-    it.af = keep;
-    if(keepTier) for(const a of it.af){}    // 段は据え置き
-    addAffixes(it, want, rnd);
-  };
-  if(k === 'polish'){
-    for(const a of it.af){
-      if(lk.has(a.k) || a.fx) continue;
-      const A = AFM[a.k]; if(!A) continue;
-      const t = A.t[Math.min(a.t, A.t.length-1)];
-      a.v = t[1] === t[2] ? t[1] : t[1] + Math.floor(rnd()*(t[2]-t[1]+1));
-    }
-  } else if(k === 'reroll'){ reroll(false); }
-  else if(k === 'deep'){ it.lv += 12; reroll(false); }
-  else if(k === 'raise'){
-    it.r = Math.min(RAR_MAX, it.r + 1);
-    const rr = RAR[it.r];
-    const want = Math.max(0, rr.af[0] + Math.floor(rnd()*(rr.af[1]-rr.af[0]+1)) + 1 - it.af.length);
-    addAffixes(it, want, rnd);
-  }
-  else if(k === 'chaos'){
-    const pool = REL_BASE.filter(b => b.k !== it.b);
-    const nb = pool[Math.floor(rnd()*pool.length)];
-    it.b = nb.k;
-    // 器の顔になる接辞も入れ替える
-    it.af = it.af.filter(a => !a.fx);
-    const ba = afTier(AFM[nb.b], it.lv, rnd); if(ba){ ba.fx = 1; it.af.unshift(ba); }
-    it.s = null; it.sn = null;
-  }
-  else if(k === 'bless'){
-    const pool = UNIQ.filter(u => u.lv <= it.lv);
-    if(!pool.length) return toast('この深さで生まれる固有品がまだありません');
-    const u = pool[Math.floor(rnd()*pool.length)];
-    it.u = u.k; it.b = u.b; it.r = 4; it.s = null; it.sn = null; it.lk = [];
-    it.af = u.af.map(a => ({k:a.k, t:9, v:a.v, fx:1}));
-    addAffixes(it, 2 + Math.floor(rnd()*2), rnd);
-  }
-  else if(k === 'lock'){
-    const opts = it.af.filter(a => !lk.has(a.k)).slice(0,4).map(a => ({
-      n: afText(a).replace(/<[^>]+>/g,''), c:'acc',
-      f: () => { it.lk = [...lk, a.k]; useOrb('lock'); relicDirty();
-                 toast('刻印しました'); renderBag(); } }));
-    if(!opts.length) return toast('刻印できる接辞がありません');
-    opts.push({n:'やめる', f:()=>{}});
-    return ask('刻印の鎖', 'どの接辞を固定しますか（振り直しでも残ります）', opts);
-  }
-  else if(k === 'warp'){
-    // 賭け。四つにひとつずつ。打ったあとは二度と触れない
-    const r4 = Math.floor(rnd()*4);
-    it.cor = 1;
-    if(r4 === 0){                       // 何も起きない
-      addLog('🜏 歪みは何も変えなかった', 'w'); toast('何も起きなかった');
-    } else if(r4 === 1){                // 大化け：等級がひとつ上がって接辞が増える
-      it.r = Math.min(RAR.length-2, it.r + 1);
-      addAffixes(it, 1 + Math.floor(rnd()*2), rnd);
-      for(const a of it.af) if(!a.fx) a.v = Math.round(a.v * 1.25);
-      addLog(`🜏 歪みが実を結んだ → ${relRarName(it)}`, 'b');
-      toast(`大化けした！ ${relRarName(it)}`);
-    } else if(r4 === 2){                // 呪いと引き換えに、すべてが伸びる
-      const c = CURSE[Math.floor(rnd()*CURSE.length)];
-      it.cu = {k:c.k, v: c.t[0] + Math.floor(rnd()*(c.t[1]-c.t[0]+1))};
-      for(const a of it.af) if(!a.fx) a.v = Math.round(a.v * 1.55);
-      addLog(`🜏 呪いを背負った代わりに、力が跳ねた（${c.n}）`, 'b');
-      toast(`呪われた…が、強くなった`);
-    } else {                            // 別物になる
-      const nb = REL_BASE[Math.floor(rnd()*REL_BASE.length)];
-      const keepR = it.r, keepLv = it.lv;
-      for(const key in it) if(key !== 'id') delete it[key];
-      const fresh = rollRelic(keepLv, {rar: keepR});
-      for(const key in fresh) if(key !== 'id') it[key] = fresh[key];
-      it.seed = fresh.id; it.cor = 1;      // 名前も別物になる
-      addLog(`🜏 まるきり別のものになった → ${relName(it)}`, 'w');
-      toast('別物になった');
-    }
-  }
-  useOrb(k); relicDirty();
-  if(k !== 'warp')
-    addLog(`${ORB[k].i}${ORB[k].n} → ${relIcon(it)}${relName(it)}（${relRarName(it)}）`, 'w');
-  if(k !== 'warp') toast(`${ORB[k].n} を使った`);
-  renderBag();
-}
-/* ── 揃いの一覧 ── */
-function renderSets(box){
-  const b = setBonus(), cnt = b.cnt || {};
-  const have = {};                       // 持っている（挿していなくても）
-  for(const x of invAll()) if(x.s){ have[x.s] = have[x.s] || new Set(); have[x.s].add(x.sn); }
-  const uq = new Set(invAll().filter(x=>x.u).map(x=>x.u));
-  $('#bagNote').innerHTML = `同じ<b>揃い</b>の遺物を全部そろえて挿すと、工房ぜんたいに効きます。`
-    + `　そろえた揃い <b>${b.done.length}/${SETS.length}</b>`
-    + `　見つけた固有品 <b>${uq.size}/${UNIQ.length}</b>`;
-  box.innerHTML = SETS.map(S2=>{
-    const on = cnt[S2.k] || 0, hv = have[S2.k] ? have[S2.k].size : 0;
-    return `<div class="setbox ${on>=S2.p.length?'done':''}" style="--rc:${S2.c}">
-      <div class="seth"><b>${S2.n}</b>
-        <span class="setn">挿している ${on}/${S2.p.length}　持っている ${hv}/${S2.p.length}</span></div>
-      <div class="setp">${S2.p.map(pp=>{
-        const owned = have[S2.k] && have[S2.k].has(pp.n);
-        return `<span class="${owned?'ok':''}">${RB[pp.k].i}${pp.n}</span>`; }).join('')}</div>
-      <div class="setb">全部そろうと：${S2.bo}</div>
-      <div class="setl">深さ${S2.lv}から落ちはじめる</div>
-    </div>`;
-  }).join('')
-  + `<div class="uqhead">固有品の図鑑（${uq.size}/${UNIQ.length}）</div>`
-  + `<div class="uqlist">` + UNIQ.map(u=>{
-      const got = uq.has(u.k);
-      return `<div class="uqi ${got?'got':''}">
-        <div class="uqn">${RB[u.b].i}${got ? u.n : '？？？'}</div>
-        <div class="uqd">${got ? '「'+u.fl+'」' : `深さ${u.lv}から／${RB[u.b].n}`}</div>
-      </div>`; }).join('') + `</div>`;
-}
-
 /* ========================= 描画 ========================= */
 function applyView(){
   const v=S.view;
   gw.classList.toggle('far', v.s < 0.45);
-  document.body.classList.toggle('far', v.s < 0.3);
-  // 引くほど目印を大きく描いて、地図として読めるようにする
-  world.style.setProperty('--iz', Math.max(1, Math.min(9, 0.55 / v.s)).toFixed(2));
   world.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.s})`;
   gw.setAttribute('transform',`translate(${v.x},${v.y}) scale(${v.s})`);
-  // 細かすぎる格子は端末が描ききれない。近いときだけ出す
   stage.style.backgroundSize=`${40*v.s}px ${40*v.s}px`;
   stage.style.backgroundPosition=`${v.x}px ${v.y}px`;
-  mapg.style.backgroundSize=`${TILE*v.s}px ${TILE*v.s}px`;
-  mapg.style.backgroundPosition=`${v.x}px ${v.y}px`;
-  drawMapView();
 }
 /* 同じ文字を毎コマ書き込むだけでもブラウザは仕事をする。変わったときだけ書く */
 function setTxt(el, v){ if(el && el._v !== v){ el._v = v; el.textContent = v; } }
@@ -6355,33 +4510,6 @@ function render(){
     setTxt(e.lv, T.layer ? `${memCount(n)}個` : 'Lv.'+n.level);
     setCls(e.root,'lay', !!T.layer);
     setCls(e.root,'port', !!T.port);
-    // 共鳴の熱。溜まるほど坑が色づき、振り切ると裂け目になる
-    if(T.loot && slow){
-      const bar = e.root.querySelector('.resbar > i');
-      const v = Math.min(RES_MAX, resOf(n)), t = resTier(v);
-      const rift = inRift(n);
-      if(bar){
-        const w = rift ? 100 : Math.round(v / RES_MAX * 100);
-        if(e.resW !== w){ e.resW = w; bar.style.width = w + '%'; }
-        const c = rift ? '#c08bff' : t.c;
-        if(e.resC !== c){ e.resC = c;
-          e.root.style.setProperty('--rcol', c);
-          e.root.style.setProperty('--rglow', (v>=RES_T[1].at ? (6 + v*0.18).toFixed(0) : 0) + 'px'); }
-      }
-      setCls(e.root, 'hot', !rift && v >= RES_T[1].at);
-      setCls(e.root, 'rift', rift);
-      // 守護者の体力。削れていくのが見えると、あと何回かが分かる
-      const dd = dgOf(n), open = dd && dgOpen(dd);
-      setCls(e.root, 'guard', !!open && !dgIsBoss(dd));
-      setCls(e.root, 'boss',  !!open && dgIsBoss(dd));
-      if(open){
-        const hb = e.root.querySelector('.hpwrap > i');
-        const pc = Math.max(0, Math.min(100,
-          (dd.hp == null ? dgHp(dd) : dd.hp) / Math.max(1, dgHp(dd)) * 100));
-        const w = pc.toFixed(1) + '%';
-        if(hb && e.hpW !== w){ e.hpW = w; hb.style.width = w; }
-      }
-    }
     const need=insOf(n), give=outsOf(n), shown=portIns(n);
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
@@ -6425,19 +4553,8 @@ function render(){
           ? `✨ クリア！ タップで受け取る（+${fmt((n.reward||{}).g||0)}G ほか）`
           : (()=>{ const hp=Math.max(0,n.hp||0), mx=n.hpMax||1;
               return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })())
-      : T.effect==='dive'? (()=>{ const d=dgOf(n);
-          if(d && dgOpen(d)){ const hp=Math.max(0, d.hp==null?dgHp(d):d.hp), mx=dgHp(d);
-            return `${dgName(d)}${dgDep(d)?' 深度'+dgDep(d):''} `
-              + `${dgIsBoss(d)?'★'+dgBossName(d):'守護者'} ${fmt(hp)}/${fmt(mx)}`
-              + `　第${dgFloor(d)}層相当（あと${fmt(Math.ceil(hp/Math.max(1,dmg())))}回）`; }
-          const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
-          return (d ? `制圧済 深度${dgCl(d)}／${ITEMS[d.ore].i}${ITEMS[d.ore].n}を採掘中／` : '')
-            + `${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
-      : T.effect==='orbf' ? (()=>{ const th=n.mlt==null?0:n.mlt;
-          const w=wornIds();
-          const q=invAll().filter(x=>!w.has(x.id) && x.r<=th && !x.u && !x.s).length;
-          return `${RAR[th].n}以下を溶かす（待ち ${fmt(q)}個）／`
-            + `かけら ${Math.floor(S.frag||0)}/${FRAG_PER}　できた ${fmt(n.gain||0)}`; })()
+      : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
+          return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}`
           + (n.item?`／${ITEMS[n.item].i}1つ→🧱${fmt(itemVal(n.item)*matMul(n))}＋🔬${fmt(itemVal(n.item)*matRp(n))}`
                    :'／素材を選ぶと🧱と🔬が増える')
@@ -6541,14 +4658,6 @@ function render(){
     const off = !!F && l.from!==sel && l.to!==sel;
     setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off);
     setCls(l.el.wire,'pick', selLink===l.id);
-    // 太さがそのまま「運べる量」。細い線は、遠すぎて届いていない線
-    if(slow){
-      const c = G.cap==null ? 1 : G.cap;
-      const w = (1.6 + 3.2*c).toFixed(1);
-      if(l.el.cw !== w){ l.el.cw = w; l.el.wire.setAttribute('stroke-width', w);
-        l.el.hit.setAttribute('stroke-width', Math.max(18, +w*4)); }
-      setCls(l.el.wire, 'thin', c < 0.55);
-    }
     // 流れている線は向きの印を濃くする（点滅させずに、動いていることを見せる）
     if(slow){
       const r = (a.rate && a.rate[l.item]) || 0;
@@ -6560,25 +4669,6 @@ function render(){
     for(const p of l.packets){ if(!p.el) continue; const q=geomPt(G,p.t); p.el.setAttribute('cx',q.x); p.el.setAttribute('cy',q.y); }
   }
   if(selLink!==null) renderHandles();
-  if(slow){
-    drawDungeons(); buildCover();
-    // 細い線ができたら、初回だけ理由を教える。ここがこの仕掛けの入口になる
-    if(!S.thinSeen){
-      const bad = S.links.find(l=>{ const g=l.G; return g && g.cap!=null && g.cap < 0.5 && !g.blocked; });
-      if(bad){ S.thinSeen = 1;
-        addLog('【遠い】配線が細くなっている。遠い線は運べる量が落ちる。'
-             + '📡中継塔を途中に建てるか、その場で精錬してから運ぼう','u');
-        toast('遠い配線は細くなります。📡中継塔で太く戻せます'); }
-    }
-    // 中継塔と港の「届く範囲」。強化で伸びるので、その都度合わせる
-    for(const n of S.nodes){
-      const T=TYPES[n.type]; if(!T.relay2 && !T.port2) continue;
-      const el = n.el && n.el.root.querySelector('.aura.reach,.aura.sea'); if(!el) continue;
-      const r = (T.relay2 ? relayR(n) : PORT_R) * TILE;
-      if(el._r === r) continue; el._r = r;
-      el.style.cssText = `width:${r*2}px;height:${r*2}px;left:${NW/2-r}px;top:${45-r}px`;
-    }
-  }
   // ── ここから下はパネルの数字。毎コマ書き換えても目には追えないので
   //    5コマに1回（およそ12回/秒）にまとめる。盤面の動きはそのまま60コマ ──
   if(!slow) return;
@@ -6804,9 +4894,10 @@ function placeAt(cx, cy){
   if(S.gold < cost){ cancelPlace(); return toast('ゴールドが足りません'); }
   if(!matOk(need)){ cancelPlace(); return toast(`資材が足りません（${matText(need)}）`); }
   const w = toWorld(cx, cy);
-  const spot = freeTile(tileX(w.x), tileY(w.y), TYPES[t].port2);
-  if(!spot){ cancelPlace(); return toast('そこには置けません（海か、まわりが埋まっています）'); }
-  const x = tileLeft(spot.tx), y = tileTop(spot.ty);
+  let x = Math.round((w.x - NW/2)/10)*10, y = Math.round((w.y - 45)/10)*10;
+  for(let i=0; i<48 && taken(x,y); i++){        // 重なったら近くの空きへずらす
+    x += 40; if(i % 5 === 4){ x -= 200; y += 46; }
+  }
   S.gold -= cost; takeMat(need); S.counts[t] = (S.counts[t]||0)+1;
   const n = addNode(t, x, y);
   sel = n.id; cancelPlace(); renderInsp();
@@ -6822,8 +4913,7 @@ function buy(t){
   if(!matOk(need)) return toast(`資材が足りません（${matText(need)}）`);
   S.gold-=cost; takeMat(need); S.counts[t]=(S.counts[t]||0)+1;
   const p=freeSpot();
-  const sp=freeTile(tileX(p.x+NW/2), tileY(p.y+45), TYPES[t].port2);
-  sel=addNode(t, sp?tileLeft(sp.tx):p.x, sp?tileTop(sp.ty):p.y).id; renderInsp();
+  sel=addNode(t,p.x,p.y).id; renderInsp();
   const w = powerWarn(t);
   if(w){ toast('⚠ '+w); addLog(`⚠ ${TYPES[t].n}は${w}`,'u'); }
 }
@@ -6832,28 +4922,6 @@ function buy(t){
 const NHmax = 126;                       // 判定に使うノードの高さ（最大3行ぶん）
 const hOf = n => parseFloat(n.el.root.style.height) || NHmax;
 const taken = (x,y) => S.nodes.some(n => onBoard(n) && Math.abs(n.x-x) < NW+20 && Math.abs(n.y-y) < NHmax);
-/* そのタイルに置けるか。海には置けない（港だけは海際に置ける） */
-const tileFree = (tx,ty) => !S.nodes.some(n => onBoard(n) && nodeTx(n)===tx && nodeTy(n)===ty);
-function tileOk(tx,ty,isPort){
-  if(tx<0||ty<0||tx>=mapW()||ty>=mapH()) return false;
-  const t = terrAt(tx,ty);
-  if(t===SEA) return false;
-  if(isPort){                                   // 港は海に面していないと意味がない
-    const sea = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>terrAt(tx+dx,ty+dy)===SEA);
-    if(!sea) return false;
-  }
-  return tileFree(tx,ty);
-}
-/* 指したタイルから、渦を巻くように近い空きタイルを探す */
-function freeTile(tx,ty,isPort){
-  if(tileOk(tx,ty,isPort)) return {tx,ty};
-  for(let r=1;r<=6;r++)
-    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
-      if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
-      if(tileOk(tx+dx,ty+dy,isPort)) return {tx:tx+dx, ty:ty+dy};
-    }
-  return null;
-}
 // 左下のインスペクタ・右上のヘルプに隠れる位置は避ける
 // 画面に重なっているパネル（案内・インスペクタ・ヘルプ）の下は避ける。
 // 縦向きと横向きでパネルの位置が変わるので、決め打ちせず実際の矩形から判定する
@@ -6873,15 +4941,6 @@ function uiBlocked(wx,wy){
   return false;
 }
 // 表示倍率を保ったまま、画面中央を基準に拡大縮小する
-/* 拠点のあたりを映す */
-function lookAtBase(){
-  if(!S.map) return fitView(1);
-  const W=stage.clientWidth||800, H=stage.clientHeight||600;
-  S.view.s = 0.6;
-  S.view.x = W/2 - (S.map.bx+0.5)*TILE*S.view.s;
-  S.view.y = H/2 - (S.map.by+0.5)*TILE*S.view.s;
-  applyView();
-}
 /* そのノードが画面の真ん中に来るように寄せる（別の盤面なら移動もする） */
 function centerOn(n){
   if(!n) return;
@@ -6943,8 +5002,8 @@ function bounds(){
 }
 function fitView(maxS){
   if(!S.nodes.some(onBoard)) return;
-  const b=bounds(), W=stage.clientWidth||800, H=stage.clientHeight||600, pad=48;
-  const s=Math.min(maxS||1.2, Math.max(0.06, Math.min((W-pad*2)/Math.max(1,b.x1-b.x0),
+  const b=bounds(), W=stage.clientWidth, H=stage.clientHeight, pad=48;
+  const s=Math.min(maxS||1.2, Math.max(0.2, Math.min((W-pad*2)/Math.max(1,b.x1-b.x0),
                                                (H-pad*2)/Math.max(1,b.y1-b.y0))));
   S.view.s=s;
   S.view.x=(W-(b.x1-b.x0)*s)/2 - b.x0*s;
@@ -7053,16 +5112,6 @@ function renderLinkInsp(){
     + `<span class="nm2">${ITEMS[l.item].n}の配線</span></div>`
     + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
     + `<div class="kv">流れ<b>${fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
-    + (()=>{ const G=geomOf(l); if(!G||!S.map) return '';
-        if(G.blocked) return `<div class="kv">地形<b class="no">🌊海を渡れない（⚓港が要ります）</b></div>`;
-        const c = G.cap==null ? 1 : G.cap, pc = Math.round(c*100);
-        const rl = G.relayed>0.02 ? `　📡${Math.round(G.relayed*100)}%を中継` : '';
-        return `<div class="kv">運べる量<b class="${c<0.55?'no':''}">${pc}%${rl}</b></div>`
-          + `<div class="kv">実効距離<b>${G.eff||0}（${LINK_REACH}まで満載）</b></div>`
-          + (c<1 ? `<div class="lnote">遠い線は細くなります。📡中継塔を途中に建てると`
-                 + `距離が1/4に数えられ、太く戻ります。`
-                 + `その場で精錬してから運ぶのも手です（1回で運べる値打ちが上がります）</div>` : '')
-          + `<div class="kv">運びの速さ<b>×${(G.spd||1).toFixed(2)}</b></div>`; })()
     + `<div class="kv">ピン<b>${n}本 / ${PIN_MAX}本</b></div>`
     + `<div class="lnote">丸を掴むと、曲線がそのピンを通ります。`
     + `線の上の「＋」を押すと、そこにピンが増えます</div>`
@@ -7097,114 +5146,6 @@ function renderInsp(){
     (canRename(n) ? `<div class="kv">名前<button class="ren"></button></div>` : '') +
     (n.comb ? `<div class="kv">まとめた段<b>${combStages(n).map(c=>TYPES[c.type].i+TYPES[c.type].n).join(' → ')}</b></div>`
             + `<button class="unc">🔗 ほどいて ${combStages(n).length}台に戻す</button>` : '') +
-    (S.map && !TYPES[n.type].port && !TYPES[n.type].layer
-      ? `<div class="kv">場所<b>${TERR[terrAt(nodeTx(n),nodeTy(n))].i}${TERR[terrAt(nodeTx(n),nodeTy(n))].k}`
-        + `（拠点から${Math.round(Math.hypot(nodeTx(n)-S.map.bx, nodeTy(n)-S.map.by))}）</b></div>` : '') +
-    (TYPES[n.type].effect==='orbf'
-      ? `<div class="kv">溶かす等級<select class="mltsel">`
-        + RAR.slice(0,4).map((r,i)=>`<option value="${i}">${r.n}以下</option>`).join('')
-        + `</select></div>`
-        + `<div class="kv">かけら<b>${Math.floor(S.frag||0)} / ${FRAG_PER}</b></div>`
-        + `<div class="lnote">挿してある遺物・揃い・固有は溶かしません。`
-        + `良くないものから順に溶けていきます</div>` : '') +
-    (TYPES[n.type].relay2
-      ? `<div class="kv">届く範囲<b>まわり${relayR(n)}タイル</b></div>`
-        + `<div class="lnote">この輪の中を通る配線は、距離が1/4に数えられます。`
-        + `遠い鉱山まで点々と建てて、道をつないでください</div>` : '') +
-    (TYPES[n.type].port2
-      ? `<div class="kv">届く範囲<b>まわり${PORT_R}タイルの海</b></div>` : '') +
-    (dgOf(n) ? (()=>{ const d=dgOf(n), cl=dgCl(d), dep=dgDep(d);
-        let h = `<div class="kv">${dgName(d)}<b>`
-          + (cl>=0 ? `制圧済 深度${cl}` : '未攻略') + `</b></div>`;
-        if(dgOpen(d)) h += `<div class="kv">${dgIsBoss(d)?'★'+dgBossName(d):'守護者'}<b class="no">`
-          + `${fmt(Math.max(0,d.hp==null?dgHp(d):d.hp))} / ${fmt(dgHp(d))}`
-          + `（第${dgFloor(d)}層相当）</b></div>`
-          + (d.prize && UQ[d.prize]
-             ? `<div class="kv prize">倒すと確定で<b>${RB[UQ[d.prize].b].i}${UQ[d.prize].n}</b></div>`
-             : '');
-        if(cl>=0){
-          h += `<div class="kv">採れるもの<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n} ×`
-            + `${1+Math.ceil(cl*0.6)}</b></div>`
-            + `<div class="kv">落ちる遺物の深さ<b>${dgLoot(d)}</b></div>`
-            + `<div class="kv">この坑の発見量／発見質<b>`
-            + `+${Math.round(modsOf(n).mf)}% ／ +${Math.round(modsOf(n).mq)}%</b></div>`
-            + `<div class="lnote">🍀幸運環や💠稜晶をこの施設に挿すと、`
-            + `ここから出る遺物の量と等級が上がります</div>`;
-        } else {
-          h += `<div class="kv">攻略すると<b>${ITEMS[d.ore].i}${ITEMS[d.ore].n}が採れる</b></div>`;
-        }
-        // 人手と⚡の帳尻。足りていないなら、それをはっきり言う。
-        // ここが合っていないと、共鳴はいつまでも育たない
-        {
-          const per = 60 / Math.max(1e-6, craftTime(n));
-          const needC = (insOf(n).crew || 0) * per;
-          const needE = (insOf(n).sta  || 0) * per;
-          const supC = S.links.filter(l => l.to === n.id && l.item === 'crew')
-            .reduce((a,l)=>{ const src = N(l.from); if(!src) return a;
-              const g = l.G || geomOf(l);
-              return a + 60 / Math.max(1e-6, craftTime(src))
-                       * ((outsOf(src)||{}).crew || 0) * (g ? (g.cap==null?1:g.cap) : 1); }, 0);
-          const okC = supC >= needC * 0.98;
-          h += `<div class="kv">🧑人手の帳尻<b class="${okC?'':'no'}">`
-            + `要る ${fmt(Math.round(needC))}/分　届く ${fmt(Math.round(supC))}/分`
-            + `${okC ? '' : `　⚠ ${fmt(Math.ceil((needC-supC)/Math.max(1,supC/Math.max(1,S.links.filter(l=>l.to===n.id&&l.item==='crew').length))))}人ぶん足りない`}`
-            + `</b></div>`;
-          if(!okC) h += `<div class="lnote">人手が切れるたびに共鳴が崩れます。`
-            + `👩‍🌾仲間を増やしてこの坑へ繋ぐか、坑の強化をゆるめてください。`
-            + `❤️体力を上げると1人あたりの出が増えます</div>`;
-          if(needE > 0) h += `<div class="kv">⚡の要りよう<b>${fmt(Math.round(needE))}/分</b></div>`;
-        }
-        // 共鳴。止めずに回すほど降り方が変わる。ここがこのゲームの山場
-        {
-          const v = resOf(n), t = resTier(v), rm = resMul(n);
-          h += inRift(n)
-            ? `<div class="kv rift">🌀 裂け目<b>残り ${Math.ceil(n.rift)}秒　`
-              + `落ちる量 ×${RIFT_Q}／発見質 +${RIFT_MQ}%</b></div>`
-            : `<div class="kv">共鳴<b style="color:${t.c}">【${t.n}】${Math.floor(v)} / ${RES_MAX}`
-              + `　落ちる量 ×${rm.q}／発見質 +${rm.mq}%</b></div>`;
-          h += `<div class="resline"><i style="width:${Math.min(100,v/RES_MAX*100)}%;`
-            + `background:${inRift(n)?'#c08bff':t.c}"></i></div>`;
-          if(!inRift(n)) h += `<div class="lnote">回し続けると溜まり、`
-            + `⚡や🧑人手が切れて<b>止まった瞬間に${Math.round((1-resKeep(v))*100)}%が崩れます</b>`
-            + `（高く積むほど失うものが大きい）。`
-            + `${RES_MAX}まで溜めると🌀裂け目が開き、${RIFT_SEC}秒のあいだ滅茶苦茶に降ります</div>`;
-        }
-        // この坑の「顔」。どこへ通えばいいかが、ここで分かる
-        const th = dgTheme(d);
-        const uqLeft = (th.uq||[]).filter(k=>!invAll().some(x=>x.u===k));
-        h += `<div class="kv">出やすい器<b>`
-          + th.b.map(b=>RB[b].i+RB[b].n).join('・') + `</b></div>`
-          + (th.set ? `<div class="kv">ここで拾える揃い<b>${SETM[th.set].n}</b></div>` : '')
-          + ((th.uq||[]).length
-             ? `<div class="kv">ここにしかない固有品<b>`
-               + th.uq.map(k=>{ const got = invAll().some(x=>x.u===k);
-                   return got ? UQ[k].n : `？？？（深さ${UQ[k].lv}）`; }).join('・')
-               + `</b></div>`
-               + (uqLeft.length ? (()=>{
-                    const need = Math.min.apply(null, uqLeft.map(k=>UQ[k].lv));
-                    const lv = cl>=0 ? dgLoot(d) : 0;
-                    return `<div class="lnote">まだ ${uqLeft.length}種 眠っています。`
-                      + (lv >= need
-                         ? `いまの深さ（${lv}）で出ます。あとは引き当てるだけです`
-                         : `落ちる遺物の深さを ${need} 以上にすると出ます（いま ${lv}）`)
-                      + `</div>`; })()
-                  : `<div class="lnote">この坑の固有品はすべて見つけました</div>`)
-             : '');
-        if(cl>=0 && !dgOpen(d)){
-          const bn = (k)=>{ const nd = dep + k;
-            const boss = nd % BOSS_EVERY_DEP === 0;
-            return `<button class="dep${k}">+${k} → 深度${nd}`
-              + `<i>第${dgFloor(d,nd)}層相当${boss?'・★主':''}</i></button>`; };
-          h += `<div class="btns deprow">${bn(1)}${bn(3)}${bn(5)}</div>`
-            + `<div class="lnote">深度を上げると守護者が戻ってきます。`
-            + `退けるまでは今の深度のまま採掘が続くので、<b>失うものはありません</b>。`
-            + `一気に飛ぶほど守護者は手強くなりますが、勝ったときの取り分も増えます`
-            + `（+3で希少確定、+5で固有確定）。深度${BOSS_EVERY_DEP}ごとに★主が出て、`
-            + `固有品が確定で落ちます</div>`;
-        }
-        if(dgOpen(d) && cl>=0) h += `<div class="btns">`
-          + `<button class="depdn">深度 ${cl} に戻す（挑戦をやめる）</button></div>`;
-        return h; })() : '') +
     `<div class="kv wrow"><span>つながり<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>` +
     `<div class="kvb"><div class="kb">この施設の収支<i class="wsub">1分あたり</i></div>`
     + `<div class="nflow"></div></div>` +
@@ -7224,10 +5165,7 @@ function renderInsp(){
     (T.ware  ? `<button class="wopen">📦 中身を見る</button>` : '') +
     (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
     (nextGenType(n) ? `<button class="core"></button>` : '') +
-    (slotsOf(n) ? `<div class="kv gearhd">遺物スロット<b class="psum"></b></div>`
-      + `<div class="partsel"></div>`
-      + `<div class="btns"><button class="pauto">良いものを自動で挿す</button>`
-      + `<button class="pclr">ぜんぶ外す</button></div>` : '') +
+    (slotsOf(n) ? `<div class="kv gearhd">アイテムスロット<b class="psum"></b></div><div class="partsel"></div>` : '') +
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     (skillSlots(n) ? `<div class="kv gearhd">スキル<b class="ksum"></b></div><div class="skillsel"></div>` : '') +
     (perksOf(T).length ? `<div class="kv">世代の特性<b class="perk"></b></div>` : '') +
@@ -7282,32 +5220,18 @@ function renderInsp(){
   }
   if(slotsOf(n)){
     const w=box.querySelector('.partsel');
-    const worn = wornIds();
-    // 良い順に並べて、いま他所に挿さっているものは下に回す
-    const pool = invAll().slice().sort((a,b)=>relScore(b)-relScore(a));
-    partsOf(n).forEach((id,i)=>{
+    partsOf(n).forEach((key,i)=>{
       const row=document.createElement('div'); row.className='grow';
-      const sl=document.createElement('select'); sl.className='rsel';
-      const all = pool.filter(x => x.id===id || !worn.has(x.id));
-      const opts = all.slice(0, 60);             // 良い順に上から60個だけ出す
-      if(id && !opts.some(x=>x.id===id)){ const cur = all.find(x=>x.id===id); if(cur) opts.unshift(cur); }
+      const sl=document.createElement('select');
+      const own = Object.keys(S.parts||{}).filter(k=>k!=='core' && (partStock(k)>0 || k===key));
+      own.sort();
       sl.innerHTML=`<option value="">— 空き —</option>`+
-        opts.map(x=>`<option value="${x.id}">${relIcon(x)}${relName(x)}`
-          + `［${relRarName(x)}・深さ${x.lv}］</option>`).join('')
-        + (all.length > opts.length
-           ? `<option value="" disabled>…ほか ${all.length-opts.length}個（収集庫で絞り込めます）</option>` : '');
-      sl.value = id ? String(id) : '';
-      sl.onchange=()=>setPart(n, i, sl.value || null);
-      const it = id && invGet(id);
-      const info=document.createElement('div'); info.className='ginfo rinfo';
-      if(it){ info.style.setProperty('--rc', relColor(it));
-        info.innerHTML = `<b style="color:${relColor(it)}">${relRarName(it)}</b>　`
-          + it.af.map(a=>afText(a)).join('　')
-          + (it.cu ? (()=>{ const c=CURSE.find(x=>x.k===it.cu.k);
-              return c ? `　<i class="cur">呪 ${c.d(it.cu.v)}</i>` : ''; })() : '')
-          + (it.u ? `　<i>「${UQ[it.u].fl}」</i>` : ''); }
-      else info.textContent = opts.length ? '遺物を挿すと、この施設だけが強くなる'
-                                          : 'ダンジョンで拾うと挿せる';
+        own.map(k=>`<option value="${k}">${partName(k)}（持ち ${fmt(partStock(k))}）</option>`).join('');
+      sl.value=key||'';
+      sl.onchange=()=>{ setPart(n,i,sl.value||null); renderInsp(); };
+      const info=document.createElement('div'); info.className='ginfo';
+      info.textContent = key ? partInfo(key)
+        : (own.length ? 'パーツを挿すと、この施設だけが強くなる' : 'ダンジョンで拾うと挿せる');
       row.append(sl, info); w.appendChild(row);
     });
   }
@@ -7413,21 +5337,6 @@ function renderInsp(){
   if(uc) uc.onclick=()=>breakComb(n);
   const rn=box.querySelector('.ren');
   if(rn) rn.onclick=()=>renameNode(n);
-  for(const k of [1,3,5]){ const b=box.querySelector('.dep'+k);
-    if(b) b.onclick=()=>{ const d=dgOf(n); if(d) dgRaise(d, n, k); }; }
-  const dd=box.querySelector('.depdn');
-  if(dd) dd.onclick=()=>{ const d=dgOf(n); if(!d) return;
-    d.dep = dgCl(d); d.hp = 0; d.prize = null; modsDirty(n);
-    drawDungeons(); renderInsp(); toast(`深度 ${dgDep(d)} に戻しました`); };
-  const pa=box.querySelector('.pauto');
-  if(pa) pa.onclick=()=>autoEquip(n);
-  const pc=box.querySelector('.pclr');
-  if(pc) pc.onclick=()=>{ const g=partsOf(n); for(let i=g.length-1;i>=0;i--) g[i]=null;
-    modsDirty(n); partsOf(n); rebuildNodeEl(n); renderInsp(); renderBag();
-    toast('遺物をぜんぶ外しました'); };
-  const ml=box.querySelector('.mltsel');
-  if(ml){ ml.value = String(n.mlt==null?0:n.mlt);
-    ml.onchange=()=>{ n.mlt = +ml.value; n.stall=false; renderInsp(); }; }
   box.querySelector('.pm').onclick=()=>{ n.prio=Math.max(1,prioOf(n)-1); };
   box.querySelector('.pp').onclick=()=>{ n.prio=Math.min(9,prioOf(n)+1); };
   box.querySelector('.del').onclick=()=>{
@@ -7471,7 +5380,7 @@ function renderNodeFlow(box, n){
     return `<span class="fr"><span class="fnm">${ITEMS[k].i}${ITEMS[k].n}</span>`
       + `<span class="fi">${f.i>0.005 ? '+'+fmtR(f.i) : ''}</span>`
       + `<span class="fo">${f.o>0.005 ? '-'+fmtR(f.o) : ''}</span>`
-      + `<span class="fn n${netCls(net)}">${sign(net)}</span></span>`;
+      + `<span class="fn ${netCls(net)}">${sign(net)}</span></span>`;
   }).join('');
 }
 function renderInspLive(){
@@ -7506,8 +5415,7 @@ function renderInspLive(){
     ks.textContent = `${on.length}/${skillSlots(n)}` + (on.length ? '　'+on.map(k=>SKILL[k].i).join('') : ''); }
   const ps=box.querySelector('.psum');
   if(ps){ const on=partsOf(n).filter(Boolean);
-    ps.textContent = `${on.length}/${slotsOf(n)}`
-      + (on.length ? '　'+on.map(id=>{ const x=invGet(id); return x?relIcon(x):''; }).join('') : ''); }
+    ps.textContent = `${on.length}/${slotsOf(n)}` + (on.length ? '　'+on.map(k=>partOf(k).p.i).join('') : ''); }
   const gs=box.querySelector('.gsum');
   if(gs){ const bn=gearBonus();
     const t=Object.keys(TRAITS).filter(k=>bn[k]>0.01)
@@ -7551,7 +5459,7 @@ function renderInspLive(){
   }
   box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
   box.querySelectorAll('.alc').forEach(el=>{ el.textContent=allocText(n, el.dataset.i); });
-  const up=box.querySelector('.btns > .up'), up10=box.querySelector('.btns > .up10');
+  const up=box.querySelector('.up'), up10=box.querySelector('.up10');
   const c=upCost(n), c10=upCostN(n, UP_BULK);
   if(TYPES[n.type].layer){
     up.textContent='—'; up.disabled=true; up10.hidden=true;
@@ -7686,7 +5594,7 @@ function doPinch(){
   const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
   if(!pinch || d < 1){ pinch = {d, mx, my, s:S.view.s, vx:S.view.x, vy:S.view.y}; return; }
   const r = stage.getBoundingClientRect();
-  const ns = Math.min(2.0, Math.max(0.06, pinch.s * d / pinch.d));
+  const ns = Math.min(1.6, Math.max(0.2, pinch.s * d / pinch.d));
   const cx = mx - r.left, cy = my - r.top;
   S.view.s = ns;
   S.view.x = cx - (cx - pinch.vx) * (ns / pinch.s);
@@ -8134,7 +6042,7 @@ stage.addEventListener('wheel', e=>{
   e.preventDefault();
   const r=stage.getBoundingClientRect(), v=S.view;
   const mx=e.clientX-r.left, my=e.clientY-r.top;
-  const ns=Math.min(2.0,Math.max(0.06, v.s*(e.deltaY>0?0.9:1.1)));
+  const ns=Math.min(1.6,Math.max(0.20, v.s*(e.deltaY>0?0.9:1.1)));
   v.x=mx-(mx-v.x)*(ns/v.s); v.y=my-(my-v.y)*(ns/v.s); v.s=ns; applyView();
 },{passive:false});
 
@@ -8142,7 +6050,7 @@ stage.addEventListener('wheel', e=>{
 /* セーブのキーは固定。構造を変えたら SAVE_V を上げて migrate() で吸収する
    （キーごと変えるとテスターのデータが消えるため） */
 const KEY='nodequest2';          // 旧版（/v1/）とはセーブを分ける
-const SAVE_V=18;
+const SAVE_V=19;                 // 18 は地図あり版（取り下げ）で使った番号なので飛ばす
 function migrate(d){
   d.v = d.v || 0;
   if(d.v < 4){
@@ -8327,38 +6235,28 @@ function migrate(d){
     for(const l of d.links||[]){ delete l.bend; delete l.wp; }
     d.v = 17;
   }
-  if(d.v < 18){
-    // 強化パーツ（個数で持つ道具）を、個体差のある「遺物」に作り直した。
-    // 持っていたぶんは、同じ働きの遺物として配り直す
-    d.inv = d.inv || []; d.orb = d.orb || {};
-    let nid = d.nextId || 1;
-    const OLDMAP = {acc:'acc', eco:'eco', yld:'yld', cap:'cap', cln:'cln', arm:'arm'};
-    const mk = (bk, g) => {
-      const B = REL_BASE.find(x=>x.k===bk) || REL_BASE[0];
-      const lv = 6 + g*14;
-      const it = {id:nid++, b:B.k, r:Math.min(2, g), lv, af:[], lk:[]};
-      const rnd = Math.random;
-      const ba = afTier(AFM[B.b], lv, rnd); if(ba){ ba.fx = 1; it.af.push(ba); }
-      addAffixes(it, Math.min(2, g), rnd);
-      return it;
-    };
-    for(const k in (d.parts||{})){
-      if(k === 'core') continue;
-      const bk = OLDMAP[String(k).slice(0,3)], g = +String(k).slice(3) || 1;
-      const q = Math.min(40, Math.floor(d.parts[k]||0));
-      if(bk) for(let i=0;i<q;i++) d.inv.push(mk(bk, g));
-      delete d.parts[k];
+  if(d.v === 18){
+    // 地図あり版（v18・取り下げ）から戻ってきたセーブ。
+    // 地図・坑・遺物はこの版に無いので持ち越さず、知らない施設と、それに繋がる配線を外す
+    delete d.map; delete d.inv; delete d.orb;
+    d.nodes = (d.nodes||[]).filter(n => n && TYPES[n.type]);
+    for(const n of d.nodes){
+      delete n.dgn;
+      // 枠に挿さっていた遺物の id は意味が無いので空ける（partsOf は枠数が変わった時しか掃除しない）
+      if(Array.isArray(n.parts))
+        n.parts = n.parts.map(p => (typeof p==='string' && PART[p.slice(0,3)]) ? p : null);
+      // 地図版で増えた素材はこの版に無い。バッファや選択から外す
+      for(const b of ['inBuf','outBuf']) if(n[b] && typeof n[b]==='object')
+        for(const k in n[b]) if(!ITEMS[k]) delete n[b][k];
+      if(n.item && !ITEMS[n.item]) n.item = null;
+      if(Array.isArray(n.items)) n.items = n.items.filter(k => !k || ITEMS[k]);
     }
-    // 施設に挿さっていた文字列のキーは、もう意味が無いので空ける。
-    // そのままでは強化が丸ごと外れてしまうので、読み込んだあとに挿し直す
-    for(const n of d.nodes||[]) if(Array.isArray(n.parts))
-      n.parts = n.parts.map(()=>null);
-    d._autoEquip = 1;
-    // 地図のダンジョンに「深度」を足す
-    for(const g of ((d.map||{}).dg||[])){ if(g.cl == null) g.cl = g.done ? 0 : -1;
-      if(g.dep == null) g.dep = 0; }
-    d.nextId = nid;
-    d.v = 18;
+    const ids = new Set(d.nodes.map(n => n.id));
+    d.links = (d.links||[]).filter(l => l && ids.has(l.from) && ids.has(l.to) && ITEMS[l.item]);
+    for(const l of d.links){ delete l.bend; delete l.wp; }
+    d.counts = {};
+    for(const n of d.nodes) d.counts[n.type] = (d.counts[n.type]||0) + 1;
+    d.parts = d.parts || {};
   }
   d.v = SAVE_V;
   return d;
@@ -8399,14 +6297,6 @@ function load(){
     clearBoardEls();
     for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
     for(const l of S.links){ l.packets=[]; mkLinkEl(l); }
-    if(!S.map) S.map = genMap();     // 地図の無い古いデータにも土地を作る
-    drawMap();
-    if(S._autoEquip){ delete S._autoEquip;
-      autoEquipAll();
-      addLog('【遺物】強化パーツを、一つずつ中身の違う「遺物」に作り直しました。'
-           + '持っていたぶんは同じ働きの遺物として配り直し、施設に挿し直してあります。'
-           + '🎒持ち物→🔮遺物 から見られます','u'); }
-    setFx(S.fx == null ? 1 : S.fx);
     S.at = null; applyView(); renderLog(); renderBoard();
     layerDirty();                       // 数え直せるものは持ち越さない
     applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
@@ -8421,8 +6311,6 @@ function setPane(p){
 }
 document.querySelectorAll('#mtabs button').forEach(b=>b.onclick=()=>setPane(b.dataset.p));
 $('#hint').onclick=()=>$('#hint').classList.toggle('open');
-$('#bFx').onclick=()=>{ setFx(!fxOn);
-  toast(fxOn ? '演出を出します' : '演出を止めました（数字と記録は今まで通り）'); };
 $('#bFit').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
 $('#offscr').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
 $('#bTidy').onclick=()=>{ if(confirm('ノードを格子状に並べ直します。よろしいですか？')){ tidyLayout(); toast('整列しました'); } };
@@ -8440,7 +6328,7 @@ function b64dec(c){
 /* セーブに残さないもの：DOM への参照と、数え直せる作業用の値。
    「_」で始まるキーはすべて作業用（描き直しの目印・キャッシュ）なので外す。
    ここに漏れがあると、読み込んだあとに「もう描いた」と誤解して線が消える */
-const saveSkip = (k,v) => (k==='el' || k==='G' || k==='sent' || k==='tok' || k.charAt(0)==='_')
+const saveSkip = (k,v) => (k==='el' || k==='G' || k==='sent' || k.charAt(0)==='_')
                           ? undefined : v;
 const dumpState = () => JSON.stringify(Object.assign({}, S, {tro:TRO}), saveSkip);
 $('#bTree').onclick=()=>{ renderTree(); $('#tree').classList.add('on'); };
@@ -8624,29 +6512,19 @@ troLoad();
 function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
-  // 土地を作って、拠点のまわりから始める
-  S.map = genMap();
-  drawMap();
-  const bx=S.map.bx, by=S.map.by;
-  const put=(t,tx,ty)=>{ const sp=freeTile(tx,ty,TYPES[t].port2)||{tx,ty};
-    return addNode(t, tileLeft(sp.tx), tileTop(sp.ty)); };
-  const g=put('gen1',bx,by), h=put('hero',bx-1,by+1);
-  // チュートリアルのダンジョンは、拠点のすぐ隣に
-  const t0=S.map.dg[0];
-  const d=addNode('dive1', tileLeft(t0.x), tileTop(t0.y));   // addNode が試練の洞窟に結びつける
+  // 出発点は「発電機・主人公・洞窟」の3つ。発電機が⚡を作り、
+  // その⚡を配線で分けた先が動く                                   */
+  const g=addNode('gen1',60,150), h=addNode('hero',60,340), d=addNode('dive1',420,150);
   S.counts={hero:1, gen1:1, dive1:1};
   S.home = {ing1: 40};                 // 持ち出した資材。最初の数台はこれで建てる
   addLink(g.id,'sta',d.id);
-  addLink(h.id,'crew',d.id);          // 人がいないとダンジョンには潜れない
-  addLog('🔌発電機 ⚡と 🧍主人公 🧑人手 が 🕳️洞窟 に接続済み。まずは潜ってゴールドを貯めよう','u');
-  addLog('ダンジョンは🧑人手がないと止まる。人を増やしたら配線で送りこむこと','u');
+  addLog('🔌発電機 ⚡→ 🕳️洞窟 が接続済み。まずは潜ってゴールドを貯めよう','u');
   addLog('建設には💰ゴールドと🟫地金の両方が要る。手持ちの地金は 🟫40（🎒持ち物→自宅）','u');
   addLog('⛏採掘機を建てて⚡を分けると素材が手に入る（廃材の処理も忘れずに）','u');
   S.at = null; renderBoard();
-  lookAtBase();
+  fitView(1);                       // 窓が狭くても最初の2つが必ず見えるように
 }
 if(!load()) newGame();
-setFx(S.fx == null ? 1 : S.fx);
 for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が未配線なので一度だけ繋ぐ
   const lo = memOf(L).find(m => TYPES[m.type].lout);
   if(!lo || !S.links.some(l => l.to === lo.id)) autoWire(L);
@@ -8688,10 +6566,7 @@ document.addEventListener('visibilitychange', ()=>{
 });
 // 画面サイズが変わってノードが見えなくなったら自動で入れ直す
 let rzT=null;
-// 盤面の大きさが変わったら地形を描き直す（横画面への切り替え・キーボードの出入り）
-if(window.ResizeObserver) new ResizeObserver(()=>applyView()).observe(stage);
 window.addEventListener('resize',()=>{
-  applyView();                      // 地形のカンバスを新しい画面の大きさに合わせる
   clearTimeout(rzT);
   rzT=setTimeout(()=>{ if(offscreenCount()>0) fitView(); }, 250);
 });
