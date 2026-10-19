@@ -121,7 +121,22 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
   user-select:none;cursor:grab;box-shadow:0 8px 22px rgba(0,0,0,.45);
   transition:border-color .15s,box-shadow .15s,background-color .6s}
 /* 汚染が進むほど紫に沈む。数字を読まなくても盤面のどこが汚れているか分かる */
+[hidden]{display:none !important}
 .node{background-color:color-mix(in srgb, var(--pw) calc(var(--pol) * 42%), var(--panel2))}
+.node.pol-crit{border-color:#ff4d4d !important;animation:critpulse .65s ease-in-out infinite;
+  box-shadow:0 0 0 2px rgba(255,77,77,.65),0 0 26px rgba(255,60,40,.55) !important}
+@keyframes critpulse{0%,100%{box-shadow:0 0 0 2px rgba(255,77,77,.8),0 0 28px rgba(255,60,40,.65)}
+  50%{box-shadow:0 0 0 4px rgba(255,140,60,.95),0 0 38px rgba(255,80,30,.85)}}
+.boom-fx{position:absolute;pointer-events:none;z-index:80;transform:translate(-50%,-50%)}
+.boom-fx .boom-ring{width:240px;height:240px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,210,90,.85) 0%, rgba(255,80,40,.65) 45%, rgba(180,30,90,.25) 72%, transparent 100%);
+  border:3px solid #ff944d;animation:boomring 1.15s cubic-bezier(.16,1,.3,1) forwards}
+.boom-fx .boom-txt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  white-space:nowrap;font-size:14px;font-weight:900;color:#fff;
+  background:rgba(40,8,12,.92);border:1.5px solid #ff5e4d;border-radius:99px;padding:4px 12px;
+  box-shadow:0 6px 20px rgba(0,0,0,.75);animation:boomtxt 1.35s ease-out forwards}
+@keyframes boomring{0%{transform:scale(0.15);opacity:1}70%{opacity:.85}100%{transform:scale(1.65);opacity:0}}
+@keyframes boomtxt{0%{transform:translate(-50%,-30%) scale(0.7);opacity:0}18%{transform:translate(-50%,-50%) scale(1.08);opacity:1}80%{transform:translate(-50%,-75%) scale(1);opacity:1}100%{transform:translate(-50%,-95%) scale(0.95);opacity:0}}
 .node .nh, .node .rowio{position:relative}
 .node.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 8px 24px rgba(0,0,0,.5)}
 .node.stall{border-color:#6d3a45}
@@ -1428,11 +1443,16 @@ let COMP_TAKE = 5, DECOMP_TAKE = 4;
    レベルと🔮魔導の装備だけが割をよくする。1回に動かす額は時代で大きくなる。
    （素材を解体台に通す道に比べると桁違いに悪い。余ったゴールドの捨て場） */
 let FUND_G    = 4000;
-/* 仲間の給料。1回働くごとに払う。時代が進むほど金額も大きくなる。
-   第9以降の人工の仲間は、ゴールドではなく研究ポイントで動く */
-const payOf   = n => { const T=TYPES[n.type];
-  return T.pay ? Math.max(1, Math.round(T.pay * Math.pow(2.6, (T.era||1)-1)
-                                        * modsOf(n).payK)) : 0; };
+/* 人タイプ（主人公を除く）の行動費（給料）。1回行動（⚡生成）するごとにゴールドを払う。
+   主人公（hero）だけは無料（0G）。それ以外の人タイプは必ずゴールドを消費して行動する */
+const payOf   = n => {
+  if(!n || n.type==='hero') return 0;
+  const T = TYPES[n.type]; if(!T) return 0;
+  if(!T.src && !T.pay) return 0;
+  const basePay = (T.pay != null && T.pay > 0) ? T.pay : 5;
+  return Math.max(1, Math.round(basePay * Math.pow(2.5, (T.era||1)-1)
+                                * (1 + (Math.max(1, n.level||1)-1)*0.12) * modsOf(n).payK));
+};
 const payRpOf = n => { const T=TYPES[n.type];
   return T.payRp ? Math.max(1, Math.round(T.payRp * Math.pow(2.6, (T.era||1)-1))) : 0; };
 const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
@@ -1519,11 +1539,10 @@ function chainOpts(t){
 /* ノード＝主人公の「行動」。役割ごとに1つだけ基本を書き、
    時代ちがいの版は下の FAC 表から作る。                                   */
 const TYPES = {
-  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3, start:true,
-          d:'すべての行動の源。装備スロットが3つある。ここから伸ばす配線の本数が⚡体力の配分になる。経験値もここへ戻す'},
-  mate  :{n:'仲間',      i:'👩‍🌾', cost:8000, up:9000, time:1.3, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:6,
-          d:'ゴールドを払って働いてもらう、もう一つの⚡体力の源。装備スロットが1つある。'
-           +'給料が払えなくなると手が止まる'},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3, start:true, baseStats:{str:0,int:0,vit:0},
+          d:'すべての行動の源。固有のステータス（💪筋力・🧠知力・❤️体力）を持ち、主人公だけはお金を使わずに⚡体力を生む。人タイプで動く施設は汚染を出さない'},
+  mate  :{n:'仲間',      i:'👩‍🌾', cost:450,  up:600,  time:1.2, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:5, baseStats:{str:1,int:1,vit:2},
+          d:'固有のステータス（💪/🧠/❤️）を持つ人タイプ。主人公と異なり、行動するたびに💰お金（給料）を消費して⚡体力を生む。人が動かす施設は☣️汚染を出さない'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
           d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
            +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
@@ -1538,12 +1557,11 @@ const TYPES = {
           d:'体力を研究力に変える。素材を1種類だけ受け取れて、送り込むと🧱研究資材になる。'
            +'世代とレベルが上がるほど、同じ素材から取れる資材が増える'},
   tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
-          d:'💪筋力+1。攻撃力が上がる。鍛えるほど必要な体力が増えるが、'
-           +'この施設を強化すると1回で得られる経験が増える'},
+          d:'💪筋力+1。攻撃力が上がる。送り先の人タイプ（主人公・仲間）の💪筋力を鍛える'},
   tint  :{n:'読書',      i:'📖', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int',
-          d:'🧠知力+1。研究も生産も速くなる。強化すると1回で得られる経験が増える'},
+          d:'🧠知力+1。研究も生産も速くなる。送り先の人タイプ（主人公・仲間）の🧠知力を鍛える'},
   tvit  :{n:'走り込み',  i:'🏃', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exv:1}, stat:'vit',
-          d:'❤️体力+1。体力の生成と上限が指数的に伸びる'},
+          d:'❤️体力+1。送り先の人タイプ（主人公・仲間）の⚡体力生成と上限・行動範囲が伸びる'},
   smelt :{n:'精錬',      i:'🔥', cost:900,  up:1200, time:3.2, ins:{}, outs:{}, chain:'ingot',
           d:'原鉱2つを地金1つにする'},
   alloy :{n:'合成炉',    i:'⚗️', cost:5000, up:6000, time:3.6, ins:{}, outs:{}, chain:'alloy',
@@ -1564,7 +1582,7 @@ const TYPES = {
           d:'素材を売ってゴールドにする。加工・合成したものほど高く売れる。'
            +'1つ目は安いが、増やすほど値が張る'},
   fuel  :{n:'再利用',    i:'🪱', cost:1500, up:2000, time:2.0, chain:'fuel',
-          d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になる'},
+          d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になるが、燃焼時に☣️汚染も発生する'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
   wood  :{n:'薪割り小屋', i:'🪓', cost:900, up:1100, time:2.4, ins:{sta:6, waste:2}, outs:{wood:2},
@@ -1573,8 +1591,11 @@ const TYPES = {
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
   gen   :{n:'発電機',    i:'🔌', cost:300, up:400, time:1.6, ins:{}, outs:{sta:7}, gen:true,
-          d:'工房の動力。何も要らずに⚡電力を作る。ここから配線を伸ばした先が動く。'
-           +'世代を上げると燃料を食うかわりに、桁ちがいの電力と新しいエネルギーを作る'},
+          d:'機械・燃料で⚡電力を作る動力源。距離制限はないが、人やクリーンエネルギーではないため、'
+           +'自身と供給先の施設が☣️汚染を発生させる（高汚染で💥爆発・施設破壊の危険あり）'},
+  cgen  :{n:'風力発電機',i:'🍃', cost:550, up:700, time:2.1, ins:{}, outs:{sta:5}, gen:true, cleanEnergy:true,
+          d:'自然の力で⚡クリーン電力を作る発電施設。距離制限がなく、'
+           +'人やクリーンエネルギーで動く施設は☣️汚染を一切発生させない'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
@@ -1681,11 +1702,14 @@ const ERA_EXTRA = {
 
 /* 役割ごとに「どの時代に、どんな版があるか」。無い時代には無い。 */
 const FAC = {
-  /* 動力の源。第1世代は何も要らずに⚡を作る（工房の出発点）。
-     上の世代は燃料を食うかわりに、新しいエネルギーまで作る           */
-  gen:   [{e:1,n:'発電機',      i:'🔌'},
-          {e:2,n:'高性能発電機', i:'⚡', ins:{wood:1}, outs:{sta:26, power:4}},
-          {e:3,n:'超高性能発電機',i:'🌟', ins:{coal:1}, outs:{sta:90, power:16, nfl:3}}],
+  /* 動力の源。通常の発電機は燃料や機械で動くため汚染を出す。
+     クリーン発電（cgen）は自然エネルギーで動き、汚染を一切出さない */
+  gen:   [{e:1,n:'発電機',        i:'🔌'},
+          {e:2,n:'高性能発電機',   i:'⚡', ins:{wood:1}, outs:{sta:26, power:4}},
+          {e:3,n:'超高性能発電機', i:'🌟', ins:{coal:1}, outs:{sta:90, power:16, nfl:3}}],
+  cgen:  [{e:1,n:'風力発電機',    i:'🍃', outs:{sta:5}, cleanEnergy:true},
+          {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:18, power:3}, cleanEnergy:true},
+          {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:65, power:12, nfl:2}, cleanEnergy:true}],
   mine:  [{e:1,n:'採掘機',      i:'⛏️'},{e:2,n:'高速採掘機',i:'🚜'},{e:3,n:'重層採掘機',i:'🛰'}],
   smelt: [{e:1,n:'精錬炉',      i:'🔥'},{e:2,n:'高炉',      i:'🏭'},{e:3,n:'プラズマ炉',i:'🌞'}],
   alloy: [{e:1,n:'合金炉',      i:'⚗️'},{e:2,n:'電気合成炉',i:'🧪'},{e:3,n:'分子合成炉',i:'🧬'}],
@@ -1709,7 +1733,9 @@ const FAC = {
   tstr:  [{e:1,n:'筋トレ',      i:'🏋️'},{e:2,n:'道場',      i:'🥋'},{e:3,n:'重力室',    i:'🪐'}],
   tint:  [{e:1,n:'読書',        i:'📖'},{e:2,n:'講義',      i:'🎓'},{e:3,n:'神経接続',  i:'🧠'}],
   tvit:  [{e:1,n:'走り込み',    i:'🏃'},{e:2,n:'山ごもり',  i:'⛰️'},{e:3,n:'体質改造',  i:'🧬'}],
-  mate:  [{e:1,n:'村人',        i:'👩‍🌾'},{e:2,n:'職人',      i:'👩‍🔧'},{e:3,n:'研究者',    i:'👩‍🔬'}],
+  mate:  [{e:1,n:'村人',        i:'👩‍🌾', baseStats:{str:1,int:1,vit:2}},
+          {e:2,n:'職人',        i:'👩‍🔧', baseStats:{str:4,int:3,vit:4}},
+          {e:3,n:'研究者',      i:'👩‍🔬', baseStats:{str:3,int:8,vit:5}}],
   wood:  [{e:1,n:'薪割り小屋',  i:'🪓'},{e:2,n:'製材所',    i:'🪚', outs:{wood:4}},
           {e:3,n:'自動林場',    i:'🌲', outs:{wood:14}}],
   coal:  [{e:1,n:'炭窯',        i:'🪵'},{e:2,n:'コークス炉',i:'🏭', outs:{coal:14, waste:2}},
@@ -1886,8 +1912,9 @@ const ROLE_TREE_DEFAULT = {
   tvit:   {start:false, reqRole:'lab',    treeX:1, treeY:6, rp:20},
   tint:   {start:false, reqRole:'lab',    treeX:1, treeY:7, rp:20},
   decomp: {start:false, reqRole:'tstr',   treeX:2, treeY:5, rp:80},
-  mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:6, rp:180, reqVit:2},
+  mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:6, rp:45,  reqVit:1},
   gen:    {start:false, reqRole:'tint',   treeX:2, treeY:7, rp:400, mat:25, reqInt:3},
+  cgen:   {start:false, reqRole:'gen',    treeX:3, treeY:6, rp:520, mat:30},
   wood:   {start:false, reqRole:'gen',    treeX:3, treeY:7, rp:650, mat:40},
   coal:   {start:false, reqRole:'wood',   treeX:4, treeY:7, rp:1000, mat:80},
 };
@@ -1932,6 +1959,8 @@ function buildFac(){
       if(f.ins)  T.ins  = Object.assign({}, f.ins);
       if(f.outs) T.outs = Object.assign({}, f.outs);
       if(f.hd)   T.hd   = f.hd.slice();
+      if(f.baseStats) T.baseStats = Object.assign({}, f.baseStats);
+      if(f.cleanEnergy !== undefined) T.cleanEnergy = !!f.cleanEnergy;
       if(ERA_EXTRA[role]) Object.assign(T, ERA_EXTRA[role](g));
       // 共鳴：第8以降。世代が上がるほど強く届く
       if(hasPerk(T,'aura') && !T.aura)
@@ -1949,7 +1978,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  wood:'薪',coal:'石炭',gen:'発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
+  wood:'薪',coal:'石炭',gen:'発電',cgen:'クリーン発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -1969,12 +1998,77 @@ let LV_STEP = 5, LV_BASE = 12.25;
 const lvPow = L => Math.pow(1/ERA_SPD, Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP));
 const lvGen = L => Math.log(1 + (Math.max(1,L)-1)/LV_BASE) / Math.log(LV_STEP);  // 何時代ぶんか
 
+/* ── 人タイプごとの個別ステータス（💪筋力 / 🧠知力 / ❤️体力）──
+   主人公（hero）と各仲間（mate1..3 やカスタム人タイプ）がそれぞれ固有の stats / exp を持つ */
+function defaultHumanStats(type){
+  const T = TYPES[type] || {};
+  if(T.baseStats) return {str:T.baseStats.str||0, int:T.baseStats.int||0, vit:T.baseStats.vit||0};
+  if(type==='hero') return {str:0, int:0, vit:0};
+  const e = T.era || 1;
+  if(e===1) return {str:1, int:1, vit:2};
+  if(e===2) return {str:4, int:3, vit:4};
+  return {str:3, int:8, vit:5};
+}
+function statsOf(n){
+  if(!n || !TYPES[n.type] || !TYPES[n.type].src) return (S && S.stats) || {str:0, int:0, vit:0};
+  if(n.type==='hero'){
+    if(S){ S.stats = S.stats || {str:0, int:0, vit:0}; n.stats = S.stats; return S.stats; }
+  }
+  if(!n.stats || typeof n.stats !== 'object') n.stats = defaultHumanStats(n.type);
+  return n.stats;
+}
+function expOf(n){
+  if(!n || !TYPES[n.type] || !TYPES[n.type].src) return (S && S.exp) || {str:0, int:0, vit:0};
+  if(n.type==='hero'){
+    if(S){ S.exp = S.exp || {str:0, int:0, vit:0}; n.exp = S.exp; return S.exp; }
+  }
+  if(!n.exp || typeof n.exp !== 'object') n.exp = {str:0, int:0, vit:0};
+  return n.exp;
+}
+function totalStr(){
+  if(!S || !S.nodes) return (S && S.stats && S.stats.str) || 0;
+  let s = S.stats.str || 0;
+  for(const n of S.nodes) if(TYPES[n.type] && TYPES[n.type].src && n.type!=='hero' && !n.stall) s += statsOf(n).str || 0;
+  return s;
+}
+function totalInt(){
+  if(!S || !S.nodes) return (S && S.stats && S.stats.int) || 0;
+  let s = S.stats.int || 0;
+  for(const n of S.nodes) if(TYPES[n.type] && TYPES[n.type].src && n.type!=='hero' && !n.stall) s += statsOf(n).int || 0;
+  return s;
+}
+/* 訓練施設の送り先の人タイプ（繋いでいなければ主人公） */
+function trainTargetOf(n){
+  if(!S || !S.links || !n) return null;
+  const k = EXP_OF[TYPES[n.type].stat];
+  if(k){
+    const l = S.links.find(x => x.from===n.id && x.item===k && N(x.to) && TYPES[N(x.to).type].src);
+    if(l) return N(l.to);
+  }
+  return S.nodes.find(x => x.type==='hero') || null;
+}
+/* 施設に体力を供給している人タイプの能力値ボーナス（筋力・知力で作業速度UP） */
+function humanBoostOf(n){
+  if(!S || !S.links || !n || (TYPES[n.type] && TYPES[n.type].src)) return 1;
+  let bonus = 0;
+  for(const l of S.links){
+    if(l.to===n.id && l.item==='sta' && !isLinkOutOfRange(l)){
+      const a = N(l.from);
+      if(a && TYPES[a.type] && TYPES[a.type].src && !a.stall){
+        const st = statsOf(a);
+        bonus = Math.max(bonus, (st.int||0)*0.03 + (st.str||0)*0.02);
+      }
+    }
+  }
+  return 1 + bonus;
+}
+const maxStaOf = n  => Math.floor(12 * Math.pow(VIT_K, statsOf(n).vit || 0));
 const maxSta   = () => Math.floor(12 * Math.pow(VIT_K, S.stats.vit));
-const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, S.stats.vit) / lvPow(n.level) / (1 + (tierOf(n).t-1)*0.5);
-const intBoost = () => 1 + S.stats.int * 0.02;
-const atk      = () => Math.floor((15 + S.atkBonus) * (1 + S.stats.str * 0.15)
+const staRate  = n  => TYPES[n.type].time / Math.pow(VIT_K, statsOf(n).vit || 0) / lvPow(n.level) / (1 + (tierOf(n).t-1)*0.5);
+const intBoost = () => 1 + totalInt() * 0.02;
+const atk      = () => Math.floor((15 + S.atkBonus) * (1 + totalStr() * 0.15)
                        * depthBonus() * gearMul('firm') * skillMul('atk'));
-const rpGain   = n  => lvPow(n.level) * (1 + S.stats.int * 0.15) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
+const rpGain   = n  => lvPow(n.level) * (1 + totalInt() * 0.15) * Math.pow(2.6, (TYPES[n.type].era||1)-1) * gearMul('arcane');
 /* 素材を研究資材に変えるときの取り分。研究所の世代とレベルで増える */
 const matMul   = n  => lvPow(n.level) * Math.pow(2.2, (TYPES[n.type].era||1)-1) * gearMul('arcane');
 /* 送り込んだ素材は🧱になると同時に🔬にもなる。
@@ -2084,7 +2178,8 @@ function insOf(n){
     o.sta = staCost(T.sta * toolLoad(n), e);
     return modIns(n, eraIn(T, o));
   }
-  const k = T.stat ? trainMul(S.stats[T.stat]) : 1;   // 訓練は鍛えるほど重くなる（後半ほど急に）
+  const tgtH = T.stat ? trainTargetOf(n) : null;
+  const k = T.stat ? trainMul(statsOf(tgtH)[T.stat] || 0) : 1;   // 訓練は鍛える人タイプの能力値に応じて重くなる
   const th = hasPerk(T,'thrift') ? 0.5 : 1;          // 省力：体力が半分で済む
   for(const i in T.ins) o[i] = i==='sta' ? staCost(T.ins[i]*k*th, e)
                                        : Math.max(1, Math.ceil(T.ins[i]*k));
@@ -2335,7 +2430,7 @@ function craftTime(n){
   // 工房ぜんたいがそのぶん速くまわる（片方だけだと⚡が足りなくなる）
   if(T.src) return staRate(n) * sp * env / skillMul('sta') / troMul();
   const base = n.comb ? combCalc(n).time : T.time;
-  return base / lvPow(n.level) / intBoost() * sp * env / skillMul('spd') / troMul();
+  return base / lvPow(n.level) / intBoost() / humanBoostOf(n) * sp * env / skillMul('spd') / troMul();
 }
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
@@ -2422,7 +2517,7 @@ const isByp    = k => BYP.some(b=>b.k===k);
 /* 副産物を抱えておける量。複合施設は中の段の数だけ、ふつうの施設ぶん持てる */
 const bypCap = n => BYP_CAP * (n.comb ? n.comb.length + 1 : 1);
 const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
-                          : (TYPES[n.type].src && item==='sta') ? maxSta()
+                          : (TYPES[n.type].src && item==='sta') ? maxStaOf(n)
                           : isByp(item) ? bypCap(n)
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
@@ -2828,7 +2923,7 @@ const N = id => idx.get(id);
 let HUMAN_R = 380;
 const isHuman = n => !!(n && TYPES[n.type] && TYPES[n.type].src);
 const nodeDist = (a, b) => (!a || !b) ? Infinity : Math.hypot((a.x + NW/2) - (b.x + NW/2), (a.y + 45) - (b.y + 45));
-const humanRangeOf = n => HUMAN_R;
+const humanRangeOf = n => HUMAN_R + (isHuman(n) ? Math.min(240, (statsOf(n).vit||0)*10 + (statsOf(n).str||0)*5) : 0);
 const inHumanRange = (a, b) => {
   if(!a || !b) return false;
   if((a.layer||null) !== (b.layer||null)) return false;
@@ -3327,7 +3422,10 @@ function addNode(type,x,y){
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
     const o=chainOpts(type); if(o.length) n.item=o[0];
   }
-  if(TYPES[type].src && type!=='hero') n.pname = randPerson();
+  if(TYPES[type].src){
+    if(type==='hero'){ n.stats = S.stats; n.exp = S.exp; }
+    else { n.pname = randPerson(); n.stats = defaultHumanStats(type); n.exp = {str:0,int:0,vit:0}; }
+  }
   n.no = S.nextNo = (S.nextNo || 0) + 1;      // 見分けるための通し番号（一度ついたら変わらない）
   S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n); return n;
 }
@@ -3487,14 +3585,17 @@ function tick(dt,fast){
       for(const k in soft){
         const c=Math.floor(n.inBuf[k]||0); if(c<=0) continue;
         n.inBuf[k]-=c; flowOut(k, c); nodeFlow(n, k, c, 'o');
-        if(STAT_OF[k]){                 // 主人公・仲間：経験値 → 能力
+        if(STAT_OF[k]){                 // 人タイプ（主人公・仲間）：経験値 → その人の能力値アップ
           const st=STAT_OF[k]; n.gain=(n.gain||0)+c;
           n.ex=n.ex||{}; n.ex[st]=(n.ex[st]||0)+c; exAcc[st]+=c;
-          S.exp = S.exp || {str:0,int:0,vit:0};
-          S.exp[st] = (S.exp[st]||0) + c;
+          const stObj = statsOf(n), exObj = expOf(n);
+          exObj[st] = (exObj[st]||0) + c;
           let up=0;
-          while(S.exp[st] >= expNeed(S.stats[st])){ S.exp[st] -= expNeed(S.stats[st]); S.stats[st]++; up++; }
-          if(up && !fast) addLog(`${ITEMS[k].i} ${statName(st)}が ${S.stats[st]} になった`,'u');
+          while(exObj[st] >= expNeed(stObj[st]||0)){ exObj[st] -= expNeed(stObj[st]||0); stObj[st] = (stObj[st]||0) + 1; up++; }
+          if(up && !fast){
+            const who = tierOf(n);
+            addLog(`${who.i}${who.n} の ${ITEMS[k].i}${statName(st)} が ${stObj[st]} になった`,'u');
+          }
         }else if(T.matIn){              // 研究所：素材 → 研究資材と研究ポイント
           const v = itemVal(k)*c;
           S.stock=(S.stock||0)+v*matMul(n);
@@ -3549,15 +3650,16 @@ function tick(dt,fast){
     for(;;){
       if(!n.crafting){
         const need=insOf(n), give=T.loot ? {} : outsOf(n);   // 戦利品は満杯でも止めない
+        const wage = payOf(n);
         let ok=true;
         for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
         if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){ ok=false; n.why=`${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`; }
-        if(ok && T.pay && S.gold < payOf(n)){ ok=false; n.why=`給料が払えない（${fmt(payOf(n))}G）`; }
+        if(ok && wage > 0 && S.gold < wage){ ok=false; n.why=`行動資金が不足（${fmt(wage)}G 必要）`; }
         if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`研究ポイントが足りない（${fmt(payRpOf(n))}）`; }
 
         if(!ok){ n.stall=true; break; }
         for(const k in need){ n.inBuf[k]-=need[k]; flowOut(k, need[k]); nodeFlow(n, k, need[k], 'o'); }
-        if(T.pay)   S.gold -= payOf(n);
+        if(wage > 0){ S.gold -= wage; n.paid = (n.paid||0) + wage; }
         if(T.payRp) S.rp = (S.rp||0) - payRpOf(n);
         n.crafting=true; n.prog=0; n.need=Math.max(1e-6, craftTime(n));
       }
@@ -3738,7 +3840,7 @@ function tick(dt,fast){
     l._moving = anyMoved;
   }
   if(!S.enemy) spawnEnemy();
-  polTick(dt);
+  polTick(dt, fast);
   if(!fast) troTick(dt);
   flowTick(dt, fast);
   rateTick(dt);
@@ -4185,31 +4287,147 @@ function raidClaim(n){
 }
 
 /* ========================= 汚染とピン =========================
-   汚染系のものを出す／持っている場所のまわりは汚れる。
-   汚れた施設は仕事が遅くなる。清浄の装備と、置いたピンで抑えられる。   */
-/* 抱えていると汚染する量。桁で効くので、重みが3倍でも汚染は3倍にはならない。
-   目安（廃材）：200個で約40%、1000個で約55%、放っておけば100%まで行く */
+   人やクリーンエネルギーで動くもの以外は、稼働すると周囲に汚染を発生させる。
+   さらに汚染系の副産物を抱えている場所のまわりも汚れる。
+   汚れた施設は仕事が遅くなり、汚染が危険域（既定80%以上）に達すると爆発・施設破壊の危険が生じる。 */
 const POL_ITEM = {waste:0.9, toxic:1.6, rad:3.5, rift:8, slud:5};
-const POL_R    = 280;      // 汚染が届く距離
-const POL_SLOW = 1.6;      // 汚染1.0でどれだけ遅くなるか
-/* 汚染の進み方。上限まで溜め込んだ廃材ひとつぶんで、100%まで約7分。
-   片付ければ自然に薄まり、清浄ピンと清浄の装備がそれを速める            */
-const POL_UP    = 0.0027;  // 溜め込み1.0あたり毎秒どれだけ上がるか
-const POL_HEAL  = 0.0009;  // 何もしなくても薄まる速さ（100%→0%で約18分）
-const POL_CLEAN = 0.0006;  // 清浄ピンの強さ1.0あたりの上乗せ
+let POL_R    = 280;      // 汚染が届く距離
+let POL_SLOW = 1.6;      // 汚染1.0でどれだけ遅くなるか
+let POL_UP    = 0.0027;  // 汚染源1.0あたり毎秒どれだけ上がるか
+let POL_HEAL  = 0.0009;  // 何もしなくても薄まる速さ（100%→0%で約18分）
+let POL_CLEAN = 0.0006;  // 清浄ピンの強さ1.0あたりの上乗せ
+let POL_WORK  = 0.95;    // 人・クリーンエネルギー以外で稼働したときの汚染発生強度
+let POL_EXPLODE_TH   = 0.80; // 汚染爆発の危険域に入るしきい値（0.80 = 80%）
+let POL_EXPLODE_RATE = 0.045;// 危険域での毎秒爆発確率係数
 let polT = 0;
-/* 汚染の進む速さ。抱えている量が上限に近いほど速い。
-   量そのものが汚染度になるのではなく、放っておいた「時間」が効く      */
+
+/* 動力源の種類を判定する:
+   - 'human'     : 人タイプ自身、または人タイプ（主人公・仲間）の⚡だけで動く施設（クリーン）
+   - 'clean'     : クリーン発電（cgen）自身、または人・クリーン発電の動力だけで動く施設（クリーン）
+   - 'passive'   : 貯蔵・倉庫・ピン・レイヤー・ポート（稼働汚染なし）
+   - 'dirty_gen' : 燃料や機械で動く通常の発電機（gen）・焼却発電（fuel）・炭窯（coal）
+   - 'dirty'     : 通常の発電機などの非クリーン動力で動いている施設 */
+function powerTypeOf(n){
+  if(!n) return 'passive';
+  const T = TYPES[n.type];
+  if(!T || T.layer || T.port || T.raid) return 'passive';
+  if(isHuman(n)) return 'human';
+  if(T.cleanEnergy) return 'clean';
+  if(T.store || T.ware || T.aura) return 'passive';
+  if((T.gen && !T.cleanEnergy) || T.chain === 'fuel' || T.line === 'coal') return 'dirty_gen';
+  const pLinks = S.links.filter(l => l.to === n.id && ENERGY_ITEM[l.item] && !isLinkOutOfRange(l));
+  if(pLinks.length > 0){
+    let allHuman = true, allClean = true;
+    for(const l of pLinks){
+      const src = N(l.from);
+      if(!src){ allHuman = false; allClean = false; break; }
+      const sT = TYPES[src.type] || {};
+      if(isHuman(src)){
+        // 人タイプの体力供給
+      }else if(sT.cleanEnergy){
+        allHuman = false;
+      }else{
+        allHuman = false; allClean = false; break;
+      }
+    }
+    if(allHuman) return 'human';
+    if(allClean) return 'clean';
+    return 'dirty';
+  }
+  const ins = insOf(n);
+  const needsEnergy = Object.keys(ins).some(k => ENERGY_ITEM[k]);
+  if(needsEnergy){
+    return n.crafting ? 'dirty' : 'passive';
+  }
+  return 'dirty';
+}
+
+/* 汚染の進む速さ。
+   1) 人やクリーンエネルギー以外で稼働している施設・発電機は稼働汚染を出す
+   2) 副産物（廃材・汚染など）を溜め込んでいる量に応じても汚染が出る */
 function polSource(n){
   if(TYPES[n.type].layer){                 // 中の汚れをまとめて背負う
     let v=0; for(const m of memOf(n)) v += polSource(m); return v;
   }
+  const pt = powerTypeOf(n);
+  n._ptype = pt;
+  const isCleanOp = (pt === 'human' || pt === 'clean');
   let v=0;
   for(const k in POL_ITEM){
     const held = (n.outBuf[k]||0) + (n.inBuf[k]||0);       // 溜め込んでいる量
+    // 人・クリーンエネルギーで稼働している施設は、副産物があふれかけ（半分超）でない限り汚染を出さない
+    if(isCleanOp && held <= bypCap(n) * 0.5) continue;
     if(held > 0) v += POL_ITEM[k] * Math.min(1, held / bypCap(n));
   }
+  const T = TYPES[n.type] || {};
+  const eraK = 1 + 0.25 * ((T.era || 1) - 1);
+  const notInputStall = !n.stall || /満杯/.test(n.why||'');
+  const isWorking = notInputStall && (n.crafting || (n.prog||0) > 0 || T.gen
+                    || S.links.some(l => l.to === n.id && ENERGY_ITEM[l.item]));
+  if(pt === 'dirty_gen' && notInputStall){
+    v += POL_WORK * 1.15 * eraK;
+  }else if(pt === 'dirty' && isWorking){
+    v += POL_WORK * 0.80 * eraK;
+  }
   return v;
+}
+function spawnExplosionFx(x, y, label){
+  if(typeof world === 'undefined' || !world) return;
+  const fx = document.createElement('div');
+  fx.className = 'boom-fx';
+  fx.style.left = x + 'px';
+  fx.style.top  = y + 'px';
+  fx.innerHTML = `<div class="boom-ring"></div><div class="boom-txt">💥 ${label} 爆発！</div>`;
+  world.appendChild(fx);
+  setTimeout(()=>{ if(fx.parentNode) fx.remove(); }, 1200);
+}
+function explodeNode(n, fast){
+  if(!n || !N(n.id)) return;
+  const T = TYPES[n.type];
+  if(!T || T.layer || T.port || T.raid) return;
+  const tr = tierOf(n);
+  const label = `${tr.i}${tr.n}${n.no ? ' #'+n.no : ''}`;
+  if(!fast && (n.layer || null) === atNow()){
+    spawnExplosionFx(nodeCx(n), nodeCy(n), `${tr.i}${tr.n}`);
+  }
+  // 爆風による周囲への汚染拡散（同じ盤面の近隣ノードの汚染度が跳ね上がる）
+  const bd = n.layer || 0, blastR = POL_R * 1.35;
+  for(const m of S.nodes){
+    if(m === n || (m.layer||0) !== bd) continue;
+    const dist = Math.hypot(nodeCx(m)-nodeCx(n), nodeCy(m)-nodeCy(n));
+    if(dist < blastR){
+      m.pol = Math.min(1, (m.pol||0) + 0.28 * (1 - dist/blastR));
+    }
+  }
+  // 主人公だけはゲーム進行に必須なため消滅せず、昏倒ペナルティを受ける
+  if(n.type === 'hero' || T.unique){
+    n.pol = 0.35; n._critT = 0;
+    n.outBuf.sta = 0; n.prog = 0; n.crafting = false;
+    const lostG = Math.floor(S.gold * 0.20);
+    S.gold = Math.max(0, S.gold - lostG);
+    addLog(`💥【汚染爆発】${label}が汚染爆発に巻き込まれ昏倒！（⚡全損${lostG>0?'・-'+fmt(lostG)+'G':''}）`, 'd');
+    if(!fast) toast(`💥 ${tr.n}が汚染爆発に巻き込まれた！`);
+    return;
+  }
+  // 通常施設・仲間は爆発により破壊・消滅する（返金なし、汚染塊が発生）
+  const sl = Math.max(1, polScrapItems(n, n.pol || 1));
+  homeOf().slud = (homeOf().slud || 0) + sl;
+  if(!n.drop){
+    S.counts[n.type] = Math.max(0, (S.counts[n.type]||1) - 1);
+    for(const c of (n.comb||[])){
+      S.counts[c.type] = Math.max(0, (S.counts[c.type]||1) - 1);
+    }
+  }
+  S.explosions = (S.explosions || 0) + 1;
+  const wasSel = (sel === n.id);
+  if(wasSel) sel = null;
+  removeNode(n.id);
+  addLog(`💥【汚染爆発】${label}が汚染限界を超え大爆発・破壊された！（🫙汚染塊×${sl}）`, 'd');
+  if(!fast){
+    toast(`💥 汚染爆発！ ${tr.i}${tr.n} が破壊されました`);
+    if(wasSel) renderInsp();
+    renderBag();
+  }
 }
 const auraOf = n => (TYPES[n.type].aura && !n.stall) ? TYPES[n.type].aura : null;
 const nodeCx = n => n.x + NW/2, nodeCy = n => n.y + 45;
@@ -4233,7 +4451,7 @@ function freeIdleSlots(){
     }
   }
 }
-function polTick(dt){
+function polTick(dt, fast){
   polT += dt; if(polT < 1) return;
   const d = polT; polT = 0;
   freeIdleSlots();
@@ -4292,18 +4510,34 @@ function polTick(dt){
   // レイヤーが外から受けているぶんは、中にもそのまま持ち込む
   const env = new Map();
   for(const n of S.nodes) if(isLayer(n)) env.set(n.id, around(n, true));
+  const victims = [];
   for(const n of S.nodes){
     const a = around(n, false);
     const e = n.layer ? env.get(n.layer) : null;
     const v = a.v + (e ? e.v : 0);
     n.spd = 1 + a.boost + (e ? e.boost : 0);
-    // 上がる速さは溜め込み具合、下がる速さは自然回復＋清浄ピン＋清浄の装備
+    // 上がる速さは溜め込み・稼働汚染、下がる速さは自然回復＋清浄ピン＋清浄の装備
     const up   = Math.max(0, v) * POL_UP;
     const down = (POL_HEAL + Math.max(0, a.clean + (e ? e.clean : 0)) * POL_CLEAN) * pure;
     const nv = Math.max(0, Math.min(1, (n.pol||0) + (up - down) * d));
     // 端数を0に丸めるのは「薄まっているとき」だけ。
     // 上がっている最中に丸めると、じわじわ進む汚染がいつまでも0のままになる
     n.pol = (nv < 0.001 && up <= down) ? 0 : nv;
+    // 汚染が危険域（POL_EXPLODE_TH 以上）に達した施設は爆発・破壊の危険がある
+    const T = TYPES[n.type];
+    if(T && !T.layer && !T.port && !T.raid && n.pol >= POL_EXPLODE_TH){
+      n._critT = (n._critT || 0) + d;
+      const excess = Math.max(0, (n.pol - POL_EXPLODE_TH) / Math.max(0.01, 1 - POL_EXPLODE_TH));
+      const prob = (0.012 + excess * excess * POL_EXPLODE_RATE + (n._critT > 20 ? 0.025 : 0)) * d;
+      if(Math.random() < prob || (n.pol >= 0.995 && n._critT >= 15)){
+        victims.push(n);
+      }
+    }else{
+      n._critT = 0;
+    }
+  }
+  for(const v of victims){
+    if(N(v.id)) explodeNode(v, fast);
   }
 }
 
@@ -4335,19 +4569,22 @@ const expMiss = n => {
   return null;
 };
 const expRouted = n => !!TYPES[n.type].stat && !expMiss(n);
-/* 主人公・仲間のノードに出す一行。受け取った経験値を数字で見せる */
+/* 主人公・仲間のノードに出す一行。個人のステータス・行動費・受け取った経験値を数字で見せる */
 function srcFace(n){
   const T=TYPES[n.type];
   const role = n.pname ? `${T.i}${T.n}／` : '';
   const sk = skillOf(n).filter(Boolean);
   const skl = sk.length ? '　' + sk.map(k=>SKILL[k].i+SKILL[k].n).join('・') : '';
+  const st = statsOf(n);
+  const stTxt = `💪${fmt(st.str||0)} 🧠${fmt(st.int||0)} ❤️${fmt(st.vit||0)}`;
+  const pay = payOf(n)   ? `／💰-${fmt(payOf(n))}G/回(計${fmt(n.paid||0)}G)`
+            : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分`
+            : '／💰無料(主人公)';
   const e=n.ex||{}, got=(e.str||0)+(e.int||0)+(e.vit||0);
   const r=exRate.str+exRate.int+exRate.vit;
-  const pay = payOf(n)   ? `／給料 ${fmt(payOf(n))}G×${fmt(1/craftTime(n)*60)}回/分`
-            : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分` : '';
-  if(!got) return role+'⚡供給中'+pay+'／経験値はまだ戻っていない'+skl;
+  if(!got) return `${role}${stTxt}${pay}／🌱クリーン⚡供給中`+skl;
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
-  return `${role}⚡供給中${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
+  return `${role}${stTxt}${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
 }
 function doDive(fast, node){
   if(!S.enemy) spawnEnemy();
@@ -5221,12 +5458,20 @@ function render(fdt){
     }
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
+      s._b = s._b || s.querySelector('b'); s._q = s._q || s.querySelector('.q');
+      if(T.src && STAT_OF[k]){
+        const stKey = STAT_OF[k], stVal = statsOf(n)[stKey] || 0, exVal = expOf(n)[stKey] || 0, exReq = expNeed(stVal);
+        setTxt(s._b, fmt(stVal));
+        setTxt(s._q, ` (${fmt(exVal)}/${fmt(exReq)})`);
+        setCls(s,'short', false);
+        setCls(s,'full', false);
+        continue;
+      }
       const c=n.inBuf[k]||0, req=need[k];
       // 分母は「その口が何を待っているか」に合わせる。
       // 貯蔵と倉庫と売り場は入れておける量、それ以外は1回に要る数
       const stack = (T.store || T.ware || T.chain==='sell' || T.layer || T.port);
       const den = (T.layer || T.port) ? 0 : stack ? capIn(n,k) : req;
-      s._b = s._b || s.querySelector('b'); s._q = s._q || s.querySelector('.q');
       setTxt(s._b, fmt(c));
       setTxt(s._q, den ? '/'+fmt(den) : '');
       setCls(s,'short', !stack && !!req && c < req);
@@ -5245,17 +5490,19 @@ function render(fdt){
     }
     const bw=(n.crafting?Math.min(100,n.prog/n.need*100):0);
     if(Math.abs((e.lastBar||0)-bw) > 0.7){ e.lastBar=bw; e.bar.style.width=bw+'%'; }
-    if(slow || e.lastStall !== (n.stall?n.why:'')){
+    const pv = Math.round((n.pol||0)*20)/20;          // 5%きざみで書き換える
+    if(slow || e.lastStall !== (n.stall?n.why:'') || e.lastPol !== pv){
     e.lastStall = n.stall?n.why:'';
     e.nf.textContent = n.stall
-        ? (T.stat && expMiss(n) ? `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（主人公へ配線）`
+        ? (T.stat && expMiss(n) ? `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（人タイプへ配線）`
            : (T.outs && T.outs.wood && /廃材/.test(n.why||'')
               ? '停止：'+n.why+'（⚡で動く第1世代の施設を残すと廃材が出ます）'
               : '停止：'+n.why))
       : T.src ? srcFace(n)
       : T.stat ? (expRouted(n)
-          ? `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（次の+1まで あと${Math.max(1, expNeed(S.stats[T.stat]) - ((S.exp&&S.exp[T.stat])||0))}回）`
-          : `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（主人公へ配線）`)
+          ? (()=>{ const tgtH = trainTargetOf(n), stObj = statsOf(tgtH), exObj = expOf(tgtH);
+              return `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（${tierOf(tgtH).n}の+1まで あと${Math.max(1, expNeed(stObj[T.stat]||0) - (exObj[T.stat]||0))}回）`; })()
+          : `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（人タイプへ配線）`)
       : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
       : T.effect==='raid'? (n.clear
           ? `✨ クリア！ タップで受け取る（+${fmt((n.reward||{}).g||0)}G ほか）`
@@ -5314,21 +5561,27 @@ function render(fdt){
           : '扱う素材を選んでください')
       : T.aura ? (T.aura.k==='clean' ? `まわりの汚染を抑えている（強さ ${T.aura.v}）`
                                       : `まわりを速くしている（+${Math.round(T.aura.v*100)}%）`)
+      : T.cleanEnergy ? `🌱クリーン発電中（汚染発生なし）`
       : '稼働中';
-    if((n.pol||0) > 0.05) e.nf.textContent += `　☣汚染${Math.round(n.pol*100)}%`;
+    const pt = powerTypeOf(n);
+    if(!T.src && !T.layer && !T.port && !T.raid && !T.cleanEnergy && !n.stall){
+      if(pt === 'human' || pt === 'clean') e.nf.textContent += '　🌱クリーン';
+    }
+    if((n.pol||0) >= POL_EXPLODE_TH) e.nf.textContent += `　💥爆発危険(${Math.round(n.pol*100)}%)`;
+    else if((n.pol||0) > 0.05) e.nf.textContent += `　☣汚染${Math.round(n.pol*100)}%`;
     else if((n.spd||1) > 1.01) e.nf.textContent += `　⚡加速+${Math.round((n.spd-1)*100)}%`;
     if(prioOf(n)>1) e.nf.textContent += `　優先${prioOf(n)}`;
     }
-    const pv = Math.round((n.pol||0)*20)/20;          // 5%きざみで書き換える
     if(e.lastPol !== pv){
       e.lastPol = pv;
       e.root.style.setProperty('--pol', pv);
-      // 汚れるほど骸骨が増える。数字を読まなくても危ないノードが分かる
-      const sk = pv >= 0.85 ? '☠️☠️' : pv >= 0.5 ? '☠️' : pv >= 0.25 ? '💀' : '';
+      // 汚れるほど骸骨が増える。危険域では爆発マークも添える
+      const sk = pv >= POL_EXPLODE_TH ? '💥☠️' : pv >= 0.5 ? '☠️' : pv >= 0.25 ? '💀' : '';
       if(e.sk.textContent !== sk){ e.sk.textContent = sk;
-        e.sk.title = sk ? `汚染 ${Math.round(pv*100)}%` : ''; }
+        e.sk.title = sk ? `汚染 ${Math.round(pv*100)}%${pv>=POL_EXPLODE_TH?'（爆発危険！）':''}` : ''; }
     }
     setCls(e.root,'pol', (n.pol||0) > 0.05);
+    setCls(e.root,'pol-crit', (n.pol||0) >= POL_EXPLODE_TH);
     setCls(e.root,'drop', !!n.drop);
     setCls(e.root,'comb', !!n.comb);
     // 汚染が届く範囲。溜め込んでいるノードだけ出す
@@ -5950,6 +6203,9 @@ function renderInsp(){
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
     (skillSlots(n) ? `<div class="kv gearhd">スキル<b class="ksum"></b></div><div class="skillsel"></div>` : '') +
     (perksOf(T).length ? `<div class="kv">世代の特性<b class="perk"></b></div>` : '') +
+    `<div class="kv hstat-row" hidden><span class="hstatk">能力値</span><b class="hstatv"></b></div>` +
+    `<div class="kv hpay-row" hidden><span class="hpayk">行動コスト</span><b class="hpayv"></b></div>` +
+    `<div class="kv pstat-row" hidden><span class="pstatk">動力・汚染</span><b class="pstatv"></b></div>` +
     `<div class="kv rng-row" hidden><span class="rngk">行動範囲</span><b class="rngv"></b></div>` +
     `<div class="kv">状態<b class="st2"></b></div>`;
 
@@ -6098,12 +6354,12 @@ function renderInsp(){
     il.value=n.item||'';
     il.onchange=()=>{ setToolItem(n, il.value||null); renderInsp(); };
   }
-  box.querySelector('.up').onclick=()=>{
+  box.querySelector('button.up').onclick=()=>{
     const c=upCost(n);
     if(S.gold<c) return toast('ゴールドが足りません');
     S.gold-=c; n.level++;
   };
-  box.querySelector('.up10').onclick=()=>{
+  box.querySelector('button.up10').onclick=()=>{
     const c=upCostN(n, UP_BULK);
     if(S.gold<c) return toast(`まとめて強化するには ${fmt(c)} G 要ります`);
     S.gold-=c; n.level+=UP_BULK;
@@ -6203,6 +6459,52 @@ function renderInspLive(){
     const t=Object.keys(TRAITS).filter(k=>bn[k]>0.01)
       .map(k=>`${TRAITS[k].i}×${gearMul(k).toFixed(2)}`).join(' ');
     gs.textContent = t || 'まだ何も効いていない'; }
+  const hstatRow = box.querySelector('.hstat-row');
+  if(hstatRow){
+    if(TYPES[n.type].src){
+      const st = statsOf(n), ex = expOf(n);
+      hstatRow.hidden = false;
+      hstatRow.querySelector('.hstatv').innerHTML =
+        `<span style="color:#e8785a">💪${fmt(st.str||0)}(${fmt(ex.str||0)}/${fmt(expNeed(st.str||0))})</span> ` +
+        `<span style="color:#7aa2ff">🧠${fmt(st.int||0)}(${fmt(ex.int||0)}/${fmt(expNeed(st.int||0))})</span> ` +
+        `<span style="color:#5ee0c0">❤️${fmt(st.vit||0)}(${fmt(ex.vit||0)}/${fmt(expNeed(st.vit||0))})</span>`;
+    }else{
+      hstatRow.hidden = true;
+    }
+  }
+  const hpayRow = box.querySelector('.hpay-row');
+  if(hpayRow){
+    if(TYPES[n.type].src){
+      hpayRow.hidden = false;
+      const wage = payOf(n);
+      hpayRow.querySelector('.hpayv').innerHTML = wage > 0
+        ? `<span style="color:var(--gold)">💰 -${fmt(wage)}G / 行動（累計 ${fmt(n.paid||0)}G）</span>`
+        : `<span style="color:var(--acc)">💰 無料（主人公はゴールド消費なし）</span>`;
+    }else{
+      hpayRow.hidden = true;
+    }
+  }
+  const pstatRow = box.querySelector('.pstat-row');
+  if(pstatRow){
+    const T = TYPES[n.type] || {};
+    if(T.layer || T.port || T.raid){
+      pstatRow.hidden = true;
+    }else{
+      pstatRow.hidden = false;
+      const pt = powerTypeOf(n);
+      const pol = n.pol || 0, pct = Math.round(pol * 100);
+      const isCrit = pol >= POL_EXPLODE_TH;
+      const ptLabel = pt === 'human'     ? `<span style="color:var(--acc)">🌱 人力稼働（汚染発生なし）</span>`
+                    : pt === 'clean'     ? `<span style="color:var(--acc)">🍃 クリーン電力（汚染発生なし）</span>`
+                    : pt === 'passive'   ? `<span style="color:var(--dim)">稼働汚染なし</span>`
+                    : pt === 'dirty_gen' ? `<span style="color:#c895ff">☣ 汚染発生源（非クリーン発電/燃焼）</span>`
+                    :                      `<span style="color:#c895ff">☣ 汚染発生（非クリーン動力で稼働）</span>`;
+      const critLabel = isCrit
+        ? ` ／ <span style="color:var(--bad);font-weight:700">💥 危険域 ${pct}%（施設爆発・破壊の危険！）</span>`
+        : (pct > 0 ? ` ／ 汚染 ${pct}%（効率 ×${(1/(1+pol*POL_SLOW)).toFixed(2)}）` : '');
+      pstatRow.querySelector('.pstatv').innerHTML = ptLabel + critLabel;
+    }
+  }
   const rngRow = box.querySelector('.rng-row');
   if(rngRow){
     const rngK = rngRow.querySelector('.rngk'), rngV = rngRow.querySelector('.rngv');
@@ -6265,7 +6567,7 @@ function renderInspLive(){
   }
   box.querySelectorAll('.dst').forEach(el=>{ el.textContent=destText(el.dataset.i); });
   box.querySelectorAll('.alc').forEach(el=>{ el.textContent=allocText(n, el.dataset.i); });
-  const up=box.querySelector('.up'), up10=box.querySelector('.up10');
+  const up=box.querySelector('button.up'), up10=box.querySelector('button.up10');
   const c=upCost(n), c10=upCostN(n, UP_BULK);
   if(TYPES[n.type].layer){
     up.textContent='—'; up.disabled=true; up10.hidden=true;
@@ -6291,7 +6593,7 @@ const roleOf = t => TYPES[t] ? (TYPES[t].line || t) : t;
 const linkFrom = (a,item,b) => S.links.some(l =>
   N(l.from) && N(l.to) && roleOf(N(l.from).type)===a && roleOf(N(l.to).type)===b && l.item===item);
 
-const linkPowerTo = b => linkFrom('hero','sta',b) || linkFrom('gen','sta',b) || linkFrom('mate','sta',b);
+const linkPowerTo = b => linkFrom('hero','sta',b) || linkFrom('gen','sta',b) || linkFrom('mate','sta',b) || linkFrom('cgen','sta',b);
 
 const TUT = [
   { t:'ようこそ',
@@ -7135,7 +7437,10 @@ function load(){
     S.skills = S.skills || {};
     if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
     clearBoardEls();
-    for(const n of S.nodes){ n.el=null; mkNodeEl(n); }
+    for(const n of S.nodes){
+      if(TYPES[n.type] && TYPES[n.type].src){ statsOf(n); expOf(n); }
+      n.el=null; mkNodeEl(n);
+    }
     for(const l of S.links){
       const pk = Array.isArray(l.packets) ? l.packets : [];
       l.packets=[]; mkLinkEl(l);
@@ -7366,6 +7671,7 @@ function takeBaseSnapshot(){
     CURVE_TAPER: CURVE.taper,
     CURVE_DEPTH: CURVE.depth,
     HUMAN_R,
+    POL_WORK, POL_EXPLODE_TH, POL_EXPLODE_RATE,
     VIT_K, TRAIN_P, EXP_STEP, CAP, PSPEED, PMAX, PMIN, SENDCD,
     BELT_GAP_PX, BELT_CAP_DIV, PRICE_K, UP_K, UP_RATE, MAT_RATE,
     SELL_TAKE, SELL_K, ARMOR_K, LV_STEP, LV_BASE, MAT_RP,
@@ -7382,7 +7688,9 @@ function takeBaseSnapshot(){
       reqStr:T.reqStr||0, reqInt:T.reqInt||0, reqVit:T.reqVit||0,
       treeX:T.treeX||0, treeY:T.treeY||0,
       ins:T.ins||{}, outs:T.outs||{},
-      src:!!T.src, gen:!!T.gen, effect:T.effect||null, chain:T.chain||null, stat:T.stat||null,
+      src:!!T.src, gen:!!T.gen, cleanEnergy:!!T.cleanEnergy, pay:T.pay||0,
+      baseStats:T.baseStats ? {...T.baseStats} : null,
+      effect:T.effect||null, chain:T.chain||null, stat:T.stat||null,
       power:T.power||0, slots:T.slots||0, store:!!T.store, ware:!!T.ware,
       tool:!!T.tool, take:T.take||0, sta:T.sta||0, mul:T.mul||0,
       aura:T.aura ? {...T.aura} : null
@@ -7451,6 +7759,9 @@ function applyDevCfg(){
   if(c.CURVE_DEPTH != null) CURVE.depth = Math.max(10, +c.CURVE_DEPTH);
   applyCurve();
   if(c.HUMAN_R != null) HUMAN_R = Math.max(80, +c.HUMAN_R);
+  if(c.POL_WORK != null) POL_WORK = Math.max(0, +c.POL_WORK);
+  if(c.POL_EXPLODE_TH != null) POL_EXPLODE_TH = Math.max(0.1, Math.min(1, +c.POL_EXPLODE_TH));
+  if(c.POL_EXPLODE_RATE != null) POL_EXPLODE_RATE = Math.max(0, +c.POL_EXPLODE_RATE);
   if(c.VIT_K != null) VIT_K = +c.VIT_K;
   if(c.TRAIN_P != null) TRAIN_P = +c.TRAIN_P;
   if(c.EXP_STEP != null) EXP_STEP = Math.max(1, +c.EXP_STEP);
@@ -7542,7 +7853,8 @@ function recordTypeOverride(k){
   const T = TYPES[k]; if(!T) return;
   const fields = ['n','i','d','era','line','cost','up','time','cap','unique','start','req',
                   'rp','mat','gold','reqFloor','reqStr','reqInt','reqVit','treeX','treeY',
-                  'ins','outs','src','gen','effect','chain','stat','power','slots','store','ware',
+                  'ins','outs','src','gen','cleanEnergy','pay','baseStats',
+                  'effect','chain','stat','power','slots','store','ware',
                   'tool','take','sta','mul','aura'];
   const o = {};
   for(const f of fields) o[f] = JSON.parse(JSON.stringify(T[f] !== undefined ? T[f] : null));
@@ -7810,6 +8122,7 @@ function renderDtTree(body){
 /* --- Tab 2: 施設の作成・機能編集 --- */
 function facModeOf(T){
   if(T.src) return 'src';
+  if(T.gen && T.cleanEnergy) return 'cgen';
   if(T.gen) return 'gen';
   if(T.effect === 'dive') return 'dive';
   if(T.effect === 'lab')  return 'lab';
@@ -7822,9 +8135,14 @@ function facModeOf(T){
   return 'recipe';
 }
 function applyFacMode(T, mode){
-  delete T.src; delete T.gen; delete T.effect; delete T.chain; delete T.stat;
+  delete T.src; delete T.gen; delete T.cleanEnergy; delete T.effect; delete T.chain; delete T.stat;
   delete T.store; delete T.ware; delete T.tool; delete T.aura;
-  if(mode === 'src'){ T.src = true; T.outs = Object.keys(T.outs||{}).length ? T.outs : {sta:1}; }
+  if(mode === 'src'){
+    T.src = true;
+    T.outs = Object.keys(T.outs||{}).length ? T.outs : {sta:1};
+    T.baseStats = T.baseStats || {str:1, int:1, vit:1};
+  }
+  else if(mode === 'cgen'){ T.gen = true; T.cleanEnergy = true; T.outs = Object.keys(T.outs||{}).length ? T.outs : {sta:5}; }
   else if(mode === 'gen'){ T.gen = true; T.outs = Object.keys(T.outs||{}).length ? T.outs : {sta:1}; }
   else if(mode === 'dive'){ T.effect = 'dive'; T.power = T.power || 1; }
   else if(mode === 'lab'){ T.effect = 'lab'; T.power = T.power || 2; }
@@ -7913,8 +8231,9 @@ function renderDtFac(body){
           <label>施設の機能タイプ (役割・動作ロジック)</label>
           <select id="dtFmode">
             <option value="recipe" ${curMode==='recipe'?'selected':''}>通常レシピ生産（指定した入力 → 出力）</option>
-            <option value="src" ${curMode==='src'?'selected':''}>エネルギー供給：主人公/仲間 (src)</option>
-            <option value="gen" ${curMode==='gen'?'selected':''}>発電機・動力源 (gen)</option>
+            <option value="src" ${curMode==='src'?'selected':''}>🧍 人タイプ：主人公/仲間 (src・ステータス＆行動費)</option>
+            <option value="cgen" ${curMode==='cgen'?'selected':''}>🍃 クリーン発電機（汚染発生なし・cgen）</option>
+            <option value="gen" ${curMode==='gen'?'selected':''}>🔌 通常発電機・動力源（稼働汚染あり・gen）</option>
             <option value="dive" ${curMode==='dive'?'selected':''}>ダンジョン探索・攻撃 (effect=dive)</option>
             <option value="lab" ${curMode==='lab'?'selected':''}>研究室・RP生成 (effect=lab)</option>
             <option value="stat:str" ${curMode==='stat:str'?'selected':''}>訓練：💪筋力経験値 (stat=str)</option>
@@ -7939,6 +8258,13 @@ function renderDtFac(body){
           <label style="gap:6px;justify-content:flex-start;margin-top:16px"><input type="checkbox" id="dtFuniq" ${T.unique?'checked':''}> 盤面に1台だけ設置可能 (unique)</label>
         </div>
       </div>
+      ${T.src ? `<div class="dt-sec">🧍 人タイプ設定（初期ステータス＆1回行動あたり消費ゴールド）</div>
+      <div class="dt-grid">
+        <div class="dt-field"><label>💰 基準行動費G (pay・主人公は0固定)</label><input type="number" min="0" id="dtFpay" value="${dtSelFac==='hero'?0:(T.pay!=null?T.pay:5)}" ${dtSelFac==='hero'?'disabled':''}></div>
+        <div class="dt-field"><label>💪 初期筋力 (baseStats.str)</label><input type="number" min="0" id="dtFBstr" value="${(T.baseStats&&T.baseStats.str)||0}"></div>
+        <div class="dt-field"><label>🧠 初期知力 (baseStats.int)</label><input type="number" min="0" id="dtFBint" value="${(T.baseStats&&T.baseStats.int)||0}"></div>
+        <div class="dt-field"><label>❤️ 初期体力 (baseStats.vit)</label><input type="number" min="0" id="dtFBvit" value="${(T.baseStats&&T.baseStats.vit)||0}"></div>
+      </div>` : ''}
 
       <div class="dt-split" style="grid-template-columns:1fr 1fr;gap:12px;height:auto">
         <div style="display:flex;flex-direction:column;gap:6px">
@@ -8006,6 +8332,18 @@ function renderDtFac(body){
     T.d    = body.querySelector('#dtFd').value || '';
     T.unique = body.querySelector('#dtFuniq').checked;
     applyFacMode(T, body.querySelector('#dtFmode').value);
+    if(T.src){
+      if(dtSelFac !== 'hero' && body.querySelector('#dtFpay')){
+        T.pay = Math.max(1, +body.querySelector('#dtFpay').value || 5);
+      }
+      if(body.querySelector('#dtFBstr')){
+        T.baseStats = {
+          str: Math.max(0, +body.querySelector('#dtFBstr').value || 0),
+          int: Math.max(0, +body.querySelector('#dtFBint').value || 0),
+          vit: Math.max(0, +body.querySelector('#dtFBvit').value || 0),
+        };
+      }
+    }
     const pv = +body.querySelector('#dtFpower').value || 1;
     if(T.store && !T.ware) T.slots = Math.max(1, Math.round(pv));
     else if(T.chain === 'sell') T.slots = Math.max(1, Math.round(pv));
@@ -8015,7 +8353,7 @@ function renderDtFac(body){
     saveDevCfg();
     renderDtFac(body);
   };
-  ['#dtFn','#dtFi','#dtFera','#dtFline','#dtFcost','#dtFup','#dtFtime','#dtFcap','#dtFd','#dtFmode','#dtFpower','#dtFuniq'].forEach(sel => {
+  ['#dtFn','#dtFi','#dtFera','#dtFline','#dtFcost','#dtFup','#dtFtime','#dtFcap','#dtFd','#dtFmode','#dtFpower','#dtFuniq','#dtFpay','#dtFBstr','#dtFBint','#dtFBvit'].forEach(sel => {
     const el = body.querySelector(sel);
     if(el) el.onchange = saveFacProps;
   });
@@ -8203,28 +8541,31 @@ function renderDtUi(body){
 /* --- Tab 4: 定数・数値バランス＆サンドボックス --- */
 function renderDtConst(body){
   const cFields = [
-    { k:'HUMAN_R',      n:'🧍人の行動範囲（⚡供給距離 px）',  step:10,   v:HUMAN_R },
-    { k:'CURVE_INDEX',  n:'⚡消費の軽さ指標 (CURVE.index)',   step:5,    v:CURVE.index },
-    { k:'CURVE_TAPER',  n:'訓練の重さ指標 (CURVE.taper)',     step:5,    v:CURVE.taper },
-    { k:'CURVE_DEPTH',  n:'敵HPの緩やかさ指標 (CURVE.depth)', step:10,   v:CURVE.depth },
-    { k:'VIT_K',        n:'❤️体力1あたりの⚡回復倍率 (VIT_K)',step:0.005,v:VIT_K },
-    { k:'TRAIN_P',      n:'訓練曲線の肩指数 (TRAIN_P)',       step:0.05, v:TRAIN_P },
-    { k:'EXP_STEP',     n:'必要経験値の増加幅 (EXP_STEP)',    step:1,    v:EXP_STEP },
-    { k:'PRICE_K',      n:'同種施設の建設費倍率 (PRICE_K)',   step:0.02, v:PRICE_K },
-    { k:'UP_K',         n:'Lv強化コスト倍率 (UP_K)',          step:0.02, v:UP_K },
-    { k:'UP_RATE',      n:'強化基準費の割合 (UP_RATE)',       step:0.005,v:UP_RATE },
-    { k:'MAT_RATE',     n:'建設時の地金要求率 (MAT_RATE)',    step:0.02, v:MAT_RATE },
-    { k:'PSPEED',       n:'ベルト流速 px/秒 (PSPEED)',        step:4,    v:PSPEED },
-    { k:'PMAX',         n:'ベルト最大所要秒 (PMAX)',          step:0.2,  v:PMAX },
-    { k:'PMIN',         n:'ベルト最小所要秒 (PMIN)',          step:0.1,  v:PMIN },
-    { k:'SENDCD',       n:'送り出し間隔秒 (SENDCD)',          step:0.02, v:SENDCD },
-    { k:'BELT_GAP_PX',  n:'ベルト上の最小間隔px',             step:2,    v:BELT_GAP_PX },
-    { k:'CAP',          n:'施設の基本バッファ容量 (CAP)',     step:1,    v:CAP },
-    { k:'ARMOR_K',      n:'敵の装甲減衰係数 (ARMOR_K)',       step:1,    v:ARMOR_K },
-    { k:'ERA_SPD',      n:'世代ごとの作業時間倍率 (ERA_SPD)', step:0.02, v:ERA_SPD },
-    { k:'ERA_EFF',      n:'世代ごとの⚡消費倍率 (ERA_EFF)',    step:0.02, v:ERA_EFF },
-    { k:'ERA_COST',     n:'世代ごとの建設費倍率 (ERA_COST)',  step:1,    v:ERA_COST },
-    { k:'ERA_UP',       n:'世代ごとの強化費倍率 (ERA_UP)',    step:1,    v:ERA_UP },
+    { k:'HUMAN_R',          n:'🧍人の行動範囲（⚡供給距離 px）',       step:10,   v:HUMAN_R },
+    { k:'POL_WORK',         n:'☣非クリーン稼働時の汚染発生強度',       step:0.05, v:POL_WORK },
+    { k:'POL_EXPLODE_TH',   n:'💥汚染爆発が始まる危険域 (0.8=80%)',    step:0.05, v:POL_EXPLODE_TH },
+    { k:'POL_EXPLODE_RATE', n:'💥危険域での毎秒爆発確率係数',          step:0.005,v:POL_EXPLODE_RATE },
+    { k:'CURVE_INDEX',      n:'⚡消費の軽さ指標 (CURVE.index)',        step:5,    v:CURVE.index },
+    { k:'CURVE_TAPER',      n:'訓練の重さ指標 (CURVE.taper)',          step:5,    v:CURVE.taper },
+    { k:'CURVE_DEPTH',      n:'敵HPの緩やかさ指標 (CURVE.depth)',      step:10,   v:CURVE.depth },
+    { k:'VIT_K',            n:'❤️体力1あたりの⚡回復倍率 (VIT_K)',     step:0.005,v:VIT_K },
+    { k:'TRAIN_P',          n:'訓練曲線の肩指数 (TRAIN_P)',            step:0.05, v:TRAIN_P },
+    { k:'EXP_STEP',         n:'必要経験値の増加幅 (EXP_STEP)',         step:1,    v:EXP_STEP },
+    { k:'PRICE_K',          n:'同種施設の建設費倍率 (PRICE_K)',        step:0.02, v:PRICE_K },
+    { k:'UP_K',             n:'Lv強化コスト倍率 (UP_K)',               step:0.02, v:UP_K },
+    { k:'UP_RATE',          n:'強化基準費の割合 (UP_RATE)',            step:0.005,v:UP_RATE },
+    { k:'MAT_RATE',         n:'建設時の地金要求率 (MAT_RATE)',         step:0.02, v:MAT_RATE },
+    { k:'PSPEED',           n:'ベルト流速 px/秒 (PSPEED)',             step:4,    v:PSPEED },
+    { k:'PMAX',             n:'ベルト最大所要秒 (PMAX)',               step:0.2,  v:PMAX },
+    { k:'PMIN',             n:'ベルト最小所要秒 (PMIN)',               step:0.1,  v:PMIN },
+    { k:'SENDCD',           n:'送り出し間隔秒 (SENDCD)',               step:0.02, v:SENDCD },
+    { k:'BELT_GAP_PX',      n:'ベルト上の最小間隔px',                  step:2,    v:BELT_GAP_PX },
+    { k:'CAP',              n:'施設の基本バッファ容量 (CAP)',          step:1,    v:CAP },
+    { k:'ARMOR_K',          n:'敵の装甲減衰係数 (ARMOR_K)',            step:1,    v:ARMOR_K },
+    { k:'ERA_SPD',          n:'世代ごとの作業時間倍率 (ERA_SPD)',      step:0.02, v:ERA_SPD },
+    { k:'ERA_EFF',          n:'世代ごとの⚡消費倍率 (ERA_EFF)',         step:0.02, v:ERA_EFF },
+    { k:'ERA_COST',         n:'世代ごとの建設費倍率 (ERA_COST)',       step:1,    v:ERA_COST },
+    { k:'ERA_UP',           n:'世代ごとの強化費倍率 (ERA_UP)',         step:1,    v:ERA_UP },
   ];
   const sampleFloors = [1, 5, 10, 20, 50, 100];
 
@@ -8274,11 +8615,18 @@ function renderDtConst(body){
           <button class="dt-btn acc" data-sb="mat10k">+1万 資材</button>
         </div>
       </div>
-      <div class="dt-field"><label>🏠 自宅の初期地金・主人公ステータス</label>
+      <div class="dt-field"><label>🏠 自宅の初期地金・人タイプ能力値</label>
         <div class="dt-row">
           <button class="dt-btn acc" data-sb="ing100">🟫地金 +100</button>
-          <button class="dt-btn acc" data-sb="stat10">全能力 +10</button>
-          <button class="dt-btn acc" data-sb="stat100">全能力 +100</button>
+          <button class="dt-btn acc" data-sb="stat10">選択人/主人公 +10</button>
+          <button class="dt-btn acc" data-sb="stat100">選択人/主人公 +100</button>
+        </div>
+      </div>
+      <div class="dt-field"><label>☣ 汚染・施設爆発テスト（選択中ノードまたは全施設）</label>
+        <div class="dt-row">
+          <button class="dt-btn warn" data-sb="pol90">☣ 選択ノード汚染90%</button>
+          <button class="dt-btn bad"  data-sb="boom">💥 選択ノードを爆発</button>
+          <button class="dt-btn acc"  data-sb="pol0">🌬️ 全ノード浄化(0%)</button>
         </div>
       </div>
       <div class="dt-field"><label>🕳️ ダンジョン階層ジャンプ ＆ 時間経過シミュレート</label>
@@ -8332,6 +8680,7 @@ function renderDtConst(body){
   };
   body.querySelectorAll('[data-sb]').forEach(b => b.onclick = () => {
     const a = b.dataset.sb;
+    const sn = sel ? N(sel) : null;
     if(a === 'g1k') S.gold += 1000;
     else if(a === 'g1m') S.gold += 1e6;
     else if(a === 'g0') S.gold = 0;
@@ -8340,8 +8689,26 @@ function renderDtConst(body){
     else if(a === 'mat100') S.stock = (S.stock||0) + 100;
     else if(a === 'mat10k') S.stock = (S.stock||0) + 10000;
     else if(a === 'ing100') S.home.ing1 = (S.home.ing1||0) + 100;
-    else if(a === 'stat10'){ S.stats.str+=10; S.stats.int+=10; S.stats.vit+=10; }
-    else if(a === 'stat100'){ S.stats.str+=100; S.stats.int+=100; S.stats.vit+=100; }
+    else if(a === 'stat10'){
+      const st = (sn && isHuman(sn)) ? statsOf(sn) : S.stats;
+      st.str+=10; st.int+=10; st.vit+=10;
+    }
+    else if(a === 'stat100'){
+      const st = (sn && isHuman(sn)) ? statsOf(sn) : S.stats;
+      st.str+=100; st.int+=100; st.vit+=100;
+    }
+    else if(a === 'pol90'){
+      const tgt = sn || S.nodes.find(n => n.type !== 'hero' && !TYPES[n.type].layer && !TYPES[n.type].port) || S.nodes[0];
+      if(tgt){ tgt.pol = 0.90; toast(`☣ ${tierOf(tgt).n} の汚染度を 90%（危険域）にしました`); }
+    }
+    else if(a === 'boom'){
+      const tgt = sn || S.nodes.find(n => n.type !== 'hero' && !TYPES[n.type].layer && !TYPES[n.type].port) || S.nodes[0];
+      if(tgt){ tgt.pol = 1.0; explodeNode(tgt, false); }
+    }
+    else if(a === 'pol0'){
+      for(const n of S.nodes){ n.pol = 0; n._critT = 0; }
+      toast('🌬️ 全ノードの汚染を 0% に浄化しました');
+    }
     else if(a === 'sim60'){ for(let i=0;i<60;i++) tick(1, true); }
     else if(a === 'sim600'){ for(let i=0;i<600;i++) tick(1, true); }
     else if(a === 'unlockAll'){
@@ -8352,8 +8719,8 @@ function renderDtConst(body){
       S.era = 1; S.dev = {};
     }
     devDirty(); gearDirty(); skillDirty();
-    buildShop(); renderShop(); renderTree(true); render();
-    toast('サンドボックス操作を反映しました');
+    buildShop(); renderShop(); renderTree(true); renderInsp(); render();
+    if(a !== 'pol90' && a !== 'boom' && a !== 'pol0') toast('サンドボックス操作を反映しました');
   });
 }
 
