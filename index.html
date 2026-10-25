@@ -137,6 +137,22 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
   box-shadow:0 6px 20px rgba(0,0,0,.75);animation:boomtxt 1.35s ease-out forwards}
 @keyframes boomring{0%{transform:scale(0.15);opacity:1}70%{opacity:.85}100%{transform:scale(1.65);opacity:0}}
 @keyframes boomtxt{0%{transform:translate(-50%,-30%) scale(0.7);opacity:0}18%{transform:translate(-50%,-50%) scale(1.08);opacity:1}80%{transform:translate(-50%,-75%) scale(1);opacity:1}100%{transform:translate(-50%,-95%) scale(0.95);opacity:0}}
+.rx-pop{position:absolute;pointer-events:none;z-index:85;transform:translate(-50%,-100%);
+  white-space:nowrap;font-size:11.5px;font-weight:800;color:#fff;
+  background:rgba(12,18,28,.94);border:1.5px solid var(--rx-c,#5ee0c0);border-radius:99px;padding:3px 10px;
+  box-shadow:0 4px 16px rgba(0,0,0,.7),0 0 12px var(--rx-c,#5ee0c0);animation:rxpop 1.55s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes rxpop{0%{transform:translate(-50%,-20%) scale(0.75);opacity:0}15%{transform:translate(-50%,-90%) scale(1.06);opacity:1}78%{transform:translate(-50%,-155%) scale(1);opacity:1}100%{transform:translate(-50%,-190%) scale(0.92);opacity:0}}
+.node.rx-quench{border-color:#45d6ff !important;box-shadow:0 0 0 1.5px rgba(69,214,255,.7),0 0 22px rgba(255,110,60,.45)}
+.node.rx-overload{border-color:#ff9d3b !important;animation:rxover .55s ease-in-out infinite}
+@keyframes rxover{0%,100%{box-shadow:0 0 0 1.5px rgba(255,157,59,.8),0 0 20px rgba(179,107,255,.55)}50%{box-shadow:0 0 0 3px rgba(255,92,56,.95),0 0 30px rgba(255,157,59,.8)}}
+.node.rx-resonance{border-color:#ff4df0 !important;animation:rxres .48s ease-in-out infinite}
+@keyframes rxres{0%,100%{box-shadow:0 0 0 2px rgba(255,77,240,.85),0 0 24px rgba(255,210,80,.6)}50%{box-shadow:0 0 0 4px rgba(255,220,90,.95),0 0 36px rgba(255,77,240,.9)}}
+.node.rx-broken{border-color:#ff4040 !important;filter:saturate(0.55) brightness(0.85)}
+.tag-chip{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;
+  background:color-mix(in srgb, var(--tc,#5ee0c0) 18%, #0b1119);border:1px solid color-mix(in srgb, var(--tc,#5ee0c0) 65%, transparent);color:#fff;margin:1px 2px 1px 0}
+.rx-chip{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;padding:1.5px 7px;border-radius:6px;
+  background:color-mix(in srgb, var(--rc,#ff9d3b) 22%, #0b1119);border:1px solid var(--rc,#ff9d3b);color:#fff;margin:1px 2px 1px 0}
+path.flow.rx-loop{stroke-width:4.2 !important;filter:drop-shadow(0 0 6px #ff4df0)}
 .node .nh, .node .rowio{position:relative}
 .node.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 8px 24px rgba(0,0,0,.5)}
 .node.stall{border-color:#6d3a45}
@@ -979,6 +995,12 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
       </div>
       <div id="board"></div><div id="insp"></div>
       <div id="place"></div>
+      <div id="rxBar" style="position:absolute;top:10px;left:12px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;pointer-events:auto;background:rgba(12,15,22,.88);border:1px solid #2b3550;border-radius:8px;padding:5px 8px;backdrop-filter:blur(4px);align-items:center">
+        <span style="font-size:10.5px;font-weight:700;color:#7aa2ff;margin-right:2px">⚗️ 創発検証:</span>
+        <button class="dt-btn acc" data-rx-quick="A" style="padding:3px 8px;font-size:10.5px">💨 プリセットA: 急冷合金ライン</button>
+        <button class="dt-btn warn" data-rx-quick="B" style="padding:3px 8px;font-size:10.5px">💥 プリセットB: 爆風クラフト実験場</button>
+        <button class="dt-btn bad" data-rx-quick="C" style="padding:3px 8px;font-size:10.5px">🔄 プリセットC: 暴走フィードバックループ</button>
+      </div>
       <div id="toast"></div>
       <button id="offscr"></button>
     </div>
@@ -1302,6 +1324,11 @@ const ITEMS = {
   toxic:{n:'汚染',   i:'🧪', c:'#9ad14a'},
   rad  :{n:'放射性廃棄物', i:'☢️', c:'#d9f24e'},
   rift :{n:'歪み',   i:'🌌', c:'#c07af5'},
+  // 創発リアクション生成物（Reaction Engine）
+  qstl :{n:'強化鋼',       i:'🛡️', c:'#45d6ff'}, // 急冷・焼き入れ（HEAT + CRYO）
+  bdia :{n:'爆風結晶',     i:'💎', c:'#ff66cc'}, // 爆風クラフト（SHOCKWAVE + 圧縮/受動）
+  artf :{n:'レア遺物',     i:'🏺', c:'#ffca4b'}, // 職人触媒（CATALYST_WORKER）
+  tdat :{n:'未知データ',   i:'💾', c:'#7aa2ff'}, // 研究触媒（CATALYST_RESEARCH + 廃棄物）
 };
 /* 副産物と、燃料に戻したときの価値。時代が進むほど厄介なものが増える。
    出るようになる時代と、片付けられるようになる時代は1つずれている。   */
@@ -1391,7 +1418,8 @@ function nextTier(k, cap){
   return to;
 }
 // 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
-const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30, slud:8};
+const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30, slud:8, qstl:18, bdia:250, artf:180, tdat:120};
+const RX_ITEMS = ['qstl','bdia','artf','tdat'];
 /* 宝箱。銅→銀→金 の順に中身が良くなる。落ちる割合もその順に低い */
 const BOXES = [
   {k:'bxc', n:'銅箱', w:100, num:3, gold:6,  eq:0.10, up:0},
@@ -1511,7 +1539,7 @@ function lotList(){ return CHAIN.map((c,i)=>chainOpen(c) ? lotOf(i) : null).filt
 function storeOpts(){
   const mats = CHAIN.filter(chainOpen).flatMap(c=>[c.ore,c.ingot,c.part]);
   return ['wood','coal','power','nfl'].concat(BOXES.map(b=>b.k), lotList(), alyList(), eqpList(),
-    BYP.map(b=>b.k), ['slud'], withDens(mats));
+    BYP.map(b=>b.k), ['slud'], RX_ITEMS, withDens(mats));
 }
 function chainOpts(t){
   const T = TYPES[t], k = T.chain, g = T.era||1;
@@ -1522,11 +1550,11 @@ function chainOpts(t){
   if(k==='open')          return BOXES.map(b=>b.k);
   if(k==='hout'){ const H=homeOf();
     return Object.keys(H).filter(k=>H[k]>0).sort((a,b)=>itemVal(b)-itemVal(a)); }
-  if(k==='comp')          return withDens(mats).concat(compList());
+  if(k==='comp')          return withDens(mats).concat(compList(), RX_ITEMS);
   if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
   if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
   if(k==='decomp'||k==='sell')
-    return withDens(['waste','toxic','rad','rift','slud'].concat(mats))
+    return withDens(['waste','toxic','rad','rift','slud'].concat(mats, RX_ITEMS))
       .concat(lotList(), eqpList(), alyList(), BOXES.map(b=>b.k));
   if(k==='equip')         return CHAIN.filter(chainOpen).map(c=>c.part);
   if(k==='anvil'){ const o=[];           // 鍛える装備。作ったことのある段＋1つ先まで
@@ -1609,9 +1637,9 @@ const TYPES = {
            +'ほどけば元に戻る'},
   raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
           d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
-  purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:3.0, ins:{sta:4}, outs:{},
+  purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:2.2, ins:{sta:4}, outs:{sta:2},
           aura:{k:'clean', v:1.0, r:280},
-          d:'置いた場所のまわりの汚染を抑える。範囲は点線で見える'},
+          d:'置いた場所のまわりの汚染を抑える。❄️冷却気流（CRYO）を帯びた⚡を精錬炉などへ直結すると急冷・焼き入れ反応を起こせる'},
   boost :{n:'作業灯',    i:'💡', cost:2500, up:3000, time:3.0, ins:{sta:5}, outs:{},
           aura:{k:'speed', v:0.5, r:250},
           d:'置いた場所のまわりの施設が速くなる。重ねて置くほど効く'},
@@ -2210,7 +2238,9 @@ function outsOf(n){
     const to = !n.item ? null
       : isEqp(n.item) ? (ensureItem(compKey(n.item, compOf(n.item)+1)), compKey(n.item, compOf(n.item)+1))
       : nextTier(n.item, densCap(T.era));
-    return to ? modOuts(n, {[to]:1}) : {}; }
+    const base = to ? {[to]:1} : {};
+    if((n.outBuf && n.outBuf.bdia > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='bdia'))) base.bdia = 1;
+    return modOuts(n, base); }
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
   if(T.chain==='decomp' || T.chain==='sell' || T.chain==='open' || T.chain==='fund') return {};
@@ -2240,6 +2270,9 @@ function outsOf(n){
                : T.chain==='ingot' ? {[c.ingot]:1, waste:1}
                : T.chain==='part'  ? {[c.part]:1,  waste:2}
                :                     {};
+    if(T.chain==='ingot' && (n._rxQuench || (n.outBuf && n.outBuf.qstl > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='qstl')))){
+      base.qstl = 1;
+    }
     if(hasPerk(T,'clean')) delete base.waste;    // 無廃：廃材を出さない
     // 進んだ時代の施設は、必ず新しい厄介物も出す
     if(T.chain!=='atk') for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
@@ -2258,7 +2291,16 @@ function outsOf(n){
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
     return modOuts(n, o); }
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
-  if(T.tool) return n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
+  if(T.tool){
+    const o = n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
+    if(n._rxCatW || (n.outBuf && n.outBuf.artf > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='artf'))) o.artf = 1;
+    return o;
+  }
+  if(T.matIn){
+    const o = Object.assign({}, T.outs || {});
+    if(n.item || (n.outBuf && n.outBuf.tdat > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='tdat'))) o.tdat = 1;
+    return modOuts(n, o);
+  }
   return modOuts(n, T.outs);
 }
 // 必須ではないが受け取れる入力（主人公の経験値など）。口は作るが、稼働の条件にはしない
@@ -2422,15 +2464,23 @@ function gearMul(t){
 const allIns  = n => Object.assign({}, insOf(n), softIns(n));
 const inKeys  = n => Object.keys(portIns(n));
 const outKeys = n => Object.keys(outsOf(n));
+function rxSpeedMul(n){
+  if(!n) return 1;
+  let m = 1;
+  if(n._rxOverload) m *= 4.0;
+  if((n.resLoop||0) > 0) m *= (1 + Math.min(4.0, n.resLoop * 3.5));
+  return m;
+}
 function craftTime(n){
   const T = TYPES[n.type];
   const sp = modsOf(n).spd;
   const env = (1 + (n.pol||0) * POL_SLOW) / (n.spd || 1);   // 汚染で遅く、ピンで速く
+  const rxm = rxSpeedMul(n);
   // 祝福は主人公・仲間にも効く。⚡を作る側と使う側が同じだけ速くなるので、
   // 工房ぜんたいがそのぶん速くまわる（片方だけだと⚡が足りなくなる）
-  if(T.src) return staRate(n) * sp * env / skillMul('sta') / troMul();
+  if(T.src) return staRate(n) * sp * env / skillMul('sta') / troMul() / rxm;
   const base = n.comb ? combCalc(n).time : T.time;
-  return base / lvPow(n.level) / intBoost() / humanBoostOf(n) * sp * env / skillMul('spd') / troMul();
+  return base / lvPow(n.level) / intBoost() / humanBoostOf(n) * sp * env / skillMul('spd') / troMul() / rxm;
 }
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
@@ -3409,6 +3459,24 @@ function mkPacketEl(p){
     t.textContent = it.i;
     g.append(sh, r, hi, t);
   }
+  if(p.tags && p.tags.length){
+    const pTag = p.tags.includes('RESONANCE') ? 'RESONANCE'
+               : p.tags.includes('HEAT') && p.tags.includes('CRYO') ? 'CRYO'
+               : p.tags.includes('HEAT') ? 'HEAT'
+               : p.tags.includes('CRYO') ? 'CRYO'
+               : p.tags.includes('POLLUTION') ? 'POLLUTION'
+               : p.tags[0];
+    const tc = (REACTION_TAGS[pTag] && REACTION_TAGS[pTag].c) || it.c;
+    const tring = document.createElementNS(SVG,'circle');
+    tring.setAttribute('class','pk-tag-aura');
+    tring.setAttribute('cx','0'); tring.setAttribute('cy','0'); tring.setAttribute('r','14.5');
+    tring.setAttribute('fill','none');
+    tring.setAttribute('stroke', tc);
+    tring.setAttribute('stroke-width','1.8');
+    tring.setAttribute('stroke-dasharray','3 2');
+    tring.setAttribute('opacity','0.88');
+    g.insertBefore(tring, g.firstChild);
+  }
   gwP.appendChild(g); p.el=g; packetCount++;
   if((p.q||1) > 1) updatePacketBadge(p);
 }
@@ -3416,7 +3484,7 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y){
-  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,drop:false};
+  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[]};
   // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく。
   // 売り場だけは既定を「なんでも売る」にする
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
@@ -3450,8 +3518,14 @@ function storeCanTake(n, item){
 }
 function storeAssign(n, item){
   const T = TYPES[n.type];
-  if(T.store) return true;                               // 貯蔵は割り当て不要
   n.items = n.items || [];
+  if(T.store && !T.ware){
+    if(!n.items.includes(item)){
+      for(let i=0;i<(T.slots||1);i++) if(!n.items[i]){ setStoreItem(n, i, item); return true; }
+    }
+    return true;
+  }
+  if(T.store) return true;                               // 倉庫は割り当て不要
   for(let i=0;i<T.slots;i++) if(!n.items[i]){ setStoreItem(n, i, item); return true; }
   return false;
 }
@@ -3459,6 +3533,11 @@ function storeAssign(n, item){
    （石臼に圧縮鉱石を引いたら、その段を圧縮する設定になる、など）        */
 function canAutoSet(b, item){
   const T = TYPES[b.type];
+  if((T.tool || T.matIn) && !POW_ITEM[item] && !STAT_OF[item]){
+    if(b.item === item) return false;
+    if(S.links.some(l => l.to===b.id && !POW_ITEM[l.item])) return false;
+    return true;
+  }
   if(!T.chain || T.store || T.ware || T.chain==='sell') return false;
   if(b.item === item) return false;
   if(S.links.some(l => l.to===b.id && !POW_ITEM[l.item])) return false;   // もう使っている
@@ -3539,7 +3618,8 @@ const POW_ITEM = {sta:1, wood:1, coal:1, power:1, nfl:1};
 /* 売り場に届いているもののうち、いちばん値打ちのあるものを選ぶ */
 function sellPick(n){
   let best=null, bv=-1;
-  for(const k of storeItems(n)){
+  const cand = new Set(storeItems(n).concat(Object.keys(n.inBuf||{}).filter(k=>RX_ITEMS.includes(k))));
+  for(const k of cand){
     if((n.inBuf[k]||0) < SELL_TAKE) continue;
     const v=itemVal(k); if(v>bv){ bv=v; best=k; }
   }
@@ -3564,11 +3644,11 @@ function spaceIn(n,item){
   if(T.lin) return 0;
   if(T.store){                                      // 貯蔵：種類の上限と1種あたりの量で決まる
     const held = n.inBuf[item]||0;
-    if(held <= 0 && wareKinds(n).length >= (T.kinds||8)) return 0;
+    if(held <= 0 && !RX_ITEMS.includes(item) && wareKinds(n).length >= (T.kinds||8)) return 0;
     return Math.max(0, capIn(n,item) - held);
   }
-  if(T.chain==='sell' && !POW_ITEM[item]){          // 売り場：受け入れた種類だけ
-    if(!(n.items||[]).includes(item)) return 0;
+  if(T.chain==='sell' && !POW_ITEM[item]){          // 売り場：受け入れた種類（＋創発変異品）
+    if(!(n.items||[]).includes(item) && !RX_ITEMS.includes(item)) return 0;
     return Math.max(0, CAP*4 - (n.inBuf[item]||0));
   }
   return !allIns(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
@@ -3577,9 +3657,13 @@ function spaceIn(n,item){
 /* ========================= シミュレーション ========================= */
 function tick(dt,fast){
   flowOff = !!fast;
+  updateReactionEngine(dt, fast);
   for(const n of S.nodes){
     const T=TYPES[n.type];
     n.stall=false; n.why=''; n._outOfRange=false; n._farInfo=null;
+    if(n.broken){
+      n.stall=true; n.why='🔥 過負荷で発火・故障！（インスペクタで修理）'; continue;
+    }
     const soft = softIns(n);
     if(Object.keys(soft).length){      // 届いたものをその場で受け取る
       for(const k in soft){
@@ -3596,10 +3680,18 @@ function tick(dt,fast){
             const who = tierOf(n);
             addLog(`${who.i}${who.n} の ${ITEMS[k].i}${statName(st)} が ${stObj[st]} になった`,'u');
           }
-        }else if(T.matIn){              // 研究所：素材 → 研究資材と研究ポイント
+        }else if(T.matIn){              // 研究所：素材 → 研究資材と研究ポイント（廃棄物や触媒時は未知データを抽出）
           const v = itemVal(k)*c;
           S.stock=(S.stock||0)+v*matMul(n);
           const rp = v*matRp(n); n.gain=(n.gain||0)+rp; grantRp(rp, fast);
+          if(POL_ITEM[k] || n._rxCatR){
+            n.outBuf.tdat = (n.outBuf.tdat || 0) + c;
+            homeOf().tdat = (homeOf().tdat || 0) + c;
+            flowIn('tdat', c); nodeFlow(n, 'tdat', c, 'i');
+            const bRp = 18 * c * lvPow(n.level);
+            n.gain = (n.gain||0) + bRp; grantRp(bRp, fast);
+            if(!fast) spawnReactionPop(n, '🧬 研究触媒：💾未知データを抽出！', '#8ea8ff');
+          }
         }
       }
     }
@@ -3609,7 +3701,21 @@ function tick(dt,fast){
     if(T.tool  && !n.item){ n.stall=true; n.why='対象の素材が未設定'; continue; }
     if(T.store){                                 // 貯蔵：しまって、選んだものだけ外へ出す
       n.stall=false; n.why='';
-      for(const k of storeItems(n)){
+      if(n._rxQuench){
+        for(const ik in n.inBuf){
+          if(/^ing\d/.test(baseOf(ik)) && n.inBuf[ik] >= 1){
+            const qm = Math.floor(n.inBuf[ik]);
+            n.inBuf[ik] -= qm;
+            n.inBuf.qstl = (n.inBuf.qstl || 0) + qm;
+            homeOf().qstl = (homeOf().qstl || 0) + qm;
+            storeAssign(n, 'qstl');
+            flowIn('qstl', qm); nodeFlow(n, 'qstl', qm, 'i');
+            if(!fast) spawnReactionPop(n, '💨🔥 焼き入れ成功！ → 🛡️強化鋼', '#45d6ff');
+          }
+        }
+      }
+      const stList = new Set(storeItems(n).concat(Object.keys(n.inBuf||{}).filter(k=>RX_ITEMS.includes(k))));
+      for(const k of stList){
         const room = capOut(n,k) - (n.outBuf[k]||0), have = n.inBuf[k]||0;
         const q = Math.min(room, have);
         if(q > 0){ n.inBuf[k] -= q; n.outBuf[k] = (n.outBuf[k]||0) + q; }
@@ -3674,6 +3780,36 @@ function tick(dt,fast){
       }
       const dbl = hasPerk(T,'twin') && Math.random() < 0.25;   // 複製・覚醒・並列
       if(dbl){ const g2={}; for(const k in give) g2[k]=give[k]*2; give=g2; }
+      // ── 創発リアクション①：急冷・焼き入れ (Thermal Shock / Quench) ──
+      if(n._rxQuench){
+        let quenched = 0;
+        for(const k in give){
+          if(/^ing\d/.test(baseOf(k))){
+            quenched += give[k];
+          }
+        }
+        if(quenched > 0 || give.qstl){
+          const qn = Math.max(1, quenched || give.qstl || 1);
+          give.qstl = qn;
+          homeOf().qstl = (homeOf().qstl || 0) + qn;
+          n._sendQuenchOnIng = (n._sendQuenchOnIng || 0) + qn;
+          if(!fast) spawnReactionPop(n, '💨🔥 焼き入れ成功！ → 🛡️強化鋼', '#45d6ff');
+        }
+      }
+      // ── 創発リアクション④a：職人触媒 (Catalyst Worker) ──
+      if(n._rxCatW && ((n.done % 2 === 0) || Math.random() < 0.45)){
+        give.artf = (give.artf || 0) + 1;
+        homeOf().artf = (homeOf().artf || 0) + 1;
+        n._sendArtfOnOut = (n._sendArtfOnOut || 0) + 1;
+        if(!fast) spawnReactionPop(n, '✨ 職人触媒：🏺レア遺物に変異！', '#f5c249');
+      }
+      // ── 創発リアクション④b：研究触媒 (Catalyst Research on clean/decomp) ──
+      if(n._rxCatR && (T.chain==='clean' || T.chain==='decomp')){
+        give.tdat = (give.tdat || 0) + 1;
+        homeOf().tdat = (homeOf().tdat || 0) + 1;
+        grantRp(20 * lvPow(n.level), fast);
+        if(!fast) spawnReactionPop(n, '🧬 研究触媒：💾未知データを抽出！', '#8ea8ff');
+      }
       for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k]; flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
@@ -3747,13 +3883,23 @@ function tick(dt,fast){
         let sent=false;
         for(const i of order){
           const l=ls[i], dst=N(l.to); if(!dst) continue;
-          const sp=spaceIn(dst,item);
+          let pktItem = item;
+          if((n._sendQuenchOnIng||0) > 0 && /^ing\d/.test(baseOf(item)) && !S.links.some(x=>x.from===n.id&&x.item==='qstl')){
+            pktItem = 'qstl';
+          }else if((n._sendArtfOnOut||0) > 0 && !POW_ITEM[item] && !isByp(item) && !S.links.some(x=>x.from===n.id&&x.item==='artf')){
+            pktItem = 'artf';
+          }
+          const sp=spaceIn(dst, pktItem) || spaceIn(dst, item);
           if(fast || big || isCab){
             if(sp>0){
               const q=Math.min(n.outBuf[item], chunk, sp);
               n.outBuf[item]-=q; st[i]-=wtot;
+              if(pktItem === 'qstl') n._sendQuenchOnIng = Math.max(0, (n._sendQuenchOnIng||0) - q);
+              if(pktItem === 'artf') n._sendArtfOnOut   = Math.max(0, (n._sendArtfOnOut||0) - q);
               n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
-              dst.inBuf[item]=(dst.inBuf[item]||0)+q;
+              const deliv = spaceIn(dst, pktItem) > 0 ? pktItem : item;
+              dst.inBuf[deliv]=(dst.inBuf[deliv]||0)+q;
+              if(l._isLoop) dst.resLoop = (dst.resLoop || 0) + 0.12;
               l._active = 0.35;
               sent=true; break;
             }
@@ -3766,11 +3912,15 @@ function tick(dt,fast){
             if(beltRoom){
               const q=Math.min(n.outBuf[item], chunk, sp>0 ? Math.max(1, sp) : chunk);
               n.outBuf[item]-=q; st[i]-=wtot;
+              if(pktItem === 'qstl') n._sendQuenchOnIng = Math.max(0, (n._sendQuenchOnIng||0) - q);
+              if(pktItem === 'artf') n._sendArtfOnOut   = Math.max(0, (n._sendArtfOnOut||0) - q);
               n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
               if(packetCount>PKT_MAX && sp>0){
-                dst.inBuf[item]=(dst.inBuf[item]||0)+q;
+                const deliv = spaceIn(dst, pktItem) > 0 ? pktItem : item;
+                dst.inBuf[deliv]=(dst.inBuf[deliv]||0)+q;
               }else{
-                const p={item,t:0,q,jam:false}; mkPacketEl(p); l.packets.push(p);
+                const p={item:pktItem, origItem:item, t:0, q, jam:false, tags: l.tags ? [...l.tags] : []};
+                mkPacketEl(p); l.packets.push(p);
               }
               l._active = 0.35;
               sent=true; break;
@@ -3790,10 +3940,11 @@ function tick(dt,fast){
     const G=geomOf(l); if(!G) continue;
     if(fast){
       for(let i=0;i<l.packets.length;i++){
-        const p=l.packets[i], sp=spaceIn(b,p.item);
+        const p=l.packets[i], deliv = spaceIn(b,p.item)>0 ? p.item : (p.origItem||p.item), sp=spaceIn(b,deliv);
         if(sp<=0) break;
         const take=Math.min(p.q||1, sp);
-        b.inBuf[p.item]=(b.inBuf[p.item]||0)+take; p.q=(p.q||1)-take;
+        b.inBuf[deliv]=(b.inBuf[deliv]||0)+take; p.q=(p.q||1)-take;
+        if(l._isLoop) b.resLoop = (b.resLoop || 0) + 0.12;
         if(p.q<=0){ delPacket(l,i); i--; }
       }
       continue;
@@ -3808,11 +3959,16 @@ function tick(dt,fast){
       p.t = Math.min(limit, p.t + dt * spd);
       if(i===0){
         if(p.t >= 0.94){
-          const sp = spaceIn(b, p.item);
+          const deliv = spaceIn(b, p.item) > 0 ? p.item : (p.origItem || p.item);
+          const sp = spaceIn(b, deliv);
           if(sp > 0){
             if(p.t >= 1.0){
               const take = Math.min(p.q||1, sp);
-              b.inBuf[p.item] = (b.inBuf[p.item]||0) + take;
+              b.inBuf[deliv] = (b.inBuf[deliv]||0) + take;
+              if(deliv !== p.item && RX_ITEMS.includes(p.item)){
+                homeOf()[p.item] = (homeOf()[p.item]||0) + take;
+              }
+              if(l._isLoop) b.resLoop = (b.resLoop || 0) + 0.14;
               p.q = (p.q||1) - take;
               if(p.q <= 0){ delPacket(l,0); i--; anyMoved = true; continue; }
               updatePacketBadge(p);
@@ -4371,6 +4527,284 @@ function polSource(n){
   }
   return v;
 }
+/* ========================= 創発リアクションエンジン (Reaction Engine) =========================
+   配線上を流れるリソース・エネルギー・副産物に付与されたタグ（属性）の掛け合わせで
+   状態変化・変異・ブースト・爆風クラフト・共鳴ループ暴走を起こす軽量ルールエンジン */
+const REACTION_TAGS = {
+  HEAT:              { k:'HEAT',              n:'高熱',       i:'🔥', c:'#ff5c38' },
+  CRYO:              { k:'CRYO',              n:'冷却',       i:'❄️', c:'#45d6ff' },
+  POLLUTION:         { k:'POLLUTION',         n:'高圧排気',   i:'☣️', c:'#b36bff' },
+  FLAMMABLE:         { k:'FLAMMABLE',         n:'可燃性',     i:'🪵', c:'#e89c42' },
+  KINETIC:           { k:'KINETIC',           n:'運動筋力',   i:'💪', c:'#5ee0c0' },
+  CATALYST_WORKER:   { k:'CATALYST_WORKER',   n:'職人触媒',   i:'👩‍🔧', c:'#f5c249' },
+  CATALYST_RESEARCH: { k:'CATALYST_RESEARCH', n:'研究触媒',   i:'👩‍🔬', c:'#8ea8ff' },
+  SHOCKWAVE:         { k:'SHOCKWAVE',         n:'爆風衝撃波', i:'💥', c:'#ff3b5c' },
+  RESONANCE:         { k:'RESONANCE',         n:'共鳴ループ', i:'🔄', c:'#ff4df0' },
+};
+const REACTION_INFO = {
+  quench:            { k:'quench',            n:'急冷・焼き入れ', i:'💨🔥', c:'#45d6ff', d:'HEAT×CRYO → 強化鋼(🛡️)に変質' },
+  overload:          { k:'overload',          n:'過負荷ブースト', i:'⚡🔥', c:'#ff9d3b', d:'POLLUTION排気注入 → 出力4倍・耐久摩耗' },
+  blast_synth:       { k:'blast_synth',       n:'爆風クラフト',   i:'💥💎', c:'#ff66cc', d:'SHOCKWAVE吸収 → 爆風結晶(💎)を精製' },
+  catalyst_worker:   { k:'catalyst_worker',   n:'職人触媒変異',   i:'✨🏺', c:'#f5c249', d:'CATALYST_WORKER → 確率でレア遺物(🏺)に変異' },
+  catalyst_research: { k:'catalyst_research', n:'研究触媒抽出',   i:'🧬💾', c:'#8ea8ff', d:'CATALYST_RESEARCH → 廃棄物から未知データ(💾)抽出' },
+  resonance:         { k:'resonance',         n:'共鳴ループ増幅', i:'🔄🚨', c:'#ff4df0', d:'循環配線で出力自己増幅・臨界で暴走爆発' },
+};
+
+function playRxWarnSound(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    const ctx = playRxWarnSound._ctx || (playRxWarnSound._ctx = new AC());
+    if(ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    const now = ctx.currentTime;
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.linearRampToValueAtTime(880, now + 0.14);
+    osc.frequency.linearRampToValueAtTime(440, now + 0.28);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.33);
+  }catch(_){}
+}
+
+function spawnReactionPop(n, text, color){
+  if(!n || typeof world === 'undefined' || !world) return;
+  if((n.layer || null) !== atNow()) return;
+  const now = performance.now();
+  if(n._lastPopAt && now - n._lastPopAt < 450 && n._lastPopTxt === text) return;
+  n._lastPopAt = now; n._lastPopTxt = text;
+  const el = document.createElement('div');
+  el.className = 'rx-pop';
+  el.style.left = (n.x + NW / 2) + 'px';
+  el.style.top  = (n.y + 8) + 'px';
+  if(color) el.style.setProperty('--rx-c', color);
+  el.textContent = text;
+  world.appendChild(el);
+  setTimeout(()=>{ if(el.parentNode) el.remove(); }, 1550);
+}
+
+/* ノードと流すアイテムから、その配線に乗る基本タグ配列を返す */
+function getLinkTags(src, item, dst){
+  if(!src) return [];
+  const T = TYPES[src.type] || {};
+  const role = T.line || src.type;
+  const tags = new Set();
+  if(role === 'smelt' || role === 'alloy' || role === 'anvil' || role === 'coal') tags.add('HEAT');
+  if(role === 'fuel'){ tags.add('HEAT'); tags.add('POLLUTION'); }
+  if(role === 'gen' && !T.cleanEnergy) tags.add('POLLUTION');
+  if(T.cleanEnergy || role === 'cgen' || role === 'purify') tags.add('CRYO');
+  if(src.type === 'hero' || src.type === 'mate1' || role === 'tstr') tags.add('KINETIC');
+  if(src.type === 'mate2' || role === 'tool') tags.add('CATALYST_WORKER');
+  if(src.type === 'mate3' || role === 'lab')  tags.add('CATALYST_RESEARCH');
+  if(item === 'wood' || item === 'coal' || item === 'waste') tags.add('FLAMMABLE');
+  if(POL_ITEM[item]) tags.add('POLLUTION');
+  if(/^ing\d/.test(baseOf(item||'')) && (role === 'smelt' || (src.inTags && src.inTags.HEAT))) tags.add('HEAT');
+  if(item === 'qstl'){ tags.add('HEAT'); tags.add('CRYO'); }
+  if(item === 'bdia') tags.add('SHOCKWAVE');
+  if(item === 'artf') tags.add('CATALYST_WORKER');
+  if(item === 'tdat') tags.add('CATALYST_RESEARCH');
+  // 中継ノードは受け取っているタグも下流へ伝播する
+  if(src.inTags){
+    if(src.inTags.HEAT && (T.store || T.tool || role === 'smelt' || role === 'forge')) tags.add('HEAT');
+    if(src.inTags.CRYO && (T.store || T.tool || role === 'purify')) tags.add('CRYO');
+    if(src.inTags.CATALYST_WORKER && (T.store || T.tool || role === 'forge')) tags.add('CATALYST_WORKER');
+    if(src.inTags.CATALYST_RESEARCH && (T.store || role === 'lab' || role === 'decomp')) tags.add('CATALYST_RESEARCH');
+  }
+  return [...tags];
+}
+
+/* 循環配線（フィードバックループ：直接 A→A または 1〜2中継 A→B→A / A→B→C→A）を検知 */
+let _loopVer = -1;
+function detectResonanceLoops(){
+  if(!S || !S.links) return;
+  for(const n of S.nodes) n._inLoop = false;
+  for(const l of S.links) l._isLoop = false;
+  const adj = new Map();
+  for(const l of S.links){
+    if(isLinkOutOfRange(l)) continue;
+    let a = adj.get(l.from);
+    if(!a) adj.set(l.from, a = []);
+    a.push(l);
+  }
+  for(const l1 of S.links){
+    if(isLinkOutOfRange(l1)) continue;
+    const u = l1.from, v = l1.to;
+    if(u === v){
+      l1._isLoop = true;
+      const nu = N(u); if(nu) nu._inLoop = true;
+      continue;
+    }
+    const outV = adj.get(v) || [];
+    for(const l2 of outV){
+      if(l2.to === u){
+        l1._isLoop = true; l2._isLoop = true;
+        const nu = N(u), nv = N(v);
+        if(nu) nu._inLoop = true;
+        if(nv) nv._inLoop = true;
+      }else{
+        const w = l2.to;
+        const outW = adj.get(w) || [];
+        for(const l3 of outW){
+          if(l3.to === u){
+            l1._isLoop = true; l2._isLoop = true; l3._isLoop = true;
+            const nu = N(u), nv = N(v), nw = N(w);
+            if(nu) nu._inLoop = true;
+            if(nv) nv._inLoop = true;
+            if(nw) nw._inLoop = true;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* 毎コマ/毎秒、各ノードの流入タグ・発火リアクション・過負荷摩耗・共鳴暴走を更新 */
+let _rxPopCd = 0;
+function updateReactionEngine(dt, fast){
+  if(!S || !S.nodes) return;
+  detectResonanceLoops();
+  _rxPopCd = Math.max(0, _rxPopCd - dt);
+  // 1) 各ノード自身の固有タグと冷却オーラ・衝撃波残響を初期化
+  for(const n of S.nodes){
+    const T = TYPES[n.type] || {}, role = T.line || n.type;
+    const inT = {};
+    if(role === 'smelt' || role === 'alloy' || role === 'anvil' || role === 'coal') inT.HEAT = 1;
+    if(role === 'fuel'){ inT.HEAT = 1; inT.POLLUTION = 1; }
+    if(T.cleanEnergy || role === 'cgen' || role === 'purify') inT.CRYO = 1;
+    if(n.type === 'mate2' || role === 'tool') inT.CATALYST_WORKER = 1;
+    if(n.type === 'mate3' || role === 'lab')  inT.CATALYST_RESEARCH = 1;
+    if((n._shockT || 0) > 0){
+      n._shockT = Math.max(0, n._shockT - dt);
+      if(n._shockT > 0) inT.SHOCKWAVE = 1;
+    }
+    // 周囲に稼働中の送風機（purify）があれば CRYO（冷却風）が届く
+    for(const m of S.nodes){
+      if(m === n || (m.layer||0) !== (n.layer||0)) continue;
+      const mT = TYPES[m.type] || {};
+      if(mT.aura && mT.aura.k === 'clean' && !m.stall){
+        const dist = Math.hypot(nodeCx(m) - nodeCx(n), nodeCy(m) - nodeCy(n));
+        if(dist <= (mT.aura.r || 280)) inT.CRYO = (inT.CRYO || 0) + 1;
+      }
+    }
+    n.inTags = inT;
+  }
+  // 2) 配線を伝播するタグを集計（2パスで中継ノードのタグも下流へ届ける）
+  for(let pass = 0; pass < 2; pass++){
+    for(const l of S.links){
+      if(isLinkOutOfRange(l)) { l.tags = []; continue; }
+      const src = N(l.from), dst = N(l.to);
+      if(!src || !dst) { l.tags = []; continue; }
+      const tgs = getLinkTags(src, l.item, dst);
+      if(l._isLoop && !tgs.includes('RESONANCE')) tgs.push('RESONANCE');
+      l.tags = tgs;
+      for(const tg of tgs){
+        dst.inTags[tg] = (dst.inTags[tg] || 0) + 1;
+      }
+    }
+  }
+  // 3) 各ノードでの創発リアクション成立判定と状態変化
+  const toExplode = [];
+  for(const n of S.nodes){
+    const T = TYPES[n.type] || {}, role = T.line || n.type;
+    const inT = n.inTags || {};
+    const rx = [];
+    const wasQuench = !!n._rxQuench, wasCatW = !!n._rxCatW;
+
+    // ① 急冷・焼き入れ (Thermal Shock / Quench): HEAT と CRYO が精錬・金属系・貯蔵で合流
+    const canQuenchRole = (role === 'smelt' || role === 'forge' || role === 'alloy' || T.store || T.tool);
+    n._rxQuench = !!(canQuenchRole && inT.HEAT && inT.CRYO);
+    if(n._rxQuench) rx.push('quench');
+
+    // ② 過負荷ブーストと摩耗 (Overload Boost):
+    // 燃料炉(fuel)からの高圧排気注入、またはクリーン/通常ラインにPOLLUTION排気を合流注入
+    const hasFuelIn = S.links.some(l => l.to === n.id && N(l.from) && (TYPES[N(l.from).type].line === 'fuel' || POL_ITEM[l.item]));
+    const hasDualIn = inT.POLLUTION && inT.CRYO && !T.cleanEnergy && role !== 'purify';
+    n._rxOverload = !!(!T.src && !T.layer && !T.port && !T.raid && role !== 'dump' && role !== 'fuel' && (hasFuelIn || hasDualIn || n._forceOverload));
+    if(n._rxOverload){
+      rx.push('overload');
+      if(!n.broken && !n.stall){
+        n.hpDur = Math.max(0, (n.hpDur != null ? n.hpDur : 100) - 5.0 * dt);
+        if(!fast && _rxPopCd <= 0 && Math.random() < 0.25){
+          spawnReactionPop(n, `⚡🔥 過負荷ブースト ×4.0 (耐久${Math.ceil(n.hpDur)}%)`, '#ff9d3b');
+          _rxPopCd = 0.8;
+        }
+        if(n.hpDur <= 0){
+          n.broken = true;
+          n.pol = Math.min(1, (n.pol || 0) + 0.35);
+          if(!fast){
+            spawnReactionPop(n, '🔥 過負荷発火・故障停止！', '#ff4040');
+            toast(`🔥 ${tierOf(n).i}${tierOf(n).n} が過負荷摩耗で発火・故障しました！`);
+            addLog(`🔥【過負荷故障】${tierOf(n).i}${tierOf(n).n} #${n.no} が高圧排気の過負荷により発火・故障停止した！`, 'd');
+          }
+        }
+      }
+    }else if(!n.broken && (n.hpDur != null && n.hpDur < 100)){
+      n.hpDur = Math.min(100, n.hpDur + 2.0 * dt); // 通常稼働時は少しずつ自然冷却・回復
+    }
+
+    // ③ 爆風クラフト (Blast Synthesis): 爆発の SHOCKWAVE を吸収した直後
+    if(inT.SHOCKWAVE && (role === 'comp' || T.store)){
+      rx.push('blast_synth');
+    }
+
+    // ④ 人材の触媒化 (Catalyst Processing): 職人触媒 / 研究触媒
+    n._rxCatW = !!(!T.src && inT.CATALYST_WORKER && (T.tool || role === 'forge' || role === 'smelt' || T.store || role === 'equip'));
+    if(n._rxCatW) rx.push('catalyst_worker');
+
+    n._rxCatR = !!(!T.src && inT.CATALYST_RESEARCH && (role === 'lab' || role === 'decomp' || role === 'dump' || T.store));
+    if(n._rxCatR) rx.push('catalyst_research');
+
+    // ⑤ フィードバック循環 (Resonance Loop): 循環配線による自己増幅と臨界暴走
+    if(n._inLoop){
+      rx.push('resonance');
+      const activeLoop = !n.stall && (n.crafting || T.store || T.gen || S.links.some(l => (l.from === n.id || l.to === n.id) && l._isLoop && l.packets.length > 0));
+      if(activeLoop){
+        n.resLoop = (n.resLoop || 0) + 0.085 * dt;
+        n.pol = Math.min(1, (n.pol || 0) + 0.04 * dt);
+        if(!fast && _rxPopCd <= 0 && n.resLoop > 0.15){
+          spawnReactionPop(n, `🔄 共鳴ループ増幅 ×${(1 + Math.min(4, n.resLoop * 3.5)).toFixed(1)} (${Math.min(100, Math.round(n.resLoop * 100))}%)`, '#ff4df0');
+          _rxPopCd = 0.75;
+        }
+        if(n.resLoop >= 1.0){
+          n.resLoop = 0;
+          n.pol = 1.0;
+          if(!fast){
+            playRxWarnSound();
+            spawnReactionPop(n, '🚨 臨界暴走！ ループ崩壊爆発！', '#ff3b5c');
+            addLog(`🚨【共鳴ループ暴走】${tierOf(n).i}${tierOf(n).n} #${n.no} がフィードバック循環の臨界を超え暴走爆発した！`, 'd');
+          }
+          toExplode.push(n);
+        }
+      }
+    }else if((n.resLoop || 0) > 0){
+      n.resLoop = Math.max(0, n.resLoop - 0.15 * dt);
+    }
+
+    n.activeReactions = rx;
+    n.outTags = getLinkTags(n, n.item || 'sta', null);
+    if((wasQuench !== n._rxQuench || wasCatW !== n._rxCatW) && n.el){
+      rebuildNodeEl(n);
+    }
+  }
+  for(const v of toExplode){
+    if(N(v.id)) explodeNode(v, fast);
+  }
+}
+
+/* 故障したノードを修理する */
+function repairNode(n){
+  if(!n) return;
+  n.broken = false;
+  n.hpDur = 100;
+  n.stall = false;
+  n.why = '';
+  spawnReactionPop(n, '🔧 修理完了！ 耐久100%', '#5ee0c0');
+  toast(`🔧 ${tierOf(n).i}${tierOf(n).n} を修理しました`);
+  renderInsp(); render();
+}
+
 function spawnExplosionFx(x, y, label){
   if(typeof world === 'undefined' || !world) return;
   const fx = document.createElement('div');
@@ -4390,13 +4824,47 @@ function explodeNode(n, fast){
   if(!fast && (n.layer || null) === atNow()){
     spawnExplosionFx(nodeCx(n), nodeCy(n), `${tr.i}${tr.n}`);
   }
-  // 爆風による周囲への汚染拡散（同じ盤面の近隣ノードの汚染度が跳ね上がる）
-  const bd = n.layer || 0, blastR = POL_R * 1.35;
+  // 怪我の功名：爆風クラフト (Blast Synthesis)
+  // 隣接（または接続）する「圧縮機 (comp*)」または受動貯蔵「木箱 (box*)」が SHOCKWAVE を吸収し、
+  // 汚染拡散被害を肩代わりして「💎爆風結晶 (bdia)」を1個精製する
+  const bd = n.layer || 0, blastR = POL_R * 1.45;
+  const absorbers = [];
+  for(const m of S.nodes){
+    if(m === n || (m.layer||0) !== bd) continue;
+    const mT = TYPES[m.type] || {}, mRole = mT.line || m.type;
+    if(mRole !== 'comp' && !mT.store) continue;
+    const dist = Math.hypot(nodeCx(m)-nodeCx(n), nodeCy(m)-nodeCy(n));
+    const linked = S.links.some(l => (l.from===n.id && l.to===m.id) || (l.from===m.id && l.to===n.id));
+    if(dist < blastR || linked){
+      absorbers.push(m);
+    }
+  }
+  for(const ab of absorbers){
+    ab.inTags = ab.inTags || {};
+    ab.inTags.SHOCKWAVE = 1;
+    ab._shockT = 10.0;
+    ab.activeReactions = ab.activeReactions || [];
+    if(!ab.activeReactions.includes('blast_synth')) ab.activeReactions.push('blast_synth');
+    ab.outBuf.bdia = (ab.outBuf.bdia || 0) + 1;
+    if(TYPES[ab.type].store){
+      ab.inBuf.bdia = (ab.inBuf.bdia || 0) + 1;
+      storeAssign(ab, 'bdia');
+    }
+    homeOf().bdia = (homeOf().bdia || 0) + 1;
+    flowIn('bdia', 1); nodeFlow(ab, 'bdia', 1, 'i');
+    rebuildNodeEl(ab);
+    if(!fast){
+      spawnReactionPop(ab, '💥💎 爆風クラフト！ 爆風結晶を精製！', '#ff66cc');
+      addLog(`💥💎【怪我の功名・爆風クラフト】${tierOf(ab).i}${tierOf(ab).n} #${ab.no} が爆風(SHOCKWAVE)を吸収し、💎爆風結晶×1 を精製した！`, 'b');
+    }
+  }
+  // 爆風による周囲への汚染拡散（爆風クラフトで吸収された場合は拡散ダメージが70%軽減）
+  const splashMul = absorbers.length > 0 ? 0.30 : 1.0;
   for(const m of S.nodes){
     if(m === n || (m.layer||0) !== bd) continue;
     const dist = Math.hypot(nodeCx(m)-nodeCx(n), nodeCy(m)-nodeCy(n));
     if(dist < blastR){
-      m.pol = Math.min(1, (m.pol||0) + 0.28 * (1 - dist/blastR));
+      m.pol = Math.min(1, (m.pol||0) + 0.28 * splashMul * (1 - dist/blastR));
     }
   }
   // 主人公だけはゲーム進行に必須なため消滅せず、昏倒ペナルティを受ける
@@ -5491,8 +5959,10 @@ function render(fdt){
     const bw=(n.crafting?Math.min(100,n.prog/n.need*100):0);
     if(Math.abs((e.lastBar||0)-bw) > 0.7){ e.lastBar=bw; e.bar.style.width=bw+'%'; }
     const pv = Math.round((n.pol||0)*20)/20;          // 5%きざみで書き換える
-    if(slow || e.lastStall !== (n.stall?n.why:'') || e.lastPol !== pv){
+    const rxSig = (n.activeReactions||[]).join(',') + '|' + (n.broken?1:0) + '|' + Math.round((n.hpDur??100)/5) + '|' + Math.round((n.resLoop||0)*20);
+    if(slow || e.lastStall !== (n.stall?n.why:'') || e.lastPol !== pv || e.lastRx !== rxSig){
     e.lastStall = n.stall?n.why:'';
+    e.lastRx = rxSig;
     e.nf.textContent = n.stall
         ? (T.stat && expMiss(n) ? `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（人タイプへ配線）`
            : (T.outs && T.outs.wood && /廃材/.test(n.why||'')
@@ -5567,6 +6037,12 @@ function render(fdt){
     if(!T.src && !T.layer && !T.port && !T.raid && !T.cleanEnergy && !n.stall){
       if(pt === 'human' || pt === 'clean') e.nf.textContent += '　🌱クリーン';
     }
+    if(n._rxQuench) e.nf.textContent += '　💨🔥焼き入れ';
+    if(n._rxOverload) e.nf.textContent += `　⚡過負荷×4.0(耐久${Math.ceil(n.hpDur??100)}%)`;
+    if(n._inLoop) e.nf.textContent += `　🔄共鳴(${Math.min(100,Math.round((n.resLoop||0)*100))}%)`;
+    if(n._rxCatW) e.nf.textContent += '　✨職人触媒';
+    if(n._rxCatR) e.nf.textContent += '　🧬研究触媒';
+    if((n.inTags && n.inTags.SHOCKWAVE) && (T.line==='comp' || T.store)) e.nf.textContent += '　💥💎爆風クラフト';
     if((n.pol||0) >= POL_EXPLODE_TH) e.nf.textContent += `　💥爆発危険(${Math.round(n.pol*100)}%)`;
     else if((n.pol||0) > 0.05) e.nf.textContent += `　☣汚染${Math.round(n.pol*100)}%`;
     else if((n.spd||1) > 1.01) e.nf.textContent += `　⚡加速+${Math.round((n.spd-1)*100)}%`;
@@ -5582,6 +6058,10 @@ function render(fdt){
     }
     setCls(e.root,'pol', (n.pol||0) > 0.05);
     setCls(e.root,'pol-crit', (n.pol||0) >= POL_EXPLODE_TH);
+    setCls(e.root,'rx-quench', !!n._rxQuench);
+    setCls(e.root,'rx-overload', !!n._rxOverload && !n.broken);
+    setCls(e.root,'rx-resonance', !!n._inLoop);
+    setCls(e.root,'rx-broken', !!n.broken);
     setCls(e.root,'drop', !!n.drop);
     setCls(e.root,'comb', !!n.comb);
     // 汚染が届く範囲。溜め込んでいるノードだけ出す
@@ -5630,6 +6110,18 @@ function render(fdt){
     }
     setCls(l.el.wire,'dim',off); setCls(l.el.flow,'dim',off);
     setCls(l.el.wire,'far',isFar); setCls(l.el.flow,'far',isFar);
+    setCls(l.el.flow,'rx-loop', !!l._isLoop);
+    if(l.el.flow){
+      const ltags = l.tags || [];
+      const tagCol = l._isLoop ? '#ff4df0'
+                   : ltags.includes('CRYO') ? '#45d6ff'
+                   : ltags.includes('HEAT') ? '#ff5c38'
+                   : ltags.includes('POLLUTION') ? '#b36bff'
+                   : ltags.includes('CATALYST_WORKER') ? '#f0b840'
+                   : ltags.includes('CATALYST_RESEARCH') ? '#7aa2ff'
+                   : '';
+      l.el.flow.style.stroke = tagCol;
+    }
     if(l.el.farTag){
       if(isFar){
         l.el.farTag.style.display = '';
@@ -6206,6 +6698,9 @@ function renderInsp(){
     `<div class="kv hstat-row" hidden><span class="hstatk">能力値</span><b class="hstatv"></b></div>` +
     `<div class="kv hpay-row" hidden><span class="hpayk">行動コスト</span><b class="hpayv"></b></div>` +
     `<div class="kv pstat-row" hidden><span class="pstatk">動力・汚染</span><b class="pstatv"></b></div>` +
+    `<div class="kv rxtag-row" hidden><span class="rxtagk">🧪 流入・保有タグ</span><b class="rxtagv"></b></div>` +
+    `<div class="kv rxst-row" hidden><span class="rxstk">⚡ 特殊リアクション</span><b class="rxstv"></b></div>` +
+    `<div class="kv rxdur-row" hidden><span class="rxdurk">🔧 施設耐久度</span><b class="rxdurv"></b></div>` +
     `<div class="kv rng-row" hidden><span class="rngk">行動範囲</span><b class="rngv"></b></div>` +
     `<div class="kv">状態<b class="st2"></b></div>`;
 
@@ -6242,7 +6737,8 @@ function renderInsp(){
   if(T.matIn){
     const ml=box.querySelector('.mat');
     ml.innerHTML=`<option value="">— 受け取らない —</option>`+
-      CHAIN.map(c=>`<option value="${c.part}">${ITEMS[c.part].i} ${ITEMS[c.part].n}</option>`).join('');
+      CHAIN.map(c=>`<option value="${c.part}">${ITEMS[c.part].i} ${ITEMS[c.part].n}</option>`).join('')+
+      BYP.concat(['slud']).filter(k=>ITEMS[k]).map(k=>`<option value="${k}">${ITEMS[k].i} ${ITEMS[k].n}（触媒分解）</option>`).join('');
     ml.value=n.item||'';
     ml.onchange=()=>{ setChainItem(n, ml.value||null); renderInsp(); };
   }
@@ -6503,6 +6999,56 @@ function renderInspLive(){
         ? ` ／ <span style="color:var(--bad);font-weight:700">💥 危険域 ${pct}%（施設爆発・破壊の危険！）</span>`
         : (pct > 0 ? ` ／ 汚染 ${pct}%（効率 ×${(1/(1+pol*POL_SLOW)).toFixed(2)}）` : '');
       pstatRow.querySelector('.pstatv').innerHTML = ptLabel + critLabel;
+    }
+  }
+  const rxtagRow = box.querySelector('.rxtag-row');
+  if(rxtagRow){
+    const tags = Object.keys(n.inTags || {}).filter(t => REACTION_TAGS[t]);
+    if(tags.length){
+      rxtagRow.hidden = false;
+      rxtagRow.querySelector('.rxtagv').innerHTML = tags.map(t => {
+        const tg = REACTION_TAGS[t];
+        return `<span class="tag-chip" style="color:${tg.c};border-color:${tg.c}" title="${tg.d}">${tg.i}${tg.n}</span>`;
+      }).join('');
+    }else{
+      rxtagRow.hidden = true;
+    }
+  }
+  const rxstRow = box.querySelector('.rxst-row');
+  if(rxstRow){
+    const rxs = (n.activeReactions || []).filter(r => REACTION_INFO[r]);
+    const hasTags = Object.keys(n.inTags || {}).length > 0;
+    if(rxs.length || hasTags || n.broken){
+      rxstRow.hidden = false;
+      if(n.broken){
+        rxstRow.querySelector('.rxstv').innerHTML = `<span class="rx-chip" style="color:var(--bad);border-color:var(--bad)">🔧🔥 過負荷故障（稼働停止中）</span>`;
+      }else if(rxs.length){
+        rxstRow.querySelector('.rxstv').innerHTML = rxs.map(r => {
+          const ri = REACTION_INFO[r];
+          const extra = r === 'resonance' ? ` (${Math.round((n.resLoop||0)*100)}%)` : '';
+          return `<span class="rx-chip" style="color:${ri.c};border-color:${ri.c}" title="${ri.d}">${ri.i}${ri.n}${extra}</span>`;
+        }).join('');
+      }else{
+        rxstRow.querySelector('.rxstv').innerHTML = `<span style="color:var(--dim);font-weight:400">待機中（タグ条件未成立）</span>`;
+      }
+    }else{
+      rxstRow.hidden = true;
+    }
+  }
+  const rxdurRow = box.querySelector('.rxdur-row');
+  if(rxdurRow){
+    const dur = n.hpDur != null ? n.hpDur : 100;
+    if(n._rxOverload || n.broken || dur < 99.9){
+      rxdurRow.hidden = false;
+      const dPct = Math.max(0, Math.ceil(dur));
+      const dCol = n.broken || dPct <= 25 ? 'var(--bad)' : dPct <= 60 ? 'var(--warn)' : 'var(--acc)';
+      rxdurRow.querySelector('.rxdurv').innerHTML =
+        `<span style="color:${dCol}">${dPct}%${n.broken?'（故障停止）':n._rxOverload?'（摩耗進行中）':''}</span>` +
+        (n.broken || dPct < 100 ? ` <button class="dt-btn acc rx-repair-btn" style="padding:2px 7px;font-size:10px;margin-left:6px">🔧 修理する</button>` : '');
+      const rBtn = rxdurRow.querySelector('.rx-repair-btn');
+      if(rBtn) rBtn.onclick = () => repairNode(n);
+    }else{
+      rxdurRow.hidden = true;
     }
   }
   const rngRow = box.querySelector('.rng-row');
@@ -7051,7 +7597,8 @@ function finishLink(a, item, b){
     }
     else if(storeCanTake(b,item)) storeAssign(b, item);
     else if(canAutoSet(b,item)){
-      setChainItem(b, item);
+      if(TYPES[b.type].tool) setToolItem(b, item);
+      else setChainItem(b, item);
       toast(`${TYPES[b.type].n}を ${ITEMS[item].n} に合わせました`);
     }
     if(!S.links.some(l=>l.from===a.id && l.to===b.id && l.item===item)) addLink(a.id,item,b.id);
@@ -7538,6 +8085,9 @@ $('#mLoad').onclick=()=>{
   }catch(e){ msg.textContent='コードが正しくありません（'+e.message+'）'; }
 };
 $('#bSave').onclick=()=>toast(save()?'保存しました':'保存できませんでした');
+document.querySelectorAll('[data-rx-quick]').forEach(b => {
+  b.onclick = () => loadReactionPreset(b.dataset.rxQuick);
+});
 /* リセット。confirm も reload も端末によっては効かないので、
    ボタン自身を2段階にして、その場で作り直す */
 let resetting=false, resetArm=0, resetT=null;
@@ -8600,6 +9150,13 @@ function renderDtConst(body){
     </div>
     <div class="dt-pane side">
       <div class="dt-sec">🧪 テスト用サンドボックス操作（即時反映）</div>
+      <div class="dt-field"><label>⚗️ 創発リアクション（Reaction Engine）検証プリセット（ワンクリック配置）</label>
+        <div class="dt-row" style="flex-direction:column;align-items:stretch;gap:6px">
+          <button class="dt-btn acc" data-rx-preset="A" style="text-align:left;padding:7px 10px">💨🔥 [プリセットA: 急冷合金ライン]（HEAT精錬炉 ＋ CRYO冷却 ＋ 職人・研究触媒）</button>
+          <button class="dt-btn warn" data-rx-preset="B" style="text-align:left;padding:7px 10px">💥💎 [プリセットB: 爆風クラフト実験場]（臨界爆発SHOCKWAVE ➔ 隣接圧縮機で💎爆風結晶生成）</button>
+          <button class="dt-btn bad" data-rx-preset="C" style="text-align:left;padding:7px 10px">🔄⚡ [プリセットC: 暴走フィードバックループ]（循環配線共鳴増幅 ＋ ☣排気過負荷ブースト）</button>
+        </div>
+      </div>
       <div class="dt-field"><label>💰 ゴールド操作</label>
         <div class="dt-row">
           <button class="dt-btn acc" data-sb="g1k">+1,000 G</button>
@@ -8722,6 +9279,127 @@ function renderDtConst(body){
     buildShop(); renderShop(); renderTree(true); renderInsp(); render();
     if(a !== 'pol90' && a !== 'boom' && a !== 'pol0') toast('サンドボックス操作を反映しました');
   });
+  body.querySelectorAll('[data-rx-preset]').forEach(b => b.onclick = () => {
+    loadReactionPreset(b.dataset.rxPreset);
+  });
+}
+
+/* 創発リアクション検証用プリセット（A / B / C）をワンクリックで盤面に構築 */
+function loadReactionPreset(kind){
+  for(const l of [...S.links]) removeLink(l.id);
+  for(const n of [...S.nodes]) removeNode(n.id);
+  document.querySelectorAll('.rx-pop, .boom-fx').forEach(el => el.remove());
+  S.counts = {};
+  S.at = null;
+  S.tut = 999;
+  S.gold = Math.max(S.gold || 0, 50000);
+  S.rp   = Math.max(S.rp   || 0, 5000);
+  for(const k of ORDER) if(TYPES[k] && !TYPES[k].port && !TYPES[k].layer) S.dev[k] = 1;
+  devDirty();
+
+  const spawn = (type, x, y, cfg={}) => {
+    const n = addNode(type, x, y);
+    S.counts[type] = (S.counts[type]||0) + 1;
+    if(cfg.item !== undefined) setChainItem(n, cfg.item);
+    if(cfg.toolItem !== undefined) setToolItem(n, cfg.toolItem);
+    if(cfg.items){
+      n.items = [...cfg.items];
+      rebuildNodeEl(n);
+    }
+    if(cfg.inBuf) Object.assign(n.inBuf, cfg.inBuf);
+    if(cfg.outBuf) Object.assign(n.outBuf, cfg.outBuf);
+    if(cfg.pol !== undefined) n.pol = cfg.pol;
+    if(cfg.critT !== undefined) n._critT = cfg.critT;
+    if(cfg.resLoop !== undefined) n.resLoop = cfg.resLoop;
+    if(cfg.hpDur !== undefined) n.hpDur = cfg.hpDur;
+    return n;
+  };
+
+  if(kind === 'A'){
+    // [プリセットA: 急冷合金ライン] + 職人・研究者の触媒化も同時検証可能
+    const hero   = spawn('hero',    60,  80, { outBuf:{sta:15} });
+    const cgen   = spawn('cgen1',   60, 240, { outBuf:{sta:15} });
+    const purify = spawn('purify1', 60, 390, { inBuf:{sta:10}, outBuf:{sta:10} });
+    const mine   = spawn('mine1',  310,  80, { item:'ore1', inBuf:{sta:10}, outBuf:{ore1:12, waste:8} });
+    const smelt  = spawn('smelt1', 560, 170, { item:'ing1', inBuf:{sta:12, ore1:14}, outBuf:{ing1:4, qstl:2, waste:4} });
+    const mate2  = spawn('mate2',  560, 360, { outBuf:{sta:12} });
+    const tool   = spawn('tool1',  820, 310, { toolItem:'qstl', inBuf:{sta:10, qstl:6} });
+    const box    = spawn('box1',   820, 110, { items:['qstl','artf','ing1'] });
+    const lab    = spawn('lab1',   560,  20, { item:'waste', inBuf:{sta:10, waste:8} });
+    const shop   = spawn('shop1', 1070, 200, { items:['qstl','artf','tdat'], inBuf:{sta:12} });
+
+    addLink(hero.id,   'sta',   mine.id);
+    addLink(cgen.id,   'sta',   smelt.id);   // ❄️CRYOタグ注入①（クリーン電力）
+    addLink(cgen.id,   'sta',   purify.id);
+    addLink(purify.id, 'sta',   smelt.id);   // ❄️CRYOタグ注入②（送風機冷却ライン）
+    addLink(mine.id,   'ore1',  smelt.id);
+    addLink(mine.id,   'waste', lab.id);     // 🗑️廃材 → 🔬研究室（研究触媒で💾未知データ生成）
+    addLink(hero.id,   'sta',   lab.id);
+    addLink(smelt.id,  'ing1',  box.id);     // 🔥+❄️急冷で🛡️強化鋼に変異して流れる
+    addLink(smelt.id,  'qstl',  tool.id);    // 🛡️強化鋼 → 🪵道具棚（👩‍🔧職人触媒で🏺レア遺物変異）
+    addLink(mate2.id,  'sta',   tool.id);    // 👩‍🔧職人触媒タグ注入
+    addLink(tool.id,   'qstl',  shop.id);
+    addLink(tool.id,   'artf',  shop.id);
+    addLink(lab.id,    'tdat',  shop.id);
+    addLink(cgen.id,   'sta',   shop.id);
+
+    sel = smelt.id;
+    addLog('🧪 [プリセットA: 急冷合金ライン] を配置しました！ 🔥精錬炉(HEAT)＋🍃風力/🌬️送風機(CRYO)で「🛡️強化鋼」に変異します','u');
+    toast('💨🔥 プリセットA: 急冷合金ライン を配置しました');
+  }
+  else if(kind === 'B'){
+    // [プリセットB: 爆風クラフト実験場]
+    const hero  = spawn('hero',  830, 320, { outBuf:{sta:12} });
+    const gen   = spawn('gen1',  120, 180, { outBuf:{sta:20} });
+    // 汚染96%・危険域滞在18秒で配置 → 約1秒以内に自然爆発、またはインスペクタ/DevToolから即爆発可能
+    const mine  = spawn('mine1', 390, 160, { item:'ore1', inBuf:{sta:12}, outBuf:{ore1:10, waste:6}, pol:0.96, critT:18 });
+    const comp  = spawn('comp1', 390, 330, { item:'ore1', inBuf:{sta:12, ore1:10} });
+    const box   = spawn('box1',  660, 160, { items:['bdia','ore1','ing1'] });
+    const shop  = spawn('shop1', 930, 180, { items:['bdia','ore1','ing1'], inBuf:{sta:12} });
+
+    addLink(gen.id,  'sta',  mine.id);
+    addLink(gen.id,  'sta',  comp.id);
+    addLink(hero.id, 'sta',  shop.id);
+    addLink(mine.id, 'ore1', comp.id);
+    addLink(mine.id, 'ore1', box.id);
+    addLink(comp.id, 'bdia', shop.id);
+    addLink(box.id,  'bdia', shop.id);
+
+    sel = comp.id;
+    addLog('🧪 [プリセットB: 爆風クラフト実験場] を配置しました！ 危険域の⛏️採掘機が爆発すると、隣接する🗜️圧縮機と📦木箱が💥衝撃波を吸収して「💎爆風結晶」を精製します','w');
+    toast('💥💎 プリセットB: 爆風クラフト実験場 を配置しました');
+  }
+  else if(kind === 'C'){
+    // [プリセットC: 暴走フィードバックループ] + 過負荷ブースト(Overload)
+    const hero  = spawn('hero',  310, 350, { outBuf:{sta:15} });
+    const fuel  = spawn('fuel1', 310, 160, { item:'waste', inBuf:{waste:24}, outBuf:{sta:24} });
+    const mine  = spawn('mine1', 580, 160, { item:'ore1', inBuf:{sta:16}, outBuf:{ore1:6, waste:20}, resLoop:0.45, hpDur:78 });
+    const box1  = spawn('box1',  850, 160, { items:['ore1','waste'] });
+    const tool  = spawn('tool1', 580, 350, { toolItem:'ore1', inBuf:{sta:16, ore1:14}, outBuf:{ore1:14}, resLoop:0.55 });
+    const box2  = spawn('box1',  850, 350, { items:['ore1'], inBuf:{ore1:14}, outBuf:{ore1:14}, resLoop:0.55 });
+
+    // ループ①: 🔥焼却発電(POLLUTION高圧排気) ⇄ ⛏️採掘機(廃材) の循環＆過負荷注入
+    addLink(fuel.id, 'sta',   mine.id);
+    addLink(mine.id, 'waste', fuel.id);
+    addLink(mine.id, 'ore1',  box1.id);
+    // ループ②: 🪵道具棚 ⇄ 📦木箱 の高速共鳴フィードバックループ
+    addLink(fuel.id, 'sta',   tool.id);
+    addLink(hero.id, 'sta',   tool.id);
+    addLink(tool.id, 'ore1',  box2.id);
+    addLink(box2.id, 'ore1',  tool.id);
+
+    sel = mine.id;
+    addLog('🧪 [プリセットC: 暴走フィードバックループ] を配置しました！ 循環配線による🔄共鳴増幅と、🔥焼却発電の高圧排気(POLLUTION)による⚡過負荷ブースト(×4.0)・耐久摩耗が発生します','w');
+    toast('🔄⚡ プリセットC: 暴走フィードバックループ を配置しました');
+  }
+
+  if($('#devTool')) $('#devTool').classList.remove('on');
+  updateReactionEngine(0.2);
+  renderBoard();
+  fitView(1.0);
+  renderShop();
+  renderInsp();
+  render(0.016);
 }
 
 /* --- Tab 5: 設定の保存・JSON出力 --- */
