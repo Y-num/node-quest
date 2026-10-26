@@ -153,6 +153,13 @@ circle.wph{fill:#0b1119;stroke-width:2;pointer-events:all;cursor:move}
 .rx-chip{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;padding:1.5px 7px;border-radius:6px;
   background:color-mix(in srgb, var(--rc,#ff9d3b) 22%, #0b1119);border:1px solid var(--rc,#ff9d3b);color:#fff;margin:1px 2px 1px 0}
 path.flow.rx-loop{stroke-width:4.2 !important;filter:drop-shadow(0 0 6px #ff4df0)}
+.node.rx-corrosion{border-color:#84cc16 !important;box-shadow:0 0 0 1.5px rgba(132,204,22,.75),0 0 18px rgba(132,204,22,.45)}
+.node.rx-curse{border-color:#6d28d9 !important;box-shadow:0 0 0 1.5px rgba(109,40,217,.85),0 0 22px rgba(139,92,246,.55)}
+.node.rx-cannon{border-color:#ff3b5c !important;box-shadow:0 0 0 2px rgba(255,59,92,.85),0 0 28px rgba(255,140,60,.65)}
+#dgnBox.env-cryo{border-color:rgba(69,214,255,.65);background:linear-gradient(180deg,rgba(69,214,255,.11),rgba(13,18,28,.95));box-shadow:inset 0 0 18px rgba(69,214,255,.18)}
+#dgnBox.env-heat{border-color:rgba(255,92,56,.65);background:linear-gradient(180deg,rgba(255,92,56,.12),rgba(13,18,28,.95));box-shadow:inset 0 0 18px rgba(255,92,56,.18)}
+#dgnBox.env-pol{border-color:rgba(179,107,255,.65);background:linear-gradient(180deg,rgba(179,107,255,.13),rgba(13,18,28,.95));box-shadow:inset 0 0 18px rgba(179,107,255,.2)}
+#dgnBox.env-haz{outline:1.5px dashed rgba(132,204,22,.75)}
 .node .nh, .node .rowio{position:relative}
 .node.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 8px 24px rgba(0,0,0,.5)}
 .node.stall{border-color:#6d3a45}
@@ -1000,6 +1007,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         <button class="dt-btn acc" data-rx-quick="A" style="padding:3px 8px;font-size:10.5px">💨 プリセットA: 急冷合金ライン</button>
         <button class="dt-btn warn" data-rx-quick="B" style="padding:3px 8px;font-size:10.5px">💥 プリセットB: 爆風クラフト実験場</button>
         <button class="dt-btn bad" data-rx-quick="C" style="padding:3px 8px;font-size:10.5px">🔄 プリセットC: 暴走フィードバックループ</button>
+        <button class="dt-btn" data-rx-quick="D" style="padding:3px 8px;font-size:10.5px;border-color:#a855f7;color:#e9d5ff;background:rgba(109,40,217,.28)">⚔️☣️ プリセットD: 戦闘化学＆逆流ハザード</button>
       </div>
       <div id="toast"></div>
       <button id="offscr"></button>
@@ -1034,7 +1042,7 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         </div>
       </div>
       <div class="sec">無限ダンジョン</div>
-      <div class="box">
+      <div class="box" id="dgnBox" style="transition:background .3s,border-color .3s,box-shadow .3s">
         <div class="hd"><span id="zIc">🕳️</span><span id="zName">苔むした洞窟</span><span class="sub num" id="zFloor">第1層</span></div>
         <div class="hd zsub"><span id="eIc">👾</span><span id="eName">スライム</span><span class="sub num" id="eHp">0 / 0</span></div>
         <div class="hbar eh"><i id="eHpBar"></i></div>
@@ -1043,6 +1051,18 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
           <div class="row">撃破まで<b class="num" id="eHits">—</b></div>
           <div class="row">敵の装甲（ダメージ軽減）<b class="num" id="eArm">0</b></div>
           <div class="row">撃破報酬<b class="num" id="eGold">0</b></div>
+          <div class="row" id="eEnvRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:4px;border-top:1px dashed var(--line)">
+            <span style="font-size:10px;color:var(--acc2)">⚔️ 戦場流入・状態異常</span>
+            <div id="eEnvTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
+          </div>
+          <div class="row" id="eComboRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:3px">
+            <span style="font-size:10px;color:var(--gold)">💥 発動中の戦闘コンボ</span>
+            <div id="eComboTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
+          </div>
+          <div class="row" id="eHazRow" hidden style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:3px">
+            <span style="font-size:10px;color:#a3e635">⚠️ 深層ハザード逆流警報</span>
+            <div id="eHazTags" style="display:flex;flex-wrap:wrap;gap:2px;font-size:10px;font-weight:700"></div>
+          </div>
         </div>
       </div>
       <div class="box">
@@ -1324,11 +1344,15 @@ const ITEMS = {
   toxic:{n:'汚染',   i:'🧪', c:'#9ad14a'},
   rad  :{n:'放射性廃棄物', i:'☢️', c:'#d9f24e'},
   rift :{n:'歪み',   i:'🌌', c:'#c07af5'},
-  // 創発リアクション生成物（Reaction Engine）
-  qstl :{n:'強化鋼',       i:'🛡️', c:'#45d6ff'}, // 急冷・焼き入れ（HEAT + CRYO）
-  bdia :{n:'爆風結晶',     i:'💎', c:'#ff66cc'}, // 爆風クラフト（SHOCKWAVE + 圧縮/受動）
-  artf :{n:'レア遺物',     i:'🏺', c:'#ffca4b'}, // 職人触媒（CATALYST_WORKER）
-  tdat :{n:'未知データ',   i:'💾', c:'#7aa2ff'}, // 研究触媒（CATALYST_RESEARCH + 廃棄物）
+  // 創発リアクション生成物（Reaction Engine）＋ ダンジョン逆流ハザード＆錬成物
+  qstl        :{n:'強化鋼',       i:'🛡️', c:'#45d6ff'}, // 急冷・焼き入れ（HEAT + CRYO）
+  bdia        :{n:'爆風結晶',     i:'💎', c:'#ff66cc'}, // 爆風クラフト（SHOCKWAVE + 圧縮/受動）
+  artf        :{n:'レア遺物',     i:'🏺', c:'#ffca4b'}, // 職人触媒（CATALYST_WORKER）
+  tdat        :{n:'未知データ',   i:'💾', c:'#7aa2ff'}, // 研究触媒（CATALYST_RESEARCH + 廃棄物）
+  cslud       :{n:'腐食粘液',     i:'🧪', c:'#84cc16'}, // 深層逆流ハザード（CORROSION）
+  miasma      :{n:'深淵瘴気',     i:'👁️', c:'#6d28d9'}, // ボス層逆流ハザード（CURSE）
+  core_cursed :{n:'呪縛コア',     i:'🔮', c:'#a855f7'}, // CURSEによる地金変異
+  drelic      :{n:'深淵遺物',     i:'👑', c:'#facc15'}, // ハザードを研究所/精錬炉で精製した超遺物
 };
 /* 副産物と、燃料に戻したときの価値。時代が進むほど厄介なものが増える。
    出るようになる時代と、片付けられるようになる時代は1つずれている。   */
@@ -1418,8 +1442,9 @@ function nextTier(k, cap){
   return to;
 }
 // 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
-const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30, slud:8, qstl:18, bdia:250, artf:180, tdat:120};
-const RX_ITEMS = ['qstl','bdia','artf','tdat'];
+const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30, slud:8, cslud:15, miasma:35, qstl:18, bdia:250, artf:180, tdat:120, core_cursed:160, drelic:420};
+const RX_ITEMS = ['qstl','bdia','artf','tdat','cslud','miasma','core_cursed','drelic'];
+const HAZ_ITEM = {cslud:'CORROSION', miasma:'CURSE', core_cursed:'CURSE'};
 /* 宝箱。銅→銀→金 の順に中身が良くなる。落ちる割合もその順に低い */
 const BOXES = [
   {k:'bxc', n:'銅箱', w:100, num:3, gold:6,  eq:0.10, up:0},
@@ -1551,8 +1576,8 @@ function chainOpts(t){
   if(k==='hout'){ const H=homeOf();
     return Object.keys(H).filter(k=>H[k]>0).sort((a,b)=>itemVal(b)-itemVal(a)); }
   if(k==='comp')          return withDens(mats).concat(compList(), RX_ITEMS);
-  if(k==='clean')         return T.hd || bypFix(g).map(b=>b.k);
-  if(k==='fuel')          return withDens(T.hd || bypFix(g).map(b=>b.k));
+  if(k==='clean')         return (T.hd || bypFix(g).map(b=>b.k)).concat(['cslud','miasma']);
+  if(k==='fuel')          return withDens((T.hd || bypFix(g).map(b=>b.k)).concat(['cslud','miasma']));
   if(k==='decomp'||k==='sell')
     return withDens(['waste','toxic','rad','rift','slud'].concat(mats, RX_ITEMS))
       .concat(lotList(), eqpList(), alyList(), BOXES.map(b=>b.k));
@@ -1573,7 +1598,7 @@ const TYPES = {
           d:'固有のステータス（💪/🧠/❤️）を持つ人タイプ。主人公と異なり、行動するたびに💰お金（給料）を消費して⚡体力を生む。人が動かす施設は☣️汚染を出さない'},
   dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
           d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
-           +'置き場が満杯でも潜り続けるが、あふれたぶんは手に入らない'},
+           +'また地上の配管・排気を繋ぐと戦場介入（❄️氷結・🔥装甲貫通・☣️毒霧・💥爆風砲撃）が起き、深層からは🧪腐食粘液や👁️深淵瘴気が逆流する'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore',
           d:'原鉱を掘る。掘る鉱石は選ぶ。かならず副産物が出る'},
   dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean',
@@ -1637,9 +1662,9 @@ const TYPES = {
            +'ほどけば元に戻る'},
   raid  :{n:'突発ダンジョン', i:'🌀', cost:0, up:0, time:1.2, ins:{sta:10}, outs:{}, effect:'raid', raid:true,
           d:'ときどき現れる裂け目。⚡を送り込んで倒しきると、確定で報酬が出る。一度きり'},
-  purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:2.2, ins:{sta:4}, outs:{sta:2},
+  purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:2.2, ins:{sta:4}, soft:{cslud:1, miasma:1, waste:1, toxic:1}, outs:{sta:2},
           aura:{k:'clean', v:1.0, r:280},
-          d:'置いた場所のまわりの汚染を抑える。❄️冷却気流（CRYO）を帯びた⚡を精錬炉などへ直結すると急冷・焼き入れ反応を起こせる'},
+          d:'置いた場所のまわりの汚染を抑える。❄️冷却気流（CRYO）を精錬炉やダンジョンへ送れるほか、逆流ハザード（🧪腐食粘液・👁️深淵瘴気）を浄化・中和できる'},
   boost :{n:'作業灯',    i:'💡', cost:2500, up:3000, time:3.0, ins:{sta:5}, outs:{},
           aura:{k:'speed', v:0.5, r:250},
           d:'置いた場所のまわりの施設が速くなる。重ねて置くほど効く'},
@@ -2107,7 +2132,22 @@ const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1
 const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
 const enemyGold= f  => Math.floor(10 * Math.pow(1.12, f-1) * (f%10===0 ? 5 : 1));
 let ARMOR_K  = 8;   // 装甲は引き算ではなく減衰率。1ダメージ固定の壁ができない
-const dmg      = () => Math.max(1, Math.round(atk() * 100 / (100 + enemyArm(S.floor) * ARMOR_K)));
+function effArmorFactor(){
+  const brx = (S && S.battleRx) || {};
+  if(brx.shatter || (S && S.enemy && S.enemy.armorBroken)) return 0.15; // ❄️🔨砕氷撃で装甲破砕(-85%)
+  if(brx.heat) return 0.30; // 🔥高熱注入で装甲貫通(-70%)
+  return 1.0;
+}
+function dmg(){
+  const brx = (S && S.battleRx) || {};
+  const arm = enemyArm(S.floor) * ARMOR_K * effArmorFactor();
+  let d = atk() * 100 / (100 + arm);
+  if(brx.cryo)    d *= 1.5; // ❄️氷結・脆化で被ダメージ+50%
+  if(brx.napalm)  d *= 1.6; // 🔥💥ナパーム爆炎で範囲爆発+60%
+  if(brx.shatter) d *= 2.2; // ❄️🔨砕氷撃で確定クリティカル×2.2
+  if(brx.berserk) d *= 2.5; // ⚡😡過負荷バーサークで火力×2.5
+  return Math.max(1, Math.round(d));
+}
 const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 
 // 訓練は鍛えるほど1回の体力消費が増える → 放置ゲームらしい対数的な伸びになる
@@ -2273,6 +2313,12 @@ function outsOf(n){
     if(T.chain==='ingot' && (n._rxQuench || (n.outBuf && n.outBuf.qstl > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='qstl')))){
       base.qstl = 1;
     }
+    if(T.chain==='ingot' && ((n.inTags && n.inTags.CURSE) || (n.outBuf && n.outBuf.core_cursed > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='core_cursed')))){
+      base.core_cursed = 1;
+    }
+    if(T.chain==='ingot' && ((n.inTags && (n.inTags.CORROSION || n.inTags.CURSE)) || (n.outBuf && n.outBuf.drelic > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='drelic')))){
+      base.drelic = 1;
+    }
     if(hasPerk(T,'clean')) delete base.waste;    // 無廃：廃材を出さない
     // 進んだ時代の施設は、必ず新しい厄介物も出す
     if(T.chain!=='atk') for(const b of bypOf(T.era||1)) if(b.k!=='waste') base[b.k]=1;
@@ -2289,6 +2335,7 @@ function outsOf(n){
   }
   if(T.loot){ const o = {[lootItem(n)]:1};
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
+    o.cslud = 1; o.miasma = 1;                 // 深層・ボス層から逆流するハザード排出口
     return modOuts(n, o); }
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool){
@@ -2299,14 +2346,36 @@ function outsOf(n){
   if(T.matIn){
     const o = Object.assign({}, T.outs || {});
     if(n.item || (n.outBuf && n.outBuf.tdat > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='tdat'))) o.tdat = 1;
+    if((n.inTags && (n.inTags.CORROSION || n.inTags.CURSE)) || (n.outBuf && n.outBuf.drelic > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item==='drelic'))) o.drelic = 1;
     return modOuts(n, o);
   }
   return modOuts(n, T.outs);
 }
-// 必須ではないが受け取れる入力（主人公の経験値など）。口は作るが、稼働の条件にはしない
+// 必須ではないが受け取れる入力（主人公の経験値・戦術パイプライン注入・送風機のハザード浄化など）。口は作るが、稼働の条件にはしない
 function softIns(n){
   const T=TYPES[n.type];
-  if(T.matIn) return n.item ? {[n.item]:1} : {};   // 研究所：選んだ部品だけ受け取る
+  if(T.matIn){
+    const o = n.item ? {[n.item]:1} : {};
+    o.cslud = 1; o.miasma = 1; o.core_cursed = 1;
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to===n.id && !POW_ITEM[l.item]) o[l.item] = 1;
+    }
+    return o;
+  }
+  if(T.effect==='dive'){
+    const o = Object.assign({}, T.soft || {});
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to===n.id && l.item!=='sta') o[l.item] = 1;
+    }
+    return o;
+  }
+  if(T.line==='smelt'){
+    const o = Object.assign({}, T.soft || {cslud:1, miasma:1});
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to===n.id && HAZ_ITEM[l.item]) o[l.item] = 1;
+    }
+    return o;
+  }
   return T.soft || {};
 }
 /* ===================== スキル =====================
@@ -2467,8 +2536,12 @@ const outKeys = n => Object.keys(outsOf(n));
 function rxSpeedMul(n){
   if(!n) return 1;
   let m = 1;
-  if(n._rxOverload) m *= 4.0;
+  if(n._rxOverload || n._rxBerserk) m *= 4.0; // ⚡過負荷 / ⚡😡バーサーク (+300%速度)
   if((n.resLoop||0) > 0) m *= (1 + Math.min(4.0, n.resLoop * 3.5));
+  if(n._rxCurse && !(TYPES[n.type] && (TYPES[n.type].effect === 'lab' || TYPES[n.type].line === 'purify'))){
+    m *= 0.55; // 👁️深淵呪詛による生産サイクル減速
+  }
+  if((n._recoilStun||0) > 0) m *= 0.25; // ⚡🔥バーサーク反動の瞬間オーバーヒート
   return m;
 }
 function craftTime(n){
@@ -2885,7 +2958,7 @@ const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッ�
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
 const anyPort = n => { const T=TYPES[n.type];
-  if(T.store) return true;                          // 貯蔵の受け口はいつも出す
+  if(T.store || T.effect==='dive' || T.matIn || T.line==='purify') return true;
   return !!(T.chain==='sell' && storeItems(n).length < T.slots); };
 const rowsOf = n => Math.max(1, inKeys(n).length + (anyPort(n)?1:0), outKeys(n).length);
 const nodeH  = n => HEAD + rowsOf(n)*ROWH + 26;
@@ -3511,6 +3584,10 @@ function removeNode(id){
 function storeCanTake(n, item){
   const T = TYPES[n.type];
   if(T.store) return !!item && spaceIn(n, item) > 0;      // 貯蔵は何でも受け取る
+  if(T.effect==='dive') return !!item;                    // ダンジョン入口は戦術パイプラインとして何でも注入可能
+  if(T.matIn && HAZ_ITEM[item]) return true;              // 研究所は逆流ハザードをいつでも受け入れ可能
+  if(T.line==='purify' && (HAZ_ITEM[item] || POL_ITEM[item])) return true; // 送風機はハザード・汚染物質を浄化受け入れ可能
+  if(T.line==='smelt' && HAZ_ITEM[item]) return true;     // 精錬炉もハザードを高温精製受け入れ可能
   if(T.chain!=='sell' || !item) return false;
   if(POW_ITEM[item]) return false;                       // ⚡と動力は元から口がある
   if((n.items||[]).includes(item)) return false;
@@ -3518,6 +3595,10 @@ function storeCanTake(n, item){
 }
 function storeAssign(n, item){
   const T = TYPES[n.type];
+  if(T.effect==='dive' || T.line==='purify' || (T.matIn && HAZ_ITEM[item]) || (T.line==='smelt' && HAZ_ITEM[item])){
+    rebuildNodeEl(n);
+    return true;
+  }
   n.items = n.items || [];
   if(T.store && !T.ware){
     if(!n.items.includes(item)){
@@ -3651,6 +3732,12 @@ function spaceIn(n,item){
     if(!(n.items||[]).includes(item) && !RX_ITEMS.includes(item)) return 0;
     return Math.max(0, CAP*4 - (n.inBuf[item]||0));
   }
+  if(T.effect==='dive' && item!=='sta'){            // ダンジョン戦術パイプライン注入
+    return Math.max(0, CAP*3 - (n.inBuf[item]||0));
+  }
+  if((T.matIn || T.line==='purify' || T.line==='smelt') && (HAZ_ITEM[item] || POL_ITEM[item])){
+    return Math.max(0, CAP*3 - (n.inBuf[item]||0));
+  }
   return !allIns(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
 }
 
@@ -3680,17 +3767,56 @@ function tick(dt,fast){
             const who = tierOf(n);
             addLog(`${who.i}${who.n} の ${ITEMS[k].i}${statName(st)} が ${stObj[st]} になった`,'u');
           }
-        }else if(T.matIn){              // 研究所：素材 → 研究資材と研究ポイント（廃棄物や触媒時は未知データを抽出）
+        }else if(T.matIn){              // 研究所：素材 → 研究資材と研究ポイント（廃棄物や触媒時は未知データを抽出、逆流ハザード時は👑深淵遺物を精製）
           const v = itemVal(k)*c;
           S.stock=(S.stock||0)+v*matMul(n);
           const rp = v*matRp(n); n.gain=(n.gain||0)+rp; grantRp(rp, fast);
-          if(POL_ITEM[k] || n._rxCatR){
+          if(HAZ_ITEM[k]){
+            n.outBuf.drelic = (n.outBuf.drelic || 0) + c;
+            homeOf().drelic = (homeOf().drelic || 0) + c;
+            flowIn('drelic', c); nodeFlow(n, 'drelic', c, 'i');
+            const mRp = 160 * c * lvPow(n.level);
+            n.gain = (n.gain||0) + mRp; grantRp(mRp, fast);
+            if(!fast) spawnReactionPop(n, '👑🔬 狂科学精製：👑深淵遺物！', '#facc15');
+          }else if(POL_ITEM[k] || n._rxCatR){
             n.outBuf.tdat = (n.outBuf.tdat || 0) + c;
             homeOf().tdat = (homeOf().tdat || 0) + c;
             flowIn('tdat', c); nodeFlow(n, 'tdat', c, 'i');
             const bRp = 18 * c * lvPow(n.level);
             n.gain = (n.gain||0) + bRp; grantRp(bRp, fast);
             if(!fast) spawnReactionPop(n, '🧬 研究触媒：💾未知データを抽出！', '#8ea8ff');
+          }
+        }else if(T.line === 'purify'){  // 送風機・浄化施設：逆流ハザード（腐食粘液・深淵瘴気・汚染塊）を中和・無害化
+          n.pol = Math.max(0, (n.pol||0) - 0.12 * c);
+          n.hpDur = Math.min(100, (n.hpDur != null ? n.hpDur : 100) + 10 * c);
+          S.gold += 15 * c;
+          if(!fast) spawnReactionPop(n, '🌬️✨ ハザード浄化・中和完了！', '#5ee0c0');
+        }else if(T.line === 'smelt' && HAZ_ITEM[k]){ // 精錬炉に逆流ハザードを投入 → 狂科学・深淵精製で👑深淵遺物または🔮呪縛コアへ昇華
+          if(k === 'miasma'){
+            n.outBuf.core_cursed = (n.outBuf.core_cursed || 0) + c;
+            homeOf().core_cursed = (homeOf().core_cursed || 0) + c;
+            flowIn('core_cursed', c); nodeFlow(n, 'core_cursed', c, 'i');
+            if(!fast) spawnReactionPop(n, '👁️🔮 瘴気精錬：🔮呪縛コア！', '#a855f7');
+          }else{
+            n.outBuf.drelic = (n.outBuf.drelic || 0) + c;
+            homeOf().drelic = (homeOf().drelic || 0) + c;
+            flowIn('drelic', c); nodeFlow(n, 'drelic', c, 'i');
+            grantRp(120 * c * lvPow(n.level), fast);
+            if(!fast) spawnReactionPop(n, '👑🔬 狂科学精錬：👑深淵遺物！', '#facc15');
+          }
+        }else if(T.effect === 'dive'){  // ダンジョン入口への戦術パイプライン物資注入
+          if(k === 'bdia'){
+            fireBlastCannon(n, fast, '💎爆風結晶');
+          }else if(k === 'wood' || k === 'coal' || k === 'waste'){
+            n._tacFlam = Math.max(n._tacFlam||0, 8.0);
+            n._tacHeat = Math.max(n._tacHeat||0, 8.0);
+          }else if(k === 'qstl'){
+            n._tacCryo = Math.max(n._tacCryo||0, 8.0);
+            n._tacHeat = Math.max(n._tacHeat||0, 8.0);
+          }else if(/^ing\d/.test(baseOf(k))){
+            n._tacHeat = Math.max(n._tacHeat||0, 8.0);
+          }else if(POL_ITEM[k] || HAZ_ITEM[k]){
+            n._tacPol  = Math.max(n._tacPol||0,  8.0);
           }
         }
       }
@@ -3810,6 +3936,17 @@ function tick(dt,fast){
         grantRp(20 * lvPow(n.level), fast);
         if(!fast) spawnReactionPop(n, '🧬 研究触媒：💾未知データを抽出！', '#8ea8ff');
       }
+      // ── 創発リアクション：深淵呪詛 (Curse Miasma → Cursed Core Mutation) ──
+      if(n._rxCurse){
+        let hasIng = false;
+        for(const k in give) if(/^ing\d/.test(baseOf(k)) && give[k] > 0) hasIng = true;
+        if(hasIng && ((n.done % 2 === 0) || Math.random() < 0.65)){
+          give.core_cursed = (give.core_cursed || 0) + 1;
+          homeOf().core_cursed = (homeOf().core_cursed || 0) + 1;
+          n._sendCurseOnIng = (n._sendCurseOnIng || 0) + 1;
+          if(!fast) spawnReactionPop(n, '👁️🔮 呪詛変異：🔮呪縛コア生成！', '#a855f7');
+        }
+      }
       for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k]; flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
@@ -3886,6 +4023,8 @@ function tick(dt,fast){
           let pktItem = item;
           if((n._sendQuenchOnIng||0) > 0 && /^ing\d/.test(baseOf(item)) && !S.links.some(x=>x.from===n.id&&x.item==='qstl')){
             pktItem = 'qstl';
+          }else if((n._sendCurseOnIng||0) > 0 && /^ing\d/.test(baseOf(item)) && !S.links.some(x=>x.from===n.id&&x.item==='core_cursed')){
+            pktItem = 'core_cursed';
           }else if((n._sendArtfOnOut||0) > 0 && !POW_ITEM[item] && !isByp(item) && !S.links.some(x=>x.from===n.id&&x.item==='artf')){
             pktItem = 'artf';
           }
@@ -3895,6 +4034,7 @@ function tick(dt,fast){
               const q=Math.min(n.outBuf[item], chunk, sp);
               n.outBuf[item]-=q; st[i]-=wtot;
               if(pktItem === 'qstl') n._sendQuenchOnIng = Math.max(0, (n._sendQuenchOnIng||0) - q);
+              if(pktItem === 'core_cursed') n._sendCurseOnIng = Math.max(0, (n._sendCurseOnIng||0) - q);
               if(pktItem === 'artf') n._sendArtfOnOut   = Math.max(0, (n._sendArtfOnOut||0) - q);
               n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
               const deliv = spaceIn(dst, pktItem) > 0 ? pktItem : item;
@@ -3913,6 +4053,7 @@ function tick(dt,fast){
               const q=Math.min(n.outBuf[item], chunk, sp>0 ? Math.max(1, sp) : chunk);
               n.outBuf[item]-=q; st[i]-=wtot;
               if(pktItem === 'qstl') n._sendQuenchOnIng = Math.max(0, (n._sendQuenchOnIng||0) - q);
+              if(pktItem === 'core_cursed') n._sendCurseOnIng = Math.max(0, (n._sendCurseOnIng||0) - q);
               if(pktItem === 'artf') n._sendArtfOnOut   = Math.max(0, (n._sendArtfOnOut||0) - q);
               n.sent = n.sent || {}; n.sent[item] = (n.sent[item]||0) + q;
               if(packetCount>PKT_MAX && sp>0){
@@ -4531,15 +4672,17 @@ function polSource(n){
    配線上を流れるリソース・エネルギー・副産物に付与されたタグ（属性）の掛け合わせで
    状態変化・変異・ブースト・爆風クラフト・共鳴ループ暴走を起こす軽量ルールエンジン */
 const REACTION_TAGS = {
-  HEAT:              { k:'HEAT',              n:'高熱',       i:'🔥', c:'#ff5c38' },
-  CRYO:              { k:'CRYO',              n:'冷却',       i:'❄️', c:'#45d6ff' },
-  POLLUTION:         { k:'POLLUTION',         n:'高圧排気',   i:'☣️', c:'#b36bff' },
-  FLAMMABLE:         { k:'FLAMMABLE',         n:'可燃性',     i:'🪵', c:'#e89c42' },
-  KINETIC:           { k:'KINETIC',           n:'運動筋力',   i:'💪', c:'#5ee0c0' },
-  CATALYST_WORKER:   { k:'CATALYST_WORKER',   n:'職人触媒',   i:'👩‍🔧', c:'#f5c249' },
-  CATALYST_RESEARCH: { k:'CATALYST_RESEARCH', n:'研究触媒',   i:'👩‍🔬', c:'#8ea8ff' },
-  SHOCKWAVE:         { k:'SHOCKWAVE',         n:'爆風衝撃波', i:'💥', c:'#ff3b5c' },
-  RESONANCE:         { k:'RESONANCE',         n:'共鳴ループ', i:'🔄', c:'#ff4df0' },
+  HEAT:              { k:'HEAT',              n:'高熱',       i:'🔥', c:'#ff5c38', d:'精錬炉等の熱エネルギー（戦場流入で敵の装甲貫通＋50%）' },
+  CRYO:              { k:'CRYO',              n:'冷却',       i:'❄️', c:'#45d6ff', d:'クリーン冷却風（戦場流入で敵を氷結・脆化し被ダメ1.5倍）' },
+  POLLUTION:         { k:'POLLUTION',         n:'高圧排気',   i:'☣️', c:'#b36bff', d:'煤煙・汚染排気（戦場流入で敵最大HP比例の猛毒スリップダメージ）' },
+  FLAMMABLE:         { k:'FLAMMABLE',         n:'可燃性',     i:'🪵', c:'#e89c42', d:'可燃物（近接KINETICと合流で🔥ナパーム爆炎）' },
+  KINETIC:           { k:'KINETIC',           n:'運動筋力',   i:'💪', c:'#5ee0c0', d:'主人公・仲間の物理打撃（❄️氷結に当たると砕氷撃）' },
+  CATALYST_WORKER:   { k:'CATALYST_WORKER',   n:'職人触媒',   i:'👩‍🔧', c:'#f5c249', d:'職人の手仕事（通過素材が確率で🏺レア遺物に変異）' },
+  CATALYST_RESEARCH: { k:'CATALYST_RESEARCH', n:'研究触媒',   i:'👩‍🔬', c:'#8ea8ff', d:'研究者の解析（廃棄物やハザードから💾未知データ・👑深淵遺物を抽出）' },
+  SHOCKWAVE:         { k:'SHOCKWAVE',         n:'爆風衝撃波', i:'💥', c:'#ff3b5c', d:'爆発衝撃波（圧縮機で💎爆風結晶化／ダンジョン接続で💥ブラストキャノン砲撃）' },
+  RESONANCE:         { k:'RESONANCE',         n:'共鳴ループ', i:'🔄', c:'#ff4df0', d:'循環配線で自己増幅（戦闘員注入で⚡狂戦士化＋300%）' },
+  CORROSION:         { k:'CORROSION',         n:'強酸腐食',   i:'🧪', c:'#84cc16', d:'深層ダンジョンから逆流する強酸粘液（配管と接続先施設の耐久度を腐食摩耗）' },
+  CURSE:             { k:'CURSE',             n:'深淵呪詛',   i:'👁️', c:'#6d28d9', d:'ボス層から逆流する呪詛瘴気（生産速度低下・地金を🔮呪縛コアに変異）' },
 };
 const REACTION_INFO = {
   quench:            { k:'quench',            n:'急冷・焼き入れ', i:'💨🔥', c:'#45d6ff', d:'HEAT×CRYO → 強化鋼(🛡️)に変質' },
@@ -4548,6 +4691,14 @@ const REACTION_INFO = {
   catalyst_worker:   { k:'catalyst_worker',   n:'職人触媒変異',   i:'✨🏺', c:'#f5c249', d:'CATALYST_WORKER → 確率でレア遺物(🏺)に変異' },
   catalyst_research: { k:'catalyst_research', n:'研究触媒抽出',   i:'🧬💾', c:'#8ea8ff', d:'CATALYST_RESEARCH → 廃棄物から未知データ(💾)抽出' },
   resonance:         { k:'resonance',         n:'共鳴ループ増幅', i:'🔄🚨', c:'#ff4df0', d:'循環配線で出力自己増幅・臨界で暴走爆発' },
+  blast_cannon:      { k:'blast_cannon',      n:'ブラストキャノン', i:'💥🎯', c:'#ff3b5c', d:'地上爆発/臨界SHOCKWAVEをダンジョンへ撃ち込み特大砲撃ダメージ' },
+  napalm_burst:      { k:'napalm_burst',      n:'ナパーム爆炎',   i:'🔥💥', c:'#ff5c38', d:'KINETIC打撃 × (HEAT/FLAMMABLE) → 爆炎範囲ダメージ＋炎上DoT' },
+  shatter_strike:    { k:'shatter_strike',    n:'砕氷撃',         i:'❄️🔨', c:'#45d6ff', d:'CRYO氷結中の敵にKINETIC/SHOCKWAVE → 確定クリティカル×2.5＋装甲破砕' },
+  overload_berserk:  { k:'overload_berserk',  n:'過負荷バーサーク', i:'⚡😡', c:'#ff4df0', d:'戦闘員にRESONANCE/POLLUTION注入 → 攻撃速度・威力+300%（周期オーバーヒート反動）' },
+  corrosion_decay:   { k:'corrosion_decay',   n:'強酸腐食摩耗',   i:'🧪⚠️', c:'#84cc16', d:'逆流したCORROSIONにより施設の耐久度が腐食低下中' },
+  curse_miasma:      { k:'curse_miasma',      n:'呪詛瘴気汚染',   i:'👁️🔮', c:'#a855f7', d:'逆流したCURSEにより生産遅延＆地金が🔮呪縛コアに変異' },
+  hazard_purify:     { k:'hazard_purify',     n:'ハザード浄化',   i:'🌬️✨', c:'#5ee0c0', d:'送風機/廃棄場が逆流ハザード(CORROSION/CURSE)を無害化中' },
+  mad_science:       { k:'mad_science',       n:'狂科学・深淵精製', i:'👑🔬', c:'#facc15', d:'逆流ハザードを研究所/精錬炉で精製 → 👑深淵遺物＆大量RP獲得' },
 };
 
 function playRxWarnSound(){
@@ -4605,12 +4756,19 @@ function getLinkTags(src, item, dst){
   if(item === 'bdia') tags.add('SHOCKWAVE');
   if(item === 'artf') tags.add('CATALYST_WORKER');
   if(item === 'tdat') tags.add('CATALYST_RESEARCH');
+  if(item === 'cslud') tags.add('CORROSION');
+  if(item === 'miasma' || item === 'core_cursed') tags.add('CURSE');
+  if(item === 'drelic'){ tags.add('CURSE'); tags.add('CATALYST_RESEARCH'); }
   // 中継ノードは受け取っているタグも下流へ伝播する
   if(src.inTags){
     if(src.inTags.HEAT && (T.store || T.tool || role === 'smelt' || role === 'forge')) tags.add('HEAT');
     if(src.inTags.CRYO && (T.store || T.tool || role === 'purify')) tags.add('CRYO');
     if(src.inTags.CATALYST_WORKER && (T.store || T.tool || role === 'forge')) tags.add('CATALYST_WORKER');
     if(src.inTags.CATALYST_RESEARCH && (T.store || role === 'lab' || role === 'decomp')) tags.add('CATALYST_RESEARCH');
+    if(src.inTags.CORROSION && (T.store || T.tool)) tags.add('CORROSION');
+    if(src.inTags.CURSE && (T.store || T.tool)) tags.add('CURSE');
+    if(src.inTags.POLLUTION && T.src) tags.add('POLLUTION');
+    if(src.inTags.RESONANCE && T.src) tags.add('RESONANCE');
   }
   return [...tags];
 }
@@ -4660,7 +4818,62 @@ function detectResonanceLoops(){
   }
 }
 
-/* 毎コマ/毎秒、各ノードの流入タグ・発火リアクション・過負荷摩耗・共鳴暴走を更新 */
+/* 怪我の功名・支援砲撃（Blast Cannon）：爆発SHOCKWAVEや💎爆風結晶をダンジョンへ撃ち込む */
+function fireBlastCannon(dv, fast, srcLabel){
+  if(!dv) return;
+  if(!S.enemy) spawnEnemy();
+  dv.inTags = dv.inTags || {};
+  dv.inTags.SHOCKWAVE = 1;
+  dv._shockT  = 12.0;
+  dv._cannonT = 12.0;
+  dv.activeReactions = dv.activeReactions || [];
+  if(!dv.activeReactions.includes('blast_cannon')) dv.activeReactions.push('blast_cannon');
+  const cannonDmg = Math.max(dmg() * 35, Math.floor((S.enemy ? S.enemy.max : 300) * 2.4));
+  S.battleRx = S.battleRx || {};
+  S.battleRx.cannon = true;
+  S.battleRx.lastCannonDmg = cannonDmg;
+  if(!fast){
+    spawnReactionPop(dv, `💥🎯 ブラストキャノン発射！！ (-${fmt(cannonDmg)})`, '#ff3b5c');
+    addLog(`💥🎯【怪我の功名・ブラストキャノン】${srcLabel||'地上施設'}の爆発エネルギーを${tierOf(dv).i}${tierOf(dv).n}へ撃ち込み、ダンジョン全域に支援砲撃ダメージ（-${fmt(cannonDmg)}）を与えた！`, 'b');
+    toast(`💥🎯 ブラストキャノン発射！ 敵に -${fmt(cannonDmg)} の大ダメージ！`);
+  }
+  let rem = cannonDmg, waves = 0;
+  while(rem > 0 && waves < 3 && S.enemy){
+    if(rem >= S.enemy.hp){
+      rem -= S.enemy.hp;
+      S.enemy.hp = 1;
+      doDive(fast, dv, true);
+      waves++;
+    }else{
+      S.enemy.hp -= rem;
+      rem = 0;
+    }
+  }
+  // ボスや深層への砲撃反動として逆流ハザードも噴出
+  emitDungeonHazard(dv, fast, true);
+  rebuildNodeEl(dv);
+}
+
+/* 深層ダンジョンからの逆流ハザード（🧪腐食粘液・👁️深淵瘴気）排出 */
+function emitDungeonHazard(dv, fast, forceBoss){
+  if(!dv) return;
+  const f = S.floor || 1;
+  if(f < 10 && !dv._emitHazard && !forceBoss) return;
+  dv.outBuf.cslud = Math.min(capOut(dv, 'cslud'), (dv.outBuf.cslud || 0) + 1);
+  homeOf().cslud  = (homeOf().cslud || 0) + 1;
+  flowIn('cslud', 1); nodeFlow(dv, 'cslud', 1, 'i');
+  if(isBoss(f) || f >= 15 || dv._emitHazard || forceBoss){
+    dv.outBuf.miasma = Math.min(capOut(dv, 'miasma'), (dv.outBuf.miasma || 0) + 1);
+    homeOf().miasma  = (homeOf().miasma || 0) + 1;
+    flowIn('miasma', 1); nodeFlow(dv, 'miasma', 1, 'i');
+  }
+  if(!fast && _rxPopCd <= 0){
+    spawnReactionPop(dv, '☣️⬆️ 逆流ハザード噴出！(🧪腐食/👁️瘴気)', '#84cc16');
+    _rxPopCd = 0.9;
+  }
+}
+
+/* 毎コマ/毎秒、各ノードの流入タグ・発火リアクション・過負荷摩耗・共鳴暴走・ダンジョン戦術化学を更新 */
 let _rxPopCd = 0;
 function updateReactionEngine(dt, fast){
   if(!S || !S.nodes) return;
@@ -4671,13 +4884,35 @@ function updateReactionEngine(dt, fast){
     const T = TYPES[n.type] || {}, role = T.line || n.type;
     const inT = {};
     if(role === 'smelt' || role === 'alloy' || role === 'anvil' || role === 'coal') inT.HEAT = 1;
-    if(role === 'fuel'){ inT.HEAT = 1; inT.POLLUTION = 1; }
+    if(role === 'fuel'){ inT.HEAT = 1; inT.POLLUTION = 1; inT.FLAMMABLE = 1; }
     if(T.cleanEnergy || role === 'cgen' || role === 'purify') inT.CRYO = 1;
+    if(n.type === 'hero' || n.type === 'mate1' || role === 'tstr') inT.KINETIC = 1;
     if(n.type === 'mate2' || role === 'tool') inT.CATALYST_WORKER = 1;
     if(n.type === 'mate3' || role === 'lab')  inT.CATALYST_RESEARCH = 1;
     if((n._shockT || 0) > 0){
       n._shockT = Math.max(0, n._shockT - dt);
       if(n._shockT > 0) inT.SHOCKWAVE = 1;
+    }
+    if((n._cannonT || 0) > 0){
+      n._cannonT = Math.max(0, n._cannonT - dt);
+      if(n._cannonT > 0) inT.SHOCKWAVE = 1;
+    }
+    if((n._recoilStun || 0) > 0){
+      n._recoilStun = Math.max(0, n._recoilStun - dt);
+    }
+    // ダンジョン入口の戦術物資タイマー減衰とタグ付与
+    for(const [tk, tg] of [['_tacHeat','HEAT'],['_tacCryo','CRYO'],['_tacPol','POLLUTION'],['_tacFlam','FLAMMABLE']]){
+      if((n[tk] || 0) > 0){
+        n[tk] = Math.max(0, n[tk] - dt);
+        if(n[tk] > 0) inT[tg] = (inT[tg] || 0) + 1;
+      }
+    }
+    // バッファ内に逆流ハザードを保有している場合もタグを発現
+    if((n.inBuf && (n.inBuf.cslud||0) > 0) || (n.outBuf && (n.outBuf.cslud||0) > 0 && T.effect !== 'dive')){
+      inT.CORROSION = (inT.CORROSION || 0) + 1;
+    }
+    if((n.inBuf && ((n.inBuf.miasma||0) > 0 || (n.inBuf.core_cursed||0) > 0)) || (n.outBuf && (n.outBuf.miasma||0) > 0 && T.effect !== 'dive')){
+      inT.CURSE = (inT.CURSE || 0) + 1;
     }
     // 周囲に稼働中の送風機（purify）があれば CRYO（冷却風）が届く
     for(const m of S.nodes){
@@ -4706,11 +4941,18 @@ function updateReactionEngine(dt, fast){
   }
   // 3) 各ノードでの創発リアクション成立判定と状態変化
   const toExplode = [];
+  const bRx = {
+    cryo:false, heat:false, pol:false, flam:false, kin:false, shock:false,
+    napalm:false, shatter:false, berserk:false, cannon:false,
+    hazCorrosion:false, hazCurse:false, hazPurified:false, madScience:false
+  };
+  let activeDiveNode = null;
+
   for(const n of S.nodes){
     const T = TYPES[n.type] || {}, role = T.line || n.type;
     const inT = n.inTags || {};
     const rx = [];
-    const wasQuench = !!n._rxQuench, wasCatW = !!n._rxCatW;
+    const wasQuench = !!n._rxQuench, wasCatW = !!n._rxCatW, wasCurse = !!n._rxCurse;
 
     // ① 急冷・焼き入れ (Thermal Shock / Quench): HEAT と CRYO が精錬・金属系・貯蔵で合流
     const canQuenchRole = (role === 'smelt' || role === 'forge' || role === 'alloy' || T.store || T.tool);
@@ -4720,8 +4962,8 @@ function updateReactionEngine(dt, fast){
     // ② 過負荷ブーストと摩耗 (Overload Boost):
     // 燃料炉(fuel)からの高圧排気注入、またはクリーン/通常ラインにPOLLUTION排気を合流注入
     const hasFuelIn = S.links.some(l => l.to === n.id && N(l.from) && (TYPES[N(l.from).type].line === 'fuel' || POL_ITEM[l.item]));
-    const hasDualIn = inT.POLLUTION && inT.CRYO && !T.cleanEnergy && role !== 'purify';
-    n._rxOverload = !!(!T.src && !T.layer && !T.port && !T.raid && role !== 'dump' && role !== 'fuel' && (hasFuelIn || hasDualIn || n._forceOverload));
+    const hasDualIn = inT.POLLUTION && inT.CRYO && !T.cleanEnergy && role !== 'purify' && T.effect !== 'dive';
+    n._rxOverload = !!(!T.src && !T.layer && !T.port && !T.raid && T.effect !== 'dive' && role !== 'dump' && role !== 'fuel' && (hasFuelIn || hasDualIn || n._forceOverload));
     if(n._rxOverload){
       rx.push('overload');
       if(!n.broken && !n.stall){
@@ -4740,7 +4982,7 @@ function updateReactionEngine(dt, fast){
           }
         }
       }
-    }else if(!n.broken && (n.hpDur != null && n.hpDur < 100)){
+    }else if(!n.broken && !inT.CORROSION && (n.hpDur != null && n.hpDur < 100)){
       n.hpDur = Math.min(100, n.hpDur + 2.0 * dt); // 通常稼働時は少しずつ自然冷却・回復
     }
 
@@ -4755,6 +4997,95 @@ function updateReactionEngine(dt, fast){
 
     n._rxCatR = !!(!T.src && inT.CATALYST_RESEARCH && (role === 'lab' || role === 'decomp' || role === 'dump' || T.store));
     if(n._rxCatR) rx.push('catalyst_research');
+
+    // ⑥ 逆流ハザード：浄化・狂科学精製・腐食摩耗・深淵呪詛
+    const isPurifier = (role === 'purify' || role === 'dump');
+    const isMadLab   = (role === 'lab' || role === 'smelt');
+    if(isPurifier && (inT.CORROSION || inT.CURSE)){
+      rx.push('hazard_purify');
+      bRx.hazPurified = true;
+    }
+    if(isMadLab && (inT.CORROSION || inT.CURSE)){
+      rx.push('mad_science');
+      bRx.madScience = true;
+    }
+    n._rxCorrosion = !!(inT.CORROSION && !isPurifier && !isMadLab && T.effect !== 'dive');
+    if(n._rxCorrosion){
+      rx.push('corrosion_decay');
+      bRx.hazCorrosion = true;
+      if(!n.broken){
+        n.hpDur = Math.max(0, (n.hpDur != null ? n.hpDur : 100) - 6.0 * dt);
+        if(!fast && _rxPopCd <= 0 && Math.random() < 0.25){
+          spawnReactionPop(n, `🧪⚠️ 強酸腐食摩耗！ (耐久${Math.ceil(n.hpDur)}%)`, '#84cc16');
+          _rxPopCd = 0.85;
+        }
+        if(n.hpDur <= 0){
+          n.broken = true;
+          if(!fast){
+            spawnReactionPop(n, '🧪💥 強酸腐食で融解・故障！', '#84cc16');
+            addLog(`🧪【強酸腐食故障】${tierOf(n).i}${tierOf(n).n} #${n.no} がダンジョン逆流の腐食粘液により融解・故障停止した！`, 'd');
+          }
+        }
+      }
+    }
+    n._rxCurse = !!(inT.CURSE && !isPurifier && T.effect !== 'dive');
+    if(n._rxCurse){
+      rx.push('curse_miasma');
+      bRx.hazCurse = true;
+    }
+
+    // ⑦ 過負荷バーサーク (Overload Berserk on Hero/Allies or Dive Port)
+    const hasBerserkFeed = !!(inT.RESONANCE || inT.POLLUTION || n._forceBerserk || S.links.some(l => l.to === n.id && N(l.from) && TYPES[N(l.from).type].line === 'fuel'));
+    n._rxBerserk = !!((T.src || T.effect === 'dive') && hasBerserkFeed);
+    if(n._rxBerserk){
+      rx.push('overload_berserk');
+      bRx.berserk = true;
+      n._berserkT = (n._berserkT || 0) + dt;
+      if(n._berserkT >= 5.5){
+        n._berserkT = 0;
+        n._recoilStun = 0.65;
+        if(!fast){
+          spawnReactionPop(n, '⚡🔥 過負荷バーサーク：オーバーヒート反動！', '#ff6b6b');
+        }
+      }
+    }else{
+      n._berserkT = 0;
+    }
+
+    // ⑧ ダンジョン戦術介入＆スキル化学コンボ (Tactical Pipeline & Combat Chemistry)
+    if(T.effect === 'dive'){
+      activeDiveNode = n;
+      const hasCryo = !!(inT.CRYO);
+      const hasHeat = !!(inT.HEAT);
+      const hasPol  = !!(inT.POLLUTION);
+      const hasFlam = !!(inT.FLAMMABLE || inT.HEAT);
+      const hasKin  = !!(inT.KINETIC || S.links.some(l => l.to === n.id && N(l.from) && TYPES[N(l.from).type].src));
+      const hasShock= !!(inT.SHOCKWAVE || (n._cannonT || 0) > 0);
+      if(hasCryo)  bRx.cryo = true;
+      if(hasHeat)  bRx.heat = true;
+      if(hasPol)   bRx.pol  = true;
+      if(hasFlam)  bRx.flam = true;
+      if(hasKin)   bRx.kin  = true;
+      if(hasShock) bRx.shock = true;
+      if((n._cannonT || 0) > 0){
+        bRx.cannon = true;
+        if(!rx.includes('blast_cannon')) rx.push('blast_cannon');
+      }
+      if(hasKin && hasFlam){
+        bRx.napalm = true;
+        if(!rx.includes('napalm_burst')) rx.push('napalm_burst');
+      }
+      if((hasKin || hasShock) && hasCryo){
+        bRx.shatter = true;
+        if(!rx.includes('shatter_strike')) rx.push('shatter_strike');
+      }
+      if((n.outBuf.cslud || 0) > 0)  bRx.hazCorrosion = true;
+      if((n.outBuf.miasma || 0) > 0) bRx.hazCurse = true;
+      // 逆流ハザードが未配線のままダンジョン出口に滞留すると入口自体が少しずつ汚染される
+      if(((n.outBuf.cslud||0) >= 3 || (n.outBuf.miasma||0) >= 3) && !S.links.some(l => l.from === n.id && (l.item === 'cslud' || l.item === 'miasma'))){
+        n.pol = Math.min(0.75, (n.pol || 0) + 0.015 * dt);
+      }
+    }
 
     // ⑤ フィードバック循環 (Resonance Loop): 循環配線による自己増幅と臨界暴走
     if(n._inLoop){
@@ -4784,10 +5115,34 @@ function updateReactionEngine(dt, fast){
 
     n.activeReactions = rx;
     n.outTags = getLinkTags(n, n.item || 'sta', null);
-    if((wasQuench !== n._rxQuench || wasCatW !== n._rxCatW) && n.el){
+    if((wasQuench !== n._rxQuench || wasCatW !== n._rxCatW || wasCurse !== n._rxCurse) && n.el){
       rebuildNodeEl(n);
     }
   }
+
+  S.battleRx = bRx;
+  // ダンジョン戦場の環境スリップダメージ（☣️猛毒霧 ＋ 🔥💥ナパーム燃焼DoT）と状態反映
+  if(S.enemy && activeDiveNode){
+    S.enemy.frozen      = bRx.cryo;
+    S.enemy.melted      = bRx.heat;
+    S.enemy.poisoned    = bRx.pol;
+    S.enemy.armorBroken = bRx.shatter;
+    const dotRate = (bRx.pol ? 0.06 : 0) + (bRx.napalm ? 0.05 : 0);
+    if(dotRate > 0 && dt > 0){
+      const slip = Math.max(1, S.enemy.max * dotRate * dt);
+      S.enemy.hp -= slip;
+      // ☣️毒霧のトレードオフ：味方側（主人公の⚡在庫）にも微量のスリップ負荷
+      if(bRx.pol){
+        const hr = S.nodes.find(x => x.type === 'hero');
+        if(hr && (hr.outBuf.sta || 0) > 1) hr.outBuf.sta = Math.max(1, hr.outBuf.sta - 0.15 * dt);
+      }
+      if(S.enemy.hp <= 0){
+        S.enemy.hp = 1;
+        doDive(fast, activeDiveNode, true);
+      }
+    }
+  }
+
   for(const v of toExplode){
     if(N(v.id)) explodeNode(v, fast);
   }
@@ -4829,15 +5184,23 @@ function explodeNode(n, fast){
   // 汚染拡散被害を肩代わりして「💎爆風結晶 (bdia)」を1個精製する
   const bd = n.layer || 0, blastR = POL_R * 1.45;
   const absorbers = [];
+  const diveCannons = [];
   for(const m of S.nodes){
     if(m === n || (m.layer||0) !== bd) continue;
     const mT = TYPES[m.type] || {}, mRole = mT.line || m.type;
-    if(mRole !== 'comp' && !mT.store) continue;
     const dist = Math.hypot(nodeCx(m)-nodeCx(n), nodeCy(m)-nodeCy(n));
     const linked = S.links.some(l => (l.from===n.id && l.to===m.id) || (l.from===m.id && l.to===n.id));
+    if(mT.effect === 'dive' && (dist < blastR * 1.35 || linked)){
+      diveCannons.push(m);
+      continue;
+    }
+    if(mRole !== 'comp' && !mT.store) continue;
     if(dist < blastR || linked){
       absorbers.push(m);
     }
+  }
+  for(const dv of diveCannons){
+    fireBlastCannon(dv, fast, label);
   }
   for(const ab of absorbers){
     ab.inTags = ab.inTags || {};
@@ -4858,8 +5221,8 @@ function explodeNode(n, fast){
       addLog(`💥💎【怪我の功名・爆風クラフト】${tierOf(ab).i}${tierOf(ab).n} #${ab.no} が爆風(SHOCKWAVE)を吸収し、💎爆風結晶×1 を精製した！`, 'b');
     }
   }
-  // 爆風による周囲への汚染拡散（爆風クラフトで吸収された場合は拡散ダメージが70%軽減）
-  const splashMul = absorbers.length > 0 ? 0.30 : 1.0;
+  // 爆風による周囲への汚染拡散（爆風クラフトまたはブラストキャノンで吸収された場合は拡散ダメージが70%軽減）
+  const splashMul = (absorbers.length > 0 || diveCannons.length > 0) ? 0.30 : 1.0;
   for(const m of S.nodes){
     if(m === n || (m.layer||0) !== bd) continue;
     const dist = Math.hypot(nodeCx(m)-nodeCx(n), nodeCy(m)-nodeCy(n));
@@ -5054,7 +5417,7 @@ function srcFace(n){
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
   return `${role}${stTxt}${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
 }
-function doDive(fast, node){
+function doDive(fast, node, fromCannon){
   if(!S.enemy) spawnEnemy();
   // 撃破できない深さで止まっても、潜り続ければ拾える
   if(S.floor >= DROP_FROM){
@@ -5062,7 +5425,24 @@ function doDive(fast, node){
     const per = (node && hasPerk(TYPES[node.type],'find')) ? DROP_PER/2.5 : DROP_PER;
     if(S.dives >= per){ S.dives = 0; tryDrop(S.floor, fast); }
   }
+  const brx = S.battleRx || {};
+  if(!fromCannon && node && !fast && _rxPopCd <= 0){
+    if(brx.shatter && Math.random() < 0.45){
+      spawnReactionPop(node, `❄️🔨 砕氷撃クリティカル！ (-${fmt(dmg())})`, '#38bdf8');
+      _rxPopCd = 0.65;
+    }else if(brx.napalm && Math.random() < 0.45){
+      spawnReactionPop(node, `🔥💥 ナパーム爆炎！ (-${fmt(dmg())})`, '#f97316');
+      _rxPopCd = 0.65;
+    }else if(brx.berserk && Math.random() < 0.35){
+      spawnReactionPop(node, `⚡😡 過負荷バーサーク連撃！ (-${fmt(dmg())})`, '#e11d48');
+      _rxPopCd = 0.65;
+    }
+  }
   S.enemy.hp -= dmg();
+  // 深層または検証モードでは、攻撃サイクルごとにも一定確率で逆流ハザードが噴出する
+  if(node && (node._emitHazard || (S.floor >= 10 && isBoss(S.floor))) && ((node.done||0) % 2 === 0)){
+    emitDungeonHazard(node, fast, false);
+  }
   if(S.enemy.hp>0) return;
   const f=S.floor, g=enemyGold(f), wasTier=depthTier(), wasZone=zoneOf(f);
   S.gold += g;
@@ -5073,6 +5453,10 @@ function doDive(fast, node){
     let r = Math.random() * (tot * 1.6);        // 素材はよく出る（1.6回に1回くらい箱）
     for(const b of BOXES){ r -= b.w; if(r < 0){
       node.outBuf[b.k] = Math.min(capOut(node,b.k), (node.outBuf[b.k]||0) + 1); break; } }
+    // 深層（第10層以降）や節目ボスの撃破時、ダンジョンから地上へ逆流ハザードが噴出する
+    if(f >= 10 || isBoss(f) || node._emitHazard){
+      emitDungeonHazard(node, fast, isBoss(f));
+    }
   }
   if(!fast) addLog(`第${f}層 ${S.enemy.name} 撃破 → +${fmt(g)}G`,'w');
   S.floor++;
@@ -6039,9 +6423,17 @@ function render(fdt){
     }
     if(n._rxQuench) e.nf.textContent += '　💨🔥焼き入れ';
     if(n._rxOverload) e.nf.textContent += `　⚡過負荷×4.0(耐久${Math.ceil(n.hpDur??100)}%)`;
+    if(n._rxBerserk)  e.nf.textContent += `　⚡😡過負荷バーサーク×4.0`;
     if(n._inLoop) e.nf.textContent += `　🔄共鳴(${Math.min(100,Math.round((n.resLoop||0)*100))}%)`;
     if(n._rxCatW) e.nf.textContent += '　✨職人触媒';
     if(n._rxCatR) e.nf.textContent += '　🧬研究触媒';
+    if(n._rxCorrosion) e.nf.textContent += `　🧪強酸腐食(耐久${Math.ceil(n.hpDur??100)}%)`;
+    if(n._rxCurse)     e.nf.textContent += '　👁️深淵呪詛';
+    if((n.activeReactions||[]).includes('hazard_purify')) e.nf.textContent += '　🌬️✨ハザード浄化中';
+    if((n.activeReactions||[]).includes('mad_science'))   e.nf.textContent += '　👑🔬狂科学精製';
+    if((n.activeReactions||[]).includes('blast_cannon'))  e.nf.textContent += '　💥🎯ブラストキャノン';
+    if((n.activeReactions||[]).includes('shatter_strike'))e.nf.textContent += '　❄️🔨砕氷撃';
+    if((n.activeReactions||[]).includes('napalm_burst'))  e.nf.textContent += '　🔥💥ナパーム爆炎';
     if((n.inTags && n.inTags.SHOCKWAVE) && (T.line==='comp' || T.store)) e.nf.textContent += '　💥💎爆風クラフト';
     if((n.pol||0) >= POL_EXPLODE_TH) e.nf.textContent += `　💥爆発危険(${Math.round(n.pol*100)}%)`;
     else if((n.pol||0) > 0.05) e.nf.textContent += `　☣汚染${Math.round(n.pol*100)}%`;
@@ -6059,8 +6451,11 @@ function render(fdt){
     setCls(e.root,'pol', (n.pol||0) > 0.05);
     setCls(e.root,'pol-crit', (n.pol||0) >= POL_EXPLODE_TH);
     setCls(e.root,'rx-quench', !!n._rxQuench);
-    setCls(e.root,'rx-overload', !!n._rxOverload && !n.broken);
+    setCls(e.root,'rx-overload', !!(n._rxOverload || n._rxBerserk) && !n.broken);
     setCls(e.root,'rx-resonance', !!n._inLoop);
+    setCls(e.root,'rx-corrosion', !!n._rxCorrosion && !n.broken);
+    setCls(e.root,'rx-curse', !!n._rxCurse);
+    setCls(e.root,'rx-cannon', !!(n._cannonT && n._cannonT > 0));
     setCls(e.root,'rx-broken', !!n.broken);
     setCls(e.root,'drop', !!n.drop);
     setCls(e.root,'comb', !!n.comb);
@@ -6114,6 +6509,8 @@ function render(fdt){
     if(l.el.flow){
       const ltags = l.tags || [];
       const tagCol = l._isLoop ? '#ff4df0'
+                   : ltags.includes('CORROSION') ? '#84cc16'
+                   : ltags.includes('CURSE') ? '#a855f7'
                    : ltags.includes('CRYO') ? '#45d6ff'
                    : ltags.includes('HEAT') ? '#ff5c38'
                    : ltags.includes('POLLUTION') ? '#b36bff'
@@ -6250,16 +6647,57 @@ function render(fdt){
   $('#rEra').textContent = `${eraName(S.era||1).i}${eraName(S.era||1).n}（第${S.era||1}世代）`;
   if(S.enemy){
     const z=zoneOf(S.floor);
+    const brx = S.battleRx || {};
     $('#zIc').textContent=z.i; $('#zName').textContent=z.n; $('#zName').style.color=z.c;
     $('#zFloor').textContent='第'+S.floor+'層'+(isBoss(S.floor)?' ★節目':'');
-    $('#eIc').textContent=S.enemy.icon; $('#eName').textContent=S.enemy.name;
-    $('#eHp').textContent=`${fmt(Math.max(0,S.enemy.hp))} / ${fmt(S.enemy.max)}`;
+    $('#eIc').textContent=S.enemy.icon;
+    const stIcons = (brx.cryo?'❄️':'') + (brx.heat?'🔥':'') + (brx.pol?'☣️':'') + (brx.shatter?'🔨':'');
+    $('#eName').textContent=S.enemy.name + (stIcons ? ' '+stIcons : '');
+    $('#eHp').textContent=`${fmt(Math.max(0,Math.round(S.enemy.hp)))} / ${fmt(S.enemy.max)}`;
     $('#eHpBar').style.width=Math.max(0,S.enemy.hp/S.enemy.max*100)+'%';
-    $('#eArm').textContent=fmt(enemyArm(S.floor));
-    const cut=Math.round(100 - 100*100/(100+enemyArm(S.floor)*ARMOR_K));
+    const effArm = Math.round(enemyArm(S.floor) * effArmorFactor());
+    $('#eArm').textContent = effArm < enemyArm(S.floor) ? `${fmt(effArm)} (元${fmt(enemyArm(S.floor))})` : fmt(enemyArm(S.floor));
+    const cut=Math.round(100 - 100*100/(100+effArm*ARMOR_K));
     $('#eDmg').textContent=fmt(dmg())+`（装甲で -${cut}%）`;
     $('#eHits').textContent=fmt(hitsLeft())+' 回';
     $('#eGold').textContent=fmt(enemyGold(S.floor))+' G';
+    const dBox = $('#dgnBox');
+    if(dBox){
+      dBox.classList.toggle('env-cryo', !!brx.cryo);
+      dBox.classList.toggle('env-heat', !!brx.heat && !brx.cryo);
+      dBox.classList.toggle('env-pol',  !!brx.pol && !brx.cryo && !brx.heat);
+      dBox.classList.toggle('env-haz',  !!(brx.hazCorrosion || brx.hazCurse));
+    }
+    const envEl = $('#eEnvTags'), envRow = $('#eEnvRow');
+    if(envEl && envRow){
+      const envs = [];
+      if(brx.cryo) envs.push('<span class="rx-tag" style="--tc:#45d6ff">❄️氷結・脆化(被ダメ×1.5)</span>');
+      if(brx.heat) envs.push('<span class="rx-tag" style="--tc:#ff5c38">🔥高熱・装甲貫通(-70%)</span>');
+      if(brx.pol)  envs.push('<span class="rx-tag" style="--tc:#c084fc">☣️猛毒霧(毎秒6%削り)</span>');
+      if(brx.cannon) envs.push('<span class="rx-tag" style="--tc:#ff3b5c">💥支援砲撃余波</span>');
+      envRow.hidden = !envs.length;
+      envEl.innerHTML = envs.join('');
+    }
+    const cbEl = $('#eComboTags'), cbRow = $('#eComboRow');
+    if(cbEl && cbRow){
+      const cbs = [];
+      if(brx.cannon)  cbs.push('<span class="rx-tag" style="--tc:#ff3b5c">💥🎯ブラストキャノン</span>');
+      if(brx.shatter) cbs.push('<span class="rx-tag" style="--tc:#38bdf8">❄️🔨砕氷撃(×2.2・装甲破砕)</span>');
+      if(brx.napalm)  cbs.push('<span class="rx-tag" style="--tc:#f97316">🔥💥ナパーム爆炎(×1.6・炎上DoT)</span>');
+      if(brx.berserk) cbs.push('<span class="rx-tag" style="--tc:#e11d48">⚡😡過負荷バーサーク(速度×4・火力×2.5)</span>');
+      cbRow.hidden = !cbs.length;
+      cbEl.innerHTML = cbs.join('');
+    }
+    const hzEl = $('#eHazTags'), hzRow = $('#eHazRow');
+    if(hzEl && hzRow){
+      const hzs = [];
+      if(brx.hazCorrosion) hzs.push('<span class="rx-tag" style="--tc:#84cc16">🧪腐食粘液逆流中</span>');
+      if(brx.hazCurse)     hzs.push('<span class="rx-tag" style="--tc:#a855f7">👁️深淵瘴気逆流中</span>');
+      if(brx.hazPurified)  hzs.push('<span class="rx-tag" style="--tc:#5ee0c0">🌬️✨浄化中和稼働</span>');
+      if(brx.madScience)   hzs.push('<span class="rx-tag" style="--tc:#facc15">👑🔬狂科学・深淵遺物精製</span>');
+      hzRow.hidden = !hzs.length;
+      hzEl.innerHTML = hzs.join('');
+    }
   }
   const al=$('#alert');
   if(jam){ al.classList.add('on');
@@ -9155,6 +9593,7 @@ function renderDtConst(body){
           <button class="dt-btn acc" data-rx-preset="A" style="text-align:left;padding:7px 10px">💨🔥 [プリセットA: 急冷合金ライン]（HEAT精錬炉 ＋ CRYO冷却 ＋ 職人・研究触媒）</button>
           <button class="dt-btn warn" data-rx-preset="B" style="text-align:left;padding:7px 10px">💥💎 [プリセットB: 爆風クラフト実験場]（臨界爆発SHOCKWAVE ➔ 隣接圧縮機で💎爆風結晶生成）</button>
           <button class="dt-btn bad" data-rx-preset="C" style="text-align:left;padding:7px 10px">🔄⚡ [プリセットC: 暴走フィードバックループ]（循環配線共鳴増幅 ＋ ☣排気過負荷ブースト）</button>
+          <button class="dt-btn acc" data-rx-preset="D" style="text-align:left;padding:7px 10px;border-color:#a855f7;color:#e9d5ff">⚔️☣️ [プリセットD: 戦闘化学＆逆流ハザード]（戦術注入・ブラストキャノン砲撃・属性コンボ・逆流ハザード浄化＆狂科学精製）</button>
         </div>
       </div>
       <div class="dt-field"><label>💰 ゴールド操作</label>
@@ -9391,6 +9830,62 @@ function loadReactionPreset(kind){
     sel = mine.id;
     addLog('🧪 [プリセットC: 暴走フィードバックループ] を配置しました！ 循環配線による🔄共鳴増幅と、🔥焼却発電の高圧排気(POLLUTION)による⚡過負荷ブースト(×4.0)・耐久摩耗が発生します','w');
     toast('🔄⚡ プリセットC: 暴走フィードバックループ を配置しました');
+  }
+  else if(kind === 'D'){
+    // [プリセットD: 戦闘化学＆逆流ハザード]
+    // 1. 地上から戦場への戦術介入（❄️CRYO氷結・🔥HEAT装甲貫通・☣️POLLUTION毒霧・💥ブラストキャノン砲撃）
+    // 2. スキル＆属性コンボ（❄️🔨砕氷撃・🔥💥ナパーム爆炎・⚡😡過負荷バーサーク）
+    // 3. ダンジョンからの逆流ハザード（🧪腐食粘液・👁️深淵瘴気）の二股処理（🌬️送風機で浄化 ＆ 🔬研究室/🔥精錬炉で👑深淵遺物・🔮呪縛コアへ狂科学精製）
+    S.floor = 20; if((S.best||0) < 20) S.best = 20;
+    spawnEnemy();
+
+    const hero   = spawn('hero',    60,  50, { outBuf:{sta:18} });
+    const cgen   = spawn('cgen1',   60, 210, { outBuf:{sta:18} });
+    const fuel   = spawn('fuel1',   60, 370, { item:'waste', inBuf:{waste:28}, outBuf:{sta:22} });
+    // 危険域の採掘機をダンジョン入口のすぐ上に配置・接続 → 爆発時に💥ブラストキャノンが発射される！
+    const mine   = spawn('mine1',  360,  20, { item:'ore1', inBuf:{sta:14}, outBuf:{ore1:10, waste:14}, pol:0.96, critT:18 });
+    const dive   = spawn('dive1',  360, 195, { inBuf:{sta:18, waste:6}, outBuf:{cslud:8, miasma:8, ore1:6} });
+    dive._emitHazard = true;
+
+    // 逆流ハザード処理ルート①：🌬️送風機による浄化・中和
+    const purify = spawn('purify1', 670,  35, { inBuf:{sta:14, cslud:4, miasma:4}, outBuf:{sta:10} });
+    // 逆流ハザード処理ルート②：🔬研究室＆🔥精錬炉による狂科学精製（👑深淵遺物・🔮呪縛コア）＋📦木箱での腐食摩耗観察
+    const lab    = spawn('lab1',    670, 195, { item:'cslud', inBuf:{sta:14, cslud:6, miasma:4}, outBuf:{drelic:3, tdat:3} });
+    const smelt  = spawn('smelt1',  670, 365, { item:'ing1',  inBuf:{sta:14, ore1:14, miasma:4}, outBuf:{ing1:6, core_cursed:3, drelic:2} });
+    const box    = spawn('box1',    960, 365, { items:['cslud','core_cursed','drelic'], inBuf:{cslud:4, core_cursed:2}, hpDur:86 });
+    const shop   = spawn('shop1',   960, 165, { items:['drelic','core_cursed','tdat'], inBuf:{sta:14, drelic:3, core_cursed:2} });
+
+    // ① 地上→ダンジョン戦術パイプライン配線（KINETIC + CRYO + HEAT/POLLUTION/FLAMMABLE + 爆発トリガー）
+    addLink(hero.id,  'sta',   dive.id);    // ⚔️KINETIC注入
+    addLink(cgen.id,  'sta',   dive.id);    // ❄️CRYO注入（氷結・脆化 ➔ ❄️🔨砕氷撃コンボ！）
+    addLink(fuel.id,  'sta',   dive.id);    // 🔥HEAT + ☣️POLLUTION注入（装甲貫通・毒霧・🔥💥ナパーム爆炎・⚡😡過負荷バーサーク！）
+    addLink(fuel.id,  'sta',   hero.id);    // 主人公へも過負荷供給
+    addLink(cgen.id,  'sta',   mine.id);
+    addLink(mine.id,  'waste', dive.id);    // 🛢️可燃廃材注入 ＋ 爆発時に💥ブラストキャノン発射！
+
+    // ② ダンジョン→地上への逆流ハザード（🧪腐食粘液・👁️深淵瘴気）二股配線
+    addLink(cgen.id,   'sta',    purify.id);
+    addLink(purify.id, 'sta',    lab.id);    // 送風機の冷却風(CRYO+⚡)を研究室へ供給
+    addLink(dive.id,   'cslud',  purify.id); // ルート①：送風機で腐食粘液を浄化
+    addLink(dive.id,   'miasma', purify.id); // ルート①：送風機で深淵瘴気を浄化
+
+    addLink(cgen.id,   'sta',    lab.id);
+    addLink(dive.id,   'cslud',  lab.id);    // ルート②：研究室で👑深淵遺物に狂科学精製！
+    addLink(dive.id,   'miasma', lab.id);
+
+    addLink(cgen.id,  'sta',    smelt.id);
+    addLink(dive.id,  'miasma', smelt.id);  // ルート③：精錬炉に深淵瘴気を注入 → 🔮呪縛コアに変異！
+    addLink(dive.id,  'cslud',  box.id);    // 腐食粘液をそのまま木箱へ流すと🧪強酸腐食で耐久摩耗！
+
+    addLink(lab.id,   'drelic',      shop.id);
+    addLink(lab.id,   'tdat',        shop.id);
+    addLink(smelt.id, 'core_cursed', shop.id);
+    addLink(smelt.id, 'drelic',      shop.id);
+    addLink(cgen.id,  'sta',         shop.id);
+
+    sel = dive.id;
+    addLog('⚔️☣️ [プリセットD: 戦闘化学＆逆流ハザード] を配置しました！ 地上からの戦術タグ注入・💥ブラストキャノン砲撃・属性コンボ、および深層からの🧪腐食粘液・👁️深淵瘴気の浄化＆🔬狂科学精製（👑深淵遺物・🔮呪縛コア）が同時稼働します','b');
+    toast('⚔️☣️ プリセットD: 戦闘化学＆逆流ハザード を配置しました');
   }
 
   if($('#devTool')) $('#devTool').classList.remove('on');
