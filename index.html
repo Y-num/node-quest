@@ -1041,16 +1041,27 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
           <div class="row">次に開けるもの<b class="num" id="rNext">—</b></div>
         </div>
       </div>
-      <div class="sec">無限ダンジョン</div>
+      <div class="sec">洞窟探索 ＆ 無限塔</div>
       <div class="box" id="dgnBox" style="transition:background .3s,border-color .3s,box-shadow .3s">
-        <div class="hd"><span id="zIc">🕳️</span><span id="zName">苔むした洞窟</span><span class="sub num" id="zFloor">第1層</span></div>
+        <div class="hd" style="gap:6px;flex-wrap:wrap">
+          <span id="zIc">🕳️</span><span id="zName">苔むした洞窟</span>
+          <span class="sub num" id="zFloor">第1 / 10層</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin:4px 0 6px">
+          <select id="caveSel" style="flex:1;background:#0c111b;border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:11px;padding:3px 6px"></select>
+          <span id="caveClearBadge" style="font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:99px;background:rgba(242,193,78,.15);border:1px solid var(--gold);color:var(--gold);white-space:nowrap">初回報酬10倍!</span>
+        </div>
         <div class="hd zsub"><span id="eIc">👾</span><span id="eName">スライム</span><span class="sub num" id="eHp">0 / 0</span></div>
         <div class="hbar eh"><i id="eHpBar"></i></div>
         <div class="rows">
           <div class="row">1回の与ダメージ<b class="num" id="eDmg">0</b></div>
           <div class="row">撃破まで<b class="num" id="eHits">—</b></div>
-          <div class="row">敵の装甲（ダメージ軽減）<b class="num" id="eArm">0</b></div>
-          <div class="row">撃破報酬<b class="num" id="eGold">0</b></div>
+          <div class="row">敵の装甲 / 特性<b class="num" id="eArm">0</b></div>
+          <div class="row">撃破報酬 ＆ 素材<b class="num" id="eGold">0</b></div>
+          <div class="row" id="eCaveRewardRow" style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:4px;border-top:1px dashed var(--line)">
+            <span style="font-size:10px;color:var(--gold)" id="eCaveRewardTitle">🏆 洞窟制覇報酬（初回10倍！）</span>
+            <b class="num" id="eCaveReward" style="font-size:10px;color:var(--fg);text-align:left;margin-left:0"></b>
+          </div>
           <div class="row" id="eEnvRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:4px;border-top:1px dashed var(--line)">
             <span style="font-size:10px;color:var(--acc2)">⚔️ 戦場流入・状態異常</span>
             <div id="eEnvTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
@@ -1353,6 +1364,12 @@ const ITEMS = {
   miasma      :{n:'深淵瘴気',     i:'👁️', c:'#6d28d9'}, // ボス層逆流ハザード（CURSE）
   core_cursed :{n:'呪縛コア',     i:'🔮', c:'#a855f7'}, // CURSEによる地金変異
   drelic      :{n:'深淵遺物',     i:'👑', c:'#facc15'}, // ハザードを研究所/精錬炉で精製した超遺物
+  mcore       :{n:'魔獣の核',     i:'👾', c:'#f43f5e'}, // 第1洞窟：苔むした洞窟ドロップ
+  afang       :{n:'水棲の牙',     i:'🦷', c:'#38bdf8'}, // 第2洞窟：地下水路ドロップ
+  arelic      :{n:'古代の歯車',   i:'⚙️', c:'#f59e0b'}, // 第3洞窟：古代遺跡ドロップ
+  fheart      :{n:'獄炎の竜晶',   i:'❤️‍🔥', c:'#ef4444'}, // 第4洞窟：灼熱の溶岩窟ドロップ（HEAT触媒）
+  fcryst      :{n:'万年氷晶',     i:'❄️', c:'#60a5fa'}, // 第5洞窟：凍てつく水晶洞ドロップ（CRYO触媒）
+  acore       :{n:'星淵の秘石',   i:'🌌', c:'#c084fc'}, // 第6洞窟・無限塔ドロップ（研究・共鳴触媒）
 };
 /* 副産物と、燃料に戻したときの価値。時代が進むほど厄介なものが増える。
    出るようになる時代と、片付けられるようになる時代は1つずれている。   */
@@ -1442,8 +1459,10 @@ function nextTier(k, cap){
   return to;
 }
 // 素材そのものの価値。部品を基準に、地金は3割、原鉱は1割。圧縮するほど跳ね上がる
-const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30, slud:8, cslud:15, miasma:35, qstl:18, bdia:250, artf:180, tdat:120, core_cursed:160, drelic:420};
-const RX_ITEMS = ['qstl','bdia','artf','tdat','cslud','miasma','core_cursed','drelic'];
+const BYP_VAL = {waste:0.2, toxic:1, rad:6, rift:30, slud:8, cslud:15, miasma:35, qstl:18, bdia:250, artf:180, tdat:120, core_cursed:160, drelic:420,
+                 mcore:35, afang:95, arelic:260, fheart:720, fcryst:1900, acore:5200};
+const CAVE_ITEMS = ['mcore','afang','arelic','fheart','fcryst','acore'];
+const RX_ITEMS = ['qstl','bdia','artf','tdat','cslud','miasma','core_cursed','drelic'].concat(CAVE_ITEMS);
 const HAZ_ITEM = {cslud:'CORROSION', miasma:'CURSE', core_cursed:'CURSE'};
 /* 宝箱。銅→銀→金 の順に中身が良くなる。落ちる割合もその順に低い */
 const BOXES = [
@@ -1668,6 +1687,14 @@ const TYPES = {
   boost :{n:'作業灯',    i:'💡', cost:2500, up:3000, time:3.0, ins:{sta:5}, outs:{},
           aura:{k:'speed', v:0.5, r:250},
           d:'置いた場所のまわりの施設が速くなる。重ねて置くほど効く'},
+  extr  :{n:'魔獣抽出炉', i:'🧬', cost:1200, up:1600, time:3.0, ins:{sta:4}, soft:{mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1, lot1:1, lot2:1, lot3:1, cslud:1}, outs:{sta:11, exs:1, exi:1, exv:1}, effect:'extr', caveMat:{mcore:3, ing1:2},
+          d:'【洞窟素材クラフト施設】洞窟で得た👾魔獣の核などを使って建設。稼働ごとに大量の⚡電力と全種類の訓練経験値（💪/🧠/❤️）を抽出し、洞窟素材を送り込むと🧱研究資材と🔬研究力に分解還元する'},
+  turret:{n:'戦術支援砲台',i:'🗼', cost:3200, up:4000, time:2.2, ins:{sta:6}, soft:{mcore:1, afang:1, fheart:1, fcryst:1, bdia:1, qstl:1, ing1:1}, outs:{}, effect:'turret', aura:{k:'speed', v:0.35, r:260}, caveMat:{afang:2, mcore:3},
+          d:'【洞窟素材クラフト施設】洞窟の🦷水棲の牙と👾魔獣の核で建設。稼働ごとに探索中の洞窟モンスターへ支援砲撃を行い、敵の自己再生バリアを封印し、周囲の施設を+35%加速させる'},
+  synt  :{n:'遺物錬成工房',i:'🏺', cost:8500, up:10000,time:4.2, ins:{sta:8}, soft:{mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1}, outs:{qstl:1, artf:1, eqp1:1}, effect:'synt', caveMat:{arelic:2, afang:2},
+          d:'【洞窟素材クラフト施設】⚙️古代の歯車から建設。🛡️強化鋼・🏺レア遺物・🎽装備を自動で一括錬成し、洞窟素材を投入すると⚙️強化パーツや💎爆風結晶・👑深淵遺物をクラフトする'},
+  altar :{n:'星辰の祭壇',  i:'⛩️', cost:24000,up:28000,time:4.5, ins:{sta:8}, soft:{mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1, drelic:1, core_cursed:1}, outs:{sta:6}, effect:'altar', cleanEnergy:true, aura:{k:'clean', v:1.4, r:320}, caveMat:{fheart:2, arelic:2},
+          d:'【洞窟素材クラフト施設】❤️‍🔥獄炎の竜晶から建設。周囲の汚染を強力に浄化しつつ、稼働ごとに主人公たちの恒久攻撃力ボーナスと🔬研究力を授ける聖域'},
 };
 
 /* =========================================================================
@@ -1797,6 +1824,16 @@ const FAC = {
   hout:  [{e:1,n:'搬出口',      i:'🏠'},{e:2,n:'荷出し場',  i:'🚚'},{e:3,n:'自動搬出機',i:'🤖'}],
   purify:[{e:1,n:'送風機',      i:'🌬️'},{e:2,n:'空気清浄機',i:'🌀'},{e:3,n:'浄化場',    i:'🧱'}],
   boost: [{e:1,n:'作業灯',      i:'💡'},{e:2,n:'監督塔',    i:'🔔'},{e:3,n:'管制塔',    i:'🤖'}],
+  extr:  [{e:1,n:'魔獣抽出炉',  i:'🧬', outs:{sta:11, exs:1, exi:1, exv:1}},
+          {e:2,n:'生体精製機',  i:'⚗️', outs:{sta:34, power:3, exs:3, exi:3, exv:3}},
+          {e:3,n:'深淵抽出槽',  i:'🌌', outs:{sta:110, power:12, nfl:2, exs:10, exi:10, exv:10}}],
+  turret:[{e:1,n:'戦術支援砲台',i:'🗼'},{e:2,n:'魔導迎撃塔',i:'🛰️'},{e:3,n:'星淵決戦兵器',i:'☄️'}],
+  synt:  [{e:1,n:'遺物錬成工房',i:'🏺', outs:{qstl:1, artf:1, eqp1:1}},
+          {e:2,n:'古代機構炉',  i:'⚙️', outs:{qstl:2, artf:2, bdia:1, eqp2:1}},
+          {e:3,n:'星辰錬成機',  i:'💫', outs:{qstl:4, artf:3, bdia:2, drelic:1, eqp3:1}}],
+  altar: [{e:1,n:'星辰の祭壇',  i:'⛩️', outs:{sta:6}, cleanEnergy:true},
+          {e:2,n:'深淵の聖堂',  i:'🔮', outs:{sta:22, power:3}, cleanEnergy:true},
+          {e:3,n:'神託の星宮',  i:'👑', outs:{sta:80, power:12, nfl:2}, cleanEnergy:true}],
 };
 
 /* =========================================================================
@@ -1970,6 +2007,10 @@ const ROLE_TREE_DEFAULT = {
   cgen:   {start:false, reqRole:'gen',    treeX:3, treeY:6, rp:520, mat:30},
   wood:   {start:false, reqRole:'gen',    treeX:3, treeY:7, rp:650, mat:40},
   coal:   {start:false, reqRole:'wood',   treeX:4, treeY:7, rp:1000, mat:80},
+  extr:   {start:false, reqRole:'dive',   treeX:1, treeY:8, rp:90,   mat:10, reqFloor:5},
+  turret: {start:false, reqRole:'extr',   treeX:2, treeY:8, rp:240,  mat:25, reqFloor:10},
+  synt:   {start:false, reqRole:'turret', treeX:3, treeY:8, rp:680,  mat:60, reqFloor:18},
+  altar:  {start:false, reqRole:'synt',   treeX:4, treeY:8, rp:1800, mat:140, reqFloor:28},
 };
 
 const ORDER = ['hero'];
@@ -2031,7 +2072,8 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  wood:'薪',coal:'石炭',gen:'発電',cgen:'クリーン発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出'};
+  wood:'薪',coal:'石炭',gen:'発電',cgen:'クリーン発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',
+  extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -2128,9 +2170,22 @@ const matMul   = n  => lvPow(n.level) * Math.pow(2.2, (TYPES[n.type].era||1)-1) 
    ⚡だけを元手にしていると、素材がいくら余っても研究が伸びなかった      */
 let MAT_RP   = 1.0;
 const matRp    = n  => matMul(n) * MAT_RP;
-const enemyHp  = f  => Math.floor(8 * Math.pow(ENEMY_K, f-1) * (f%10===0 ? 3 : 1));
-const enemyArm = f  => Math.floor(Math.pow(f, 0.95));
-const enemyGold= f  => Math.floor(10 * Math.pow(1.12, f-1) * (f%10===0 ? 5 : 1));
+const enemyHp  = f  => {
+  const c = curCave(), ef = effFloorOf(f, c);
+  const clears = caveClearsOf(c.id), loopMul = 1 + clears * 0.55;
+  const bossMul = isBoss(f) ? (!c.infinite && (S && S.caveFloor === c.maxF) ? 5.5 : 3.2) : 1;
+  return Math.max(42, Math.floor(34 * Math.pow(ENEMY_K, ef-1) * bossMul * loopMul));
+};
+const enemyArm = f  => {
+  const c = curCave(), ef = effFloorOf(f, c);
+  const clears = caveClearsOf(c.id);
+  return Math.floor((3 + Math.pow(ef, 1.05)) * (1 + clears * 0.35));
+};
+const enemyGold= f  => {
+  const c = curCave(), ef = effFloorOf(f, c);
+  const clears = caveClearsOf(c.id);
+  return Math.floor(14 * Math.pow(1.13, ef-1) * (isBoss(f) ? 5 : 1) * (1 + clears * 0.25));
+};
 let ARMOR_K  = 8;   // 装甲は引き算ではなく減衰率。1ダメージ固定の壁ができない
 function effArmorFactor(){
   const brx = (S && S.battleRx) || {};
@@ -2334,9 +2389,17 @@ function outsOf(n){
     return modOuts(n, ex);
   }
   if(T.loot){ const o = {[lootItem(n)]:1};
+    const cd = curCave().drop;
+    if(cd && ITEMS[cd]) o[cd] = 1;             // 現在の洞窟の固有素材排出口
+    for(const ck of CAVE_ITEMS) if((n.outBuf && n.outBuf[ck] > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item===ck))) o[ck] = 1;
     for(const b of BOXES) o[b.k] = 1;          // 宝箱の口も作る（実際は撃破時に落ちる）
     o.cslud = 1; o.miasma = 1;                 // 深層・ボス層から逆流するハザード排出口
     return modOuts(n, o); }
+  if(T.effect==='synt'){
+    const o = Object.assign({}, T.outs || {});
+    for(const ck of ['bdia','drelic','core_cursed']) if((n.outBuf && n.outBuf[ck] > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item===ck))) o[ck] = 1;
+    return modOuts(n, o);
+  }
   if(T.store){ const o={}; for(const k of storeItems(n)) o[k]=1; return o; }
   if(T.tool){
     const o = n.item ? {[n.item]: Math.max(T.take+1, Math.round(T.take * toolMul(n)))} : {};
@@ -2357,6 +2420,14 @@ function softIns(n){
   if(T.matIn){
     const o = n.item ? {[n.item]:1} : {};
     o.cslud = 1; o.miasma = 1; o.core_cursed = 1;
+    for(const ck of CAVE_ITEMS) o[ck] = 1;
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to===n.id && !POW_ITEM[l.item]) o[l.item] = 1;
+    }
+    return o;
+  }
+  if(T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar'){
+    const o = Object.assign({}, T.soft || {});
     if(typeof S!=='undefined' && S && S.links){
       for(const l of S.links) if(l.to===n.id && !POW_ITEM[l.item]) o[l.item] = 1;
     }
@@ -2573,7 +2644,12 @@ let MAT_RATE = 0.045;        // 建設費のこれくらいを、地金の数に
 const MAT_ITEM = e => 'ing' + Math.min(CHAIN.length, Math.max(1, e||1));
 function buyMat(t){
   const T = TYPES[t];
-  if(!T.era || T.cost <= 0) return null;            // 口やレイヤーは要らない
+  if(!T || !T.era || T.cost <= 0) return null;            // 口やレイヤーは要らない
+  if(T.caveMat){
+    const o = {}, mul = Math.max(1, Math.round(Math.pow(1.6, (T.era||1)-1) * (1 + (S.counts[t]||0)*0.5)));
+    for(const ck in T.caveMat) o[ck] = Math.max(1, Math.round(T.caveMat[ck] * mul));
+    return o;
+  }
   const k = MAT_ITEM(T.era);
   const q = Math.max(1, Math.round(buyCost(t) * MAT_RATE / Math.max(1, itemVal(k))));
   return {[k]: q};
@@ -2933,32 +3009,69 @@ function doEra(){
   for(const t of perkNews(e)) addLog(`　└ ${t}`, 'b');
   return true;
 }
-/* 無限ダンジョン。潜った深さがそのままスコアで、10層ごとの踏破が恒久的な力になる */
-const ZONES = [
-  {f:1,   n:'苔むした洞窟',  i:'🕳️', c:'#8a9bb5', e:['スライム','コウモリ','大ネズミ','ゴブリン']},
-  {f:25,  n:'地下水路',      i:'💧', c:'#58c6e8', e:['ヘドロ','人喰い魚','水霊','サハギン']},
-  {f:50,  n:'古代遺跡',      i:'🏛️', c:'#e2a24c', e:['石像兵','呪われた鎧','ミイラ','遺跡の守護者']},
-  {f:100, n:'溶岩回廊',      i:'🌋', c:'#e0576b', e:['火竜の仔','マグマゴーレム','焔鬼','サラマンダー']},
-  {f:175, n:'凍てつく深淵',  i:'❄️', c:'#7aa2ff', e:['氷霊','霜の巨人','白狼','氷結騎士']},
-  {f:275, n:'虚無の底',      i:'🌌', c:'#b487f5', e:['影喰い','虚無の使徒','混沌','名もなきもの']},
-  {f:400, n:'極点',          i:'✴️', c:'#5ee0c0', e:['深層の主','終焉','忘却','■■■■']},
+/* 階層定義つき洞窟とエンドコンテンツ「無限塔」。
+   無限塔以外の洞窟には階層上限（maxF）とクリア（踏破）の概念があり、
+   最終層ボス撃破でクリア報酬（初回10倍・2回目以降は等倍）を獲得して次の洞窟と専用施設を解放する。
+   また周回ごとに敵が強化され、ボスや深層モンスターは自己再生バリアや反撃消耗を持つため、
+   プレイヤーの能力強化・装備鍛造・支援砲台・戦術化学パイプラインが必須になる。 */
+const CAVES = [
+  {id:'cave1', idx:0, f:1,   maxF:10, baseF:1,   step:1.30, n:'苔むした洞窟',    i:'🕳️', c:'#8a9bb5', drop:'mcore',  unlockFac:'extr1',
+   rw:{g:600,     rp:150,    mat:35,    item:'mcore',  q:2},
+   e:['スライム','コウモリ','大ネズミ','ゴブリン','洞窟トロル']},
+  {id:'cave2', idx:1, f:25,  maxF:15, baseF:12,  step:1.38, n:'地下水路',        i:'💧', c:'#58c6e8', drop:'afang',  unlockFac:'turret1',
+   rw:{g:3200,    rp:800,    mat:160,   item:'afang',  q:2},
+   e:['ヘドロ','人喰い魚','水霊','サハギン','深水ハイドラ']},
+  {id:'cave3', idx:2, f:50,  maxF:20, baseF:28,  step:1.45, n:'古代遺跡',        i:'🏛️', c:'#e2a24c', drop:'arelic', unlockFac:'synt1',
+   rw:{g:16000,   rp:4000,   mat:650,   item:'arelic', q:2},
+   e:['石像兵','呪われた鎧','ミイラ','遺跡の守護者','古代機神']},
+  {id:'cave4', idx:3, f:100, maxF:25, baseF:50,  step:1.52, n:'灼熱の溶岩窟',    i:'🌋', c:'#e0576b', drop:'fheart', unlockFac:'altar1',
+   rw:{g:80000,   rp:20000,  mat:3200,  item:'fheart', q:2},
+   e:['火竜の仔','マグマゴーレム','焔鬼','サラマンダー','獄炎古竜']},
+  {id:'cave5', idx:4, f:175, maxF:30, baseF:80,  step:1.60, n:'凍てつく水晶洞',  i:'❄️', c:'#7aa2ff', drop:'fcryst', unlockFac:'extr2',
+   rw:{g:400000,  rp:100000, mat:16000, item:'fcryst', q:2},
+   e:['氷霊','霜の巨人','白狼','氷結騎士','絶対零度の王']},
+  {id:'cave6', idx:5, f:275, maxF:40, baseF:120, step:1.68, n:'星詠みの深淵',    i:'🌌', c:'#b487f5', drop:'acore',  unlockFac:'turret2',
+   rw:{g:2200000, rp:550000, mat:85000, item:'acore',  q:2},
+   e:['影喰い','虚無の使徒','混沌','名もなきもの','星淵の支配者']},
+  {id:'tower', idx:6, f:400, maxF:Infinity, infinite:true, baseF:165, step:1.45, n:'無限塔（極点）', i:'🗼', c:'#5ee0c0', drop:'acore', unlockFac:null,
+   rw:null,
+   e:['深層の主','終焉の騎士','忘却の使徒','星喰らい','■■■■']},
 ];
-const zoneOf = f => { let z=ZONES[0]; for(const q of ZONES) if(f>=q.f) z=q; return z; };
+const ZONES = CAVES;
+const caveById = id => CAVES.find(c => c.id === id) || CAVES[0];
+const curCave  = () => (S && S.caveId) ? caveById(S.caveId) : CAVES[0];
+const caveClearsOf = id => Math.floor((S && S.caveClears && S.caveClears[id]) || 0);
+const isCaveUnlocked = id => id === 'cave1' || !!(S && S.caveUnlocked && S.caveUnlocked[id]);
+const zoneOf = f => {
+  if(S && S.caveId) return curCave();
+  let z=CAVES[0]; for(const q of CAVES) if(f>=q.f) z=q; return z;
+};
+/* 現在の洞窟・階層から実効難易度の基準階層（effFloor）を算出 */
+function effFloorOf(f, cave){
+  const c = cave || curCave();
+  const cf = (S && S.caveFloor) ? S.caveFloor : Math.max(1, f || 1);
+  const clears = caveClearsOf(c.id);
+  return Math.max(1, Math.round(c.baseF + (cf - 1) * (c.step || 1.3) + clears * (c.maxF < Infinity ? c.maxF * 0.45 : 10)));
+}
 let BOSS_EVERY = 10;
-const isBoss = f => f % BOSS_EVERY === 0;
-/* 踏破報酬：10層ごとに攻撃力が恒久的に伸びる。
-   伸び幅そのものが段とともに増えるので、深く潜るほど加速する（後半で効く曲線）
-     3段(30層) ×1.4 ／ 6段 ×2.3 ／ 12段(120層) ×9.4 ／ 17段(175層) ×47 ／ 25段 ×1,300 */
+const isBoss = f => {
+  const c = curCave();
+  const cf = (S && S.caveFloor) ? S.caveFloor : (f || 1);
+  if(!c.infinite && cf === c.maxF) return true;
+  return cf % 5 === 0 || (f || 1) % BOSS_EVERY === 0;
+};
+/* 踏破報酬：洞窟クリア回数と最深到達に応じて攻撃力が恒久的に伸びる */
 let DEPTH_K    = 1.09;
 let DEPTH_Q    = 11;
-const depthTier  = () => Math.floor(S.best / BOSS_EVERY);
+const totalCaveClears = () => (!S || !S.caveClears) ? 0 : Object.values(S.caveClears).reduce((a,b)=>a+(b||0), 0);
+const depthTier  = () => Math.floor(((S && S.best) || 1) / 5) + totalCaveClears() * 2;
 const depthBonus = () => { const t = depthTier();
   return Math.pow(DEPTH_K, t + t*t/DEPTH_Q); };
 const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
 const anyPort = n => { const T=TYPES[n.type];
-  if(T.store || T.effect==='dive' || T.matIn || T.line==='purify') return true;
+  if(T.store || T.effect==='dive' || T.matIn || T.line==='purify' || T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar') return true;
   return !!(T.chain==='sell' && storeItems(n).length < T.slots); };
 const rowsOf = n => Math.max(1, inKeys(n).length + (anyPort(n)?1:0), outKeys(n).length);
 const nodeH  = n => HEAD + rowsOf(n)*ROWH + 26;
@@ -2992,7 +3105,8 @@ function freshState(){
   return {
     gold:40, nextId:1, nextNo:0, counts:{}, nodes:[], links:[],
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
-    floor:1, best:1, enemy:null, log:[], drops:[], dives:0, name:'',
+    floor:1, best:1, caveId:'cave1', caveFloor:1, caveClears:{}, caveUnlocked:{cave1:1},
+    enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
     era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
@@ -3585,7 +3699,8 @@ function storeCanTake(n, item){
   const T = TYPES[n.type];
   if(T.store) return !!item && spaceIn(n, item) > 0;      // 貯蔵は何でも受け取る
   if(T.effect==='dive') return !!item;                    // ダンジョン入口は戦術パイプラインとして何でも注入可能
-  if(T.matIn && HAZ_ITEM[item]) return true;              // 研究所は逆流ハザードをいつでも受け入れ可能
+  if(T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar') return !POW_ITEM[item];
+  if(T.matIn && (HAZ_ITEM[item] || CAVE_ITEMS.includes(item))) return true; // 研究所は逆流ハザード・洞窟素材をいつでも受け入れ可能
   if(T.line==='purify' && (HAZ_ITEM[item] || POL_ITEM[item])) return true; // 送風機はハザード・汚染物質を浄化受け入れ可能
   if(T.line==='smelt' && HAZ_ITEM[item]) return true;     // 精錬炉もハザードを高温精製受け入れ可能
   if(T.chain!=='sell' || !item) return false;
@@ -3595,7 +3710,7 @@ function storeCanTake(n, item){
 }
 function storeAssign(n, item){
   const T = TYPES[n.type];
-  if(T.effect==='dive' || T.line==='purify' || (T.matIn && HAZ_ITEM[item]) || (T.line==='smelt' && HAZ_ITEM[item])){
+  if(T.effect==='dive' || T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar' || T.line==='purify' || (T.matIn && (HAZ_ITEM[item] || CAVE_ITEMS.includes(item))) || (T.line==='smelt' && HAZ_ITEM[item])){
     rebuildNodeEl(n);
     return true;
   }
@@ -3735,7 +3850,10 @@ function spaceIn(n,item){
   if(T.effect==='dive' && item!=='sta'){            // ダンジョン戦術パイプライン注入
     return Math.max(0, CAP*3 - (n.inBuf[item]||0));
   }
-  if((T.matIn || T.line==='purify' || T.line==='smelt') && (HAZ_ITEM[item] || POL_ITEM[item])){
+  if((T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar') && !POW_ITEM[item]){
+    return Math.max(0, CAP*3 - (n.inBuf[item]||0));
+  }
+  if((T.matIn || T.line==='purify' || T.line==='smelt') && (HAZ_ITEM[item] || POL_ITEM[item] || CAVE_ITEMS.includes(item))){
     return Math.max(0, CAP*3 - (n.inBuf[item]||0));
   }
   return !allIns(n)[item] ? 0 : Math.max(0, capIn(n,item) - (n.inBuf[item]||0));
@@ -3804,9 +3922,60 @@ function tick(dt,fast){
             grantRp(120 * c * lvPow(n.level), fast);
             if(!fast) spawnReactionPop(n, '👑🔬 狂科学精錬：👑深淵遺物！', '#facc15');
           }
+        }else if(T.effect === 'extr'){  // 🧬魔獣抽出炉：洞窟素材・戦利品を分解研究し🧱研究資材と🔬RP＋追加経験値を抽出
+          const v = Math.max(10, itemVal(k)) * c;
+          const mGain = Math.max(1, Math.round(v * 0.25 * matMul(n)));
+          const rGain = Math.max(2, Math.round(v * 1.4 * matRp(n)));
+          S.stock = (S.stock||0) + mGain;
+          n.gain  = (n.gain||0) + rGain;
+          grantRp(rGain, fast);
+          n.outBuf.sta = Math.min(capOut(n,'sta'), (n.outBuf.sta||0) + 4 * c);
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `🧬 魔獣分解研究！ +🔬${fmt(rGain)} +🧱${fmt(mGain)}`, '#f43f5e');
+            _rxPopCd = 0.7;
+          }
+        }else if(T.effect === 'turret'){ // 🗼戦術支援砲台：洞窟素材・弾薬を装填して威力強化
+          n._ammoBoost = Math.min(20, (n._ammoBoost||0) + 2 * c);
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `🗼💥 魔導弾装填！ 砲撃威力2.5倍`, '#38bdf8');
+            _rxPopCd = 0.7;
+          }
+        }else if(T.effect === 'synt'){   // 🏺遺物錬成工房：洞窟素材から💎爆風結晶・👑深淵遺物・⚙️強化パーツをクラフト
+          if(k === 'fheart' || k === 'fcryst' || k === 'acore'){
+            n.outBuf.drelic = (n.outBuf.drelic||0) + c;
+            homeOf().drelic = (homeOf().drelic||0) + c;
+            flowIn('drelic', c); nodeFlow(n, 'drelic', c, 'i');
+          }else{
+            n.outBuf.bdia = (n.outBuf.bdia||0) + c;
+            homeOf().bdia = (homeOf().bdia||0) + c;
+            flowIn('bdia', c); nodeFlow(n, 'bdia', c, 'i');
+          }
+          const pk = rollPart(effFloorOf(S.floor));
+          addPart(pk, 1);
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `🏺✨ 洞窟素材クラフト！ (${partName(pk)})`, '#f59e0b');
+            _rxPopCd = 0.7;
+          }
+        }else if(T.effect === 'altar'){  // ⛩️星辰の祭壇：洞窟秘石や遺物を捧げて恒久攻撃力＋研究力＋周囲浄化
+          const atkUp = Math.max(1, Math.round((CAVE_ITEMS.includes(k) ? 3 : 2) * c * lvPow(n.level)));
+          const rpUp  = Math.max(15, Math.round(itemVal(k) * 1.8 * c * lvPow(n.level)));
+          S.atkBonus = (S.atkBonus||0) + atkUp;
+          n.gain = (n.gain||0) + rpUp;
+          grantRp(rpUp, fast);
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `⛩️✨ 祭壇奉献！ 攻撃力+${fmt(atkUp)} / 🔬+${fmt(rpUp)}`, '#c084fc');
+            _rxPopCd = 0.7;
+          }
         }else if(T.effect === 'dive'){  // ダンジョン入口への戦術パイプライン物資注入
           if(k === 'bdia'){
             fireBlastCannon(n, fast, '💎爆風結晶');
+          }else if(k === 'fheart'){
+            n._tacHeat = Math.max(n._tacHeat||0, 12.0);
+            n._tacFlam = Math.max(n._tacFlam||0, 12.0);
+          }else if(k === 'fcryst'){
+            n._tacCryo = Math.max(n._tacCryo||0, 12.0);
+          }else if(k === 'acore'){
+            n._forceBerserk = true;
           }else if(k === 'wood' || k === 'coal' || k === 'waste'){
             n._tacFlam = Math.max(n._tacFlam||0, 8.0);
             n._tacHeat = Math.max(n._tacHeat||0, 8.0);
@@ -3971,6 +4140,49 @@ function tick(dt,fast){
         n.gain=(n.gain||0)+rp; grantRp(rp, fast);
       }
       if(T.effect==='dive') doDive(fast, n);
+      if(T.effect==='extr'){
+        const r = Math.max(3, Math.round(8 * lvPow(n.level) * Math.pow(2.2, (T.era||1)-1)));
+        const m = Math.max(1, Math.round(2 * lvPow(n.level) * Math.pow(2.0, (T.era||1)-1)));
+        S.stock = (S.stock||0) + m;
+        n.gain = (n.gain||0) + r;
+        grantRp(r, fast);
+      }
+      if(T.effect==='turret'){
+        if(!S.enemy) spawnEnemy();
+        const boost = (n._ammoBoost||0) > 0 ? 2.5 : 1.0;
+        if((n._ammoBoost||0) > 0) n._ammoBoost--;
+        const tdmg = Math.max(1, Math.round(dmg() * 1.65 * lvPow(n.level) * Math.pow(2.4, (T.era||1)-1) * boost));
+        S.enemy._noRegen = 6.0; // ボスの自己再生バリアを封印
+        S.enemy.hp -= tdmg;
+        n.gain = (n.gain||0) + tdmg;
+        if(!fast && _rxPopCd <= 0 && Math.random() < 0.35){
+          spawnReactionPop(n, `🗼🎯 支援砲撃！ (-${fmt(tdmg)})`, '#38bdf8');
+          _rxPopCd = 0.65;
+        }
+        if(S.enemy.hp <= 0){
+          S.enemy.hp = 1;
+          const dvNode = S.nodes.find(x => TYPES[x.type] && TYPES[x.type].effect === 'dive') || n;
+          doDive(fast, dvNode, true);
+        }
+      }
+      if(T.effect==='synt'){
+        n.gain = (n.gain||0) + 1;
+        for(const ck of ['qstl','artf','eqp1','eqp2','eqp3','bdia','drelic']){
+          if(give[ck]) homeOf()[ck] = (homeOf()[ck]||0) + give[ck];
+        }
+        if(n.done % 4 === 0){
+          const pk = rollPart(effFloorOf(S.floor));
+          addPart(pk, 1);
+          if(!fast) addLog(`🏺【遺物錬成】${tierOf(n).n} が ${partName(pk)} を錬成した！`, 'b');
+        }
+      }
+      if(T.effect==='altar'){
+        const atkAdd = Math.max(1, Math.round(1.5 * lvPow(n.level) * Math.pow(2.2, (T.era||1)-1)));
+        const rpAdd  = Math.max(5, Math.round(18 * lvPow(n.level) * Math.pow(2.5, (T.era||1)-1)));
+        S.atkBonus = (S.atkBonus||0) + atkAdd;
+        n.gain = (n.gain||0) + rpAdd;
+        grantRp(rpAdd, fast);
+      }
       if(T.effect==='raid'){
         n.hp = (n.hp || raidHp()) - atk();     // 階層の装甲は関係しない
         if(n.hp <= 0){ raidDone(n); break; }
@@ -4759,6 +4971,11 @@ function getLinkTags(src, item, dst){
   if(item === 'cslud') tags.add('CORROSION');
   if(item === 'miasma' || item === 'core_cursed') tags.add('CURSE');
   if(item === 'drelic'){ tags.add('CURSE'); tags.add('CATALYST_RESEARCH'); }
+  if(item === 'fheart') tags.add('HEAT');
+  if(item === 'fcryst') tags.add('CRYO');
+  if(item === 'acore'){ tags.add('CATALYST_RESEARCH'); tags.add('RESONANCE'); }
+  if(role === 'altar') tags.add('CRYO');
+  if(role === 'turret') tags.add('KINETIC');
   // 中継ノードは受け取っているタグも下流へ伝播する
   if(src.inTags){
     if(src.inTags.HEAT && (T.store || T.tool || role === 'smelt' || role === 'forge')) tags.add('HEAT');
@@ -5417,13 +5634,39 @@ function srcFace(n){
   const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
   return `${role}${stTxt}${pay}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
 }
+function selectCave(caveId, silent){
+  const c = caveById(caveId);
+  if(!c || !isCaveUnlocked(c.id)) return false;
+  S.caveId = c.id;
+  S.caveFloor = 1;
+  S.floor = c.baseF;
+  spawnEnemy();
+  for(const n of S.nodes) if(TYPES[n.type] && TYPES[n.type].effect === 'dive') rebuildNodeEl(n);
+  if(!silent){
+    const clears = caveClearsOf(c.id);
+    const rwNote = c.infinite ? '階層上限なし・エンドコンテンツ'
+                 : clears === 0 ? `全${c.maxF}層・初回クリア報酬10倍！`
+                 : `全${c.maxF}層・周回クリア報酬等倍（現在${clears}回踏破・敵強化中）`;
+    addLog(`🧭【洞窟移動】${c.i}${c.n}（${rwNote}）へ進入した`, 'b');
+    toast(`${c.i}${c.n}（第1層）へ移動しました`);
+    render();
+  }
+  return true;
+}
 function doDive(fast, node, fromCannon){
+  if(!S.caveId) S.caveId = 'cave1';
+  if(!S.caveFloor) S.caveFloor = Math.max(1, S.floor || 1);
+  if(!S.caveClears) S.caveClears = {};
+  if(!S.caveUnlocked) S.caveUnlocked = {cave1:1};
   if(!S.enemy) spawnEnemy();
+  const cave = curCave();
+  const cf   = S.caveFloor || 1;
+  const ef   = effFloorOf(S.floor, cave);
   // 撃破できない深さで止まっても、潜り続ければ拾える
-  if(S.floor >= DROP_FROM){
+  if(ef >= DROP_FROM){
     S.dives = (S.dives||0) + 1;
     const per = (node && hasPerk(TYPES[node.type],'find')) ? DROP_PER/2.5 : DROP_PER;
-    if(S.dives >= per){ S.dives = 0; tryDrop(S.floor, fast); }
+    if(S.dives >= per){ S.dives = 0; tryDrop(ef, fast); }
   }
   const brx = S.battleRx || {};
   if(!fromCannon && node && !fast && _rxPopCd <= 0){
@@ -5438,47 +5681,133 @@ function doDive(fast, node, fromCannon){
       _rxPopCd = 0.65;
     }
   }
+  // ── 洞窟難易度引き上げ：深層・ボス・周回モンスターの自己再生バリア＆反撃消耗 ──
+  // プレイヤーの強化（💪筋力・🧠知力・❤️体力・🎽装備・🗼支援砲台・❄️戦術化学）が不足していると、
+  // 自己再生バリアで削りきれず、反撃で体力を削られるため周回・突破にはプレイヤー強化が必須になる
+  const clears = caveClearsOf(cave.id);
+  if(!fromCannon && S.enemy && (S.enemy.boss || clears > 0 || cf >= Math.ceil((cave.maxF < Infinity ? cave.maxF : 20) * 0.6))){
+    const suppressed = brx.cryo || brx.shatter || (S.enemy._noRegen && S.enemy._noRegen > 0);
+    if(!suppressed){
+      const regen = Math.floor(S.enemy.max * (S.enemy.boss ? 0.035 : 0.018) * (1 + clears * 0.15));
+      if(regen > 0 && dmg() < regen * 2.5){
+        S.enemy.hp = Math.min(S.enemy.max, S.enemy.hp + regen);
+        if(node && !fast && _rxPopCd <= 0 && Math.random() < 0.30){
+          spawnReactionPop(node, `🛡️ 敵再生バリア +${fmt(regen)} (火力強化or❄️/🗼で封印！)`, '#f59e0b');
+          _rxPopCd = 0.85;
+        }
+      }
+    }
+    // 敵の反撃による体力消耗（❤️体力や装備で軽減）
+    const hr = S.nodes.find(x => x.type === 'hero');
+    if(hr && (hr.outBuf.sta || 0) > 1 && Math.random() < 0.35){
+      const drain = Math.max(0.5, Math.min(4, (1 + clears * 0.5) / Math.max(1, 1 + (S.stats.vit||0)*0.15)));
+      hr.outBuf.sta = Math.max(0, hr.outBuf.sta - drain);
+    }
+  }
   S.enemy.hp -= dmg();
   // 深層または検証モードでは、攻撃サイクルごとにも一定確率で逆流ハザードが噴出する
-  if(node && (node._emitHazard || (S.floor >= 10 && isBoss(S.floor))) && ((node.done||0) % 2 === 0)){
+  if(node && (node._emitHazard || (ef >= 10 && isBoss(S.floor))) && ((node.done||0) % 2 === 0)){
     emitDungeonHazard(node, fast, false);
   }
   if(S.enemy.hp>0) return;
-  const f=S.floor, g=enemyGold(f), wasTier=depthTier(), wasZone=zoneOf(f);
+  const f=S.floor, g=enemyGold(f), wasTier=depthTier();
   S.gold += g;
-  if(node){                                  // 撃破すると戦利品と、たまに宝箱が出る
+  const cDrop = cave.drop || 'mcore';
+  if(node){                                  // 撃破すると戦利品＋洞窟固有素材＋たまに宝箱が出る
     const k = lootItem(node);
     node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
+    // 洞窟固有素材ドロップ（ボスは確定2個、通常モンスターも高確率でドロップし分解研究・施設クラフトに使える）
+    const dropChance = S.enemy.boss ? 1.0 : 0.65;
+    if(ITEMS[cDrop] && Math.random() < dropChance){
+      const dq = S.enemy.boss ? 2 : 1;
+      node.outBuf[cDrop] = Math.min(capOut(node, cDrop), (node.outBuf[cDrop]||0) + dq);
+      homeOf()[cDrop] = (homeOf()[cDrop]||0) + dq;
+      flowIn(cDrop, dq); nodeFlow(node, cDrop, dq, 'i');
+    }
     const tot = BOXES.reduce((a,b)=>a+b.w, 0);
     let r = Math.random() * (tot * 1.6);        // 素材はよく出る（1.6回に1回くらい箱）
     for(const b of BOXES){ r -= b.w; if(r < 0){
       node.outBuf[b.k] = Math.min(capOut(node,b.k), (node.outBuf[b.k]||0) + 1); break; } }
     // 深層（第10層以降）や節目ボスの撃破時、ダンジョンから地上へ逆流ハザードが噴出する
-    if(f >= 10 || isBoss(f) || node._emitHazard){
+    if(ef >= 10 || isBoss(f) || node._emitHazard){
       emitDungeonHazard(node, fast, isBoss(f));
     }
+  }else if(ITEMS[cDrop]){
+    homeOf()[cDrop] = (homeOf()[cDrop]||0) + 1;
   }
-  if(!fast) addLog(`第${f}層 ${S.enemy.name} 撃破 → +${fmt(g)}G`,'w');
-  S.floor++;
-  if(S.floor > S.best){
-    S.best = S.floor;
-    if(depthTier() > wasTier && !fast)
-      addLog(`【第${depthTier()*BOSS_EVERY}層 踏破】攻撃力 ×${depthBonus().toFixed(2)} に`,'b');
-    const nz = zoneOf(S.floor);
-    if(nz !== wasZone && !fast) addLog(`【新区域】${nz.i} ${nz.n} に到達`,'b');
+  if(!fast) addLog(`${cave.i}${cave.n} 第${cf}層 ${S.enemy.name} 撃破 → +${fmt(g)}G ＋${ITEMS[cDrop]?ITEMS[cDrop].i+ITEMS[cDrop].n:''}`,'w');
+
+  // ── 洞窟クリア判定（エンドコンテンツ「無限塔」以外は maxF 到達でクリア＆クリア報酬授与）──
+  if(!cave.infinite && cf >= cave.maxF){
+    const prevClears = caveClearsOf(cave.id);
+    const isFirst = (prevClears === 0);
+    const mul = isFirst ? 10 : 1; // 初回クリアは10倍、2回目以降は等倍！
+    S.caveClears[cave.id] = prevClears + 1;
+    const rw = cave.rw || {g:500, rp:120, mat:30, item:cDrop, q:2};
+    const rG   = Math.round(rw.g   * mul);
+    const rRp  = Math.round(rw.rp  * mul);
+    const rMat = Math.round(rw.mat * mul);
+    const rQty = Math.round((rw.q || 2) * mul);
+    const rItm = rw.item || cDrop;
+    S.gold  += rG;
+    S.stock  = (S.stock || 0) + rMat;
+    grantRp(rRp, fast);
+    if(ITEMS[rItm]){
+      homeOf()[rItm] = (homeOf()[rItm] || 0) + rQty;
+      if(node) node.outBuf[rItm] = Math.min(capOut(node, rItm), (node.outBuf[rItm]||0) + rQty);
+    }
+    if(isFirst){
+      addPart('core', 1); // 初回クリアで換装コアも1個進呈
+    }
+    // 次の洞窟を解放
+    const nextCave = CAVES[cave.idx + 1];
+    let unlockedNextName = '';
+    if(nextCave && !isCaveUnlocked(nextCave.id)){
+      S.caveUnlocked[nextCave.id] = 1;
+      unlockedNextName = `${nextCave.i}${nextCave.n}`;
+    }
+    // 初回クリア特典として洞窟クラフト施設を解放（研究ツリー不要で建設可能に）
+    let unlockedFacName = '';
+    if(isFirst && cave.unlockFac && TYPES[cave.unlockFac] && !isDev(cave.unlockFac)){
+      S.dev = S.dev || {};
+      S.dev[cave.unlockFac] = 1;
+      devDirty();
+      unlockedFacName = `${TYPES[cave.unlockFac].i}${TYPES[cave.unlockFac].n}`;
+      buildShop(); renderShop(); renderTree(true);
+    }
+    if(!fast){
+      const badge = isFirst ? '🏆【初回クリア報酬 10倍！！】' : `🔄【周回クリア報酬（等倍・${S.caveClears[cave.id]}回目）】`;
+      addLog(`${badge}${cave.i}${cave.n}（全${cave.maxF}層）を踏破！ → +${fmt(rG)}G ／ +🔬${fmt(rRp)} ／ +🧱${fmt(rMat)} ／ ${ITEMS[rItm].i}${ITEMS[rItm].n}×${rQty}${isFirst?' ／ 🔩換装コア×1':''}`, 'b');
+      if(unlockedNextName) addLog(`🔓【新洞窟解放】「${unlockedNextName}」へ挑戦できるようになった！`, 'b');
+      if(unlockedFacName)  addLog(`🛠️【新施設クラフト解放】洞窟素材で建てる「${unlockedFacName}」が建設リストに追加された！`, 'b');
+      if(node) spawnReactionPop(node, `${isFirst?'🏆初回踏破10倍！':'🔄洞窟踏破！'} +${fmt(rG)}G +🔬${fmt(rRp)}`, '#facc15');
+      toast(`${isFirst?'🏆 初回踏破(報酬10倍)！':'🔄 洞窟クリア！'} ${cave.i}${cave.n} +${fmt(rG)}G`);
+    }
+    // 第1層に戻して周回継続（周回ごとに敵が強化されるため、さらなるプレイヤー強化が必要になる）
+    S.caveFloor = 1;
+    const globalReach = cave.baseF + cave.maxF;
+    if(globalReach > S.best) S.best = globalReach;
+    S.floor = effFloorOf(1, cave);
+  }else{
+    S.caveFloor = cf + 1;
+    S.floor = effFloorOf(S.caveFloor, cave);
+    if(S.floor > S.best){
+      S.best = S.floor;
+      if(depthTier() > wasTier && !fast)
+        addLog(`【深層踏破ボーナス】攻撃力 ×${depthBonus().toFixed(2)} に上昇`,'b');
+    }
   }
   // 撃破でのドロップ（ボス層は確定、通常層は8%）
-  // 施設と仲間は低確率。ボス層だけは確定で落ちる
   const findK = (node && hasPerk(TYPES[node.type],'find')) ? 2.5 : 1;   // 宝探し
-  if(f >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * skillMul('drop') * findK)) tryDrop(f, fast);
+  if(ef >= DROP_FROM && (isBoss(f) || Math.random() < 0.02 * skillMul('drop') * findK)) tryDrop(ef, fast);
   // 強化パーツは施設より出やすい
-  if(Math.random() < 0.05 * skillMul('drop') * findK){
-    const k = rollPart(f);
+  if(Math.random() < 0.06 * skillMul('drop') * findK){
+    const k = rollPart(ef);
     addPart(k, 1);
     if(!fast) addLog(`【入手】${partName(k)}`, 'b');
   }
-  // 換装コアは節目の層でだけ。世代を上げたあとの「移行」が仕事になる
-  if(isBoss(f) && f >= 20 && Math.random() < 0.30 * skillMul('drop')){
+  // 換装コアは節目の層でだけ
+  if(isBoss(f) && ef >= 15 && Math.random() < 0.30 * skillMul('drop')){
     addPart('core', 1);
     if(!fast) addLog(`【入手】${CORE.i}${CORE.n}（設置済みの施設を1世代ぶん引き上げられる）`, 'b');
   }
@@ -5492,10 +5821,16 @@ function tryDrop(f, fast){
   if(!fast) addLog(`【入手】${dropName(d)}（等級${d.grade}）`,'b');
 }
 function spawnEnemy(){
-  const f=S.floor, z=zoneOf(f), hp=enemyHp(f);
-  S.enemy = isBoss(f)
-    ? {name:'★ '+z.e[z.e.length-1], icon:'👑', hp, max:hp, boss:true, zone:z}
-    : {name:z.e[(f-1)%(z.e.length-1)], icon:z.i, hp, max:hp, boss:false, zone:z};
+  if(!S.caveId) S.caveId = 'cave1';
+  if(!S.caveFloor) S.caveFloor = 1;
+  const c = curCave(), cf = S.caveFloor || 1;
+  const ef = effFloorOf(S.floor, c);
+  S.floor = ef;
+  const hp = enemyHp(ef), boss = isBoss(ef);
+  const isFinalBoss = !c.infinite && cf === c.maxF;
+  S.enemy = boss
+    ? {name:(isFinalBoss ? '👑洞窟主 ' : '★ ') + c.e[c.e.length-1], icon:isFinalBoss?'🐉':'👑', hp, max:hp, boss:true, finalBoss:isFinalBoss, zone:c}
+    : {name:c.e[(cf-1)%Math.max(1, c.e.length-1)], icon:c.i, hp, max:hp, boss:false, finalBoss:false, zone:c};
 }
 /* 研究ポイントを、判明済みでまだ開発していない対象に均等に配る */
 function grantRp(amount){
@@ -6184,8 +6519,9 @@ function renderBag(){
 
   $('#bagNote').textContent = `第${DROP_FROM}層から落ちます。撃破のほか、深くて倒せないときも潜り続ければ拾えます。`
     + `15層深くなるごとに等級が上がり、良い接辞も悪い接辞も混ざります。${DROP_MAX}個まで積めます。`;
-  if(!nD){ box.innerHTML = `<div class="bempty">まだ何も拾っていません。第${DROP_FROM}層から施設が落ちます。</div>`; return; }
-  box.innerHTML = S.drops.map(d=>{
+  const unlockedDrops = S.drops.filter(d => isDev(d.type));
+  if(!unlockedDrops.length){ box.innerHTML = `<div class="bempty">まだ何も拾っていません。第${DROP_FROM}層からアンロック済みの施設が落ちます。</div>`; return; }
+  box.innerHTML = unlockedDrops.map(d=>{
     const m=d.mods, T=TYPES[d.type];
     const eff=[];
     if(m.spd!==1) eff.push(`速さ ×${(1/m.spd).toFixed(2)}`);
@@ -6362,8 +6698,13 @@ function render(fdt){
           ? `✨ クリア！ タップで受け取る（+${fmt((n.reward||{}).g||0)}G ほか）`
           : (()=>{ const hp=Math.max(0,n.hp||0), mx=n.hpMax||1;
               return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })())
+      : T.effect==='extr'  ? `🧬魔獣抽出中 → ⚡＋経験値＋🔬累計 ${fmt(n.gain||0)}`
+      : T.effect==='turret'? `🗼支援砲撃＆敵再生封印中（累計 -${fmt(n.gain||0)} HP）`
+      : T.effect==='synt'  ? `🏺遺物・装備・強化パーツ錬成中（${n.gain||0}回）`
+      : T.effect==='altar' ? `⛩️祝福の祈り → 恒久攻撃力＋🔬累計 ${fmt(n.gain||0)}`
       : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
-          return `稼働中 → ${n.done}回 潜った（${ITEMS[k].i}${fmt(c)}/${fmt(m)}${c>=m?'　※あふれ中':''}）`; })()
+          const cv = curCave(), cf = S.caveFloor||1;
+          return `${cv.i}${cv.n} ${cf}${cv.infinite?'F':'/'+cv.maxF+'F'} → ${n.done}回（${ITEMS[k].i}${fmt(c)}/${fmt(m)}）`; })()
       : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}`
           + (n.item?`／${ITEMS[n.item].i}1つ→🧱${fmt(itemVal(n.item)*matMul(n))}＋🔬${fmt(itemVal(n.item)*matRp(n))}`
                    :'／素材を選ぶと🧱と🔬が増える')
@@ -6646,12 +6987,58 @@ function render(fdt){
   $('#rNext').textContent = nextResearchText();
   $('#rEra').textContent = `${eraName(S.era||1).i}${eraName(S.era||1).n}（第${S.era||1}世代）`;
   if(S.enemy){
-    const z=zoneOf(S.floor);
+    const z = curCave();
+    const cf = S.caveFloor || 1;
+    const clears = caveClearsOf(z.id);
     const brx = S.battleRx || {};
+    const cSel = $('#caveSel');
+    if(cSel){
+      const optSig = CAVES.map(c => `${c.id}:${isCaveUnlocked(c.id)?1:0}:${caveClearsOf(c.id)}`).join('|');
+      if(cSel._sig !== optSig){
+        cSel._sig = optSig;
+        cSel.innerHTML = CAVES.map(c => {
+          const open = isCaveUnlocked(c.id);
+          const cl = caveClearsOf(c.id);
+          const sub = c.infinite ? '∞層・エンドコンテンツ' : `全${c.maxF}層${cl>0?'・★'+cl+'回踏破':'・初回報酬10倍'}`;
+          return `<option value="${c.id}" ${open?'':'disabled'}>${open?c.i:'🔒'} ${c.n}（${sub}）</option>`;
+        }).join('');
+        cSel.onchange = () => selectCave(cSel.value);
+      }
+      if(cSel.value !== z.id) cSel.value = z.id;
+    }
+    const cBadge = $('#caveClearBadge');
+    if(cBadge){
+      if(z.infinite){
+        cBadge.textContent = '🗼 エンドコンテンツ（階層上限なし）';
+        cBadge.style.color = '#5ee0c0';
+      }else if(clears === 0){
+        cBadge.textContent = '🎁 初回クリア報酬 10倍！';
+        cBadge.style.color = '#facc15';
+      }else{
+        cBadge.textContent = `🔄 周回中（${clears}回踏破・報酬等倍・敵強化×${(1+clears*0.55).toFixed(2)}）`;
+        cBadge.style.color = '#93c5fd';
+      }
+    }
+    const rwRow = $('#eCaveRewardRow'), rwTitle = $('#eCaveRewardTitle'), rwVal = $('#eCaveReward');
+    if(rwRow && rwTitle && rwVal){
+      if(z.infinite || !z.rw){
+        rwRow.hidden = false;
+        rwTitle.textContent = '🗼 無限塔特典';
+        rwVal.textContent = `🌌星淵の秘石 ＆ 深層スコア無制限更新`;
+      }else{
+        rwRow.hidden = false;
+        const mul = clears === 0 ? 10 : 1;
+        rwTitle.textContent = clears === 0 ? `🏆 初回踏破報酬(10倍)` : `🔄 周回踏破報酬(等倍)`;
+        const facTxt = (clears === 0 && z.unlockFac && TYPES[z.unlockFac]) ? ` ＋ 🛠️${TYPES[z.unlockFac].n}解放` : '';
+        rwVal.textContent = `💰${fmt(z.rw.g*mul)}G 🔬${fmt(z.rw.rp*mul)} 🧱${fmt(z.rw.mat*mul)} ${ITEMS[z.rw.item].i}×${z.rw.q*mul}${facTxt}`;
+      }
+    }
     $('#zIc').textContent=z.i; $('#zName').textContent=z.n; $('#zName').style.color=z.c;
-    $('#zFloor').textContent='第'+S.floor+'層'+(isBoss(S.floor)?' ★節目':'');
+    $('#zFloor').textContent = z.infinite
+      ? `第${cf}層 (無限)${isBoss(S.floor)?' ★節目':''}`
+      : `第${cf} / ${z.maxF}層${cf===z.maxF?' 👑最終BOSS':isBoss(S.floor)?' ★節目':''}`;
     $('#eIc').textContent=S.enemy.icon;
-    const stIcons = (brx.cryo?'❄️':'') + (brx.heat?'🔥':'') + (brx.pol?'☣️':'') + (brx.shatter?'🔨':'');
+    const stIcons = (brx.cryo?'❄️':'') + (brx.heat?'🔥':'') + (brx.pol?'☣️':'') + (brx.shatter?'🔨':'') + ((S.enemy._noRegen>0)?'🚫':'');
     $('#eName').textContent=S.enemy.name + (stIcons ? ' '+stIcons : '');
     $('#eHp').textContent=`${fmt(Math.max(0,Math.round(S.enemy.hp)))} / ${fmt(S.enemy.max)}`;
     $('#eHpBar').style.width=Math.max(0,S.enemy.hp/S.enemy.max*100)+'%';
@@ -6660,7 +7047,7 @@ function render(fdt){
     const cut=Math.round(100 - 100*100/(100+effArm*ARMOR_K));
     $('#eDmg').textContent=fmt(dmg())+`（装甲で -${cut}%）`;
     $('#eHits').textContent=fmt(hitsLeft())+' 回';
-    $('#eGold').textContent=fmt(enemyGold(S.floor))+' G';
+    $('#eGold').textContent=fmt(enemyGold(S.floor))+' G ＋ '+(ITEMS[z.drop]?ITEMS[z.drop].i+ITEMS[z.drop].n:'');
     const dBox = $('#dgnBox');
     if(dBox){
       dBox.classList.toggle('env-cryo', !!brx.cryo);
@@ -6743,8 +7130,12 @@ function ioText(T){
              anvil:'装備×1 ＋ 合金×2<span class="ar">→</span>一段鍛えた装備×1（伸びは鈍る）'};
     return m[T.chain] || '—';
   }
+  if(T.effect==='extr')   return `⚡ ＋ 洞窟素材<span class="ar">→</span>⚡大出力 ＋ 💪🧠❤️経験値 ＋ 🔬研究分解`;
+  if(T.effect==='turret') return `⚡（＋弾薬素材）<span class="ar">→</span>🎯洞窟へ支援砲撃＆敵再生封印 ＋ 周囲加速`;
+  if(T.effect==='synt')   return `⚡（＋洞窟素材）<span class="ar">→</span>🛡️強化鋼・🏺遺物・🎽装備・⚙️強化パーツ錬成`;
+  if(T.effect==='altar')  return `⚡（＋秘石・遺物）<span class="ar">→</span>⚔️恒久攻撃力UP ＋ 🔬研究力 ＋ 周囲浄化`;
   if(T.raid) return `⚡<span class="ar">→</span>裂け目を削る（閉じると確定で報酬）`;
-  if(T.loot) return `⚡<span class="ar">→</span>⚔️攻撃 ＋🎁戦利品（${LOOT_CAP}個まで。あふれたぶんは消える）`;
+  if(T.loot) return `⚡<span class="ar">→</span>⚔️攻撃 ＋🎁戦利品・👾洞窟素材（${LOOT_CAP}個まで）`;
   if(T.aura) return T.aura.k==='clean'
     ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
     : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
@@ -6759,22 +7150,27 @@ let SHOP_ROWS = ['hero'].concat(LINE_ORDER);
 function rowType(r){
   if(r==='hero') return 'hero';
   const list=FAC[r];
-  if(!list || !list.length) return TYPES[r] ? r : 'mine1';
+  if(!list || !list.length) return TYPES[r] ? r : null;
   let best=null;
   for(const f of list){
     const k = r + f.e;
     if(f.e <= (S.era||1) && isDev(k)) best = f;
   }
-  return best ? r+best.e : r+list[0].e;      // まだ解放していなければ最初の版を返す
+  return best ? r+best.e : null;      // 未アンロックの施設はnullを返しインベントリに表示しない
 }
 function buildShop(){
   const box=$('#shopList'); if(!box) return;
   box.innerHTML='';
   for(const k in shopEls) delete shopEls[k];
   for(const r of SHOP_ROWS){
-    const t=rowType(r), T=TYPES[t]; if(!T) continue;
+    const list = FAC[r];
+    const fallbackType = r==='hero' ? 'hero' : (list && list.length ? r+list[0].e : r);
+    const t = rowType(r) || fallbackType;
+    const T = TYPES[t]; if(!T) continue;
+    const unlocked = !!rowType(r) && isDev(t);
     const b=document.createElement('button');
     b.className='card';
+    b.hidden = !unlocked; // アンロックするまでインベントリには一切表示しない
     b.innerHTML=`<div class="r1"><span class="ic">${T.i}</span><span class="nm">${T.n}</span><span class="price"></span></div>
                  <div class="io">${ioText(T)}</div><div class="d">${T.d}</div><div class="rq"></div>`;
     b.onclick=()=>startPlace(shopEls[r].cur);
@@ -6782,13 +7178,15 @@ function buildShop(){
     shopEls[r]={root:b, cur:t, ic:b.querySelector('.ic'), name:b.querySelector('.nm'),
                 price:b.querySelector('.price'), io:b.querySelector('.io'), rq:b.querySelector('.rq')};
   }
+  renderShop();
 }
 function renderShop(){
   for(const r of SHOP_ROWS){
     const e=shopEls[r]; if(!e) continue;
-    const t=rowType(r), T=TYPES[t]; if(!T) continue;
-    const dev=isDev(t);
-    e.root.hidden = !dev;                       // 研究で開けたものだけ並べる
+    const t=rowType(r);
+    const T=t ? TYPES[t] : null;
+    const dev=!!(T && isDev(t));
+    e.root.hidden = !dev;                       // アンロック済みの施設だけインベントリに表示する
     if(!dev) continue;
     if(e.cur!==t){ e.cur=t; e.ic.textContent=T.i; e.io.innerHTML=ioText(T); }
     const uniq=T.unique && (S.counts[t]||0)>=1;
@@ -9723,7 +10121,7 @@ function renderDtConst(body){
   });
 }
 
-/* 創発リアクション検証用プリセット（A / B / C）をワンクリックで盤面に構築 */
+/* 創発リアクション検証用プリセット（A / B / C / D）をワンクリックで盤面に構築 */
 function loadReactionPreset(kind){
   for(const l of [...S.links]) removeLink(l.id);
   for(const n of [...S.nodes]) removeNode(n.id);
@@ -9733,10 +10131,14 @@ function loadReactionPreset(kind){
   S.tut = 999;
   S.gold = Math.max(S.gold || 0, 50000);
   S.rp   = Math.max(S.rp   || 0, 5000);
-  for(const k of ORDER) if(TYPES[k] && !TYPES[k].port && !TYPES[k].layer) S.dev[k] = 1;
+  // 未アンロック施設がインベントリ（左ショップ）に勝手に並ばないよう、全施設一括アンロックは行わず、
+  // このプリセット内で実際に使用する施設だけをアンロックする
+  S.dev = {};
   devDirty();
 
   const spawn = (type, x, y, cfg={}) => {
+    if(TYPES[type] && !TYPES[type].start) S.dev[type] = 1;
+    devDirty();
     const n = addNode(type, x, y);
     S.counts[type] = (S.counts[type]||0) + 1;
     if(cfg.item !== undefined) setChainItem(n, cfg.item);
@@ -9836,7 +10238,12 @@ function loadReactionPreset(kind){
     // 1. 地上から戦場への戦術介入（❄️CRYO氷結・🔥HEAT装甲貫通・☣️POLLUTION毒霧・💥ブラストキャノン砲撃）
     // 2. スキル＆属性コンボ（❄️🔨砕氷撃・🔥💥ナパーム爆炎・⚡😡過負荷バーサーク）
     // 3. ダンジョンからの逆流ハザード（🧪腐食粘液・👁️深淵瘴気）の二股処理（🌬️送風機で浄化 ＆ 🔬研究室/🔥精錬炉で👑深淵遺物・🔮呪縛コアへ狂科学精製）
-    S.floor = 20; if((S.best||0) < 20) S.best = 20;
+    S.caveUnlocked = S.caveUnlocked || {cave1:1};
+    S.caveUnlocked.cave2 = 1;
+    S.caveId = 'cave1';
+    S.caveFloor = 10; // 第1洞窟の最終ボス層（第10/10層）でスポーン → ブラストキャノンで踏破＆初回10倍クリア報酬も即検証可能！
+    S.floor = effFloorOf(10, curCave());
+    if((S.best||0) < 20) S.best = 20;
     spawnEnemy();
 
     const hero   = spawn('hero',    60,  50, { outBuf:{sta:18} });
