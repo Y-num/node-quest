@@ -1965,6 +1965,9 @@ function tierOf(n){
          : n.comb  ? combName(n)
          : n.pname ? n.pname : T.n;
   if(n.drop) nm += `〈${(n.mods && n.mods.tags || []).join('・') || '無印'}〉`;
+  else if(n.craftMat && n.craftMat !== MAT_ITEM(T.era||1) && ITEMS[n.craftMat]){
+    nm += `［${ITEMS[n.craftMat].i}${ITEMS[n.craftMat].n}製］`;
+  }
   const list = T.line ? FAC[T.line] : null;
   let next = null;
   if(list){ const f = list.find(x => x.e > (T.era||0)); if(f) next = [f.e, f.n]; }
@@ -2026,11 +2029,11 @@ function buildFac(){
         ? (rt.reqRole ? rt.reqRole + '1' : null)
         : (rt.reqRole ? rt.reqRole + e : role + (e - 1));
       const defRp = e === 1 ? (rt.rp || 0)
-        : Math.round(Math.max(25, rt.rp || 25) * (e === 2 ? 220 : 220000));
+        : Math.round(Math.max(25, rt.rp || 25) * (e === 2 ? 75 : 3200));
       const defMat = e === 1 ? (rt.mat || 0)
-        : Math.round(Math.max(5, rt.mat || 8) * (e === 2 ? 25 : 4000));
+        : Math.round(Math.max(5, rt.mat || 8) * (e === 2 ? 12 : 280));
       const defFloor = e === 1 ? (rt.reqFloor || 0)
-        : (rt.reqFloor ? rt.reqFloor + (e - 1) * 20 : (e === 2 ? 18 : 50));
+        : (rt.reqFloor ? rt.reqFloor + (e - 1) * 18 : (e === 2 ? 18 : 48));
       const T = Object.assign({}, base, {
         n:f.n, i:f.i, line:role, era:f.e, d:f.d || base.d,
         time: +(base.time * Math.pow(ERA_SPD, g)).toFixed(4),
@@ -2636,22 +2639,130 @@ const buyCost = t => {
   const base = (c===0 && FIRST[T.line]) ? T.cost * FIRST[T.line] : T.cost;
   return Math.max(1, Math.floor(base * Math.pow(T.pk || PRICE_K, c)));
 };
-/* ── 建設には資材（地金）も要る ──
-   その世代に見合った地金が要るので、上の世代へ進むには
-   その地金の元になる鉱石＝遠くのダンジョンが要ることになる。
+/* ── 建設には資材（地金・合金・洞窟素材・創発結晶）も要る ──
+   クラフト（建設）に使用する素材を選ぶことで、完成した施設の性能（速度・産出量・省エネ・スロット枠・無廃・属性タグ）が大幅に変わる。
    資材は盤面の貯蔵・倉庫と、自宅の在庫からまとめて数える        */
 let MAT_RATE = 0.045;        // 建設費のこれくらいを、地金の数に換算する
 const MAT_ITEM = e => 'ing' + Math.min(CHAIN.length, Math.max(1, e||1));
-function buyMat(t){
+let selCraftMat = null;      // 建設・換装で現在選択しているクラフト素材キー
+
+const CRAFT_MAT_DEFS = {
+  ing1:        { spd:1.00, sta:1.00, yld:0, cap:1.0, slot:0, clean:0, tag:null,   d:'標準の銅地金（基準性能 ×1.0）' },
+  ing2:        { spd:0.78, sta:0.90, yld:0, cap:1.4, slot:0, clean:0, tag:null,   d:'鉄製フレーム（速さ ×1.28・⚡-10%・容量 ×1.4）' },
+  ing3:        { spd:0.62, sta:0.80, yld:1, cap:1.8, slot:0, clean:1, tag:'CRYO', d:'銀製（速さ ×1.61・産出 +1・⚡-20%・廃材なし・❄️冷却帯電）' },
+  ing4:        { spd:0.50, sta:0.72, yld:1, cap:2.4, slot:1, clean:0, tag:null,   d:'金製（速さ ×2.00・産出 +1・⚡-28%・スロット +1）' },
+  ing5:        { spd:0.38, sta:0.60, yld:2, cap:3.2, slot:1, clean:1, tag:null,   d:'ミスリル製（速さ ×2.63・産出 +2・⚡-40%・スロット +1・廃材なし）' },
+  ing6:        { spd:0.28, sta:0.48, yld:3, cap:4.5, slot:2, clean:1, tag:null,   d:'星鋼製（速さ ×3.57・産出 +3・⚡-52%・スロット +2・廃材なし）' },
+  aly1:        { spd:0.70, sta:0.85, yld:1, cap:1.6, slot:0, clean:0, tag:null,   d:'青銅合金製（速さ ×1.43・産出 +1・⚡-15%・容量 ×1.6）' },
+  aly2:        { spd:0.55, sta:0.76, yld:1, cap:2.2, slot:1, clean:0, tag:null,   d:'鋼合金製（速さ ×1.82・産出 +1・⚡-24%・スロット +1）' },
+  aly3:        { spd:0.42, sta:0.65, yld:2, cap:3.0, slot:1, clean:1, tag:'CRYO', d:'白金鋼製（速さ ×2.38・産出 +2・スロット +1・廃材なし・❄️冷却）' },
+  aly4:        { spd:0.32, sta:0.52, yld:3, cap:4.0, slot:2, clean:1, tag:null,   d:'魔導合金製（速さ ×3.13・産出 +3・⚡-48%・スロット +2・廃材なし）' },
+  aly5:        { spd:0.22, sta:0.40, yld:4, cap:5.5, slot:2, clean:1, tag:null,   d:'星辰合金製（速さ ×4.55・産出 +4・⚡-60%・スロット +2・廃材なし）' },
+  mcore:       { spd:0.72, sta:0.82, yld:0, cap:1.5, slot:0, clean:0, tag:null,   d:'👾魔獣の核クラフト（速さ ×1.39・⚡-18%・容量 ×1.5）' },
+  qstl:        { spd:0.60, sta:0.78, yld:1, cap:2.5, slot:1, clean:0, tag:'CRYO', d:'🛡️焼き入れ強化鋼クラフト（速さ ×1.67・産出 +1・スロット +1・❄️冷却）' },
+  afang:       { spd:0.56, sta:0.75, yld:1, cap:2.0, slot:1, clean:0, tag:null,   d:'🦷水棲の牙クラフト（速さ ×1.79・産出 +1・⚡-25%・スロット +1）' },
+  arelic:      { spd:0.45, sta:0.68, yld:1, cap:2.8, slot:1, clean:1, tag:null,   d:'⚙️古代の歯車クラフト（速さ ×2.22・産出 +1・スロット +1・廃材なし）' },
+  artf:        { spd:0.44, sta:0.65, yld:2, cap:2.6, slot:1, clean:0, tag:'CATALYST_WORKER', d:'🏺レア遺物クラフト（速さ ×2.27・産出 +2・スロット +1・👩‍🔧職人触媒）' },
+  bdia:        { spd:0.35, sta:0.60, yld:2, cap:3.5, slot:1, clean:1, tag:'SHOCKWAVE', d:'💎爆風結晶クラフト（速さ ×2.86・産出 +2・スロット +1・廃材なし）' },
+  fheart:      { spd:0.31, sta:0.55, yld:2, cap:3.8, slot:2, clean:0, tag:'HEAT', d:'❤️‍🔥獄炎の竜晶クラフト（速さ ×3.23・産出 +2・スロット +2・🔥常時HEAT）' },
+  core_cursed: { spd:0.28, sta:0.50, yld:3, cap:4.0, slot:2, clean:0, tag:'CURSE',d:'🔮呪縛コアクラフト（速さ ×3.57・産出 +3・スロット +2・👁️深淵変異）' },
+  fcryst:      { spd:0.26, sta:0.45, yld:3, cap:4.5, slot:2, clean:1, tag:'CRYO', d:'❄️万年氷晶クラフト（速さ ×3.85・産出 +3・⚡-55%・スロット +2・廃材なし・❄️常時CRYO）' },
+  drelic:      { spd:0.21, sta:0.38, yld:4, cap:5.5, slot:2, clean:1, tag:'CATALYST_RESEARCH', d:'👑深淵遺物クラフト（速さ ×4.76・産出 +4・⚡-62%・スロット +2・廃材なし・🧬研究触媒）' },
+  acore:       { spd:0.16, sta:0.30, yld:5, cap:7.5, slot:3, clean:1, tag:'RESONANCE', d:'🌌星淵の秘石クラフト（速さ ×6.25・産出 +5・⚡-70%・スロット +3・廃材なし・🔄共鳴）' },
+};
+
+function craftMatBonus(matKey){
+  if(!matKey || !ITEMS[matKey]) return CRAFT_MAT_DEFS.ing1;
+  const b = baseOf(matKey), d = densOf(matKey), c = compOf(matKey), compLv = d + c;
+  const base = CRAFT_MAT_DEFS[b] || {
+    spd: Math.max(0.20, 1 / Math.pow(Math.max(1, itemVal(b) / 2.4), 0.25)),
+    sta: Math.max(0.35, 1 / Math.pow(Math.max(1, itemVal(b) / 2.4), 0.16)),
+    yld: Math.min(4, Math.floor(Math.log10(Math.max(1, itemVal(b) / 4)))),
+    cap: 1 + Math.min(5, Math.log2(Math.max(1, itemVal(b))) * 0.35),
+    slot: itemVal(b) >= 400 ? 2 : itemVal(b) >= 60 ? 1 : 0,
+    clean: itemVal(b) >= 180 ? 1 : 0,
+    tag: null,
+    d: `${ITEMS[b] ? ITEMS[b].n : b}による素材強化`
+  };
+  if(compLv <= 0) return base;
+  // 圧縮した素材（@1, @2...）でクラフトすると一段ごとに速度×1.35・産出+1・容量×1.5・スロット増！
+  const spd = Math.max(0.08, base.spd * Math.pow(0.74, compLv));
+  const sta = Math.max(0.20, base.sta * Math.pow(0.86, compLv));
+  const yld = base.yld + compLv;
+  const cap = +(base.cap * Math.pow(1.5, compLv)).toFixed(1);
+  const slot = Math.min(4, base.slot + Math.ceil(compLv / 2));
+  const clean = (base.clean || compLv >= 2) ? 1 : 0;
+  return {
+    spd, sta, yld, cap, slot, clean, tag: base.tag,
+    d: `${ITEMS[matKey].i}${ITEMS[matKey].n}クラフト（速さ ×${(1/spd).toFixed(2)}・産出 +${yld}・⚡×${sta.toFixed(2)}・枠 +${slot}${clean?'・無廃':''}）`
+  };
+}
+
+function craftMatText(matKey){
+  if(!matKey || !ITEMS[matKey]) return '標準（銅地金 ×1.0）';
+  const b = craftMatBonus(matKey);
+  const parts = [];
+  if(b.spd < 0.99) parts.push(`速さ×${(1/b.spd).toFixed(2)}`);
+  if(b.yld > 0)    parts.push(`産出+${b.yld}`);
+  if(b.sta < 0.99) parts.push(`⚡-${Math.round((1-b.sta)*100)}%`);
+  if(b.cap > 1.05) parts.push(`容量×${b.cap.toFixed(1)}`);
+  if(b.slot > 0)   parts.push(`枠+${b.slot}`);
+  if(b.clean)      parts.push(`廃材なし`);
+  if(b.tag && REACTION_TAGS[b.tag]) parts.push(`${REACTION_TAGS[b.tag].i}${REACTION_TAGS[b.tag].n}`);
+  return parts.length ? parts.join('・') : '基準性能 ×1.0';
+}
+
+/* 建設・素材換装に使える候補素材の一覧（時代地金＋手持ちのインゴット・圧縮地金・合金・洞窟素材・創発結晶） */
+function craftMatCandidates(t){
+  const T = TYPES[t] || {};
+  const defKey = T.caveMat ? Object.keys(T.caveMat)[0] : MAT_ITEM(T.era || 1);
+  const set = new Set([defKey, 'ing1']);
+  for(const c of CHAIN) if(chainOpen(c)) set.add(c.ingot);
+  for(const a of alyList()) set.add(a);
+  for(const ck of CAVE_ITEMS) if(stockOfMat(ck) > 0 || (S && S.best >= 5)) set.add(ck);
+  for(const rk of ['qstl','bdia','artf','drelic','core_cursed']) if(stockOfMat(rk) > 0) set.add(rk);
+  // 手元にある圧縮地金・圧縮素材も候補に追加
+  const addFromObj = obj => {
+    for(const k in (obj||{})){
+      if((obj[k]||0) <= 0) continue;
+      const b = baseOf(k);
+      if(/^ing\d$/.test(b) || /^aly\d$/.test(b) || CAVE_ITEMS.includes(b) || CRAFT_MAT_DEFS[b]){
+        ensureItem(k); set.add(k);
+      }
+    }
+  };
+  if(typeof S !== 'undefined' && S){
+    addFromObj(S.home);
+    for(const n of (S.nodes||[])){
+      if(TYPES[n.type] && (TYPES[n.type].store || TYPES[n.type].ware)){
+        addFromObj(n.inBuf); addFromObj(n.outBuf);
+      }
+    }
+  }
+  return [...set].filter(k => ITEMS[k]).sort((a,b) => itemVal(a) - itemVal(b));
+}
+
+function buyMat(t, customMat){
   const T = TYPES[t];
   if(!T || !T.era || T.cost <= 0) return null;            // 口やレイヤーは要らない
+  const useMat = customMat !== undefined ? customMat : (placing === t && selCraftMat ? selCraftMat : null);
   if(T.caveMat){
     const o = {}, mul = Math.max(1, Math.round(Math.pow(1.6, (T.era||1)-1) * (1 + (S.counts[t]||0)*0.5)));
     for(const ck in T.caveMat) o[ck] = Math.max(1, Math.round(T.caveMat[ck] * mul));
+    // 洞窟クラフト施設でも追加・代替の強化素材が指定されていればその素材を要求
+    const defFirst = Object.keys(T.caveMat)[0];
+    if(useMat && useMat !== defFirst && ITEMS[useMat]){
+      o[useMat] = Math.max(1, Math.round(2 * mul));
+    }
     return o;
   }
-  const k = MAT_ITEM(T.era);
-  const q = Math.max(1, Math.round(buyCost(t) * MAT_RATE / Math.max(1, itemVal(k))));
+  const k = (useMat && ITEMS[useMat]) ? useMat : MAT_ITEM(T.era);
+  const baseK = MAT_ITEM(T.era);
+  const baseQ = Math.max(1, Math.round(buyCost(t) * MAT_RATE / Math.max(1, itemVal(baseK))));
+  if(k === baseK) return {[k]: baseQ};
+  // 上位素材・洞窟素材・圧縮素材で建てる場合は、価値比に応じて必要個数を調整（最低1個〜）
+  const ratio = Math.max(0.25, Math.min(2.0, itemVal(baseK) / Math.max(1, itemVal(k))));
+  const q = Math.max(1, Math.min(12, Math.round(baseQ * ratio)));
   return {[k]: q};
 }
 /* いま手元にある数（盤面の貯蔵・倉庫＋自宅） */
@@ -2721,43 +2832,56 @@ const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
 
-/* ========== トレハン：第100層から施設がドロップする ==========
-   良い接辞ばかりではなく、体力を余計に食う・稼働に部品が要る といった悪い接辞も混ざる。
-   10層深くなるごとに等級が1つ上がり、接辞の数と振れ幅が増える。 */
+/* ========== トレハン：ダンジョン難易度に大きく依存するランダム施設ドロップ＆強化パーツ ==========
+   浅い洞窟（低難易度）では等級が低く、悪い接辞（鈍重・大食い・要整備）も混ざる。
+   高難度の洞窟・ボス層・周回クリアを重ねるほど等級（Grade 1〜16+）が跳ね上がり、
+   スロット数（最大6枠）や伝説級の接辞（神速・永久機関・超多産）が付いた破格の施設がドロップする。
+   ※ アンロックされていない施設（!isDev(t)）は絶対にドロップしない。 */
 const DROP_FROM = 5;                  // ここから施設が落ちる（浅いほど等級が低い）
 const DROP_MAX  = 60;                 // クリア報酬スタックに積める数
-const DROP_PER  = 6000;               // 撃破が止まっても、この回数潜るごとに1つ拾える
-const dropGrade = f => Math.max(1, Math.floor((f - DROP_FROM) / 15) + 1);
+const DROP_PER  = 5000;               // 撃破が止まっても、この回数潜るごとに1つ拾える
+function caveDiffScore(f){
+  const ef = Math.max(1, f || (S && S.floor) || 1);
+  if(typeof S === 'undefined' || !S) return ef;
+  const c = curCave();
+  const clears = caveClearsOf(c.id);
+  const bossBonus = (S.enemy && S.enemy.boss) ? 8 : 0;
+  return ef + (c.idx || 0) * 16 + clears * 12 + bossBonus;
+}
+const dropGrade = f => Math.max(1, Math.min(20, Math.floor((caveDiffScore(f) - DROP_FROM) / 11) + 1));
 
 const AFFIX = [
-  // key,       表示,        良,  重み, 適用
-  {k:'spd+', grp:'spd', n:'高速',   good:1, w:10, f:(m,g)=>m.spd*=Math.max(.30, 0.86-0.035*g)},
-  {k:'spd-', grp:'spd', n:'鈍重',   good:0, w:9,  f:(m,g)=>m.spd*=1.20+0.05*g},
-  {k:'sta+', grp:'sta', n:'省エネ', good:1, w:10, f:(m,g)=>m.sta*=Math.max(.25, 0.85-0.040*g)},
-  {k:'sta-', grp:'sta', n:'大食い', good:0, w:10, f:(m,g)=>m.sta*=1.25+0.08*g},
-  {k:'yld+', grp:'yld', n:'多産',   good:1, w:7,  f:(m,g)=>m.yld+=1+Math.floor(g/5)},
-  {k:'wst-', grp:'wst', n:'清潔',   good:1, w:6,  f:(m)  =>m.clean=1},
-  {k:'wst+', grp:'wst', n:'汚い',   good:0, w:8,  f:(m,g)=>m.wst+=1+Math.floor(g/8)},
-  {k:'cap+', grp:'cap', n:'大容量', good:1, w:6,  f:(m,g)=>m.cap*=2.2+g*0.25},
-  {k:'cap-', grp:'cap', n:'脆い',   good:0, w:6,  f:(m)  =>m.cap*=0.5},
-  {k:'need', grp:'need',n:'要整備', good:0, w:8,  f:(m,g,rnd)=>{ const c=CHAIN[Math.min(CHAIN.length-1, Math.floor(rnd()*Math.min(6,1+g/3)))];
-                                                          m.need[c.part]=(m.need[c.part]||0)+1; }},
+  // key,       表示,        良,  重み, 最小等級, 適用
+  {k:'spd+',  grp:'spd', n:'高速',     good:1, w:10, minG:1, f:(m,g)=>m.spd*=Math.max(.22, 0.84-0.042*g)},
+  {k:'spd++', grp:'spd', n:'神速',     good:1, w:6,  minG:6, f:(m,g)=>m.spd*=Math.max(.14, 0.52-0.024*g)},
+  {k:'spd-',  grp:'spd', n:'鈍重',     good:0, w:9,  minG:1, f:(m,g)=>m.spd*=1.22+0.04*g},
+  {k:'sta+',  grp:'sta', n:'省エネ',   good:1, w:10, minG:1, f:(m,g)=>m.sta*=Math.max(.20, 0.84-0.042*g)},
+  {k:'sta++', grp:'sta', n:'永久機関', good:1, w:6,  minG:6, f:(m,g)=>m.sta*=Math.max(.12, 0.45-0.020*g)},
+  {k:'sta-',  grp:'sta', n:'大食い',   good:0, w:10, minG:1, f:(m,g)=>m.sta*=1.25+0.06*g},
+  {k:'yld+',  grp:'yld', n:'多産',     good:1, w:7,  minG:1, f:(m,g)=>m.yld+=1+Math.floor(g/3)},
+  {k:'yld++', grp:'yld', n:'超多産',   good:1, w:5,  minG:7, f:(m,g)=>m.yld+=2+Math.floor(g/2)},
+  {k:'wst-',  grp:'wst', n:'清潔',     good:1, w:7,  minG:1, f:(m)  =>m.clean=1},
+  {k:'wst+',  grp:'wst', n:'汚い',     good:0, w:8,  minG:1, f:(m,g)=>m.wst+=1+Math.floor(g/7)},
+  {k:'cap+',  grp:'cap', n:'大容量',   good:1, w:6,  minG:1, f:(m,g)=>m.cap*=2.2+g*0.35},
+  {k:'cap-',  grp:'cap', n:'脆い',     good:0, w:6,  minG:1, f:(m)  =>m.cap*=0.5},
+  {k:'need',  grp:'need',n:'要整備',   good:0, w:8,  minG:1, f:(m,g,rnd)=>{ const c=CHAIN[Math.min(CHAIN.length-1, Math.floor(rnd()*Math.min(6,1+g/3)))];
+                                                              m.need[c.part]=(m.need[c.part]||0)+1; }},
 ];
 function newMods(){ return {spd:1, sta:1, yld:0, wst:0, cap:1, clean:0, need:{},
                             gear:0, skill:0, payK:1, tags:[]}; }
 /* ── 強化パーツ ──
    施設のスロットに挿して、その1台だけを強くする。
-   等級（1〜3）があり、深いダンジョンほど良いものが出る。
-   ふつうの施設はスロット1つ、ダンジョン産は2〜5つ                 */
+   等級（1〜5）があり、難易度の高いダンジョンほど高等級が出る。
+   ふつうの施設はスロット1つ（上位素材クラフトで最大+3）、ダンジョン産は最大6つ */
 const PARTS = [
   {k:'acc', i:'⚙️', n:'加速装置', d:'この施設が速くなる',
-   v:g=>`速さ ×${(1/Math.max(.35,1-0.18*g)).toFixed(2)}`, f:(m,g)=>m.spd *= Math.max(.35, 1-0.18*g)},
+   v:g=>`速さ ×${(1/Math.max(.22,1-0.16*g)).toFixed(2)}`, f:(m,g)=>m.spd *= Math.max(.22, 1-0.16*g)},
   {k:'eco', i:'🪶', n:'節電装置', d:'⚡の消費が減る',
-   v:g=>`⚡ ×${Math.max(.30,1-0.16*g).toFixed(2)}`,        f:(m,g)=>m.sta *= Math.max(.30, 1-0.16*g)},
+   v:g=>`⚡ ×${Math.max(.22,1-0.15*g).toFixed(2)}`,        f:(m,g)=>m.sta *= Math.max(.22, 1-0.15*g)},
   {k:'yld', i:'📈', n:'増産装置', d:'出来上がりが増える',
    v:g=>`出来高 +${g}`,                                    f:(m,g)=>m.yld += g},
   {k:'cap', i:'📦', n:'大型貯蔵', d:'抱えられる量が増える',
-   v:g=>`容量 ×${(1+0.8*g).toFixed(1)}`,                   f:(m,g)=>m.cap *= 1+0.8*g},
+   v:g=>`容量 ×${(1+0.9*g).toFixed(1)}`,                   f:(m,g)=>m.cap *= 1+0.9*g},
   {k:'cln', i:'🌬', n:'集塵装置', d:'廃材を出さなくなる',
    v:()=>'廃材なし',                                        f:(m)  =>m.clean = 1},
   {k:'arm', i:'🔧', n:'拡張架台', d:'装備とスキルの枠が増える',
@@ -2799,7 +2923,7 @@ function useCore(n){
   addLog(`🔩 ${was} を ${tierOf(n).n}（第${TYPES[t].era}世代）に引き上げた`, 'b');
   toast(`${tierOf(n).n} に引き上げました`);
 }
-const PART_MAX = 3;                                   // 等級の上限
+const PART_MAX = 5;                                   // 等級の上限（ダンジョン難易度で最大5までドロップ）
 const partKey  = (k,g) => k + g;                      // 'acc2' のような持ち物のキー
 const partOf   = key => ({p: PART[String(key).slice(0,3)], g: +String(key).slice(3) || 1});
 const partName = key => { if(key==='core') return `${CORE.i}${CORE.n}`;
@@ -2813,9 +2937,13 @@ function addPart(key, q){ S.parts = S.parts || {};
   S.parts[key] = (S.parts[key]||0) + (q||1); }
 function usePart(key){ if(partStock(key) <= 0) return false;
   S.parts[key]--; if(S.parts[key] <= 0) delete S.parts[key]; return true; }
-/* 施設のスロットの数。ダンジョン産はばらつく */
-const slotsOf = n => TYPES[n.type].port || TYPES[n.type].layer ? 0
-                   : Math.max(1, Math.min(5, n.pslot || 1));
+/* 施設のスロットの数。ダンジョン産は難易度で2〜6枠、クラフト施設も使用素材で最大+3枠増える */
+const slotsOf = n => {
+  const T = TYPES[n.type];
+  if(!T || T.port || T.layer) return 0;
+  const matSlot = (!n.drop && n.craftMat) ? (craftMatBonus(n.craftMat).slot || 0) : 0;
+  return Math.max(1, Math.min(6, (n.pslot || 1) + matSlot));
+};
 function partsOf(n){
   const k = slotsOf(n); if(!k) return [];
   if(!n.parts || n.parts.length !== k){
@@ -2824,13 +2952,21 @@ function partsOf(n){
   }
   return n.parts;
 }
-/* 拾い物の癖（mods）と、挿したパーツを合わせた、その施設の効き */
+/* 拾い物の癖（mods）と、クラフト素材ボーナス（craftMat）と、挿したパーツを合わせた、その施設の効き */
 function modsOf(n){
-  const key = (n.parts||[]).join(',') + '|' + (n.mods ? 'd' : '-');
+  const key = (n.parts||[]).join(',') + '|' + (n.mods ? 'd' : '-') + '|' + (n.craftMat || '-');
   if(n._md && n._mk === key) return n._md;
   const m = newMods();
   if(n.mods){ for(const x in m) if(x!=='need' && x!=='tags') m[x] = n.mods[x];
-    m.need = Object.assign({}, n.mods.need); m.tags = n.mods.tags; }
+    m.need = Object.assign({}, n.mods.need); m.tags = (n.mods.tags||[]).slice(); }
+  if(!n.drop && n.craftMat && ITEMS[n.craftMat]){
+    const cb = craftMatBonus(n.craftMat);
+    m.spd *= cb.spd;
+    m.sta *= cb.sta;
+    m.yld += cb.yld;
+    m.cap *= cb.cap;
+    if(cb.clean) m.clean = 1;
+  }
   for(const key2 of partsOf(n)){
     if(!key2) continue;
     const {p,g} = partOf(key2); if(p) p.f(m, g);
@@ -2841,39 +2977,52 @@ function modsOf(n){
 const modsDirty = n => { n._mk = null; };
 /* 仲間の拾い物にだけ付く接辞。装備枠・スキル枠・給料がばらつく */
 const MATE_AFFIX = [
-  {grp:'gear', n:'多才',   good:1, w:8,  f:(m,g)=>m.gear  += 1 + Math.floor(g/8)},
-  {grp:'skill',n:'閃き',   good:1, w:8,  f:(m,g)=>m.skill += 1 + Math.floor(g/10)},
-  {grp:'pay',  n:'安上がり',good:1, w:9, f:(m,g)=>m.payK  *= Math.max(.15, 0.75-0.045*g)},
-  {grp:'pay',  n:'高給取り',good:0, w:9, f:(m,g)=>m.payK  *= 1.6+0.12*g},
-  {grp:'gear', n:'不器用', good:0, w:6,  f:(m)  =>m.gear  -= 1},
+  {grp:'gear', n:'多才',     good:1, w:8, minG:1, f:(m,g)=>m.gear  += 1 + Math.floor(g/5)},
+  {grp:'skill',n:'閃き',     good:1, w:8, minG:1, f:(m,g)=>m.skill += 1 + Math.floor(g/6)},
+  {grp:'pay',  n:'安上がり', good:1, w:9, minG:1, f:(m,g)=>m.payK  *= Math.max(.12, 0.75-0.045*g)},
+  {grp:'pay',  n:'高給取り', good:0, w:9, minG:1, f:(m,g)=>m.payK  *= 1.5+0.10*g},
+  {grp:'gear', n:'不器用',   good:0, w:6, minG:1, f:(m)  =>m.gear  -= 1},
 ];
 function rollDrop(floor, rnd){
   rnd = rnd || Math.random;
   const g = dropGrade(floor);
-  // 落ちるのは「すでに解放している施設」から
-  const pool = ORDER.filter(t => !TYPES[t].unique && isSeen(t) && isDev(t));
+  // アンロック済み（isDev(t)）の施設のみを厳選。未アンロック施設は絶対にドロップしない！
+  const pool = ORDER.filter(t => TYPES[t] && !TYPES[t].unique && !TYPES[t].port && !TYPES[t].layer && !TYPES[t].raid && isDev(t));
   if(!pool.length) return null;
-  const type = pool[Math.floor(rnd()*pool.length)];
-  const m = newMods();
-  m.pslot = 2 + Math.floor(rnd()*4);                            // ダンジョン産はスロット2〜5
-  const count = Math.min(4, (g<3 ? 2 : 1) + Math.floor(g/4));   // 浅い層のものは癖が強い
-  const bag = [];
-  const table = TYPES[type].src ? AFFIX.concat(MATE_AFFIX) : AFFIX;
-  for(const a of table){
-    // 等級が上がるほど良い接辞がやや出やすい
-    const w = a.w * (a.good ? 1 + g*0.04 : 1);
-    for(let i=0;i<Math.round(w);i++) bag.push(a);
+  // 高難度ダンジョンほど、解放済みの中でも高世代の施設が選ばれやすい
+  const weightedPool = [];
+  for(const t of pool){
+    const e = TYPES[t].era || 1;
+    const w = g >= 6 ? e * 2 : 1;
+    for(let i=0; i<w; i++) weightedPool.push(t);
   }
-  // 相反する接辞（高速と鈍重など）は同時に付かない。1つ目は必ず良い接辞にする
+  const type = weightedPool[Math.floor(rnd()*weightedPool.length)];
+  const m = newMods();
+  // スロット数もダンジョン難易度（等級 g）に強く依存：浅い層は 1〜2枠、深層・高難度洞窟は 3〜6枠！
+  const minSlot = g >= 12 ? 4 : g >= 7 ? 3 : g >= 3 ? 2 : 1;
+  const maxSlot = Math.min(6, 2 + Math.floor(g / 3));
+  m.pslot = Math.min(6, minSlot + Math.floor(rnd() * Math.max(1, maxSlot - minSlot + 1)));
+  // 付与される接辞の数：等級が上がるほど最大5個まで増える
+  const count = Math.min(5, (g < 3 ? 1 : 2) + Math.floor(g / 4));
+  const bag = [];
+  const table = (TYPES[type].src ? AFFIX.concat(MATE_AFFIX) : AFFIX).filter(a => g >= (a.minG || 1));
+  for(const a of table){
+    // 難易度（等級g）が低い洞窟ではデメリット接辞も出やすく、高難度洞窟では良い接辞が圧倒的に出やすい
+    const w = a.good ? a.w * (1 + g * 0.25) : a.w * Math.max(0.10, 1.15 - g * 0.11);
+    const nW = Math.max(1, Math.round(w));
+    for(let i=0;i<nW;i++) bag.push(a);
+  }
   const used = new Set();
   for(let i=0;i<count;i++){
-    // 等級3以上なら1つ目は必ず当たり。浅い層のものは当たり外れがそのまま出る
-    const pool = (i===0 && g>=3 ? bag.filter(x=>x.good) : bag).filter(x=>!used.has(x.grp));
-    if(!pool.length) break;
-    const a = pool[Math.floor(rnd()*pool.length)];
+    // 等級3以上なら1つ目は確定で良接辞、等級8以上ならすべての枠で良接辞が確定！
+    const forceGood = (i === 0 && g >= 2) || (i <= 1 && g >= 5) || (g >= 8);
+    let sub = (forceGood ? bag.filter(x=>x.good) : bag).filter(x=>!used.has(x.grp));
+    if(!sub.length) sub = bag.filter(x=>!used.has(x.grp));
+    if(!sub.length) break;
+    const a = sub[Math.floor(rnd()*sub.length)];
     used.add(a.grp); a.f(m, g, rnd); m.tags.push(a.n);
   }
-  m.spd=Math.max(.2, m.spd); m.sta=Math.max(.2, m.sta); m.cap=Math.max(.3, m.cap);
+  m.spd=Math.max(.10, m.spd); m.sta=Math.max(.12, m.sta); m.cap=Math.max(.3, m.cap);
   m.gear=Math.max(-1, m.gear); m.skill=Math.max(0, m.skill); m.payK=Math.max(.1, m.payK);
   return {id:S.nextId++, type, grade:g, mods:m, floor};
 }
@@ -2986,16 +3135,15 @@ function nextResearchText(){
     : 'すべて解放済';
 }
 const offSteps  = () => ((S.era||1) - 1) + depthTier();
-const OFF_RATE  = 1/3;                                      // 留守は実時間の1/3の働き
-const offRate   = () => OFF_RATE;
-const offCapH   = () => Math.min(24, 6 + offSteps() * 0.8); // 時間上限 6〜24時間（一晩は数えられる）
+const OFF_RATE  = 0.45;                                     // 留守中の稼働効率（約1週間の放置でエンドコンテンツ到達）
+const offRate   = () => Math.min(0.65, OFF_RATE + offSteps() * 0.008);
+const offCapH   = () => Math.min(24, 12 + offSteps() * 0.6); // 時間上限 12〜24時間（1日1〜2回の起動で1週間で到達可能）
 const OFF_SIM_MAX = 48 * 3600;                              // 一度に計算する上限
 
 /* 時代を1つ上げるのに要るもの。桁は時代ごとに大きく変わる */
-/* 世代は2回しか上がらないので、1回ぶんの重さをはっきりさせる。
-   第2世代は「装備を作れるようになったころ」、第3世代は「じっくり育てた先」 */
-const ERA_RP  = {2: 6.0e4, 3: 9.0e7};
-const ERA_MAT = {2: 1.2e3, 3: 2.4e5};
+/* プレイ時間10〜30時間（放置で約1週間）で第3世代＆エンドコンテンツ「無限塔」に到達できるバランス */
+const ERA_RP  = {2: 1.8e4, 3: 6.5e5};
+const ERA_MAT = {2: 800,   3: 2.5e4};
 const eraRp  = e => ERA_RP[e]  || 0;
 const eraMat = e => ERA_MAT[e] || 0;
 const canEra = () => (S.era||1) < ERA_MAX
@@ -3015,25 +3163,25 @@ function doEra(){
    また周回ごとに敵が強化され、ボスや深層モンスターは自己再生バリアや反撃消耗を持つため、
    プレイヤーの能力強化・装備鍛造・支援砲台・戦術化学パイプラインが必須になる。 */
 const CAVES = [
-  {id:'cave1', idx:0, f:1,   maxF:10, baseF:1,   step:1.30, n:'苔むした洞窟',    i:'🕳️', c:'#8a9bb5', drop:'mcore',  unlockFac:'extr1',
+  {id:'cave1', idx:0, f:1,   maxF:10, baseF:1,   step:1.18, recAtk:15,    n:'苔むした洞窟',    i:'🕳️', c:'#8a9bb5', drop:'mcore',  unlockFac:'extr1',
    rw:{g:600,     rp:150,    mat:35,    item:'mcore',  q:2},
    e:['スライム','コウモリ','大ネズミ','ゴブリン','洞窟トロル']},
-  {id:'cave2', idx:1, f:25,  maxF:15, baseF:12,  step:1.38, n:'地下水路',        i:'💧', c:'#58c6e8', drop:'afang',  unlockFac:'turret1',
+  {id:'cave2', idx:1, f:25,  maxF:15, baseF:12,  step:1.25, recAtk:55,    n:'地下水路',        i:'💧', c:'#58c6e8', drop:'afang',  unlockFac:'turret1',
    rw:{g:3200,    rp:800,    mat:160,   item:'afang',  q:2},
    e:['ヘドロ','人喰い魚','水霊','サハギン','深水ハイドラ']},
-  {id:'cave3', idx:2, f:50,  maxF:20, baseF:28,  step:1.45, n:'古代遺跡',        i:'🏛️', c:'#e2a24c', drop:'arelic', unlockFac:'synt1',
+  {id:'cave3', idx:2, f:50,  maxF:20, baseF:28,  step:1.32, recAtk:240,   n:'古代遺跡',        i:'🏛️', c:'#e2a24c', drop:'arelic', unlockFac:'synt1',
    rw:{g:16000,   rp:4000,   mat:650,   item:'arelic', q:2},
    e:['石像兵','呪われた鎧','ミイラ','遺跡の守護者','古代機神']},
-  {id:'cave4', idx:3, f:100, maxF:25, baseF:50,  step:1.52, n:'灼熱の溶岩窟',    i:'🌋', c:'#e0576b', drop:'fheart', unlockFac:'altar1',
+  {id:'cave4', idx:3, f:100, maxF:25, baseF:50,  step:1.38, recAtk:1100,  n:'灼熱の溶岩窟',    i:'🌋', c:'#e0576b', drop:'fheart', unlockFac:'altar1',
    rw:{g:80000,   rp:20000,  mat:3200,  item:'fheart', q:2},
    e:['火竜の仔','マグマゴーレム','焔鬼','サラマンダー','獄炎古竜']},
-  {id:'cave5', idx:4, f:175, maxF:30, baseF:80,  step:1.60, n:'凍てつく水晶洞',  i:'❄️', c:'#7aa2ff', drop:'fcryst', unlockFac:'extr2',
+  {id:'cave5', idx:4, f:175, maxF:30, baseF:80,  step:1.44, recAtk:5000,  n:'凍てつく水晶洞',  i:'❄️', c:'#7aa2ff', drop:'fcryst', unlockFac:'extr2',
    rw:{g:400000,  rp:100000, mat:16000, item:'fcryst', q:2},
    e:['氷霊','霜の巨人','白狼','氷結騎士','絶対零度の王']},
-  {id:'cave6', idx:5, f:275, maxF:40, baseF:120, step:1.68, n:'星詠みの深淵',    i:'🌌', c:'#b487f5', drop:'acore',  unlockFac:'turret2',
+  {id:'cave6', idx:5, f:275, maxF:40, baseF:120, step:1.50, recAtk:22000, n:'星詠みの深淵',    i:'🌌', c:'#b487f5', drop:'acore',  unlockFac:'turret2',
    rw:{g:2200000, rp:550000, mat:85000, item:'acore',  q:2},
    e:['影喰い','虚無の使徒','混沌','名もなきもの','星淵の支配者']},
-  {id:'tower', idx:6, f:400, maxF:Infinity, infinite:true, baseF:165, step:1.45, n:'無限塔（極点）', i:'🗼', c:'#5ee0c0', drop:'acore', unlockFac:null,
+  {id:'tower', idx:6, f:400, maxF:Infinity, infinite:true, baseF:165, step:1.35, recAtk:75000, n:'無限塔（極点）', i:'🗼', c:'#5ee0c0', drop:'acore', unlockFac:null,
    rw:null,
    e:['深層の主','終焉の騎士','忘却の使徒','星喰らい','■■■■']},
 ];
@@ -3057,8 +3205,8 @@ let BOSS_EVERY = 10;
 const isBoss = f => {
   const c = curCave();
   const cf = (S && S.caveFloor) ? S.caveFloor : (f || 1);
-  if(!c.infinite && cf === c.maxF) return true;
-  return cf % 5 === 0 || (f || 1) % BOSS_EVERY === 0;
+  if(!c.infinite) return cf === c.maxF || cf % 5 === 0;
+  return cf % BOSS_EVERY === 0;
 };
 /* 踏破報酬：洞窟クリア回数と最深到達に応じて攻撃力が恒久的に伸びる */
 let DEPTH_K    = 1.09;
@@ -3671,7 +3819,7 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y){
-  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[]};
+  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,craftMat:null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[]};
   // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく。
   // 売り場だけは既定を「なんでも売る」にする
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
@@ -3922,48 +4070,53 @@ function tick(dt,fast){
             grantRp(120 * c * lvPow(n.level), fast);
             if(!fast) spawnReactionPop(n, '👑🔬 狂科学精錬：👑深淵遺物！', '#facc15');
           }
-        }else if(T.effect === 'extr'){  // 🧬魔獣抽出炉：洞窟素材・戦利品を分解研究し🧱研究資材と🔬RP＋追加経験値を抽出
+        }else if(T.effect === 'extr'){  // 🧬魔獣抽出炉：洞窟素材・戦利品を分解研究し🧱研究資材と🔬RP＋追加経験値を抽出（投入素材の価値に比例して大出力）
           const v = Math.max(10, itemVal(k)) * c;
-          const mGain = Math.max(1, Math.round(v * 0.25 * matMul(n)));
-          const rGain = Math.max(2, Math.round(v * 1.4 * matRp(n)));
+          const mGain = Math.max(1, Math.round(v * 0.28 * matMul(n)));
+          const rGain = Math.max(2, Math.round(v * 1.6 * matRp(n)));
           S.stock = (S.stock||0) + mGain;
           n.gain  = (n.gain||0) + rGain;
           grantRp(rGain, fast);
-          n.outBuf.sta = Math.min(capOut(n,'sta'), (n.outBuf.sta||0) + 4 * c);
+          n.outBuf.sta = Math.min(capOut(n,'sta'), (n.outBuf.sta||0) + Math.max(4, Math.round(Math.log2(Math.max(2, itemVal(k))))) * c);
           if(!fast && _rxPopCd <= 0){
-            spawnReactionPop(n, `🧬 魔獣分解研究！ +🔬${fmt(rGain)} +🧱${fmt(mGain)}`, '#f43f5e');
+            spawnReactionPop(n, `🧬 魔獣分解研究(${ITEMS[k].i})！ +🔬${fmt(rGain)} +🧱${fmt(mGain)}`, '#f43f5e');
             _rxPopCd = 0.7;
           }
-        }else if(T.effect === 'turret'){ // 🗼戦術支援砲台：洞窟素材・弾薬を装填して威力強化
-          n._ammoBoost = Math.min(20, (n._ammoBoost||0) + 2 * c);
+        }else if(T.effect === 'turret'){ // 🗼戦術支援砲台：洞窟素材・弾薬を装填して威力＆装填数を素材価値に応じて強化
+          const ammoPow = Math.max(2, Math.round(Math.log2(Math.max(4, itemVal(k)))));
+          n._ammoBoost = Math.min(30, (n._ammoBoost||0) + ammoPow * c);
+          n._ammoMul   = Math.max(n._ammoMul||2.5, Math.min(6.0, 2.0 + Math.log10(Math.max(10, itemVal(k))) * 0.85));
           if(!fast && _rxPopCd <= 0){
-            spawnReactionPop(n, `🗼💥 魔導弾装填！ 砲撃威力2.5倍`, '#38bdf8');
+            spawnReactionPop(n, `🗼💥 魔導弾装填(${ITEMS[k].i})！ 砲撃威力×${n._ammoMul.toFixed(1)}`, '#38bdf8');
             _rxPopCd = 0.7;
           }
-        }else if(T.effect === 'synt'){   // 🏺遺物錬成工房：洞窟素材から💎爆風結晶・👑深淵遺物・⚙️強化パーツをクラフト
-          if(k === 'fheart' || k === 'fcryst' || k === 'acore'){
-            n.outBuf.drelic = (n.outBuf.drelic||0) + c;
-            homeOf().drelic = (homeOf().drelic||0) + c;
-            flowIn('drelic', c); nodeFlow(n, 'drelic', c, 'i');
+        }else if(T.effect === 'synt'){   // 🏺遺物錬成工房：洞窟素材から💎爆風結晶・👑深淵遺物・⚙️高等級強化パーツをクラフト（素材価値で等級ボーナス）
+          const qBonus = Math.max(1, Math.floor(Math.log10(Math.max(10, itemVal(k)))));
+          if(k === 'fheart' || k === 'fcryst' || k === 'acore' || itemVal(k) >= 200){
+            n.outBuf.drelic = (n.outBuf.drelic||0) + c * qBonus;
+            homeOf().drelic = (homeOf().drelic||0) + c * qBonus;
+            flowIn('drelic', c * qBonus); nodeFlow(n, 'drelic', c * qBonus, 'i');
           }else{
-            n.outBuf.bdia = (n.outBuf.bdia||0) + c;
-            homeOf().bdia = (homeOf().bdia||0) + c;
-            flowIn('bdia', c); nodeFlow(n, 'bdia', c, 'i');
+            n.outBuf.bdia = (n.outBuf.bdia||0) + c * qBonus;
+            homeOf().bdia = (homeOf().bdia||0) + c * qBonus;
+            flowIn('bdia', c * qBonus); nodeFlow(n, 'bdia', c * qBonus, 'i');
           }
-          const pk = rollPart(effFloorOf(S.floor));
+          const matFloorBonus = Math.round(Math.log2(Math.max(2, itemVal(k))) * 10);
+          const pk = rollPart(effFloorOf(S.floor) + matFloorBonus);
           addPart(pk, 1);
           if(!fast && _rxPopCd <= 0){
-            spawnReactionPop(n, `🏺✨ 洞窟素材クラフト！ (${partName(pk)})`, '#f59e0b');
+            spawnReactionPop(n, `🏺✨ 洞窟素材クラフト(${ITEMS[k].i})！ (${partName(pk)})`, '#f59e0b');
             _rxPopCd = 0.7;
           }
-        }else if(T.effect === 'altar'){  // ⛩️星辰の祭壇：洞窟秘石や遺物を捧げて恒久攻撃力＋研究力＋周囲浄化
-          const atkUp = Math.max(1, Math.round((CAVE_ITEMS.includes(k) ? 3 : 2) * c * lvPow(n.level)));
-          const rpUp  = Math.max(15, Math.round(itemVal(k) * 1.8 * c * lvPow(n.level)));
+        }else if(T.effect === 'altar'){  // ⛩️星辰の祭壇：洞窟秘石や遺物を捧げて恒久攻撃力＋研究力＋周囲浄化（素材価値で大幅上昇）
+          const vScale = Math.max(1, Math.pow(Math.max(10, itemVal(k)) / 10, 0.45));
+          const atkUp = Math.max(1, Math.round((CAVE_ITEMS.includes(k) ? 3.5 : 2.0) * vScale * c * lvPow(n.level)));
+          const rpUp  = Math.max(15, Math.round(itemVal(k) * 2.0 * c * lvPow(n.level)));
           S.atkBonus = (S.atkBonus||0) + atkUp;
           n.gain = (n.gain||0) + rpUp;
           grantRp(rpUp, fast);
           if(!fast && _rxPopCd <= 0){
-            spawnReactionPop(n, `⛩️✨ 祭壇奉献！ 攻撃力+${fmt(atkUp)} / 🔬+${fmt(rpUp)}`, '#c084fc');
+            spawnReactionPop(n, `⛩️✨ 祭壇奉献(${ITEMS[k].i})！ 攻撃力+${fmt(atkUp)} / 🔬+${fmt(rpUp)}`, '#c084fc');
             _rxPopCd = 0.7;
           }
         }else if(T.effect === 'dive'){  // ダンジョン入口への戦術パイプライン物資注入
@@ -4149,7 +4302,7 @@ function tick(dt,fast){
       }
       if(T.effect==='turret'){
         if(!S.enemy) spawnEnemy();
-        const boost = (n._ammoBoost||0) > 0 ? 2.5 : 1.0;
+        const boost = (n._ammoBoost||0) > 0 ? (n._ammoMul || 2.5) : 1.0;
         if((n._ammoBoost||0) > 0) n._ammoBoost--;
         const tdmg = Math.max(1, Math.round(dmg() * 1.65 * lvPow(n.level) * Math.pow(2.4, (T.era||1)-1) * boost));
         S.enemy._noRegen = 6.0; // ボスの自己再生バリアを封印
@@ -4821,7 +4974,7 @@ function powerTypeOf(n){
   const T = TYPES[n.type];
   if(!T || T.layer || T.port || T.raid) return 'passive';
   if(isHuman(n)) return 'human';
-  if(T.cleanEnergy) return 'clean';
+  if(T.cleanEnergy || modsOf(n).clean) return 'clean';
   if(T.store || T.ware || T.aura) return 'passive';
   if((T.gen && !T.cleanEnergy) || T.chain === 'fuel' || T.line === 'coal') return 'dirty_gen';
   const pLinks = S.links.filter(l => l.to === n.id && ENERGY_ITEM[l.item] && !isLinkOutOfRange(l));
@@ -4976,6 +5129,9 @@ function getLinkTags(src, item, dst){
   if(item === 'acore'){ tags.add('CATALYST_RESEARCH'); tags.add('RESONANCE'); }
   if(role === 'altar') tags.add('CRYO');
   if(role === 'turret') tags.add('KINETIC');
+  // クラフト素材の固有リアクションタグも配線に継承
+  const cmB = src.craftMat ? craftMatBonus(src.craftMat) : null;
+  if(cmB && cmB.tag) tags.add(cmB.tag);
   // 中継ノードは受け取っているタグも下流へ伝播する
   if(src.inTags){
     if(src.inTags.HEAT && (T.store || T.tool || role === 'smelt' || role === 'forge')) tags.add('HEAT');
@@ -5106,6 +5262,8 @@ function updateReactionEngine(dt, fast){
     if(n.type === 'hero' || n.type === 'mate1' || role === 'tstr') inT.KINETIC = 1;
     if(n.type === 'mate2' || role === 'tool') inT.CATALYST_WORKER = 1;
     if(n.type === 'mate3' || role === 'lab')  inT.CATALYST_RESEARCH = 1;
+    const cmB = n.craftMat ? craftMatBonus(n.craftMat) : null;
+    if(cmB && cmB.tag) inT[cmB.tag] = (inT[cmB.tag] || 0) + 1;
     if((n._shockT || 0) > 0){
       n._shockT = Math.max(0, n._shockT - dt);
       if(n._shockT > 0) inT.SHOCKWAVE = 1;
@@ -5685,14 +5843,18 @@ function doDive(fast, node, fromCannon){
   // プレイヤーの強化（💪筋力・🧠知力・❤️体力・🎽装備・🗼支援砲台・❄️戦術化学）が不足していると、
   // 自己再生バリアで削りきれず、反撃で体力を削られるため周回・突破にはプレイヤー強化が必須になる
   const clears = caveClearsOf(cave.id);
-  if(!fromCannon && S.enemy && (S.enemy.boss || clears > 0 || cf >= Math.ceil((cave.maxF < Infinity ? cave.maxF : 20) * 0.6))){
+  const recAtk = (cave.recAtk || 15) * (1 + clears * 0.45);
+  const underPowered = atk() < recAtk;
+  if(!fromCannon && S.enemy && (cave.idx >= 1 || clears > 0) && (S.enemy.boss || clears > 0 || cf >= Math.ceil((cave.maxF < Infinity ? cave.maxF : 20) * 0.6))){
     const suppressed = brx.cryo || brx.shatter || (S.enemy._noRegen && S.enemy._noRegen > 0);
     if(!suppressed){
-      const regen = Math.floor(S.enemy.max * (S.enemy.boss ? 0.035 : 0.018) * (1 + clears * 0.15));
-      if(regen > 0 && dmg() < regen * 2.5){
+      const baseRegenRate = underPowered ? (S.enemy.boss ? 0.038 : 0.020) : (S.enemy.boss ? 0.010 : 0.004);
+      const rawRegen = Math.floor(S.enemy.max * baseRegenRate * (1 + clears * 0.12));
+      const regen = underPowered ? rawRegen : Math.min(rawRegen, Math.floor(dmg() * 0.55));
+      if(regen > 0 && (underPowered || dmg() < regen * 2.5)){
         S.enemy.hp = Math.min(S.enemy.max, S.enemy.hp + regen);
         if(node && !fast && _rxPopCd <= 0 && Math.random() < 0.30){
-          spawnReactionPop(node, `🛡️ 敵再生バリア +${fmt(regen)} (火力強化or❄️/🗼で封印！)`, '#f59e0b');
+          spawnReactionPop(node, `🛡️ 敵再生バリア +${fmt(regen)} (推奨⚔️${fmt(recAtk)} or ❄️/🗼で封印！)`, '#f59e0b');
           _rxPopCd = 0.85;
         }
       }
@@ -5784,10 +5946,17 @@ function doDive(fast, node, fromCannon){
       toast(`${isFirst?'🏆 初回踏破(報酬10倍)！':'🔄 洞窟クリア！'} ${cave.i}${cave.n} +${fmt(rG)}G`);
     }
     // 第1層に戻して周回継続（周回ごとに敵が強化されるため、さらなるプレイヤー強化が必要になる）
-    S.caveFloor = 1;
-    const globalReach = cave.baseF + cave.maxF;
-    if(globalReach > S.best) S.best = globalReach;
-    S.floor = effFloorOf(1, cave);
+    // 放置中（fast）に初回踏破し、かつ次の洞窟の推奨攻撃力を満たしている場合は自動で次の洞窟へ進む
+    if(fast && nextCave && isCaveUnlocked(nextCave.id) && atk() >= (nextCave.recAtk || 15) * 0.8){
+      S.caveId = nextCave.id;
+      S.caveFloor = 1;
+      S.floor = nextCave.baseF;
+    }else{
+      S.caveFloor = 1;
+      const globalReach = cave.baseF + cave.maxF;
+      if(globalReach > S.best) S.best = globalReach;
+      S.floor = effFloorOf(1, cave);
+    }
   }else{
     S.caveFloor = cf + 1;
     S.floor = effFloorOf(S.caveFloor, cave);
@@ -6024,10 +6193,13 @@ function renderStats(){
 }
 
 /* ========================= 拾得品 ========================= */
-/* ダンジョンで拾ったパーツ。等級は深さで上がる */
+/* ダンジョンで拾ったパーツ。等級はダンジョン難易度（dropGrade）に大きく依存して 1〜PART_MAX まで上がる */
 function rollPart(floor, rnd){
   rnd = rnd || Math.random;
-  const g = Math.max(1, Math.min(PART_MAX, 1 + Math.floor(dropGrade(floor)/3)));
+  const dg = dropGrade(floor);
+  const maxG = Math.max(1, Math.min(PART_MAX, 1 + Math.floor(dg / 3)));
+  const minG = Math.max(1, Math.min(maxG, 1 + Math.floor((dg - 2) / 5)));
+  const g = minG + Math.floor(rnd() * (maxG - minG + 1));
   const p = PARTS[Math.floor(rnd()*PARTS.length)];
   return partKey(p.k, g);
 }
@@ -7215,20 +7387,36 @@ function powerWarn(t){
   }
   return null;
 }
-/* 建てるものを選んでから、置く場所をタップして決める */
+/* 建てるものを選んでから、置く場所をタップして決める（使用するクラフト素材で性能が大幅に変化） */
 let placing = null;
+function defaultCraftMatOf(t){
+  const T = TYPES[t]; if(!T) return 'ing1';
+  return (T.caveMat && Object.keys(T.caveMat)[0]) || MAT_ITEM(T.era || 1);
+}
+function pickInitialCraftMat(t){
+  const def = defaultCraftMatOf(t);
+  const defNeed = buyMat(t, def);
+  if(!defNeed || matOk(defNeed)) return def;
+  const cands = craftMatCandidates(t);
+  for(const k of cands){
+    const nd = buyMat(t, k);
+    if(nd && matOk(nd)) return k;
+  }
+  return def;
+}
 function startPlace(t){
   if(placing === t) return cancelPlace();          // もう一度押したら取り消し
   const T = TYPES[t];
   if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
   if(!isDev(t)) return toast(`🔬 研究ツリーで解放すると建てられます`);
   if(S.gold < buyCost(t)) return toast('ゴールドが足りません');
-  const need = buyMat(t);
+  selCraftMat = pickInitialCraftMat(t);
+  const need = buyMat(t, selCraftMat);
   if(!matOk(need)) return toast(`資材が足りません（${matText(need)} が要ります）`);
   placing = t; document.body.classList.add('placing');
   setPane('stage'); renderPlaceBar();
 }
-function cancelPlace(){ placing = null; document.body.classList.remove('placing'); renderPlaceBar(); }
+function cancelPlace(){ placing = null; selCraftMat = null; document.body.classList.remove('placing'); renderPlaceBar(); }
 function renderPlaceBar(){
   const el = $('#place'); if(!el) return;
   el.classList.toggle('on', !!placing);
@@ -7236,14 +7424,40 @@ function renderPlaceBar(){
   const T = TYPES[placing];
   const rNote = T.src ? `（周囲 ${HUMAN_R}px の施設に⚡を送れます）`
               : `（🧍人の⚡で動かす場合は金色の円の中に配置）`;
-  el.innerHTML = `<span>${T.i} <b>${T.n}</b> を置く場所をタップ <small style="opacity:.85">${rNote}</small></span><button id="pCancel">やめる</button>`;
+  const cands = (!T.unique && !T.port && !T.layer && !T.raid && (T.mat || T.caveMat || T.era)) ? craftMatCandidates(placing) : [];
+  if(cands.length && (!selCraftMat || !cands.includes(selCraftMat))) selCraftMat = pickInitialCraftMat(placing);
+  const matSelHtml = cands.length ? (()=>{
+    const opts = cands.map(k => {
+      const nd = buyMat(placing, k) || {[k]:1};
+      const reqQ = nd[k] || 1;
+      const haveQ = stockOfMat(k);
+      const ok = haveQ >= reqQ;
+      return `<option value="${k}" ${k===selCraftMat?'selected':''}>${ITEMS[k].i}${ITEMS[k].n}×${fmt(reqQ)} (所持:${fmt(haveQ)}${ok?'':'・不足'}) ｜ ${craftMatText(k)}</option>`;
+    }).join('');
+    const curBonus = craftMatText(selCraftMat);
+    return `<span class="pmat-wrap" style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;flex-wrap:wrap">`
+         + `<label style="font-size:11px;color:var(--acc)">🛠️素材:</label>`
+         + `<select id="pMatSel" style="background:#101824;color:var(--ink);border:1px solid var(--acc);border-radius:6px;padding:2px 6px;font-size:11px;max-width:390px">${opts}</select>`
+         + `</span>`;
+  })() : '';
+  el.innerHTML = `<span>${T.i} <b>${T.n}</b> を置く場所をタップ${matSelHtml}</span><button id="pCancel">やめる</button>`;
+  const selEl = el.querySelector('#pMatSel');
+  if(selEl){
+    selEl.onchange = () => {
+      selCraftMat = selEl.value;
+      const infoEl = el.querySelector('#pMatInfo');
+      if(infoEl) infoEl.textContent = craftMatText(selCraftMat);
+    };
+  }
   el.querySelector('#pCancel').onclick = cancelPlace;
 }
 function placeAt(cx, cy){
   const t = placing; if(!t) return;
-  const cost = buyCost(t), need = buyMat(t);
+  const T = TYPES[t];
+  const chosenMat = selCraftMat || defaultCraftMatOf(t);
+  const cost = buyCost(t), need = buyMat(t, chosenMat);
   if(S.gold < cost){ cancelPlace(); return toast('ゴールドが足りません'); }
-  if(!matOk(need)){ cancelPlace(); return toast(`資材が足りません（${matText(need)}）`); }
+  if(!matOk(need)){ return toast(`選択中の素材が足りません（${matText(need)} が必要）`); }
   const w = toWorld(cx, cy);
   let x = Math.round((w.x - NW/2)/10)*10, y = Math.round((w.y - 45)/10)*10;
   for(let i=0; i<48 && taken(x,y); i++){        // 重なったら近くの空きへずらす
@@ -7251,20 +7465,32 @@ function placeAt(cx, cy){
   }
   S.gold -= cost; takeMat(need); S.counts[t] = (S.counts[t]||0)+1;
   const n = addNode(t, x, y);
+  if(!T.unique && !T.port && !T.layer && !T.raid && chosenMat && ITEMS[chosenMat]){
+    n.craftMat = chosenMat;
+    modsDirty(n);
+    rebuildNodeEl(n);
+  }
   sel = n.id; cancelPlace(); renderInsp();
   const wv = powerWarn(t);
   if(wv){ toast('⚠ '+wv); addLog(`⚠ ${TYPES[t].n}は${wv}`,'u'); }
 }
-function buy(t){
+function buy(t, customMat){
   const T=TYPES[t];
   if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
   if(!isDev(t)) return toast(`🔬 研究ツリーで解放すると建てられます`);
-  const cost=buyCost(t), need=buyMat(t);
+  const chosenMat = customMat || selCraftMat || pickInitialCraftMat(t);
+  const cost=buyCost(t), need=buyMat(t, chosenMat);
   if(S.gold<cost) return toast('ゴールドが足りません');
   if(!matOk(need)) return toast(`資材が足りません（${matText(need)}）`);
   S.gold-=cost; takeMat(need); S.counts[t]=(S.counts[t]||0)+1;
   const p=freeSpot();
-  sel=addNode(t,p.x,p.y).id; renderInsp();
+  const n = addNode(t,p.x,p.y);
+  if(!T.unique && !T.port && !T.layer && !T.raid && chosenMat && ITEMS[chosenMat]){
+    n.craftMat = chosenMat;
+    modsDirty(n);
+    rebuildNodeEl(n);
+  }
+  sel=n.id; renderInsp();
   const w = powerWarn(t);
   if(w){ toast('⚠ '+w); addLog(`⚠ ${TYPES[t].n}は${w}`,'u'); }
 }
@@ -7405,7 +7631,7 @@ function scrapNode(n){
   if(!n.drop){                                 // 拾った施設は買っていないので返金なし
     S.counts[n.type] = Math.max(0, (S.counts[n.type]||1) - 1);
     g = Math.floor(buyCost(n.type) * 0.5);
-    const bm = buyMat(n.type);            // 資材も半分だけ返る
+    const bm = buyMat(n.type, n.craftMat);     // 使用したクラフト資材も半分返る
     if(bm){ const H=homeOf();
       for(const k in bm){ const q=Math.floor(bm[k]*0.5); if(q>0) H[k]=(H[k]||0)+q; } }
     // まとめた施設は、中の段のぶんも戻す
@@ -7526,6 +7752,9 @@ function renderInsp(){
     (T.store || T.ware ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : '') +
     (T.ware  ? `<button class="wopen">📦 中身を見る</button>` : '') +
     (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
+    (!n.drop && !T.layer && !T.port && !T.unique && !T.raid
+        ? `<div class="kv">🛠️ クラフト素材<select class="cmat"></select></div>`
+        + `<div class="kv">✨ 素材性能補正<b class="cmat-info" style="color:#facc15"></b></div>` : '') +
     (nextGenType(n) ? `<button class="core"></button>` : '') +
     (slotsOf(n) ? `<div class="kv gearhd">アイテムスロット<b class="psum"></b></div><div class="partsel"></div>` : '') +
     (gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : '') +
@@ -7570,6 +7799,36 @@ function renderInsp(){
     + `<button class="del">撤去</button></div>`;
   box.querySelector('.mtog').onclick=()=>{ inspMore=!inspMore; renderInsp(); };
   box.classList.add('on');
+  const cmSel = box.querySelector('.cmat');
+  if(cmSel){
+    const curMat = n.craftMat || defaultCraftMatOf(n.type);
+    const cands = craftMatCandidates(n.type);
+    if(curMat && !cands.includes(curMat)) cands.unshift(curMat);
+    cmSel.innerHTML = cands.map(k => {
+      const nd = buyMat(n.type, k) || {[k]:1};
+      const reqQ = nd[k] || 1;
+      const haveQ = stockOfMat(k);
+      const isCur = (k === curMat);
+      return `<option value="${k}" ${isCur?'selected':''}>${ITEMS[k].i}${ITEMS[k].n}${isCur?' (現在)':` 換装:×${fmt(reqQ)} [所持:${fmt(haveQ)}]`} ｜ ${craftMatText(k)}</option>`;
+    }).join('');
+    cmSel.onchange = () => {
+      const nk = cmSel.value;
+      if(!nk || nk === (n.craftMat || defaultCraftMatOf(n.type))) return;
+      const need = buyMat(n.type, nk) || {[nk]:1};
+      if(!matOk(need)){
+        toast(`素材換装には ${matText(need)} が必要です（所持:${fmt(stockOfMat(nk))}）`);
+        cmSel.value = n.craftMat || defaultCraftMatOf(n.type);
+        return;
+      }
+      takeMat(need);
+      n.craftMat = nk;
+      modsDirty(n);
+      rebuildNodeEl(n);
+      addLog(`🛠️【素材換装】${TYPES[n.type].i}${TYPES[n.type].n} を ${ITEMS[nk].i}${ITEMS[nk].n}製に改装！（${craftMatText(nk)}）`, 'b');
+      toast(`🛠️ ${ITEMS[nk].i}${ITEMS[nk].n}製に換装しました！（${craftMatText(nk)}）`);
+      renderInsp();
+    };
+  }
   if(T.matIn){
     const ml=box.querySelector('.mat');
     ml.innerHTML=`<option value="">— 受け取らない —</option>`+
@@ -7778,6 +8037,11 @@ function renderInspLive(){
       + (b?`${p?'　':''}⚡加速 +${b}%`:'') || 'なし'; }
   const tt=box.querySelector('.trt');
   if(tt) tt.textContent = n.item ? (traitText(n.item) || '特性なし') : '—';
+  const cmi=box.querySelector('.cmat-info');
+  if(cmi){
+    const curMat = n.craftMat || defaultCraftMatOf(n.type);
+    cmi.textContent = (ITEMS[curMat] ? `${ITEMS[curMat].i}${ITEMS[curMat].n}：` : '') + craftMatText(curMat);
+  }
   const pk=box.querySelector('.perk');
   if(pk) pk.textContent = perksOf(TYPES[n.type]).map(p=>`${p.n}（${p.d}）`).join('　');
   const ks=box.querySelector('.ksum');
@@ -7900,7 +8164,7 @@ function renderInspLive(){
       if(far){
         rngRow.hidden = false;
         rngK.textContent = '🧍 人からの距離';
-        rngV.innerHTML = `<span style="color:var(--bad)">🚫 ${tierOf(far.src).n}まで ${far.dist}px / 上限${far.lim}px（あと${far.over}px近づける）</span>`;
+        rngV.innerHTML = `<span style="color:var(--bad)">🚫 ${tierOf(far.src).n}まで ${far.dist}px / 上限${far.lim || humanRangeOf(far.src)}px（あと${far.over}px近づける）</span>`;
       }else if(hLinks.length){
         const src = N(hLinks[0].from), d = Math.round(nodeDist(src, n)), lim = humanRangeOf(src);
         rngRow.hidden = false;
