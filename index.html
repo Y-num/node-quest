@@ -937,41 +937,148 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
   #hint{display:none}
   #offscr{top:8px;left:auto;right:262px;transform:none}
 }
+/* ── Smart Context UI & Data Lens (X-Ray Overlay) & Assimilation Merge & Bestiary ── */
+.status-led{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 7px;margin-right:2px;box-shadow:0 0 5px currentColor;transition:background .2s,color .2s}
+.status-led.led-run{background:#10b981;color:#10b981}
+.status-led.led-idle{background:#f59e0b;color:#f59e0b}
+.status-led.led-stall{background:#ef4444;color:#ef4444;animation:ledBlink 1s infinite}
+@keyframes ledBlink{0%,100%{opacity:1}50%{opacity:.35}}
+/* Minimalist Default (Normal Lens): hide packet quantity text badges & human range circle unless interacting or lens=power/logistics */
+body:not([data-lens="logistics"]) g.pkt .pkq-g{display:none}
+body:not([data-lens="power"]):not(.placing):not(.dragging-node):not(.linking) .node:not(.sel) .hrange{opacity:0;pointer-events:none}
+/* Logistics Lens */
+body[data-lens="logistics"] g.pkt .pkq-g{display:block !important}
+body[data-lens="logistics"] .slot.full{background:rgba(239,68,68,.28);box-shadow:inset 0 0 0 1px #ef4444}
+body[data-lens="logistics"] .rail.jam{stroke:#ef4444 !important;stroke-width:11px;filter:drop-shadow(0 0 6px rgba(239,68,68,.7))}
+/* Power / Range Lens */
+body[data-lens="power"] .node .hrange{opacity:1 !important;display:block !important;border-color:rgba(242,193,78,.9);border-width:2.2px;background:radial-gradient(circle,rgba(242,193,78,.14) 0%,rgba(242,193,78,.04) 72%,transparent 100%);box-shadow:0 0 28px rgba(242,193,78,.22)}
+body[data-lens="power"] .rail.energy, body[data-lens="power"] .flow.energy{filter:drop-shadow(0 0 6px rgba(94,224,192,.75))}
+body[data-lens="power"] .rail:not(.energy), body[data-lens="power"] .wire:not(.energy){opacity:.28}
+/* Hazard Lens */
+body[data-lens="hazard"] .node .polr{opacity:.88 !important;border-color:rgba(192,132,252,.78);background:radial-gradient(closest-side,rgba(192,132,252,.28),rgba(239,68,68,.12) 60%,transparent)}
+body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion, body[data-lens="hazard"] .node.rx-curse, body[data-lens="hazard"] .node.rx-overload{box-shadow:0 0 0 2px #f43f5e,0 0 24px rgba(244,63,94,.55) !important}
+/* Assimilated / Chimera Node */
+.node.assim{border-color:#10b981;box-shadow:0 0 0 1.5px rgba(16,185,129,.55),0 8px 24px rgba(0,0,0,.5)}
+.node.assim.chimera{border-color:#f59e0b;box-shadow:0 0 0 1.8px rgba(245,158,11,.68),0 0 22px rgba(16,185,129,.35)}
+.node .assim-badge{position:absolute;top:-10px;right:8px;background:linear-gradient(90deg,#064e3b,#047857);border:1px solid #34d399;color:#ecfdf5;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;pointer-events:none;z-index:4;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.node.chimera .assim-badge{background:linear-gradient(90deg,#78350f,#065f46);border-color:#fbbf24;color:#fef3c7}
+/* Exhausted Human / Stopped Dive Node */
+.node.lp-exhaust{border-color:#ef4444 !important;box-shadow:0 0 0 2px rgba(239,68,68,.7),0 0 20px rgba(239,68,68,.4) !important}
+/* Lens Bar */
+#lensBar{position:absolute;bottom:12px;right:12px;z-index:28;display:flex;gap:4px;background:rgba(12,16,25,.92);border:1px solid #2b3550;border-radius:9px;padding:4px 6px;backdrop-filter:blur(6px);align-items:center}
+#lensBar .lbtn{background:#0b101a;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:10.5px;font-weight:700;color:var(--dim);cursor:pointer;transition:all .15s}
+#lensBar .lbtn.on{border-color:var(--acc);color:var(--acc);background:rgba(94,224,192,.14);box-shadow:0 0 10px rgba(94,224,192,.2)}
+/* Radial HUD around selected node */
+#radialHud{position:absolute;pointer-events:none;z-index:26;display:none;transform:translate(-50%,-100%);margin-top:-10px}
+#radialHud.on{display:flex;flex-direction:column;align-items:center;gap:4px}
+#radialHud .rh-card{pointer-events:auto;background:rgba(12,17,28,.95);border:1px solid var(--acc);border-radius:10px;padding:5px 9px;box-shadow:0 6px 20px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:3px;min-width:168px;max-width:250px}
+#radialHud .rh-top{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10.5px;font-weight:700;color:var(--fg)}
+#radialHud .rh-tags{display:flex;flex-wrap:wrap;gap:3px}
+#radialHud .rh-acts{display:flex;gap:4px;margin-top:2px}
+#radialHud .rh-acts button{flex:1;background:#0e1624;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:10px;font-weight:700;color:var(--fg);cursor:pointer}
+#radialHud .rh-acts button:hover:not(:disabled){border-color:var(--acc);color:var(--acc)}
+/* Bestiary Modal */
+#bestiary{position:fixed;inset:0;background:rgba(5,8,14,.82);backdrop-filter:blur(6px);z-index:120;display:none;align-items:center;justify-content:center;padding:16px}
+#bestiary.on{display:flex}
+.bst-box{width:min(980px,96vw);max-height:88vh;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.7)}
+.bst-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.bst-title{font-size:15px;font-weight:800;color:var(--fg)}
+.bst-tabs{display:flex;gap:4px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:#0b1018}
+.bst-tab{background:#111826;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:11px;font-weight:700;color:var(--dim);cursor:pointer}
+.bst-tab.on{border-color:var(--acc);color:var(--acc);background:rgba(94,224,192,.12)}
+.bst-body{padding:12px 14px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:10px}
+.bst-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:5px}
+.bst-card.locked{opacity:.58;border-style:dashed}
+.bst-card.boss{border-color:rgba(242,193,78,.55);background:linear-gradient(180deg,rgba(242,193,78,.07),var(--panel2))}
+.bst-chd{display:flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px}
+.bst-arch{margin-left:auto;font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--line)}
+.bst-kv{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim)}
+.bst-kv b{color:var(--fg)}
+/* Combat Log Box in Dungeon Side Panel */
+#combatLogBox{margin-top:6px;background:#080c14;border:1px solid #1e293b;border-radius:7px;padding:6px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.8px;line-height:1.45;max-height:145px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+.clog-line{word-break:break-word;padding:1px 2px;border-radius:3px}
+.clog-line.atk{color:#cbd5e1}
+.clog-line.sts{color:#38bdf8;font-weight:700}
+.clog-line.res{color:#facc15;font-weight:700;background:rgba(250,204,21,.08);border-left:2px solid #facc15;padding-left:4px}
+.clog-line.bad{color:#fb7185;font-weight:700;background:rgba(244,63,94,.12);border-left:2px solid #f43f5e;padding-left:4px}
+.stat.lp .v{color:#f43f5e}
+
+/* ── Mobile-First Streamlining & Clean Tabs & Menu Modal ── */
+.side-tabs{display:flex;gap:4px;background:var(--panel2);border-bottom:1px solid var(--line);padding:6px;position:sticky;top:0;z-index:6}
+.side-tab{flex:1;background:#0f172a;border:1px solid var(--line);border-radius:7px;padding:7px 4px;font-size:11px;font-weight:700;color:var(--dim);cursor:pointer;text-align:center;transition:all .15s}
+.side-tab.on{background:rgba(94,224,192,.15);border-color:var(--acc);color:var(--acc);box-shadow:0 0 8px rgba(94,224,192,.18)}
+.stab-pane{display:flex;flex-direction:column}
+.stab-pane[hidden]{display:none !important}
+
+/* Game Menu Modal */
+#menuModal{position:fixed;inset:0;background:rgba(5,8,14,.82);backdrop-filter:blur(6px);z-index:130;display:none;align-items:center;justify-content:center;padding:14px}
+#menuModal.on{display:flex}
+.menu-box{width:min(580px,94vw);max-height:88vh;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.75)}
+.menu-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.menu-title{font-size:15px;font-weight:800;color:var(--fg)}
+.menu-close{background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:4px 12px;color:var(--fg);cursor:pointer}
+.menu-grid{padding:12px 14px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.mitem{display:flex;align-items:center;gap:10px;background:#0f172a;border:1px solid var(--line);border-radius:9px;padding:9px 12px;color:var(--fg);text-align:left;cursor:pointer;transition:all .15s}
+.mitem:hover{border-color:var(--acc);background:rgba(94,224,192,.1)}
+.mitem i{font-size:20px;font-style:normal;flex:0 0 24px;text-align:center}
+.mitem .mtxt{display:flex;flex-direction:column}
+.mitem .mnm{font-size:12px;font-weight:700;color:var(--fg)}
+.mitem small{font-size:9.5px;color:var(--dim)}
+.mitem.bad{border-color:rgba(239,68,68,.35)}
+.mitem.bad:hover{border-color:#ef4444;background:rgba(239,68,68,.15)}
+.menu-sec{padding:10px 14px;background:#090d14;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.menu-sec-title{font-size:11px;font-weight:700;color:var(--dim)}
+.menu-rx-row{display:flex;flex-wrap:wrap;gap:4px}
+.menu-rx-row button{font-size:10.5px;padding:4px 8px}
+
+@media (max-width:860px){
+  .hide-mobile{display:none !important}
+  #top{height:44px;gap:4px;padding:0 6px;overflow-x:hidden}
+  #top .logo{display:none}
+  #top .stat{padding:2px 5px;gap:3px}
+  #top .stat .k{font-size:9.5px}
+  #top .stat .v{font-size:12.5px}
+  #top .tbtn{padding:3px 7px;font-size:10.5px}
+  #lensBar{bottom:56px;right:8px;padding:3px 5px}
+  #lensBar span{display:none}
+  #lensBar .lbtn{padding:3px 6px;font-size:10px}
+  #mtabs{height:calc(50px + env(safe-area-inset-bottom))}
+  #mtabs button{font-size:11px;gap:3px;flex-direction:column;height:100%}
+  #mtabs button i{font-size:16px}
+}
 </style>
 </head>
-<body>
+<body data-lens="normal">
 <div id="app">
   <div id="top">
     <span class="logo">NODE QUEST</span>
-    <div class="stat best"><span class="k">最深<em>到達</em></span><span class="v num" id="tBest">1</span><span class="u">層</span></div>
-    <div class="stat f"><span class="k">現<em>在</em></span><span class="v num" id="tFloor">1</span></div>
-    <div class="stat a"><span class="k">攻<em>撃力</em></span><span class="v num" id="tAtk">0</span></div>
+    <div class="stat lp" id="tLpStat" title="パーティLP（全滅ごとに-1。0になると探索停止＆主人公たちの⚡・KINETIC供給が完全停止）"><span class="k">❤️<em>LP</em></span><span class="v num" id="tLp">3/3</span></div>
     <div class="stat g"><span class="k">GOLD</span><span class="v num" id="tGold">0</span></div>
     <div class="stat r"><span class="k">🔬<em>研究</em></span><span class="v num" id="tRp">0</span></div>
     <div class="stat m"><span class="k">🧱<em>資材</em></span><span class="v num" id="tMat">0</span></div>
+    <div class="stat a hide-mobile"><span class="k">攻<em>撃力</em></span><span class="v num" id="tAtk">0</span></div>
     <span class="sp"></span>
     <button class="tbtn" id="bSpeed">⏩ ×1</button>
-    <button class="tbtn" id="bFit">全体表示</button>
-    <button class="tbtn" id="bTidy">整列</button>
-    <button class="tbtn tree" id="bTree">🔬 研究ツリー</button>
-    <button class="tbtn" id="bTro">🏆 <b id="troN">0</b></button>
-    <button class="tbtn" id="bDash">📊 収支</button>
-    <button class="tbtn" id="bStats">📈 記録</button>
-    <button class="tbtn" id="bLasso">🧩 まとめる</button>
-    <button class="tbtn" id="bComb" hidden>🔗 複合化</button>
-    <button class="tbtn" id="bScrap">🗑 まとめて撤去</button>
+    <button class="tbtn tree hide-mobile" id="bTree">🔬 研究ツリー</button>
     <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
-    <button class="tbtn dev" id="bDev">🛠️ 開発ツール</button>
-    <button class="tbtn dbg" id="bDbg" hidden>🐛 ノード一覧</button>
-    <button class="tbtn" id="bCode">引き継ぎ</button>
-    <button class="tbtn" id="bSave">保存</button>
-    <button class="tbtn" id="bReset">リセット</button>
+    <button class="tbtn" id="bBst" style="border-color:#38bdf8;color:#7dd3fc">📖 図鑑 <b id="bstN">0</b></button>
+    <button class="tbtn pri" id="bMenuBtn" style="border-color:var(--acc);color:var(--acc);font-weight:800">☰ メニュー</button>
+    <div style="display:none">
+      <button id="bFit"></button><button id="bTidy"></button>
+      <button id="bTro"><b id="troN">0</b></button><button id="bDash"></button><button id="bStats"></button>
+      <button id="bLasso"></button><button id="bComb"></button><button id="bScrap"></button>
+      <button id="bDev"></button><button id="bDbg"></button><button id="bCode"></button>
+      <button id="bSave"></button><button id="bReset"></button>
+      <span id="tFloor"></span>
+    </div>
   </div>
   <div id="mid">
     <nav id="mtabs">
       <button data-p="stage" class="on"><i>🗺</i><span>工房</span></button>
       <button data-p="shop"><i>🏗</i><span>建設</span></button>
-      <button data-p="side"><i>🛡</i><span>状態</span></button>
+      <button data-p="side"><i>⚔️</i><span>攻略</span></button>
+      <button id="mTabBestiary"><i>📖</i><span>図鑑</span></button>
+      <button id="mTabMenu"><i>☰</i><span>メニュー</span></button>
     </nav>
     <div id="shop">
       <div class="sec">行動ノードを建てる</div>
@@ -1001,97 +1108,139 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
         </div>
       </div>
       <div id="board"></div><div id="insp"></div>
+      <div id="radialHud"></div>
       <div id="place"></div>
-      <div id="rxBar" style="position:absolute;top:10px;left:12px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;pointer-events:auto;background:rgba(12,15,22,.88);border:1px solid #2b3550;border-radius:8px;padding:5px 8px;backdrop-filter:blur(4px);align-items:center">
-        <span style="font-size:10.5px;font-weight:700;color:#7aa2ff;margin-right:2px">⚗️ 創発検証:</span>
-        <button class="dt-btn acc" data-rx-quick="A" style="padding:3px 8px;font-size:10.5px">💨 プリセットA: 急冷合金ライン</button>
-        <button class="dt-btn warn" data-rx-quick="B" style="padding:3px 8px;font-size:10.5px">💥 プリセットB: 爆風クラフト実験場</button>
-        <button class="dt-btn bad" data-rx-quick="C" style="padding:3px 8px;font-size:10.5px">🔄 プリセットC: 暴走フィードバックループ</button>
-        <button class="dt-btn" data-rx-quick="D" style="padding:3px 8px;font-size:10.5px;border-color:#a855f7;color:#e9d5ff;background:rgba(109,40,217,.28)">⚔️☣️ プリセットD: 戦闘化学＆逆流ハザード</button>
+      <div id="lensBar">
+        <span style="font-size:10px;font-weight:700;color:var(--dim);margin-right:2px">🔍 X-Ray:</span>
+        <button class="lbtn on" data-lens-btn="normal" title="ミニマル表示（パケットの×数値や人の380px円を隠し、3色LEDと光パルスで表示）">👁️ Normal</button>
+        <button class="lbtn" data-lens-btn="logistics" title="物流レンズ（ボトルネック・満杯詰まり・パケット数量×qを表示）">📦 Logistics</button>
+        <button class="lbtn" data-lens-btn="power" title="動力・範囲レンズ（人の380px行動範囲円とエネルギー配線をハイライト）">⚡ Power/Range</button>
+        <button class="lbtn" data-lens-btn="hazard" title="ハザードレンズ（汚染範囲・高熱・強酸腐食・呪詛ヒートマップを表示）">☣️ Hazard</button>
       </div>
       <div id="toast"></div>
       <button id="offscr"></button>
     </div>
     <div id="side">
+      <div class="side-tabs">
+        <button class="side-tab on" data-stab="dgn">⚔️ 洞窟攻略</button>
+        <button class="side-tab" data-stab="hero">🧍 主人公</button>
+        <button class="side-tab" data-stab="tech">🔬 技術・留守</button>
+      </div>
       <div id="alert"></div>
-      <div class="sec">勇者</div>
-      <div class="box">
-        <div class="hd"><span>⚡</span><span id="hName">体力</span><span class="sub num" id="hSta">0</span></div>
-        <div class="hbar sta"><i id="hStaBar"></i></div>
-        <div class="rows">
-          <div class="row">体力収支（作 − 使）<b class="num" id="hRegen">0 /分</b></div>
-          <div class="row">攻撃力<b class="num" id="hAtk">0</b></div>
-          <div class="row s1"><span>💪 筋力<i class="rt" id="eStr"></i></span><b class="num" id="sStr">0</b></div>
-          <div class="xbar s1"><i id="xStr"></i></div><div class="xnote" id="rStr"></div>
-          <div class="row s2"><span>🧠 知力<i class="rt" id="eInt"></i></span><b class="num" id="sInt">0</b></div>
-          <div class="xbar s2"><i id="xInt"></i></div><div class="xnote" id="rInt"></div>
-          <div class="row s3"><span>❤️ 体力<i class="rt" id="eVit"></i></span><b class="num" id="sVit">0</b></div>
-          <div class="xbar s3"><i id="xVit"></i></div><div class="xnote" id="rVit"></div>
-          <div class="row" id="rowEx">経験値の戻り<b class="num" id="hExIn">—</b></div>
-        </div>
-      </div>
-      <div class="sec">研究</div>
-      <div class="box">
-        <div class="hd"><span>🔬</span><span>技術レベル</span><span class="sub num" id="rDev">0種</span></div>
-        <div class="rows">
-          <div class="row">いまの時代<b class="num" id="rEra">—</b></div>
-          <div class="row">研究ポイント<b class="num" id="rRp">0</b></div>
-          <div class="row">研究資材<b class="num" id="rMat">0</b></div>
-          <div class="row">研究の速さ<b class="num" id="rSpd">—</b></div>
-          <div class="row">次に開けるもの<b class="num" id="rNext">—</b></div>
-        </div>
-      </div>
-      <div class="sec">洞窟探索 ＆ 無限塔</div>
-      <div class="box" id="dgnBox" style="transition:background .3s,border-color .3s,box-shadow .3s">
-        <div class="hd" style="gap:6px;flex-wrap:wrap">
-          <span id="zIc">🕳️</span><span id="zName">苔むした洞窟</span>
-          <span class="sub num" id="zFloor">第1 / 10層</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;margin:4px 0 6px">
-          <select id="caveSel" style="flex:1;background:#0c111b;border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:11px;padding:3px 6px"></select>
-          <span id="caveClearBadge" style="font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:99px;background:rgba(242,193,78,.15);border:1px solid var(--gold);color:var(--gold);white-space:nowrap">初回報酬10倍!</span>
-        </div>
-        <div class="hd zsub"><span id="eIc">👾</span><span id="eName">スライム</span><span class="sub num" id="eHp">0 / 0</span></div>
-        <div class="hbar eh"><i id="eHpBar"></i></div>
-        <div class="rows">
-          <div class="row">1回の与ダメージ<b class="num" id="eDmg">0</b></div>
-          <div class="row">撃破まで<b class="num" id="eHits">—</b></div>
-          <div class="row">敵の装甲 / 特性<b class="num" id="eArm">0</b></div>
-          <div class="row">撃破報酬 ＆ 素材<b class="num" id="eGold">0</b></div>
-          <div class="row" id="eCaveRewardRow" style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:4px;border-top:1px dashed var(--line)">
-            <span style="font-size:10px;color:var(--gold)" id="eCaveRewardTitle">🏆 洞窟制覇報酬（初回10倍！）</span>
-            <b class="num" id="eCaveReward" style="font-size:10px;color:var(--fg);text-align:left;margin-left:0"></b>
+
+      <!-- Tab 1: 洞窟攻略 (デフォルト表示) -->
+      <div class="stab-pane" data-spane="dgn">
+        <div class="box" id="dgnBox" style="transition:background .3s,border-color .3s,box-shadow .3s">
+          <div class="hd" style="gap:6px;flex-wrap:wrap">
+            <span id="zIc">🕳️</span><span id="zName">苔むした洞窟</span>
+            <span class="sub num" id="zFloor">第1 / 10層</span>
           </div>
-          <div class="row" id="eEnvRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:4px;border-top:1px dashed var(--line)">
-            <span style="font-size:10px;color:var(--acc2)">⚔️ 戦場流入・状態異常</span>
-            <div id="eEnvTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
+          <div style="display:flex;align-items:center;gap:4px;margin:4px 0 6px">
+            <select id="caveSel" style="flex:1;background:#0c111b;border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:11px;padding:3px 6px"></select>
+            <span id="caveClearBadge" style="font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:99px;background:rgba(242,193,78,.15);border:1px solid var(--gold);color:var(--gold);white-space:nowrap">初回報酬10倍!</span>
           </div>
-          <div class="row" id="eComboRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:3px">
-            <span style="font-size:10px;color:var(--gold)">💥 発動中の戦闘コンボ</span>
-            <div id="eComboTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
+          <div class="hd zsub"><span id="eIc">👾</span><span id="eName">スライム</span><span class="sub num" id="eHp">0 / 0</span></div>
+          <div class="hbar eh"><i id="eHpBar"></i></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:5px;padding:4px 6px;background:rgba(15,23,42,.65);border:1px solid var(--line);border-radius:6px" id="partyLpBox">
+            <span style="font-size:10px;font-weight:700;color:#fb7185" id="pLpTxt">❤️LP: 3/3 (HP:120/120)</span>
+            <div style="display:flex;gap:3px">
+              <button class="dt-btn acc" id="btnQuickGear" style="padding:2px 6px;font-size:9.5px" title="装備を装着/解除して「未装備＝敗北(Gear Check)」と「装備時＝撃破」を切り替えます">🎽 装備切替</button>
+              <button class="dt-btn warn" id="btnRecoverLp" style="padding:2px 6px;font-size:9.5px" title="医療物資・糧食（または木材/核/地金/25G）を消費してLPとパーティHPを即時全快し、活動停止を解除します">💊 物資でLP回復</button>
+            </div>
           </div>
-          <div class="row" id="eHazRow" hidden style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:3px">
-            <span style="font-size:10px;color:#a3e635">⚠️ 深層ハザード逆流警報</span>
-            <div id="eHazTags" style="display:flex;flex-wrap:wrap;gap:2px;font-size:10px;font-weight:700"></div>
+          <div id="lpExhaustBanner" hidden style="margin-top:4px;padding:5px 7px;background:rgba(225,29,72,.2);border:1px solid #f43f5e;border-radius:6px;font-size:10px;color:#fecdd3;font-weight:700">
+            💔 LP枯渇・全滅撤退中！ 探索ループ停止 ＆ 🧍主人公・仲間の⚡/KINETIC出力が完全停止しています（💊物資補給または自然回復で再開）
+          </div>
+          <div id="scoutBox" hidden style="margin-top:4px;padding:5px 7px;background:rgba(56,189,248,.12);border:1px solid #38bdf8;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:4px">
+            <span style="font-size:10px;color:#bae6fd;font-weight:700" id="scoutTxt">🧭 新洞窟を発見！斥候派遣で解禁</span>
+            <button class="dt-btn acc" id="btnScout" style="padding:2px 7px;font-size:9.5px">🧭 斥候派遣</button>
+          </div>
+          <div class="rows">
+            <div class="row">1回の与ダメージ<b class="num" id="eDmg">0</b></div>
+            <div class="row">撃破まで<b class="num" id="eHits">—</b></div>
+            <div class="row">敵の装甲 / 特性<b class="num" id="eArm">0</b></div>
+            <div class="row">弱点 / 耐性タグ<b class="num" id="eWeak" style="font-size:10px">—</b></div>
+            <div class="row">撃破報酬 ＆ 素材<b class="num" id="eGold">0</b></div>
+            <div class="row" id="eCaveRewardRow" style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:4px;border-top:1px dashed var(--line)">
+              <span style="font-size:10px;color:var(--gold)" id="eCaveRewardTitle">🏆 洞窟制覇報酬（初回10倍！）</span>
+              <b class="num" id="eCaveReward" style="font-size:10px;color:var(--fg);text-align:left;margin-left:0"></b>
+            </div>
+            <div class="row" id="eEnvRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:4px;border-top:1px dashed var(--line)">
+              <span style="font-size:10px;color:var(--acc2)">⚔️ 戦場流入・状態異常</span>
+              <div id="eEnvTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
+            </div>
+            <div class="row" id="eComboRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:3px">
+              <span style="font-size:10px;color:var(--gold)">💥 発動中の戦闘コンボ</span>
+              <div id="eComboTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
+            </div>
+            <div class="row" id="eHazRow" hidden style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:3px">
+              <span style="font-size:10px;color:#a3e635">⚠️ 深層ハザード逆流警報</span>
+              <div id="eHazTags" style="display:flex;flex-wrap:wrap;gap:2px;font-size:10px;font-weight:700"></div>
+            </div>
+          </div>
+          <div style="margin-top:6px;padding-top:5px;border-top:1px solid var(--line)">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--dim);font-weight:700">
+              <span>⚔️ リアルタイム戦闘ログ</span>
+              <span id="GearCheckBadge" style="color:#10b981">🎽 装備OK</span>
+            </div>
+            <div id="combatLogBox"></div>
           </div>
         </div>
       </div>
-      <div class="box">
-        <div class="hd"><span>🏅</span><span>踏破報酬</span><span class="sub num" id="dTier">0段階</span></div>
-        <div class="rows">
-          <div class="row">攻撃力<b class="num" id="dBonus">×1.00</b></div>
-          <div class="row">次の踏破<b class="num" id="dNext">第10層</b></div>
+
+      <!-- Tab 2: 主人公・能力 -->
+      <div class="stab-pane" data-spane="hero" hidden>
+        <div class="sec">勇者ステータス</div>
+        <div class="box">
+          <div class="hd"><span>⚡</span><span id="hName">体力</span><span class="sub num" id="hSta">0</span></div>
+          <div class="hbar sta"><i id="hStaBar"></i></div>
+          <div class="rows">
+            <div class="row">体力収支（作 − 使）<b class="num" id="hRegen">0 /分</b></div>
+            <div class="row">攻撃力<b class="num" id="hAtk">0</b></div>
+            <div class="row s1"><span>💪 筋力<i class="rt" id="eStr"></i></span><b class="num" id="sStr">0</b></div>
+            <div class="xbar s1"><i id="xStr"></i></div><div class="xnote" id="rStr"></div>
+            <div class="row s2"><span>🧠 知力<i class="rt" id="eInt"></i></span><b class="num" id="sInt">0</b></div>
+            <div class="xbar s2"><i id="xInt"></i></div><div class="xnote" id="rInt"></div>
+            <div class="row s3"><span>❤️ 体力<i class="rt" id="eVit"></i></span><b class="num" id="sVit">0</b></div>
+            <div class="xbar s3"><i id="xVit"></i></div><div class="xnote" id="rVit"></div>
+            <div class="row" id="rowEx">経験値の戻り<b class="num" id="hExIn">—</b></div>
+          </div>
         </div>
       </div>
-      <div class="sec">留守のあいだの報酬</div>
-      <div class="box">
-        <div class="hd"><span>🌙</span><span>オフライン報酬</span><span class="sub num" id="oSteps">0解放</span></div>
-        <div class="rows">
-          <div class="row">働きぐあい<b class="num" id="oRate">実時間の 33%</b></div>
-          <div class="row">時間の上限<b class="num" id="oCap">6時間</b></div>
-          <div class="row">次に伸びる条件<b class="num" id="oNext">—</b></div>
+
+      <!-- Tab 3: 技術・留守報酬・ログ -->
+      <div class="stab-pane" data-spane="tech" hidden>
+        <div class="sec">研究・技術</div>
+        <div class="box">
+          <div class="hd"><span>🔬</span><span>技術レベル</span><span class="sub num" id="rDev">0種</span></div>
+          <div class="rows">
+            <div class="row">いまの時代<b class="num" id="rEra">—</b></div>
+            <div class="row">研究ポイント<b class="num" id="rRp">0</b></div>
+            <div class="row">研究資材<b class="num" id="rMat">0</b></div>
+            <div class="row">研究の速さ<b class="num" id="rSpd">—</b></div>
+            <div class="row">次に開けるもの<b class="num" id="rNext">—</b></div>
+          </div>
         </div>
+        <div class="box">
+          <div class="hd"><span>🏅</span><span>踏破報酬</span><span class="sub num" id="dTier">0段階</span></div>
+          <div class="rows">
+            <div class="row">攻撃力<b class="num" id="dBonus">×1.00</b></div>
+            <div class="row">次の踏破<b class="num" id="dNext">第10層</b></div>
+          </div>
+        </div>
+        <div class="sec">留守のあいだの報酬</div>
+        <div class="box">
+          <div class="hd"><span>🌙</span><span>オフライン報酬</span><span class="sub num" id="oSteps">0解放</span></div>
+          <div class="rows">
+            <div class="row">働きぐあい<b class="num" id="oRate">実時間の 33%</b></div>
+            <div class="row">時間の上限<b class="num" id="oCap">6時間</b></div>
+            <div class="row">次に伸びる条件<b class="num" id="oNext">—</b></div>
+          </div>
+        </div>
+        <div class="sec">ログ</div>
+        <div id="log"></div>
       </div>
+    </div>
       <div class="sec">ログ</div>
       <div id="log"></div>
     </div>
@@ -1200,6 +1349,53 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
     <p class="tnote2">遊びの節目を永久に残します。ひとつにつき「祝福」がつき、重ねて効きます
       （すべての施設がそのぶん速くなる）。<b>リセットしても消えません。</b></p>
     <div id="troBody"></div>
+  </div>
+</div>
+
+<div id="bestiary">
+  <div class="bst-box">
+    <div class="bst-head">
+      <div class="bst-title">📖 モンスター図鑑（Monster Bestiary）</div>
+      <span style="font-size:11px;color:var(--dim)" id="bstSum">討伐・解析記録: 0 / 35種</span>
+      <button id="bstClose" style="margin-left:auto;background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:5px 12px;color:var(--fg)">閉じる</button>
+    </div>
+    <div class="bst-tabs" id="bstTabs"></div>
+    <div style="padding:7px 14px;font-size:10.5px;color:var(--dim);background:#090d14;border-bottom:1px solid var(--line)">
+      💡 敵モンスターを撃破すると生態データ（HP・装甲・耐性・<b>弱点属性タグ 🧪CORROSION / 🔥HEAT / ❄️CRYO / 💥SHOCKWAVE</b>・ドロップ率）が動的にアンロックされます。
+      <b>🛡️重装甲獣</b>は酸(CORROSION)・高熱(HEAT)に弱く、<b>💚再生群棲種</b>は冷却(CRYO)・衝撃波(SHOCKWAVE)で超再生が停止します。
+    </div>
+    <div class="bst-body" id="bstBody"></div>
+  </div>
+</div>
+
+<div id="menuModal">
+  <div class="menu-box">
+    <div class="menu-head">
+      <div class="menu-title">☰ ゲームメニュー</div>
+      <button class="menu-close" id="menuCloseBtn">✕ 閉じる</button>
+    </div>
+    <div class="menu-grid">
+      <button class="mitem" id="mTreeBtn"><i>🔬</i><div class="mtxt"><span class="mnm">研究ツリー</span><small>新施設・発電機解放</small></div></button>
+      <button class="mitem" id="mBestBtn"><i>📖</i><div class="mtxt"><span class="mnm">モンスター図鑑</span><small>弱点・耐性・ドロップ</small></div></button>
+      <button class="mitem" id="mBagBtn"><i>🎒</i><div class="mtxt"><span class="mnm">持ち物・倉庫</span><small>装備・パーツ・素材</small></div></button>
+      <button class="mitem" id="mTroBtn"><i>🏆</i><div class="mtxt"><span class="mnm">トロフィー</span><small>実績と祝福ボーナス</small></div></button>
+      <button class="mitem" id="mDashBtn"><i>📊</i><div class="mtxt"><span class="mnm">工房収支</span><small>1分ごとの生産・消費</small></div></button>
+      <button class="mitem" id="mStatsBtn"><i>📈</i><div class="mtxt"><span class="mnm">プレイ記録</span><small>累計撃破数・統計</small></div></button>
+      <button class="mitem" id="mFitBtn"><i>🧭</i><div class="mtxt"><span class="mnm">全体表示</span><small>全ノードを画面内に収める</small></div></button>
+      <button class="mitem" id="mTidyBtn"><i>📐</i><div class="mtxt"><span class="mnm">ノード自動整列</span><small>格子状に綺麗に並べ替え</small></div></button>
+      <button class="mitem" id="mCodeBtn"><i>💾</i><div class="mtxt"><span class="mnm">保存 / 引き継ぎ</span><small>コード書き出し・読み込み</small></div></button>
+      <button class="mitem" id="mDevBtn"><i>🛠️</i><div class="mtxt"><span class="mnm">開発ツール</span><small>ツリー・定数・UI編集</small></div></button>
+      <button class="mitem bad" id="mResetBtn"><i>🔄</i><div class="mtxt"><span class="mnm">最初からやり直す</span><small>データリセット</small></div></button>
+    </div>
+    <div class="menu-sec">
+      <div class="menu-sec-title">⚗️ 創発リアクション検証プリセット</div>
+      <div class="menu-rx-row">
+        <button class="dt-btn acc" data-rx-quick="A">💨 A: 急冷合金</button>
+        <button class="dt-btn warn" data-rx-quick="B">💥 B: 爆風クラフト</button>
+        <button class="dt-btn bad" data-rx-quick="C">🔄 C: 暴走ループ</button>
+        <button class="dt-btn" data-rx-quick="D" style="border-color:#a855f7;color:#e9d5ff">⚔️ D: 戦闘化学</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1611,46 +1807,46 @@ function chainOpts(t){
 /* ノード＝主人公の「行動」。役割ごとに1つだけ基本を書き、
    時代ちがいの版は下の FAC 表から作る。                                   */
 const TYPES = {
-  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:0.9, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3, start:true, baseStats:{str:0,int:0,vit:0},
-          d:'すべての行動の源。固有のステータス（💪筋力・🧠知力・❤️体力）を持ち、主人公だけはお金を使わずに⚡体力を生む。人タイプで動く施設は汚染を出さない'},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:1.5, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3, start:true, baseStats:{str:0,int:0,vit:0},
+          d:'すべての行動の源。主人公個人の体力（⚡1）を生み出す。小規模な活動は賄えるが、工場全体の稼働には風力発電機など複数の発電施設が必要'},
   mate  :{n:'仲間',      i:'👩‍🌾', cost:450,  up:600,  time:1.2, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:5, baseStats:{str:1,int:1,vit:2},
           d:'固有のステータス（💪/🧠/❤️）を持つ人タイプ。主人公と異なり、行動するたびに💰お金（給料）を消費して⚡体力を生む。人が動かす施設は☣️汚染を出さない'},
-  dive  :{n:'ダンジョン', i:'🚪', cost:400,  up:600,  time:3.0, ins:{sta:8}, outs:{}, effect:'dive', loot:true,
-          d:'体力を大きく消費して1回攻撃する。撃破すると戦利品が出る。'
+  dive  :{n:'ダンジョン', i:'🚪', cost:250,  up:350,  time:3.0, ins:{sta:5}, outs:{}, effect:'dive', loot:true,
+          d:'体力を消費して1回攻撃する。撃破すると戦利品が出る。'
            +'また地上の配管・排気を繋ぐと戦場介入（❄️氷結・🔥装甲貫通・☣️毒霧・💥爆風砲撃）が起き、深層からは🧪腐食粘液や👁️深淵瘴気が逆流する'},
-  mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.4, ins:{}, outs:{}, chain:'ore',
-          d:'原鉱を掘る。掘る鉱石は選ぶ。かならず副産物が出る'},
-  dump  :{n:'廃棄場',    i:'♻️', cost:120,  up:170,  time:1.8, chain:'clean',
+  mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:3.0, ins:{}, outs:{}, chain:'ore',
+          d:'原鉱を掘る。精錬炉（1.8秒で2鉱石消費）をフル稼働させるには、採掘機が3台以上必要になる'},
+  dump  :{n:'廃棄場',    i:'♻️', cost:80,   up:110,  time:1.8, chain:'clean',
           d:'副産物を片付ける。扱える種類はその施設の時代まで。'
            +'片付けなくても止まりはしないが、溜めるほどまわりが汚染されて仕事が遅くなる'},
   fund  :{n:'出資窓口',  i:'💱', cost:5000, up:6000, time:8.0, ins:{}, outs:{}, chain:'fund',
           d:'ゴールドを研究ポイントに変える。割はとても悪いが、余ったゴールドの使い道になる'},
-  lab   :{n:'研究所',    i:'🔬', cost:250,  up:350,  time:5.0, ins:{sta:12}, outs:{}, effect:'lab', matIn:true,
+  lab   :{n:'研究所',    i:'🔬', cost:120,  up:160,  time:4.0, ins:{sta:8}, outs:{}, effect:'lab', matIn:true,
           d:'体力を研究力に変える。素材を1種類だけ受け取れて、送り込むと🧱研究資材になる。'
            +'世代とレベルが上がるほど、同じ素材から取れる資材が増える'},
-  tstr  :{n:'筋トレ',    i:'🏋️', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
+  tstr  :{n:'筋トレ',    i:'🏋️', cost:150,  up:200,  time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
           d:'💪筋力+1。攻撃力が上がる。送り先の人タイプ（主人公・仲間）の💪筋力を鍛える'},
-  tint  :{n:'読書',      i:'📖', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int',
+  tint  :{n:'読書',      i:'📖', cost:150,  up:200,  time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int',
           d:'🧠知力+1。研究も生産も速くなる。送り先の人タイプ（主人公・仲間）の🧠知力を鍛える'},
-  tvit  :{n:'走り込み',  i:'🏃', cost:200,  up:900, upK:20,   time:8.0, ins:{sta:6}, outs:{exv:1}, stat:'vit',
+  tvit  :{n:'走り込み',  i:'🏃', cost:150,  up:200,  time:8.0, ins:{sta:6}, outs:{exv:1}, stat:'vit',
           d:'❤️体力+1。送り先の人タイプ（主人公・仲間）の⚡体力生成と上限・行動範囲が伸びる'},
-  smelt :{n:'精錬',      i:'🔥', cost:900,  up:1200, time:3.2, ins:{}, outs:{}, chain:'ingot',
-          d:'原鉱2つを地金1つにする'},
-  alloy :{n:'合成炉',    i:'⚗️', cost:5000, up:6000, time:3.6, ins:{}, outs:{}, chain:'alloy',
+  smelt :{n:'精錬',      i:'🔥', cost:150,  up:200,  time:1.8, ins:{}, outs:{}, chain:'ingot',
+          d:'原鉱2つを地金1つにする（1.8秒ごとに2個消費するため、複数の採掘機からの供給が必要）'},
+  alloy :{n:'合成炉',    i:'⚗️', cost:1200, up:1600, time:3.6, ins:{}, outs:{}, chain:'alloy',
           d:'2種類の地金を混ぜて合金にする。合金は加工と鍛錬の要になる'},
-  forge :{n:'加工',      i:'🛠️', cost:6000, up:8000, time:4.0, ins:{}, outs:{}, chain:'part',
+  forge :{n:'加工',      i:'🛠️', cost:350,  up:450,  time:3.5, ins:{}, outs:{}, chain:'part',
           d:'地金2つを部品1つに加工する。副産物も多い'},
-  anvil :{n:'鍛錬台',    i:'🔨', cost:9000, up:11000, time:2.6, ins:{}, outs:{}, chain:'anvil', effect:'anvil',
+  anvil :{n:'鍛錬台',    i:'🔨', cost:850,  up:1100, time:2.6, ins:{}, outs:{}, chain:'anvil', effect:'anvil',
           d:'持ち物から装備をひとつ選んでセットし、合金を打ち込んで鍛える。打つほど伸びは鈍る'},
-  equip :{n:'装備工房',  i:'🎽', cost:9000, up:11000, time:24.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
+  equip :{n:'装備工房',  i:'🎽', cost:600,  up:800,  time:12.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
           d:'部品1つと地金2つで装備を1つ作る。手間も⚡も大きいぶん、できた装備は長く使える'},
-  tool  :{n:'道具',      i:'🪵', cost:800,  up:1100, time:2.5, tool:true, mul:1.5, take:4, sta:3,
+  tool  :{n:'道具',      i:'🪵', cost:300,  up:400,  time:2.5, tool:true, mul:1.5, take:4, sta:3,
           d:'間に挟むと通した素材が増える増幅器'},
-  box   :{n:'木箱',      i:'📦', cost:400,  up:500,  time:0.4, store:true, slots:1, cap:200,
+  box   :{n:'木箱',      i:'📦', cost:100,  up:140,  time:0.4, store:true, slots:1, cap:200,
           d:'素材を貯めておける。詰まりを防げる'},
-  comp  :{n:'圧縮機',    i:'🗜️', cost:2000, up:2600, time:2.0, chain:'comp',
+  comp  :{n:'圧縮機',    i:'🗜️', cost:500,  up:650,  time:2.0, chain:'comp',
           d:'下位の素材5つを、1つ上の密度にまとめる'},
-  shop  :{n:'露店',      i:'🏪', cost:120,  up:800,  time:20, chain:'sell', pk:2.4,
+  shop  :{n:'露店',      i:'🏪', cost:60,   up:120,  time:15, chain:'sell', pk:2.4,
           d:'素材を売ってゴールドにする。加工・合成したものほど高く売れる。'
            +'1つ目は安いが、増やすほど値が張る'},
   fuel  :{n:'再利用',    i:'🪱', cost:1500, up:2000, time:2.0, chain:'fuel',
@@ -1665,9 +1861,8 @@ const TYPES = {
   gen   :{n:'発電機',    i:'🔌', cost:300, up:400, time:1.6, ins:{}, outs:{sta:7}, gen:true,
           d:'機械・燃料で⚡電力を作る動力源。距離制限はないが、人やクリーンエネルギーではないため、'
            +'自身と供給先の施設が☣️汚染を発生させる（高汚染で💥爆発・施設破壊の危険あり）'},
-  cgen  :{n:'風力発電機',i:'🍃', cost:550, up:700, time:2.1, ins:{}, outs:{sta:5}, gen:true, cleanEnergy:true,
-          d:'自然の力で⚡クリーン電力を作る発電施設。距離制限がなく、'
-           +'人やクリーンエネルギーで動く施設は☣️汚染を一切発生させない'},
+  cgen  :{n:'風力発電機',i:'🍃', cost:70, up:90, time:2.0, ins:{}, outs:{sta:3}, gen:true, cleanEnergy:true,
+          d:'自然の風力で⚡クリーン電力を生み出す小型発電施設。出力は控えめ（⚡3）なため、採掘機や精錬炉を増設するたびに複数基の増設・発電所群の建設が必要になる'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
@@ -1787,9 +1982,9 @@ const FAC = {
   gen:   [{e:1,n:'発電機',        i:'🔌'},
           {e:2,n:'高性能発電機',   i:'⚡', ins:{wood:1}, outs:{sta:26, power:4}},
           {e:3,n:'超高性能発電機', i:'🌟', ins:{coal:1}, outs:{sta:90, power:16, nfl:3}}],
-  cgen:  [{e:1,n:'風力発電機',    i:'🍃', outs:{sta:5}, cleanEnergy:true},
-          {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:18, power:3}, cleanEnergy:true},
-          {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:65, power:12, nfl:2}, cleanEnergy:true}],
+  cgen:  [{e:1,n:'風力発電機',    i:'🍃', outs:{sta:3}, cleanEnergy:true, time:2.0, cost:70},
+          {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:14, power:3}, cleanEnergy:true},
+          {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:50, power:12, nfl:2}, cleanEnergy:true}],
   mine:  [{e:1,n:'採掘機',      i:'⛏️'},{e:2,n:'高速採掘機',i:'🚜'},{e:3,n:'重層採掘機',i:'🛰'}],
   smelt: [{e:1,n:'精錬炉',      i:'🔥'},{e:2,n:'高炉',      i:'🏭'},{e:3,n:'プラズマ炉',i:'🌞'}],
   alloy: [{e:1,n:'合金炉',      i:'⚗️'},{e:2,n:'電気合成炉',i:'🧪'},{e:3,n:'分子合成炉',i:'🧬'}],
@@ -1964,6 +2159,14 @@ function tierOf(n){
          : T.layer ? layerName(n)
          : n.comb  ? combName(n)
          : n.pname ? n.pname : T.n;
+  if(n.effect === 'dive' || T.effect === 'dive'){
+    const cv = caveById(n.caveId || (S && S.caveId) || 'cave1');
+    if(cv && cv.id !== 'cave1') nm = `${cv.n}入口`;
+  }
+  if(n.assim && n.assim.length){
+    const st = assimStatsOf(n);
+    nm = st.chimera ? `🧬キメラ・${nm}［×${st.mul}］` : `🦠メガ・${nm}［×${st.mul}］`;
+  }
   if(n.drop) nm += `〈${(n.mods && n.mods.tags || []).join('・') || '無印'}〉`;
   else if(n.craftMat && n.craftMat !== MAT_ITEM(T.era||1) && ITEMS[n.craftMat]){
     nm += `［${ITEMS[n.craftMat].i}${ITEMS[n.craftMat].n}製］`;
@@ -1971,7 +2174,7 @@ function tierOf(n){
   const list = T.line ? FAC[T.line] : null;
   let next = null;
   if(list){ const f = list.find(x => x.e > (T.era||0)); if(f) next = [f.e, f.n]; }
-  return {t:T.era||1, n:nm, i:n.comb ? '🔗' : T.i, max:ERA_MAX, next};
+  return {t:T.era||1, n:nm, i:n.comb ? '🔗' : (n.assim && n.assim.length && assimStatsOf(n).chimera ? '🧬' : T.i), max:ERA_MAX, next};
 }
 const effOf   = n => (TYPES[n.type].eff || 1) * Math.pow(ERA_EFF, (TYPES[n.type].era||1)-1);
 const baseName= t => TYPES[t].i + TYPES[t].n;
@@ -2002,18 +2205,18 @@ const ROLE_TREE_DEFAULT = {
 
   lab:    {start:true,  reqRole:null,     treeX:0, treeY:5, rp:0},
   tstr:   {start:false, reqRole:'lab',    treeX:1, treeY:5, rp:20},
-  tvit:   {start:false, reqRole:'lab',    treeX:1, treeY:6, rp:20},
-  tint:   {start:false, reqRole:'lab',    treeX:1, treeY:7, rp:20},
   decomp: {start:false, reqRole:'tstr',   treeX:2, treeY:5, rp:80},
-  mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:6, rp:45,  reqVit:1},
-  gen:    {start:false, reqRole:'tint',   treeX:2, treeY:7, rp:400, mat:25, reqInt:3},
-  cgen:   {start:false, reqRole:'gen',    treeX:3, treeY:6, rp:520, mat:30},
-  wood:   {start:false, reqRole:'gen',    treeX:3, treeY:7, rp:650, mat:40},
-  coal:   {start:false, reqRole:'wood',   treeX:4, treeY:7, rp:1000, mat:80},
-  extr:   {start:false, reqRole:'dive',   treeX:1, treeY:8, rp:90,   mat:10, reqFloor:5},
-  turret: {start:false, reqRole:'extr',   treeX:2, treeY:8, rp:240,  mat:25, reqFloor:10},
-  synt:   {start:false, reqRole:'turret', treeX:3, treeY:8, rp:680,  mat:60, reqFloor:18},
-  altar:  {start:false, reqRole:'synt',   treeX:4, treeY:8, rp:1800, mat:140, reqFloor:28},
+  cgen:   {start:true,  reqRole:null,     treeX:0, treeY:6, rp:0},
+  gen:    {start:false, reqRole:'cgen',   treeX:1, treeY:6, rp:40},
+  tvit:   {start:false, reqRole:'lab',    treeX:1, treeY:7, rp:20},
+  mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:7, rp:45,  reqVit:1},
+  tint:   {start:false, reqRole:'lab',    treeX:1, treeY:8, rp:20},
+  wood:   {start:false, reqRole:'gen',    treeX:2, treeY:6, rp:220, mat:20},
+  coal:   {start:false, reqRole:'wood',   treeX:3, treeY:6, rp:450, mat:40},
+  extr:   {start:false, reqRole:'dive',   treeX:1, treeY:9, rp:90,   mat:10, reqFloor:5},
+  turret: {start:false, reqRole:'extr',   treeX:2, treeY:9, rp:240,  mat:25, reqFloor:10},
+  synt:   {start:false, reqRole:'turret', treeX:3, treeY:9, rp:680,  mat:60, reqFloor:18},
+  altar:  {start:false, reqRole:'synt',   treeX:4, treeY:9, rp:1800, mat:140, reqFloor:28},
 };
 
 const ORDER = ['hero'];
@@ -2632,8 +2835,8 @@ function craftTime(n){
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
 // 採掘だけは割り引かない（最初の「待っていればゴールドが貯まる」を見せる段のため）
-const FIRST = {dump:0.35, shop:0.5, lab:0.5, tstr:0.6, tint:0.6, tvit:0.6, box:0.5,
-               smelt:0.5, forge:0.5, comp:0.5, fuel:0.5, purify:0.5, equip:0.5, boost:0.5};
+const FIRST = {dump:0.35, shop:0.5, lab:0.5, cgen:0.6, tstr:0.6, tint:0.6, tvit:0.6, box:0.5,
+               smelt:0.5, forge:0.5, comp:0.5, fuel:0.5, purify:0.5, equip:0.5, anvil:0.5, boost:0.5};
 const buyCost = t => {
   const T = TYPES[t], c = S.counts[t]||0;
   const base = (c===0 && FIRST[T.line]) ? T.cost * FIRST[T.line] : T.cost;
@@ -2719,7 +2922,7 @@ function craftMatCandidates(t){
   const set = new Set([defKey, 'ing1']);
   for(const c of CHAIN) if(chainOpen(c)) set.add(c.ingot);
   for(const a of alyList()) set.add(a);
-  for(const ck of CAVE_ITEMS) if(stockOfMat(ck) > 0 || (S && S.best >= 5)) set.add(ck);
+  for(const ck of CAVE_ITEMS) if(stockOfMat(ck) > 0) set.add(ck);
   for(const rk of ['qstl','bdia','artf','drelic','core_cursed']) if(stockOfMat(rk) > 0) set.add(rk);
   // 手元にある圧縮地金・圧縮素材も候補に追加
   const addFromObj = obj => {
@@ -2756,6 +2959,8 @@ function buyMat(t, customMat){
     }
     return o;
   }
+  // 第1世代の基本施設はゴールドのみで建設可能（特殊素材選択時や第2世代以降のみ地金素材を要求）
+  if((T.era || 1) === 1 && !useMat) return null;
   const k = (useMat && ITEMS[useMat]) ? useMat : MAT_ITEM(T.era);
   const baseK = MAT_ITEM(T.era);
   const baseQ = Math.max(1, Math.round(buyCost(t) * MAT_RATE / Math.max(1, itemVal(baseK))));
@@ -2937,12 +3142,140 @@ function addPart(key, q){ S.parts = S.parts || {};
   S.parts[key] = (S.parts[key]||0) + (q||1); }
 function usePart(key){ if(partStock(key) <= 0) return false;
   S.parts[key]--; if(S.parts[key] <= 0) delete S.parts[key]; return true; }
-/* 施設のスロットの数。ダンジョン産は難易度で2〜6枠、クラフト施設も使用素材で最大+3枠増える */
+/* 施設のスロットの数。ダンジョン産は難易度で2〜6枠、クラフト施設も使用素材で最大+3枠、浸食合体でさらに増える */
+const ASSIM_R = 260;
+function assimStatsOf(n){
+  const list = (n && Array.isArray(n.assim)) ? n.assim : [];
+  if(!list.length) return { count:0, totalCount:1, mul:1, spd:1, selfPow:false, clean:false, chimera:false, isChimera:false, slots:0, tags:[], roles:[] };
+  const baseT = TYPES[n.type] || {}, baseRole = baseT.line || n.type;
+  let mul = 1, selfPow = false, clean = false, chimera = false, slots = 0;
+  const tags = new Set(), roles = new Set([baseRole]);
+  for(const a of list){
+    const aT = TYPES[a.type] || {}, r = aT.line || a.type;
+    roles.add(r);
+    if(r !== baseRole) chimera = true;
+    mul += 1;
+    slots += 1;
+    if(aT.gen || r === 'gen' || r === 'cgen' || r === 'fuel' || r === 'extr' || r === 'altar'){
+      selfPow = true;
+    }
+    if(aT.cleanEnergy || r === 'cgen' || r === 'purify' || r === 'dump') clean = true;
+    if(r === 'smelt' || r === 'alloy' || r === 'anvil' || r === 'coal' || r === 'fuel') tags.add('HEAT');
+    if(aT.cleanEnergy || r === 'cgen' || r === 'purify' || r === 'altar') tags.add('CRYO');
+    if((r === 'gen' && !aT.cleanEnergy) || r === 'fuel') tags.add('POLLUTION');
+    if(r === 'tool' || a.type === 'mate2') tags.add('CATALYST_WORKER');
+    if(r === 'lab'  || a.type === 'mate3') tags.add('CATALYST_RESEARCH');
+    if(r === 'tstr' || r === 'turret') tags.add('KINETIC');
+    if(a.craftMat && CRAFT_MAT_DEFS[baseOf(a.craftMat)] && CRAFT_MAT_DEFS[baseOf(a.craftMat)].tag){
+      tags.add(CRAFT_MAT_DEFS[baseOf(a.craftMat)].tag);
+    }
+  }
+  const spd = +(1 / Math.max(0.18, Math.pow(0.76, list.length))).toFixed(2);
+  return { count:list.length, totalCount:list.length+1, mul, spd, selfPow, clean, chimera, isChimera:chimera, slots:Math.min(5, slots), tags:[...tags], roles:[...roles] };
+}
+function assimilateCandidates(n){
+  if(!n || !S || !S.nodes) return [];
+  const T = TYPES[n.type] || {};
+  if(T.unique || T.port || T.layer || T.raid || T.src || T.effect === 'dive') return [];
+  const curCount = (n.assim && n.assim.length) || 0;
+  if(curCount >= 8) return [];
+  return S.nodes.filter(m => {
+    if(!m || m.id === n.id || (m.layer||null) !== (n.layer||null)) return false;
+    const mT = TYPES[m.type] || {};
+    if(mT.unique || mT.port || mT.layer || mT.raid || mT.src || mT.effect === 'dive') return false;
+    return nodeDist(n, m) <= ASSIM_R;
+  }).slice(0, Math.max(0, 8 - curCount));
+}
+function assimilateAround(n){
+  const cands = assimilateCandidates(n);
+  if(!cands.length){
+    toast('🦠 周囲（半径260px以内）に吸収合体できる隣接施設がありません');
+    return false;
+  }
+  n.assim = Array.isArray(n.assim) ? n.assim : [];
+  const candIds = new Set(cands.map(m => m.id));
+  for(const m of cands){
+    // 吸収元が既に浸食合体していたらその中身も引き継ぐ
+    if(Array.isArray(m.assim) && m.assim.length){
+      for(const sub of m.assim) n.assim.push(sub);
+    }
+    n.assim.push({
+      type: m.type,
+      level: m.level || 1,
+      item: m.item || null,
+      craftMat: m.craftMat || null,
+      mods: m.mods || null
+    });
+    // 挿していた強化パーツは外して持ち物に戻し、合体後の拡張スロットに引き継げるようにする
+    for(const pk of (m.parts || [])){
+      if(pk) addPart(pk, 1);
+    }
+    for(const k in (m.inBuf || {})){
+      n.inBuf[k] = (n.inBuf[k] || 0) + m.inBuf[k];
+    }
+    for(const k in (m.outBuf || {})){
+      n.outBuf[k] = (n.outBuf[k] || 0) + m.outBuf[k];
+    }
+    if(m.level > n.level) n.level = m.level;
+  }
+  modsDirty(n);
+  // 吸収した施設に刺さっていた外部コンベア配線を、統合後のハブ（n）へ自動再接続
+  const dup = (a, k, b) => S.links.some(l => l.from === a && l.item === k && l.to === b);
+  const rewiredLinks = [];
+  for(const l of [...S.links]){
+    const fromAbs = candIds.has(l.from), toAbs = candIds.has(l.to);
+    if(fromAbs && toAbs){ removeLink(l.id); continue; }
+    if(fromAbs && l.to === n.id){ removeLink(l.id); continue; }
+    if(toAbs && l.from === n.id){ removeLink(l.id); continue; }
+    if(toAbs){
+      rewiredLinks.push({ from: l.from, item: l.item, to: n.id, pins: l.pins });
+      removeLink(l.id);
+    }else if(fromAbs){
+      rewiredLinks.push({ from: n.id, item: l.item, to: l.to, pins: l.pins });
+      removeLink(l.id);
+    }
+  }
+  for(const m of cands){
+    removeNode(m.id);
+  }
+  // 自動的に空いたパーツ枠へ手持ちパーツを継承装着
+  const slCount = slotsOf(n);
+  n.parts = partsOf(n);
+  const ownParts = Object.keys(S.parts || {}).filter(k => k !== 'core' && partStock(k) > 0);
+  for(let i = 0; i < slCount; i++){
+    if(!n.parts[i] && ownParts.length){
+      const pk = ownParts[0];
+      if(usePart(pk)) n.parts[i] = pk;
+      if(partStock(pk) <= 0) ownParts.shift();
+    }
+  }
+  modsDirty(n);
+  rebuildNodeEl(n);
+  for(const rl of rewiredLinks){
+    const a = N(rl.from), b = N(rl.to);
+    if(!a || !b || a.id === b.id) continue;
+    if(( allIns(b)[rl.item] || storeCanTake(b, rl.item) || outsOf(a)[rl.item] ) && !dup(a.id, rl.item, b.id)){
+      if(storeCanTake(b, rl.item)) storeAssign(b, rl.item);
+      addLink(a.id, rl.item, b.id);
+    }
+  }
+  reindex(); layerDirty();
+  sel = n.id;
+  const st = assimStatsOf(n);
+  const label = st.chimera ? `🧬キメラ合体（異種統合 ×${st.mul}${st.selfPow?'・自家発電':''}）` : `🦠メガ施設化（同種統合 ×${st.mul}）`;
+  spawnReactionPop(n, `${label}！ (${cands.length}台吸収)`, st.chimera ? '#f59e0b' : '#10b981');
+  addLog(`🦠【周囲浸食・吸収合体】${tierOf(n).n} が周囲 ${cands.length}台の施設を吸収合体！（産出スループット ×${st.mul}・省スペース圧縮${st.selfPow?'・🔌自家発電獲得':''}${st.tags.length?'・継承タグ:'+st.tags.join('/'):''}）`, 'b');
+  toast(`🦠 ${cands.length}台を吸収合体！ ${tierOf(n).n}`);
+  renderInsp(); render();
+  return true;
+}
+
 const slotsOf = n => {
   const T = TYPES[n.type];
   if(!T || T.port || T.layer) return 0;
   const matSlot = (!n.drop && n.craftMat) ? (craftMatBonus(n.craftMat).slot || 0) : 0;
-  return Math.max(1, Math.min(6, (n.pslot || 1) + matSlot));
+  const asSlot  = (n.assim && n.assim.length) ? assimStatsOf(n).slots : 0;
+  return Math.max(1, Math.min(6, (n.pslot || 1) + matSlot + asSlot));
 };
 function partsOf(n){
   const k = slotsOf(n); if(!k) return [];
@@ -2952,9 +3285,10 @@ function partsOf(n){
   }
   return n.parts;
 }
-/* 拾い物の癖（mods）と、クラフト素材ボーナス（craftMat）と、挿したパーツを合わせた、その施設の効き */
+/* 拾い物の癖（mods）と、クラフト素材ボーナス（craftMat）と、周囲浸食ボーナス（assim）と、挿したパーツを合わせた、その施設の効き */
 function modsOf(n){
-  const key = (n.parts||[]).join(',') + '|' + (n.mods ? 'd' : '-') + '|' + (n.craftMat || '-');
+  const asKey = (n.assim && n.assim.length) ? n.assim.map(a=>a.type).join('+') : '-';
+  const key = (n.parts||[]).join(',') + '|' + (n.mods ? 'd' : '-') + '|' + (n.craftMat || '-') + '|' + asKey;
   if(n._md && n._mk === key) return n._md;
   const m = newMods();
   if(n.mods){ for(const x in m) if(x!=='need' && x!=='tags') m[x] = n.mods[x];
@@ -2966,6 +3300,15 @@ function modsOf(n){
     m.yld += cb.yld;
     m.cap *= cb.cap;
     if(cb.clean) m.clean = 1;
+  }
+  if(n.assim && n.assim.length){
+    const ast = assimStatsOf(n);
+    m.spd *= Math.max(0.18, Math.pow(0.76, ast.count));
+    m.yld += Math.max(1, ast.mul - 1);
+    m.cap *= (1 + ast.count * 0.85);
+    if(ast.selfPow) m.sta *= 0.25;
+    else m.sta *= Math.max(0.40, Math.pow(0.85, ast.count));
+    if(ast.clean) m.clean = 1;
   }
   for(const key2 of partsOf(n)){
     if(!key2) continue;
@@ -3190,6 +3533,186 @@ const caveById = id => CAVES.find(c => c.id === id) || CAVES[0];
 const curCave  = () => (S && S.caveId) ? caveById(S.caveId) : CAVES[0];
 const caveClearsOf = id => Math.floor((S && S.caveClears && S.caveClears[id]) || 0);
 const isCaveUnlocked = id => id === 'cave1' || !!(S && S.caveUnlocked && S.caveUnlocked[id]);
+const isCaveDiscovered = id => isCaveUnlocked(id) || !!(S && S.caveDiscovered && S.caveDiscovered[id]);
+
+/* モンスターの属性アーキタイプと弱点タグ（📖モンスター図鑑 ＆ 戦術ダメージ計算用） */
+const ARCHETYPE_DEFS = {
+  armored: {
+    k:'armored', n:'🛡️重装甲獣', c:'#f59e0b',
+    armMul: 2.2, regenRate: 0,
+    weak: ['CORROSION','HEAT'],
+    resist: ['KINETIC'],
+    d: '物理装甲が極めて厚い（通常打撃を大幅軽減）。🧪CORROSION（強酸で装甲融解-65%）と🔥HEAT（装甲過熱-70%）が大弱点'
+  },
+  regen: {
+    k:'regen', n:'💚再生群棲種', c:'#10b981',
+    armMul: 1.0, regenRate: 0.14,
+    weak: ['CRYO','SHOCKWAVE'],
+    resist: ['POLLUTION'],
+    d: '驚異的な超再生（毎撃HP14%回復）を持つ。❄️CRYO（氷結で再生完全停止）と💥SHOCKWAVE（衝撃波粉砕）が大弱点'
+  },
+  abyss: {
+    k:'abyss', n:'👁️深淵魔導種', c:'#a855f7',
+    armMul: 1.6, regenRate: 0.08,
+    weak: ['HEAT','CRYO','SHOCKWAVE'],
+    resist: ['CURSE'],
+    d: '重装甲と自己再生を兼ね備える上位種。🔥HEAT＋❄️CRYOや💥ブラストキャノンの複合注入が必須'
+  }
+};
+function monsterMetaOf(cave, eIdx, isBossFlag){
+  const c = cave || CAVES[0];
+  const idx = Math.max(0, Math.min((c.e.length||5)-1, eIdx || 0));
+  const rawName = c.e[idx] || 'モンスター';
+  const id = `${c.id}_m${idx}`;
+  // 洞窟とモンスターインデックスからアーキタイプを決定（重装甲獣 / 再生群棲種 / 深淵魔導種）
+  let archKey = 'armored';
+  if(c.id === 'cave1') archKey = (idx === 0 || idx === 1 || idx === 2) ? 'regen' : 'armored';
+  else if(c.id === 'cave2') archKey = (idx === 0 || idx === 2 || idx === 4) ? 'regen' : 'armored';
+  else if(c.id === 'cave3') archKey = (idx === 2) ? 'regen' : 'armored';
+  else if(c.id === 'cave4') archKey = (idx === 1 || idx === 4) ? 'armored' : 'regen';
+  else if(c.id === 'cave5') archKey = (idx === 0 || idx === 2) ? 'regen' : 'armored';
+  else archKey = isBossFlag ? 'abyss' : (idx % 2 === 0 ? 'armored' : 'regen');
+  const arch = ARCHETYPE_DEFS[archKey] || ARCHETYPE_DEFS.armored;
+  const baseEf = Math.max(1, c.baseF + idx * 2);
+  const sampleHp  = Math.max(42, Math.floor(34 * Math.pow(ENEMY_K, baseEf-1) * (idx === c.e.length-1 ? 4.2 : 1)));
+  const sampleArm = Math.floor((3 + Math.pow(baseEf, 1.05)) * arch.armMul);
+  const drops = [
+    { item: 'lot' + Math.min(6, (c.idx||0)+1), rate: '100%' },
+    { item: c.drop || 'mcore', rate: (idx === c.e.length-1) ? '100% (×2)' : '65%' },
+    { item: 'box' + Math.min(3, Math.floor((c.idx||0)/2)+1), rate: (idx === c.e.length-1) ? '85%' : '35%' }
+  ];
+  return {
+    id, caveId: c.id, caveName: c.n, caveIcon: c.i, idx,
+    name: rawName, boss: idx === c.e.length - 1,
+    icon: (idx === c.e.length - 1) ? '🐉' : c.i,
+    archKey, arch, sampleHp, sampleArm, drops
+  };
+}
+function recordBestiary(cave, eIdx, killed){
+  if(!S) return;
+  S.bestiary = S.bestiary || {};
+  const meta = monsterMetaOf(cave, eIdx, eIdx === ((cave.e && cave.e.length) || 5) - 1);
+  const cur = S.bestiary[meta.id] || { seen:0, kills:0, firstAt:Date.now() };
+  cur.seen = (cur.seen || 0) + 1;
+  if(killed) cur.kills = (cur.kills || 0) + 1;
+  S.bestiary[meta.id] = cur;
+  const bstN = $('#bstN');
+  if(bstN) bstN.textContent = Object.values(S.bestiary).filter(x => (x.kills||0) > 0).length;
+}
+function bestiaryUnlockedCount(){
+  if(!S || !S.bestiary) return 0;
+  return Object.values(S.bestiary).filter(x => (x.kills||0) > 0).length;
+}
+const LP_RECOV_SEC = 180; // 3分ごとに1 LP自然回復
+function calcPartyMaxHp(){
+  if(!S) return 120;
+  const vit = (S.stats && S.stats.vit) || 0;
+  const firm = (gearBonus && gearBonus().firm) || 0;
+  return Math.round(120 + vit * 35 + firm * 90);
+}
+/* 厳格な装備・戦術チェック（"No Gear = Guaranteed Loss"）：
+   装備スロットに何も装備しておらず、戦術強化（祭壇ボーナス・高筋力・属性化学注入）も無い丸腰状態かを判定 */
+function totalEquippedGearPower(){
+  if(!S || !S.nodes) return 0;
+  let p = 0;
+  for(const n of S.nodes){
+    for(const g of gearOf(n)){
+      if(g && g.item) p += gearPow(g.item);
+    }
+  }
+  return p;
+}
+function hasGearOrTacticalReady(node){
+  if(!S) return false;
+  if(totalEquippedGearPower() > 0) return true;
+  if((S.atkBonus || 0) >= 10 || ((S.stats && S.stats.str) || 0) >= 5) return true;
+  const brx = S.battleRx || {};
+  if(brx.heat || brx.cryo || brx.shatter || brx.napalm || brx.berserk || brx.cannon || brx.hazCorrosion) return true;
+  if(node && node.inTags && (node.inTags.HEAT || node.inTags.CRYO || node.inTags.CORROSION || node.inTags.SHOCKWAVE)) return true;
+  return false;
+}
+function pushCombatLog(text, cls){
+  if(!S) return;
+  S.combatLog = S.combatLog || [];
+  S.combatLog.unshift({ t: text, c: cls || 'atk' });
+  if(S.combatLog.length > 18) S.combatLog.pop();
+  const box = $('#combatLogBox');
+  if(box){
+    box.innerHTML = S.combatLog.map(x => `<div class="clog-line ${x.c}">${x.t}</div>`).join('');
+  }
+}
+function recoverLpInstant(freeMode){
+  if(!S) return false;
+  S.maxLp = S.maxLp || 3;
+  const H = homeOf();
+  let usedLabel = '';
+  if(!freeMode){
+    if((H.mcore || 0) >= 1){ H.mcore--; if(H.mcore<=0) delete H.mcore; usedLabel = '👾魔獣の核×1'; }
+    else if((H.wood || 0) >= 2){ H.wood -= 2; if(H.wood<=0) delete H.wood; usedLabel = '🪵薪×2'; }
+    else if((H.ing1 || 0) >= 2){ H.ing1 -= 2; if(H.ing1<=0) delete H.ing1; usedLabel = '🟫銅地金×2'; }
+    else if((S.gold || 0) >= 20){ S.gold -= 20; usedLabel = '💰医療物資費 20G'; }
+    else { usedLabel = '⛺応急処置キット'; }
+  }else{
+    usedLabel = '💊医療物資';
+  }
+  S.lp = S.maxLp;
+  S.lpExhausted = false;
+  S.lpRecovT = 0;
+  S.partyMaxHp = calcPartyMaxHp();
+  S.partyHp = S.partyMaxHp;
+  for(const n of S.nodes){
+    if(TYPES[n.type] && (TYPES[n.type].src || TYPES[n.type].effect === 'dive')){
+      n.stall = false; n.why = '';
+      if(n.type === 'hero' && (n.outBuf.sta || 0) < 2) n.outBuf.sta = 2;
+    }
+  }
+  pushCombatLog(`【補給】💊 ${usedLabel}を補給！ LP ${S.lp}/${S.maxLp} ＆ パーティHP全快！ 探索・人力供給を再開！`, 'res');
+  addLog(`💊【LP全快・復帰】${usedLabel}を補給してパーティLP（${S.lp}/${S.maxLp}）が回復！ 探索ループと主人公たちの⚡供給を再開した`, 'u');
+  toast(`💊 LPが全快（${S.lp}/${S.maxLp}）し、稼働を再開しました！`);
+  render(); renderInsp();
+  return true;
+}
+function toggleQuickStarterGear(){
+  if(!S || !S.nodes) return;
+  const hero = S.nodes.find(n => n.type === 'hero');
+  if(!hero) return;
+  const gList = gearOf(hero);
+  if(!gList.length) return;
+  if(gList[0].item){
+    // 装備を外して「丸腰（未装備＝敗北チェック）」状態にする
+    setGear(hero, 0, null);
+    pushCombatLog(`【装備変更】⚠️ 装備を外しました（丸腰状態：未装備時は敗北確定）`, 'bad');
+    toast('⚠️ 装備を外しました（未装備状態）');
+  }else{
+    // 手持ちに装備が無ければ初期銅の剣（eqp1）を1つ支給して装着
+    const opts = equipOpts();
+    let pick = opts[0] || 'eqp1';
+    if(!opts.length){
+      homeOf().eqp1 = (homeOf().eqp1 || 0) + 1;
+      pick = 'eqp1';
+    }
+    setGear(hero, 0, pick);
+    pushCombatLog(`【装備変更】🎽 ${gearName(pick)} を装着！（装備倍率: ×${gearMul('firm').toFixed(2)}）`, 'res');
+    toast(`🎽 ${gearName(pick)} を装着しました！`);
+  }
+  gearDirty(); render(); renderInsp();
+}
+function dispatchScout(caveId){
+  if(!S) return false;
+  const c = caveById(caveId);
+  if(!c || isCaveUnlocked(c.id)) return false;
+  const costG = Math.max(50, Math.round((c.rw ? c.rw.g : 500) * 0.15));
+  if(S.gold >= costG) S.gold -= costG;
+  S.caveUnlocked = S.caveUnlocked || {cave1:1};
+  S.caveUnlocked[c.id] = 1;
+  S.caveDiscovered = S.caveDiscovered || {cave1:1};
+  S.caveDiscovered[c.id] = 1;
+  addLog(`🧭【斥候派遣完了】斥候部隊が「${c.i}${c.n}」へのルートを開拓し、進入可能になった！`, 'b');
+  pushCombatLog(`【斥候】🧭 斥候部隊が ${c.i}${c.n} のルートを開拓完了！`, 'res');
+  toast(`🧭 ${c.i}${c.n} が解禁されました！`);
+  render(); renderInsp();
+  return true;
+}
 const zoneOf = f => {
   if(S && S.caveId) return curCave();
   let z=CAVES[0]; for(const q of CAVES) if(f>=q.f) z=q; return z;
@@ -3253,7 +3776,9 @@ function freshState(){
   return {
     gold:40, nextId:1, nextNo:0, counts:{}, nodes:[], links:[],
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
-    floor:1, best:1, caveId:'cave1', caveFloor:1, caveClears:{}, caveUnlocked:{cave1:1},
+    floor:1, best:1, caveId:'cave1', caveFloor:1, caveClears:{}, caveUnlocked:{cave1:1}, caveDiscovered:{cave1:1},
+    lp:3, maxLp:3, lpExhausted:false, lpRecovT:0, partyHp:120, partyMaxHp:120,
+    combatLog:[], bestiary:{}, scouting:null,
     enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
     era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
@@ -3612,17 +4137,26 @@ function mkNodeEl(n){
     + ` title="${TYPES[n.type].chain==='sell' ? 'どんな素材でもここへ繋げます（届いたものから売ります）'
         : TYPES[n.type].ware ? 'どんな素材でもここへ繋げます'
         : '空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）'}">＋</div>`;
-  el.innerHTML = auraEl +
-    `<div class="nh"><span class="no">#${n.no||'-'}</span>`+
+  const asInfo = (n.assim && n.assim.length) ? assimStatsOf(n) : null;
+  const asBadge = asInfo
+    ? `<div class="assim-badge">${asInfo.chimera ? '🧬キメラ×'+asInfo.mul : '🦠吸収×'+asInfo.mul}${asInfo.selfPow?'⚡':''}</div>`
+    : '';
+  el.innerHTML = auraEl + asBadge +
+    `<div class="nh"><span class="status-led led-run" title="稼働状態LED"></span><span class="no">#${n.no||'-'}</span>`+
     `<span class="ic">${tr.i}</span><span class="nm">${tr.n}</span>`+
     `<span class="sk"></span><span class="lv">Lv.${n.level}</span></div>`+
     rows + `<div class="bar"><i></i></div><div class="nf"></div>` + ports;
+  if(asInfo){
+    el.classList.add('assim');
+    if(asInfo.chimera) el.classList.add('chimera');
+  }
 
   const slots = {};
   el.querySelectorAll('.slot[data-s]').forEach(s=>slots[s.dataset.s]=s);
   n.el = {root:el, ic:el.querySelector('.ic'), nm:el.querySelector('.nm'),
           lv:el.querySelector('.lv'), bar:el.querySelector('.bar i'),
           nf:el.querySelector('.nf'), sk:el.querySelector('.sk'), no:el.querySelector('.no'),
+          led:el.querySelector('.status-led'),
           polr:el.querySelector('.polr'), hrange:el.querySelector('.hrange'),
           hrangeLbl:el.querySelector('.hrange-lbl'), rngBadge:el.querySelector('.rng-badge'),
           slots, sig: portSig(ik, ok)};
@@ -3819,7 +4353,7 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y){
-  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,craftMat:null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[]};
+  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,craftMat:null,assim:[],caveId:(TYPES[type]&&TYPES[type].effect==='dive')?(S.caveId||'cave1'):null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[]};
   // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく。
   // 売り場だけは既定を「なんでも売る」にする
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
@@ -4010,12 +4544,49 @@ function spaceIn(n,item){
 /* ========================= シミュレーション ========================= */
 function tick(dt,fast){
   flowOff = !!fast;
+  if(S.lp == null) S.lp = 3;
+  if(S.maxLp == null) S.maxLp = 3;
+  S.partyMaxHp = calcPartyMaxHp();
+  if(S.partyHp == null || S.partyHp > S.partyMaxHp) S.partyHp = S.partyMaxHp;
+  if(S.lp < S.maxLp){
+    S.lpRecovT = (S.lpRecovT || 0) + dt;
+    if(S.lpRecovT >= LP_RECOV_SEC){
+      const addLp = Math.floor(S.lpRecovT / LP_RECOV_SEC);
+      S.lpRecovT -= addLp * LP_RECOV_SEC;
+      S.lp = Math.min(S.maxLp, S.lp + addLp);
+      if(S.lp > 0 && S.lpExhausted){
+        S.lpExhausted = false;
+        S.partyHp = S.partyMaxHp;
+        if(!fast) addLog(`❤️【LP自然回復】休息によりパーティLPが回復（${S.lp}/${S.maxLp}）し、活動を再開した！`, 'u');
+      }
+    }
+  }else{
+    S.lpRecovT = 0;
+  }
   updateReactionEngine(dt, fast);
   for(const n of S.nodes){
     const T=TYPES[n.type];
     n.stall=false; n.why=''; n._outOfRange=false; n._farInfo=null;
     if(n.broken){
       n.stall=true; n.why='🔥 過負荷で発火・故障！（インスペクタで修理）'; continue;
+    }
+    // ── LP枯渇・活動停止 (LP Exhaustion Trigger: 0 LP) ──
+    // パーティのLPが0になると探索ループは即座に停止し、主人公・仲間（hero, mate1..3）は疲労困憊で⚡体力・KINETIC出力を完全停止する
+    if(S.lp <= 0){
+      S.lpExhausted = true;
+      if(T.src){
+        n.stall = true;
+        n.crafting = false; n.prog = 0;
+        n.outBuf.sta = 0;
+        n.why = '💔 LP枯渇・疲労困憊で活動停止中（💊物資補給または回復待ち）';
+        continue;
+      }
+      if(T.effect === 'dive'){
+        n.stall = true;
+        n.crafting = false; n.prog = 0;
+        n.why = '💔 パーティLP枯渇（0 LP）により探索ループ停止・基地へ撤退中';
+        continue;
+      }
     }
     const soft = softIns(n);
     if(Object.keys(soft).length){      // 届いたものをその場で受け取る
@@ -4207,7 +4778,16 @@ function tick(dt,fast){
         const wage = payOf(n);
         let ok=true;
         for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
-        if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){ ok=false; n.why=`${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`; }
+        if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){
+          ok=false;
+          const isSta = (k === 'sta');
+          const isOre = (/^ore\d/.test(k));
+          n.why = isSta
+            ? `⚡電力不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])}) 発電施設を増設してください`
+            : isOre
+              ? `🪨${ITEMS[k].n}不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])}) 採掘機を増設してください`
+              : `${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`;
+        }
         if(ok && wage > 0 && S.gold < wage){ ok=false; n.why=`行動資金が不足（${fmt(wage)}G 必要）`; }
         if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`研究ポイントが足りない（${fmt(payRpOf(n))}）`; }
 
@@ -5132,6 +5712,16 @@ function getLinkTags(src, item, dst){
   // クラフト素材の固有リアクションタグも配線に継承
   const cmB = src.craftMat ? craftMatBonus(src.craftMat) : null;
   if(cmB && cmB.tag) tags.add(cmB.tag);
+  // 周囲浸食（キメラ合体）の固有リアクションタグも配線に継承
+  if(src.assim && src.assim.length){
+    for(const atg of assimStatsOf(src).tags) tags.add(atg);
+  }
+  // LP枯渇時（S.lp <= 0）は、主人公・仲間からの物理打撃(KINETIC)および触媒タグ出力が完全停止する
+  if(S && S.lp <= 0 && (src.type === 'hero' || src.type === 'mate1' || src.type === 'mate2' || src.type === 'mate3' || T.src)){
+    tags.delete('KINETIC');
+    tags.delete('CATALYST_WORKER');
+    tags.delete('CATALYST_RESEARCH');
+  }
   // 中継ノードは受け取っているタグも下流へ伝播する
   if(src.inTags){
     if(src.inTags.HEAT && (T.store || T.tool || role === 'smelt' || role === 'forge')) tags.add('HEAT');
@@ -5262,8 +5852,18 @@ function updateReactionEngine(dt, fast){
     if(n.type === 'hero' || n.type === 'mate1' || role === 'tstr') inT.KINETIC = 1;
     if(n.type === 'mate2' || role === 'tool') inT.CATALYST_WORKER = 1;
     if(n.type === 'mate3' || role === 'lab')  inT.CATALYST_RESEARCH = 1;
+    if(S && S.lp <= 0 && (n.type === 'hero' || n.type === 'mate1' || n.type === 'mate2' || n.type === 'mate3' || T.src)){
+      delete inT.KINETIC; delete inT.CATALYST_WORKER; delete inT.CATALYST_RESEARCH;
+    }
     const cmB = n.craftMat ? craftMatBonus(n.craftMat) : null;
     if(cmB && cmB.tag) inT[cmB.tag] = (inT[cmB.tag] || 0) + 1;
+    if(n.assim && n.assim.length){
+      const ast = assimStatsOf(n);
+      for(const atg of ast.tags) inT[atg] = (inT[atg] || 0) + 1;
+      if(ast.selfPow && !n.stall){
+        n.inBuf.sta = Math.min(capIn(n, 'sta'), (n.inBuf.sta || 0) + 2.5 * dt);
+      }
+    }
     if((n._shockT || 0) > 0){
       n._shockT = Math.max(0, n._shockT - dt);
       if(n._shockT > 0) inT.SHOCKWAVE = 1;
@@ -5799,7 +6399,12 @@ function selectCave(caveId, silent){
   S.caveFloor = 1;
   S.floor = c.baseF;
   spawnEnemy();
-  for(const n of S.nodes) if(TYPES[n.type] && TYPES[n.type].effect === 'dive') rebuildNodeEl(n);
+  for(const n of S.nodes){
+    if(TYPES[n.type] && TYPES[n.type].effect === 'dive'){
+      n.caveId = c.id;
+      rebuildNodeEl(n);
+    }
+  }
   if(!silent){
     const clears = caveClearsOf(c.id);
     const rwNote = c.infinite ? '階層上限なし・エンドコンテンツ'
@@ -5812,14 +6417,74 @@ function selectCave(caveId, silent){
   return true;
 }
 function doDive(fast, node, fromCannon){
+  if(S.lp != null && S.lp <= 0){
+    S.lpExhausted = true;
+    return;
+  }
   if(!S.caveId) S.caveId = 'cave1';
   if(!S.caveFloor) S.caveFloor = Math.max(1, S.floor || 1);
   if(!S.caveClears) S.caveClears = {};
   if(!S.caveUnlocked) S.caveUnlocked = {cave1:1};
+  if(!S.caveDiscovered) S.caveDiscovered = {cave1:1};
+  // 各ダンジョン施設（diveノード）はそれぞれ独立した洞窟（n.caveId）をターゲットにできる（勝手な自動昇格はしない）
+  if(node && node.caveId && isCaveUnlocked(node.caveId) && node.caveId !== S.caveId){
+    S.caveId = node.caveId;
+    S.caveFloor = 1;
+    S.floor = caveById(S.caveId).baseF;
+    spawnEnemy();
+  }
   if(!S.enemy) spawnEnemy();
   const cave = curCave();
   const cf   = S.caveFloor || 1;
   const ef   = effFloorOf(S.floor, cave);
+  const eIdx = S.enemy.eIdx != null ? S.enemy.eIdx : (S.enemy.boss ? cave.e.length - 1 : (cf - 1) % Math.max(1, cave.e.length - 1));
+  const meta = monsterMetaOf(cave, eIdx, S.enemy.boss);
+  const arch = meta.arch;
+
+  // ── 厳格な装備チェック ("No Gear = Guaranteed Loss") ──
+  // Cave 1 を含め、未装備・未強化の素手状態で挑んだ場合は敵の装甲壁に弾かれて 1 DMG しか通らず、
+  // 強烈なカウンター反撃でパーティHPが削られ確実に全滅（LP -1）する！
+  const gearReady = fromCannon || hasGearOrTacticalReady(node);
+  if(!gearReady){
+    S.partyMaxHp = calcPartyMaxHp();
+    if(S.partyHp == null) S.partyHp = S.partyMaxHp;
+    const rawBase = Math.max(15, Math.round((15 + (S.atkBonus||0)) * (1 + totalStr()*0.15)));
+    const counterDmg = Math.max(45, Math.ceil(S.partyMaxHp * 0.55));
+    S.enemy.hp = Math.max(1, S.enemy.hp - 1);
+    S.partyHp = Math.max(0, S.partyHp - counterDmg);
+    pushCombatLog(`【攻撃】主人公の打撃（未装備: 基礎攻撃力 ${rawBase} × 装備 0.0） vs 敵装甲 ${enemyArm(S.floor)} → 弾かれた: 1 DMG!`, 'bad');
+    pushCombatLog(`【反撃】⚠️ 未装備のため敵の迎撃反撃で -${counterDmg} HP!（残りHP: ${S.partyHp}/${S.partyMaxHp}）`, 'bad');
+    if(!fast && node && _rxPopCd <= 0){
+      spawnReactionPop(node, `🛡️ 未装備弾かれ 1 DMG! 反撃 -${counterDmg} HP`, '#ef4444');
+      _rxPopCd = 0.65;
+    }
+    if(S.partyHp <= 0){
+      S.lp = Math.max(0, (S.lp != null ? S.lp : 3) - 1);
+      S.partyHp = S.partyMaxHp;
+      S.enemy.hp = S.enemy.max;
+      if(S.lp <= 0){
+        S.lpExhausted = true;
+        for(const hn of S.nodes){
+          if(TYPES[hn.type] && (TYPES[hn.type].src || TYPES[hn.type].effect === 'dive')){
+            hn.stall = true; hn.crafting = false; hn.prog = 0;
+            if(TYPES[hn.type].src) hn.outBuf.sta = 0;
+            hn.why = '💔 LP枯渇・全滅撤退中（💊物資補給または回復待ち）';
+          }
+        }
+        pushCombatLog(`【結果】💀 全滅撤退（未装備によりパーティ全滅）！ LP: 0/${S.maxLp||3} → 探索停止＆主人公たちの⚡・動力出力が完全停止！`, 'bad');
+        addLog(`💔【LP枯渇・活動停止】未装備で${S.enemy.name}に全滅し LP が 0 になった！探索ループが停止し、主人公と仲間の⚡供給が停止した（💊物資補給で回復可能）`, 'd');
+        if(!fast) toast('💔 LPが0になりました！探索ループと主人公たちの⚡出力が停止しました');
+      }else{
+        pushCombatLog(`【結果】💀 パーティ全滅（未装備）！ LP -1（残りLP: ${S.lp}/${S.maxLp||3}）※🎽装備を装着してください！`, 'bad');
+        if(!fast){
+          addLog(`💀【全滅・LP減少】未装備のため ${cave.i}${cave.n} の ${S.enemy.name} に敗北！（残りLP: ${S.lp}/${S.maxLp||3}）`, 'd');
+          toast(`💀 全滅！ LP -1（残りLP ${S.lp}/${S.maxLp||3}）`);
+        }
+      }
+    }
+    return;
+  }
+
   // 撃破できない深さで止まっても、潜り続ければ拾える
   if(ef >= DROP_FROM){
     S.dives = (S.dives||0) + 1;
@@ -5827,57 +6492,116 @@ function doDive(fast, node, fromCannon){
     if(S.dives >= per){ S.dives = 0; tryDrop(ef, fast); }
   }
   const brx = S.battleRx || {};
+  const inT = (node && node.inTags) || {};
+  const hasCorrosion = !!(brx.hazCorrosion || inT.CORROSION);
+  const hasHeat      = !!(brx.heat || inT.HEAT);
+  const hasCryo      = !!(brx.cryo || inT.CRYO);
+  const hasShock     = !!(brx.shock || brx.cannon || inT.SHOCKWAVE);
+
+  // ── 属性アーキタイプ別ダメージ＆装甲・再生計算 ──
+  const baseAtkVal = Math.max(15, Math.round((15 + (S.atkBonus||0)) * (1 + totalStr()*0.15) * depthBonus()));
+  const gearM      = +(gearMul('firm') * skillMul('atk')).toFixed(2);
+  const rawStrike  = Math.round(baseAtkVal * gearM);
+  let rawArm       = Math.round(enemyArm(S.floor) * (arch.armMul || 1.0));
+  let armFactor    = effArmorFactor();
+  let statusNotes  = [];
+
+  if(arch.k === 'armored'){
+    if(hasCorrosion){
+      armFactor *= 0.35;
+      statusNotes.push('🧪腐食(装甲-65%)');
+    }
+    if(hasHeat){
+      armFactor *= 0.40;
+      statusNotes.push('🔥過熱(装甲-60%)');
+    }
+  }else if(hasCorrosion){
+    armFactor *= 0.60;
+    statusNotes.push('🧪腐食(装甲-40%)');
+  }
+  const effArm = Math.max(0, Math.round(rawArm * armFactor));
+  let netDmg = Math.max(1, Math.round(rawStrike * 100 / (100 + effArm * ARMOR_K)));
+  if(hasCryo)        { netDmg = Math.round(netDmg * 1.5); statusNotes.push('❄️冷気(×1.5)'); }
+  if(brx.napalm)     { netDmg = Math.round(netDmg * 1.6); statusNotes.push('🔥爆炎(×1.6)'); }
+  if(brx.shatter)    { netDmg = Math.round(netDmg * 2.2); statusNotes.push('❄️🔨砕氷(×2.2)'); }
+  if(brx.berserk)    { netDmg = Math.round(netDmg * 2.5); statusNotes.push('⚡😡過負荷怒気(×2.5)'); }
+  if(arch.k === 'armored' && (hasCorrosion || hasHeat)) netDmg = Math.round(netDmg * 1.45);
+  if(arch.k === 'regen'   && (hasCryo || hasShock))     netDmg = Math.round(netDmg * 1.45);
+
   if(!fromCannon && node && !fast && _rxPopCd <= 0){
     if(brx.shatter && Math.random() < 0.45){
-      spawnReactionPop(node, `❄️🔨 砕氷撃クリティカル！ (-${fmt(dmg())})`, '#38bdf8');
+      spawnReactionPop(node, `❄️🔨 砕氷撃クリティカル！ (-${fmt(netDmg)})`, '#38bdf8');
       _rxPopCd = 0.65;
     }else if(brx.napalm && Math.random() < 0.45){
-      spawnReactionPop(node, `🔥💥 ナパーム爆炎！ (-${fmt(dmg())})`, '#f97316');
+      spawnReactionPop(node, `🔥💥 ナパーム爆炎！ (-${fmt(netDmg)})`, '#f97316');
       _rxPopCd = 0.65;
     }else if(brx.berserk && Math.random() < 0.35){
-      spawnReactionPop(node, `⚡😡 過負荷バーサーク連撃！ (-${fmt(dmg())})`, '#e11d48');
+      spawnReactionPop(node, `⚡😡 過負荷バーサーク連撃！ (-${fmt(netDmg)})`, '#e11d48');
       _rxPopCd = 0.65;
     }
   }
-  // ── 洞窟難易度引き上げ：深層・ボス・周回モンスターの自己再生バリア＆反撃消耗 ──
-  // プレイヤーの強化（💪筋力・🧠知力・❤️体力・🎽装備・🗼支援砲台・❄️戦術化学）が不足していると、
-  // 自己再生バリアで削りきれず、反撃で体力を削られるため周回・突破にはプレイヤー強化が必須になる
+
+  // ── 洞窟難易度引き上げ：再生群棲種（Regen Swarms）＆深層ボスの自己再生バリア＆反撃消耗 ──
   const clears = caveClearsOf(cave.id);
   const recAtk = (cave.recAtk || 15) * (1 + clears * 0.45);
   const underPowered = atk() < recAtk;
-  if(!fromCannon && S.enemy && (cave.idx >= 1 || clears > 0) && (S.enemy.boss || clears > 0 || cf >= Math.ceil((cave.maxF < Infinity ? cave.maxF : 20) * 0.6))){
-    const suppressed = brx.cryo || brx.shatter || (S.enemy._noRegen && S.enemy._noRegen > 0);
-    if(!suppressed){
-      const baseRegenRate = underPowered ? (S.enemy.boss ? 0.038 : 0.020) : (S.enemy.boss ? 0.010 : 0.004);
+  if(!fromCannon && S.enemy && (arch.k === 'regen' || cave.idx >= 1 || clears > 0)){
+    const suppressed = hasCryo || hasShock || brx.shatter || (S.enemy._noRegen && S.enemy._noRegen > 0);
+    if(!suppressed && (arch.k === 'regen' || S.enemy.boss || clears > 0 || cf >= Math.ceil((cave.maxF < Infinity ? cave.maxF : 20) * 0.6))){
+      const baseRegenRate = arch.k === 'regen' ? (underPowered ? 0.14 : 0.04) : (underPowered ? (S.enemy.boss ? 0.045 : 0.025) : 0.008);
       const rawRegen = Math.floor(S.enemy.max * baseRegenRate * (1 + clears * 0.12));
-      const regen = underPowered ? rawRegen : Math.min(rawRegen, Math.floor(dmg() * 0.55));
-      if(regen > 0 && (underPowered || dmg() < regen * 2.5)){
+      const regen = underPowered ? rawRegen : Math.min(rawRegen, Math.floor(netDmg * 0.50));
+      if(regen > 0){
         S.enemy.hp = Math.min(S.enemy.max, S.enemy.hp + regen);
-        if(node && !fast && _rxPopCd <= 0 && Math.random() < 0.30){
-          spawnReactionPop(node, `🛡️ 敵再生バリア +${fmt(regen)} (推奨⚔️${fmt(recAtk)} or ❄️/🗼で封印！)`, '#f59e0b');
-          _rxPopCd = 0.85;
+        if(!fast){
+          pushCombatLog(`【状態】💚 ${S.enemy.name}(再生種) が +${fmt(regen)} HP 回復！（❄️冷気 / 💥衝撃波 で阻止可能）`, 'sts');
+          if(node && _rxPopCd <= 0 && Math.random() < 0.35){
+            spawnReactionPop(node, `💚 敵超再生 +${fmt(regen)} (❄️CRYO/💥で封印！)`, '#10b981');
+            _rxPopCd = 0.85;
+          }
         }
       }
+    }else if(suppressed && arch.k === 'regen' && !fast){
+      statusNotes.push('❄️再生封印(回復0)');
     }
-    // 敵の反撃による体力消耗（❤️体力や装備で軽減）
-    const hr = S.nodes.find(x => x.type === 'hero');
-    if(hr && (hr.outBuf.sta || 0) > 1 && Math.random() < 0.35){
-      const drain = Math.max(0.5, Math.min(4, (1 + clears * 0.5) / Math.max(1, 1 + (S.stats.vit||0)*0.15)));
-      hr.outBuf.sta = Math.max(0, hr.outBuf.sta - drain);
+    // 推奨攻撃力未満で弱点も突いていない場合、敵の反撃でパーティHPが削られ、0になると全滅（LP -1）
+    if(underPowered && !statusNotes.length){
+      const counter = Math.max(18, Math.ceil((S.partyMaxHp||120) * 0.28));
+      S.partyHp = Math.max(0, (S.partyHp || S.partyMaxHp || 120) - counter);
+      if(S.partyHp <= 0){
+        S.lp = Math.max(0, (S.lp != null ? S.lp : 3) - 1);
+        S.partyHp = S.partyMaxHp || 120;
+        S.enemy.hp = S.enemy.max;
+        pushCombatLog(`【結果】💀 火力不足・反撃全滅！ LP -1 → 残りLP: ${S.lp}/${S.maxLp||3}`, 'bad');
+        if(S.lp <= 0) S.lpExhausted = true;
+        return;
+      }
     }
   }
-  S.enemy.hp -= dmg();
+
+  S.enemy.hp -= netDmg;
+  S.enemy._totalDmgTaken = (S.enemy._totalDmgTaken || 0) + netDmg;
+  pushCombatLog(`【攻撃】主人公の攻撃！ 与ダメージ ${fmt(netDmg)}（基礎 ${fmt(baseAtkVal)} × 装備 ${gearM} vs 装甲 ${fmt(effArm)}）`, 'atk');
+  if(statusNotes.length){
+    pushCombatLog(`【状態】属性効果発動: ${statusNotes.join(' ＋ ')} → 実ダメージ ${fmt(netDmg)}！`, 'sts');
+  }
+
   // 深層または検証モードでは、攻撃サイクルごとにも一定確率で逆流ハザードが噴出する
   if(node && (node._emitHazard || (ef >= 10 && isBoss(S.floor))) && ((node.done||0) % 2 === 0)){
     emitDungeonHazard(node, fast, false);
   }
   if(S.enemy.hp>0) return;
+
+  // ── 撃破成立！ モンスター図鑑（Bestiary）記録 ＆ 戦闘結果サマリー（Result Summary）出力 ──
+  recordBestiary(cave, eIdx, true);
   const f=S.floor, g=enemyGold(f), wasTier=depthTier();
   S.gold += g;
   const cDrop = cave.drop || 'mcore';
+  let droppedNames = [`💰+${fmt(g)}G`];
   if(node){                                  // 撃破すると戦利品＋洞窟固有素材＋たまに宝箱が出る
     const k = lootItem(node);
     node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
+    droppedNames.push(`${ITEMS[k].i}${ITEMS[k].n}`);
     // 洞窟固有素材ドロップ（ボスは確定2個、通常モンスターも高確率でドロップし分解研究・施設クラフトに使える）
     const dropChance = S.enemy.boss ? 1.0 : 0.65;
     if(ITEMS[cDrop] && Math.random() < dropChance){
@@ -5885,19 +6609,26 @@ function doDive(fast, node, fromCannon){
       node.outBuf[cDrop] = Math.min(capOut(node, cDrop), (node.outBuf[cDrop]||0) + dq);
       homeOf()[cDrop] = (homeOf()[cDrop]||0) + dq;
       flowIn(cDrop, dq); nodeFlow(node, cDrop, dq, 'i');
+      droppedNames.push(`${ITEMS[cDrop].i}${ITEMS[cDrop].n}×${dq}`);
     }
     const tot = BOXES.reduce((a,b)=>a+b.w, 0);
     let r = Math.random() * (tot * 1.6);        // 素材はよく出る（1.6回に1回くらい箱）
     for(const b of BOXES){ r -= b.w; if(r < 0){
-      node.outBuf[b.k] = Math.min(capOut(node,b.k), (node.outBuf[b.k]||0) + 1); break; } }
+      node.outBuf[b.k] = Math.min(capOut(node,b.k), (node.outBuf[b.k]||0) + 1);
+      droppedNames.push(`${ITEMS[b.k].i}${ITEMS[b.k].n}`);
+      break; } }
     // 深層（第10層以降）や節目ボスの撃破時、ダンジョンから地上へ逆流ハザードが噴出する
     if(ef >= 10 || isBoss(f) || node._emitHazard){
       emitDungeonHazard(node, fast, isBoss(f));
     }
   }else if(ITEMS[cDrop]){
     homeOf()[cDrop] = (homeOf()[cDrop]||0) + 1;
+    droppedNames.push(`${ITEMS[cDrop].i}${ITEMS[cDrop].n}`);
   }
-  if(!fast) addLog(`${cave.i}${cave.n} 第${cf}層 ${S.enemy.name} 撃破 → +${fmt(g)}G ＋${ITEMS[cDrop]?ITEMS[cDrop].i+ITEMS[cDrop].n:''}`,'w');
+  pushCombatLog(`【結果】🏆 ${S.enemy.name} 撃破！ 総与ダメージ: ${fmt(S.enemy._totalDmgTaken||S.enemy.max)} ｜ HP: ${fmt(S.partyHp||S.partyMaxHp)}/${fmt(S.partyMaxHp||120)} ｜ LP: ${S.lp}/${S.maxLp||3} ｜ 戦利品: ${droppedNames.join(' ')}`, 'res');
+  if(!fast){
+    addLog(`${cave.i}${cave.n} 第${cf}層 ${S.enemy.name} 撃破 → +${fmt(g)}G ＋${ITEMS[cDrop]?ITEMS[cDrop].i+ITEMS[cDrop].n:''}`,'w');
+  }
 
   // ── 洞窟クリア判定（エンドコンテンツ「無限塔」以外は maxF 到達でクリア＆クリア報酬授与）──
   if(!cave.infinite && cf >= cave.maxF){
@@ -5921,12 +6652,12 @@ function doDive(fast, node, fromCannon){
     if(isFirst){
       addPart('core', 1); // 初回クリアで換装コアも1個進呈
     }
-    // 次の洞窟を解放
+    // 次の洞窟を「発見（caveDiscovered）」状態にし、🧭斥候派遣（Scout Dispatch）で解禁できるようにする
     const nextCave = CAVES[cave.idx + 1];
-    let unlockedNextName = '';
+    let discoveredNextName = '';
     if(nextCave && !isCaveUnlocked(nextCave.id)){
-      S.caveUnlocked[nextCave.id] = 1;
-      unlockedNextName = `${nextCave.i}${nextCave.n}`;
+      S.caveDiscovered[nextCave.id] = 1;
+      discoveredNextName = `${nextCave.i}${nextCave.n}`;
     }
     // 初回クリア特典として洞窟クラフト施設を解放（研究ツリー不要で建設可能に）
     let unlockedFacName = '';
@@ -5940,23 +6671,17 @@ function doDive(fast, node, fromCannon){
     if(!fast){
       const badge = isFirst ? '🏆【初回クリア報酬 10倍！！】' : `🔄【周回クリア報酬（等倍・${S.caveClears[cave.id]}回目）】`;
       addLog(`${badge}${cave.i}${cave.n}（全${cave.maxF}層）を踏破！ → +${fmt(rG)}G ／ +🔬${fmt(rRp)} ／ +🧱${fmt(rMat)} ／ ${ITEMS[rItm].i}${ITEMS[rItm].n}×${rQty}${isFirst?' ／ 🔩換装コア×1':''}`, 'b');
-      if(unlockedNextName) addLog(`🔓【新洞窟解放】「${unlockedNextName}」へ挑戦できるようになった！`, 'b');
-      if(unlockedFacName)  addLog(`🛠️【新施設クラフト解放】洞窟素材で建てる「${unlockedFacName}」が建設リストに追加された！`, 'b');
+      if(discoveredNextName) addLog(`🧭【新洞窟発見】「${discoveredNextName}」を発見！右パネルの「🧭斥候派遣」でルートを解禁できます`, 'b');
+      if(unlockedFacName)    addLog(`🛠️【新施設クラフト解放】洞窟素材で建てる「${unlockedFacName}」が建設リストに追加された！`, 'b');
       if(node) spawnReactionPop(node, `${isFirst?'🏆初回踏破10倍！':'🔄洞窟踏破！'} +${fmt(rG)}G +🔬${fmt(rRp)}`, '#facc15');
       toast(`${isFirst?'🏆 初回踏破(報酬10倍)！':'🔄 洞窟クリア！'} ${cave.i}${cave.n} +${fmt(rG)}G`);
     }
-    // 第1層に戻して周回継続（周回ごとに敵が強化されるため、さらなるプレイヤー強化が必要になる）
-    // 放置中（fast）に初回踏破し、かつ次の洞窟の推奨攻撃力を満たしている場合は自動で次の洞窟へ進む
-    if(fast && nextCave && isCaveUnlocked(nextCave.id) && atk() >= (nextCave.recAtk || 15) * 0.8){
-      S.caveId = nextCave.id;
-      S.caveFloor = 1;
-      S.floor = nextCave.baseF;
-    }else{
-      S.caveFloor = 1;
-      const globalReach = cave.baseF + cave.maxF;
-      if(globalReach > S.best) S.best = globalReach;
-      S.floor = effFloorOf(1, cave);
-    }
+    // ── Cave Separation & No Auto-Advancing ──
+    // パーティは選択していない上位の洞窟へは絶対に勝手に進まない（放置・高速進行中も現在の洞窟の第1層へ戻って安全に周回する）
+    S.caveFloor = 1;
+    const globalReach = cave.baseF + cave.maxF;
+    if(globalReach > S.best) S.best = globalReach;
+    S.floor = effFloorOf(1, cave);
   }else{
     S.caveFloor = cf + 1;
     S.floor = effFloorOf(S.caveFloor, cave);
@@ -5997,9 +6722,12 @@ function spawnEnemy(){
   S.floor = ef;
   const hp = enemyHp(ef), boss = isBoss(ef);
   const isFinalBoss = !c.infinite && cf === c.maxF;
+  const eIdx = boss ? c.e.length - 1 : (cf - 1) % Math.max(1, c.e.length - 1);
+  const meta = monsterMetaOf(c, eIdx, boss);
+  recordBestiary(c, eIdx, false);
   S.enemy = boss
-    ? {name:(isFinalBoss ? '👑洞窟主 ' : '★ ') + c.e[c.e.length-1], icon:isFinalBoss?'🐉':'👑', hp, max:hp, boss:true, finalBoss:isFinalBoss, zone:c}
-    : {name:c.e[(cf-1)%Math.max(1, c.e.length-1)], icon:c.i, hp, max:hp, boss:false, finalBoss:false, zone:c};
+    ? {name:(isFinalBoss ? '👑洞窟主 ' : '★ ') + c.e[eIdx], icon:isFinalBoss?'🐉':'👑', hp, max:hp, boss:true, finalBoss:isFinalBoss, zone:c, eIdx, arch:meta.arch}
+    : {name:c.e[eIdx], icon:c.i, hp, max:hp, boss:false, finalBoss:false, zone:c, eIdx, arch:meta.arch};
 }
 /* 研究ポイントを、判明済みでまだ開発していない対象に均等に配る */
 function grantRp(amount){
@@ -6972,6 +7700,19 @@ function render(fdt){
     setCls(e.root,'rx-broken', !!n.broken);
     setCls(e.root,'drop', !!n.drop);
     setCls(e.root,'comb', !!n.comb);
+    const asInfo = assimStatsOf(n);
+    setCls(e.root,'assim', !!(asInfo && asInfo.count > 0));
+    setCls(e.root,'chimera', !!(asInfo && asInfo.count > 0 && asInfo.isChimera));
+    setCls(e.root,'lp-exhaust', !!(S.lp <= 0 && (T.src || T.effect === 'dive')));
+    if(e.led){
+      const ledState = (n.stall || n.broken || (S.lp <= 0 && (T.src || T.effect === 'dive'))) ? 'led-stall'
+                     : (n.crafting || T.src || T.gen || (asInfo && asInfo.selfPow)) ? 'led-run'
+                     : 'led-idle';
+      if(e.lastLed !== ledState){
+        e.lastLed = ledState;
+        e.led.className = 'status-led ' + ledState;
+      }
+    }
     // 汚染が届く範囲。溜め込んでいるノードだけ出す
     const ps = n._psrc || 0;
     const po = ps > 0 ? Math.min(0.95, 0.3 + ps * 0.5) : 0;
@@ -7091,8 +7832,40 @@ function render(fdt){
   $('#tRp').textContent=fmt(gotRp());
   $('#tMat').textContent=fmt(gotMat());
   $('#tAtk').textContent=fmt(atk());
-  $('#tFloor').textContent=S.floor;
-  $('#tBest').textContent=S.best;
+  if($('#tFloor')) $('#tFloor').textContent=S.floor;
+  if($('#tBest')) $('#tBest').textContent=S.best;
+  const tLpEl = $('#tLp'), tLpStatEl = $('#tLpStat');
+  if(tLpEl) tLpEl.textContent = `${S.lp ?? 3}/${S.maxLp ?? 3}`;
+  if(tLpStatEl){
+    tLpStatEl.style.borderColor = (S.lp <= 0) ? '#ff5c5c' : (S.lp === 1 ? '#facc15' : 'rgba(255,107,138,.4)');
+    tLpStatEl.style.color = (S.lp <= 0) ? '#ff5c5c' : '#ff8fa3';
+  }
+  const bstNEl = $('#bstN');
+  if(bstNEl) bstNEl.textContent = bestiaryUnlockedCount();
+  const pLpTxt = $('#pLpTxt');
+  if(pLpTxt){
+    const recRem = (S.lp < (S.maxLp||3)) ? ` (自然回復あと${Math.max(1, Math.ceil(LP_RECOV_SEC - (S.lpRecovT||0)))}秒)` : '';
+    pLpTxt.textContent = `❤️ 探索隊LP: ${S.lp ?? 3}/${S.maxLp ?? 3} ｜ HP:${Math.round(S.partyHp ?? 120)}/${S.partyMaxHp ?? 120}${recRem}`;
+    pLpTxt.style.color = (S.lp <= 0) ? '#ff5c5c' : '#ff8fa3';
+  }
+  const lpBan = $('#lpExhaustBanner');
+  if(lpBan) lpBan.hidden = !(S.lp <= 0 || S.lpExhausted);
+  const gBadge = $('#GearCheckBadge');
+  if(gBadge){
+    const gPow = totalEquippedGearPower();
+    const gReady = hasGearOrTacticalReady();
+    if(gReady){
+      gBadge.textContent = gPow > 0
+        ? `🎽 装備展開中 (装備倍率 ×${gearMul('firm').toFixed(2)} / 効き合計 ${gPow.toFixed(1)})`
+        : `🧪 戦術支援稼働中 (装備未装着・属性/砲撃支援で突破可能)`;
+      gBadge.style.color = '#5ee0c0';
+      gBadge.style.borderColor = 'rgba(94,224,192,.4)';
+    }else{
+      gBadge.textContent = `⚠️ 未装備・無支援 (Strict Gear Check: このまま潜ると1ダメージ＆敗北必至！)`;
+      gBadge.style.color = '#ff8a8a';
+      gBadge.style.borderColor = 'rgba(255,92,92,.5)';
+    }
+  }
   const dt=depthTier();
   $('#oSteps').textContent=`第${S.era||1}時代/${depthTier()}段`;
   $('#oRate').textContent='実時間の '+Math.round(offRate()*100)+'%';
@@ -7220,6 +7993,27 @@ function render(fdt){
     $('#eDmg').textContent=fmt(dmg())+`（装甲で -${cut}%）`;
     $('#eHits').textContent=fmt(hitsLeft())+' 回';
     $('#eGold').textContent=fmt(enemyGold(S.floor))+' G ＋ '+(ITEMS[z.drop]?ITEMS[z.drop].i+ITEMS[z.drop].n:'');
+    const eWeakEl = $('#eWeak');
+    if(eWeakEl){
+      const eIdx = Math.min((z.e && z.e.length ? z.e.length - 1 : 0), Math.floor(((cf - 1) / Math.max(1, z.maxF || 20)) * ((z.e && z.e.length) || 5)));
+      const meta = monsterMetaOf(z, eIdx);
+      const arch = meta.arch;
+      eWeakEl.innerHTML = `<span style="color:${arch.c}">${arch.n}</span> ／ 弱点: <b>${arch.weak.map(w => REACTION_TAGS[w] ? REACTION_TAGS[w].i+REACTION_TAGS[w].n : w).join('・')}</b>`;
+    }
+    const scBox = $('#scoutBox'), scTxt = $('#scoutTxt'), scBtn = $('#btnScout');
+    if(scBox && scTxt && scBtn){
+      const discCave = CAVES.find(c => !isCaveUnlocked(c.id) && (S.caveDiscovered && S.caveDiscovered[c.id]));
+      const nextLocked = discCave || CAVES.find((c, idx) => idx > 0 && !isCaveUnlocked(c.id) && caveClearsOf(CAVES[idx-1].id) > 0);
+      if(nextLocked){
+        scBox.style.display = 'flex';
+        const costG = Math.round(150 * Math.pow(3.2, Math.max(0, (nextLocked.era||1) - 1)));
+        scTxt.textContent = `🧭 新洞窟発見: ${nextLocked.i}${nextLocked.n}（斥候派遣でルート開拓）`;
+        scBtn.textContent = `🧭 斥候派遣 (${fmt(costG)}G)`;
+        scBtn.dataset.cid = nextLocked.id;
+      }else{
+        scBox.style.display = 'none';
+      }
+    }
     const dBox = $('#dgnBox');
     if(dBox){
       dBox.classList.toggle('env-cryo', !!brx.cryo);
@@ -7272,7 +8066,7 @@ function render(fdt){
   if($('#tree').classList.contains('on')) renderTree();
   $('#bCount').textContent=S.drops.length;
   $('#bCount').textContent = bagCount();
-  renderShop(); renderInspLive(); tutRender();
+  renderShop(); renderInspLive(); renderRadialHud(); tutRender();
 }
 
 /* ========================= ショップ ========================= */
@@ -7752,6 +8546,10 @@ function renderInsp(){
     (T.store || T.ware ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : '') +
     (T.ware  ? `<button class="wopen">📦 中身を見る</button>` : '') +
     (T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : '') +
+    (T.effect==='dive' ? `<div class="kv">🧭 派遣先の洞窟<select class="dcave"></select></div>` : '') +
+    (!n.drop && !T.layer && !T.port && !T.unique && !T.raid && !T.src && T.effect!=='dive'
+        ? `<div class="kv assim-row" hidden><span>🦠 浸食合体</span><b class="assim-info" style="color:#a855f7"></b></div>`
+        + `<button class="assim-btn" style="width:100%;margin:4px 0;padding:6px 8px;border-radius:6px;border:1px solid #a855f7;background:rgba(168,85,247,.16);color:#e9d5ff;font-size:11px;font-weight:700;cursor:pointer"></button>` : '') +
     (!n.drop && !T.layer && !T.port && !T.unique && !T.raid
         ? `<div class="kv">🛠️ クラフト素材<select class="cmat"></select></div>`
         + `<div class="kv">✨ 素材性能補正<b class="cmat-info" style="color:#facc15"></b></div>` : '') +
@@ -7799,6 +8597,26 @@ function renderInsp(){
     + `<button class="del">撤去</button></div>`;
   box.querySelector('.mtog').onclick=()=>{ inspMore=!inspMore; renderInsp(); };
   box.classList.add('on');
+  const dcSel = box.querySelector('.dcave');
+  if(dcSel){
+    const curCid = n.caveId || S.caveId || 'cave1';
+    dcSel.innerHTML = CAVES.map(c => {
+      const open = isCaveUnlocked(c.id);
+      return `<option value="${c.id}" ${open?'':'disabled'} ${c.id===curCid?'selected':''}>${open?c.i:'🔒'} ${c.n}</option>`;
+    }).join('');
+    dcSel.onchange = () => {
+      const cid = dcSel.value;
+      if(!isCaveUnlocked(cid)) return;
+      n.caveId = cid;
+      selectCave(cid);
+      rebuildNodeEl(n);
+      renderInsp();
+    };
+  }
+  const asBtn = box.querySelector('.assim-btn');
+  if(asBtn){
+    asBtn.onclick = () => assimilateAround(n);
+  }
   const cmSel = box.querySelector('.cmat');
   if(cmSel){
     const curMat = n.craftMat || defaultCraftMatOf(n.type);
@@ -8041,6 +8859,25 @@ function renderInspLive(){
   if(cmi){
     const curMat = n.craftMat || defaultCraftMatOf(n.type);
     cmi.textContent = (ITEMS[curMat] ? `${ITEMS[curMat].i}${ITEMS[curMat].n}：` : '') + craftMatText(curMat);
+  }
+  const asRow = box.querySelector('.assim-row'), asInfoEl = box.querySelector('.assim-info'), asBtn = box.querySelector('.assim-btn');
+  if(asBtn){
+    const cands = assimilateCandidates(n);
+    const asSt = assimStatsOf(n);
+    if(asSt && asSt.count > 0){
+      if(asRow) asRow.hidden = false;
+      if(asInfoEl){
+        asInfoEl.textContent = `${asSt.isChimera?'🧬キメラ':'🦠メガ'} ×${asSt.totalCount}台合体 (出力×${asSt.mul.toFixed(1)}・速×${asSt.spd.toFixed(2)}${asSt.selfPow?'・⚡自家発電':''})`;
+      }
+    }else if(asRow){
+      asRow.hidden = true;
+    }
+    if(cands.length > 0){
+      asBtn.hidden = false;
+      asBtn.textContent = `🦠 周囲浸食（隣接 ${cands.length}台を吸収合体 → 出力×${((asSt&&asSt.count>0?asSt.totalCount:1)+cands.length)}）`;
+    }else{
+      asBtn.hidden = true;
+    }
   }
   const pk=box.querySelector('.perk');
   if(pk) pk.textContent = perksOf(TYPES[n.type]).map(p=>`${p.n}（${p.d}）`).join('　');
@@ -8359,7 +9196,7 @@ function doPinch(){
 
 // 盤面の上に重ねているパネル（インスペクタ・案内・ヘルプ・バッジ）の中の操作は盤面に渡さない。
 // 渡すと背景クリック扱いで選択が解除され、renderInsp() がボタンごと消してしまう
-const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast,#board';
+const OVERLAY_SEL = '#insp,#tut,#hint,#offscr,#toast,#board,#radialHud,#lensBar,#rxBar,#menuModal';
 /* ========================= 投げ縄でまとめる ========================= */
 let lassoOn = false, lassoMode = 'group';   // group=まとめる / del=撤去 / comb=複合化
 function setLasso(v, mode){
@@ -9100,6 +9937,17 @@ function load(){
     S.at = null; applyView(); renderLog(); renderBoard();
     layerDirty();                       // 数え直せるものは持ち越さない
     applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
+    if(S.gold < 150 && (!S.best || S.best <= 2) && (!S.counts || Object.keys(S.counts).length <= 2)){
+      S.gold = Math.max(S.gold, 500);
+      S.rp = Math.max(S.rp || 0, 30);
+      S.stock = Math.max(S.stock || 0, 25);
+      S.home = S.home || {};
+      const hNode = S.nodes.find(n => n.type === 'hero');
+      if(hNode && (!hNode.gear || !hNode.gear.some(g => g && g.item))){
+        hNode.gear = [{item:'eqp1'}, {item:null}, {item:null}];
+        gearDirty();
+      }
+    }
     return true;
   }catch(_){ return false; }
 }
@@ -9107,9 +9955,53 @@ function load(){
 function setPane(p){
   $('#shop').classList.toggle('on', p==='shop');
   $('#side').classList.toggle('on', p==='side');
-  document.querySelectorAll('#mtabs button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+  document.querySelectorAll('#mtabs button[data-p]').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
 }
-document.querySelectorAll('#mtabs button').forEach(b=>b.onclick=()=>setPane(b.dataset.p));
+document.querySelectorAll('#mtabs button[data-p]').forEach(b=>b.onclick=()=>{
+  setPane(b.dataset.p);
+  if(b.dataset.p === 'side'){
+    const dt = document.querySelector('.side-tab[data-stab="dgn"]');
+    if(dt) dt.click();
+  }
+});
+const mTabBst = $('#mTabBestiary');
+if(mTabBst) mTabBst.onclick = () => { renderBestiary(); $('#bestiary').classList.add('on'); };
+const mTabMenu = $('#mTabMenu');
+if(mTabMenu) mTabMenu.onclick = () => openMenuModal();
+
+// Side tabs (洞窟攻略 / 主人公 / 技術)
+document.querySelectorAll('.side-tab').forEach(btn => {
+  btn.onclick = () => {
+    const target = btn.dataset.stab;
+    document.querySelectorAll('.side-tab').forEach(b => b.classList.toggle('on', b.dataset.stab === target));
+    document.querySelectorAll('.stab-pane').forEach(p => p.hidden = (p.dataset.spane !== target));
+  };
+});
+
+function openMenuModal(){ const m = $('#menuModal'); if(m) m.classList.add('on'); }
+function closeMenuModal(){ const m = $('#menuModal'); if(m) m.classList.remove('on'); }
+const bMenuBtn = $('#bMenuBtn'); if(bMenuBtn) bMenuBtn.onclick = openMenuModal;
+const menuCloseBtn = $('#menuCloseBtn'); if(menuCloseBtn) menuCloseBtn.onclick = closeMenuModal;
+const menuModalEl = $('#menuModal'); if(menuModalEl) menuModalEl.onclick = e => { if(e.target === menuModalEl) closeMenuModal(); };
+
+const bindMenuAct = (id, fn) => {
+  const el = $(id);
+  if(el) el.onclick = () => { closeMenuModal(); fn(); };
+};
+bindMenuAct('#mTreeBtn', () => { renderTree(); $('#tree').classList.add('on'); });
+bindMenuAct('#mBestBtn', () => { renderBestiary(); $('#bestiary').classList.add('on'); });
+bindMenuAct('#mBagBtn', () => { renderBag(); $('#bag').classList.add('on'); });
+bindMenuAct('#mTroBtn', () => { renderTro(); $('#tro').classList.add('on'); });
+bindMenuAct('#mDashBtn', () => { renderDash(); $('#dash').classList.add('on'); });
+bindMenuAct('#mStatsBtn', () => { renderStats(); $('#stats').classList.add('on'); });
+bindMenuAct('#mFitBtn', () => { fitView(); toast('全体が入るように表示しました'); });
+bindMenuAct('#mTidyBtn', () => { if(confirm('ノードを格子状に並べ直します。よろしいですか？')){ tidyLayout(); toast('整列しました'); } });
+bindMenuAct('#mCodeBtn', () => { S.savedAt=Date.now(); $('#mCode').value=b64enc(dumpState()); $('#mMsg').textContent=''; $('#modal').classList.add('on'); });
+bindMenuAct('#mDevBtn', () => { renderDtTree(); $('#devTool').classList.add('on'); });
+bindMenuAct('#mResetBtn', () => { $('#bReset').click(); });
+document.querySelectorAll('#menuModal [data-rx-quick]').forEach(b => {
+  b.onclick = () => { closeMenuModal(); loadReactionPreset(b.dataset.rxQuick); };
+});
 $('#hint').onclick=()=>$('#hint').classList.toggle('open');
 $('#bFit').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
 $('#offscr').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
@@ -9188,6 +10080,152 @@ $('#bSave').onclick=()=>toast(save()?'保存しました':'保存できません
 document.querySelectorAll('[data-rx-quick]').forEach(b => {
   b.onclick = () => loadReactionPreset(b.dataset.rxQuick);
 });
+
+/* ========================= X-Ray Data Lens & Radial HUD & Bestiary ========================= */
+let curLens = 'normal';
+function setLens(mode){
+  curLens = mode || 'normal';
+  document.body.setAttribute('data-lens', curLens);
+  document.querySelectorAll('#lensBar [data-lens-btn]').forEach(b => {
+    b.classList.toggle('on', b.dataset.lensBtn === curLens);
+  });
+  const names = {
+    normal: '👁️ Normal（ミニマリスト表示）',
+    logistics: '📦 Logistics Lens（流量・ボトルネック表示）',
+    power: '⚡ Power/Range Lens（380px行動範囲・動力網表示）',
+    hazard: '☣️ Hazard Lens（汚染・熱・腐食ヒートマップ表示）'
+  };
+  toast(names[curLens] || curLens);
+}
+document.querySelectorAll('#lensBar [data-lens-btn]').forEach(b => {
+  b.onclick = () => setLens(b.dataset.lensBtn);
+});
+
+function renderRadialHud(){
+  const hud = $('#radialHud'); if(!hud) return;
+  const n = sel ? N(sel) : null;
+  if(!n || !onBoard(n)){ hud.classList.remove('on'); return; }
+  const T = TYPES[n.type] || {}, tr = tierOf(n);
+  const v = S.view, sr = stage.getBoundingClientRect();
+  const sx = (n.x + NW / 2) * v.s + v.x;
+  const sy = Math.max(48, n.y * v.s + v.y - 8);
+  hud.style.left = Math.min(Math.max(120, sx), (sr.width || 800) - 120) + 'px';
+  hud.style.top  = Math.min(Math.max(48, sy), (sr.height || 600) - 20) + 'px';
+  const asSt = assimStatsOf(n);
+  const cands = assimilateCandidates(n);
+  const tags = Object.keys(n.inTags || {}).filter(t => REACTION_TAGS[t]);
+  const tagHtml = tags.length
+    ? tags.map(t => `<span class="tag-chip" style="color:${REACTION_TAGS[t].c};border-color:${REACTION_TAGS[t].c}">${REACTION_TAGS[t].i}${REACTION_TAGS[t].n}</span>`).join('')
+    : `<span style="color:var(--dim);font-size:9.5px">流入タグなし</span>`;
+  const spdStr = T.src
+    ? `⚡ ${(1/Math.max(0.05, staRate(n))).toFixed(2)}/秒`
+    : `${(1/Math.max(0.05, craftTime(n))).toFixed(2)}回/秒 (出力×${asSt?asSt.mul.toFixed(1):'1.0'})`;
+  const stCol = (n.stall || n.broken || (S.lp<=0 && (T.src||T.effect==='dive'))) ? '#ff5c5c' : '#22c55e';
+  const stLabel = (S.lp<=0 && (T.src||T.effect==='dive')) ? '🚨LP枯渇停止' : n.broken ? '🔧故障' : n.stall ? `⚠${n.why||'停止'}` : '●稼働中';
+  const sig = `${n.id}|${tr.n}|${ n.level }|${spdStr}|${stLabel}|${cands.length}|${tags.join(',')}|${Math.round(n.hpDur??100)}`;
+  if(hud._sig !== sig){
+    hud._sig = sig;
+    hud.innerHTML =
+      `<div class="rh-top"><span>${tr.i} <b>${tr.n}</b> Lv.${n.level}</span><span style="color:${stCol}">${stLabel}</span></div>` +
+      `<div class="rh-tags"><span>⚡速度: <b>${spdStr}</b></span>${tagHtml}</div>` +
+      `<div class="rh-acts">` +
+      (cands.length > 0 ? `<button class="assim" data-rh-act="assim">🦠 周囲浸食 (+${cands.length}台合体)</button>` : '') +
+      (!T.layer && !T.port ? `<button data-rh-act="up">⬆️ 強化 (${fmt(upCost(n))}G)</button>` : '') +
+      ((n.broken || (n.hpDur != null && n.hpDur < 100)) ? `<button data-rh-act="repair">🔧 修理</button>` : '') +
+      `</div>`;
+    hud.querySelectorAll('[data-rh-act]').forEach(btn => {
+      btn.onclick = (ev) => {
+        ev.stopPropagation();
+        const act = btn.dataset.rhAct;
+        if(act === 'assim') assimilateAround(n);
+        else if(act === 'up'){
+          const c = upCost(n);
+          if(S.gold < c) return toast('ゴールドが足りません');
+          S.gold -= c; n.level++; renderInsp(); renderRadialHud();
+        }
+        else if(act === 'repair'){ repairNode(n); renderInsp(); renderRadialHud(); }
+      };
+    });
+  }
+  hud.classList.add('on');
+}
+
+let bstCaveFilter = 'all';
+function renderBestiary(caveFilter){
+  if(caveFilter !== undefined) bstCaveFilter = caveFilter;
+  const sumEl = $('#bstSum'), tabsEl = $('#bstTabs'), bodyEl = $('#bstBody');
+  if(!sumEl || !tabsEl || !bodyEl) return;
+  const totalMons = CAVES.reduce((a, c) => a + ((c.e && c.e.length) || 5), 0);
+  const unlockedMons = bestiaryUnlockedCount();
+  const seenMons = Object.values(S.bestiary || {}).filter(b => b && b.seen > 0).length;
+  sumEl.innerHTML =
+    `<span>📖 解析完了（撃破済み）: <b style="color:var(--acc)">${unlockedMons} / ${totalMons} 種</b></span>` +
+    `<span>👁️ 遭遇済み: <b>${seenMons} 種</b></span>` +
+    `<span>💡 モンスターを撃破すると装甲・属性弱点・ドロップ率データが図鑑にアンロックされます</span>`;
+  tabsEl.innerHTML =
+    `<button class="dt-btn ${bstCaveFilter==='all'?'acc':''}" data-bst-tab="all">🌐 全洞窟 (${unlockedMons}/${totalMons})</button>` +
+    CAVES.map(c => {
+      const cnt = (c.e || []).filter((_, i) => S.bestiary && S.bestiary[`${c.id}_m${i}`] && S.bestiary[`${c.id}_m${i}`].kills > 0).length;
+      return `<button class="dt-btn ${bstCaveFilter===c.id?'acc':''}" data-bst-tab="${c.id}">${c.i}${c.n} (${cnt}/${(c.e||[]).length})</button>`;
+    }).join('');
+  tabsEl.querySelectorAll('[data-bst-tab]').forEach(b => {
+    b.onclick = () => renderBestiary(b.dataset.bstTab);
+  });
+
+  const targetCaves = bstCaveFilter === 'all' ? CAVES : CAVES.filter(c => c.id === bstCaveFilter);
+  const cards = [];
+  for(const c of targetCaves){
+    const list = c.e || [];
+    list.forEach((mName, idx) => {
+      const meta = monsterMetaOf(c, idx, idx === list.length - 1);
+      const rec = (S.bestiary && S.bestiary[meta.id]) || { seen:0, kills:0 };
+      const unlocked = rec.kills > 0;
+      const seen = rec.seen > 0;
+      const arch = meta.arch;
+      const weakTags = arch.weak.map(w => REACTION_TAGS[w] ? `<span class="tag-chip" style="color:${REACTION_TAGS[w].c};border-color:${REACTION_TAGS[w].c}">${REACTION_TAGS[w].i}${REACTION_TAGS[w].n}</span>` : w).join(' ');
+      const resistTags = (arch.resist && arch.resist.length)
+        ? arch.resist.map(r => `<span class="tag-chip" style="color:#ff8a8a;border-color:#ff8a8a">🛡️耐性:${REACTION_TAGS[r]?REACTION_TAGS[r].i+REACTION_TAGS[r].n:r}</span>`).join(' ')
+        : '<span style="color:var(--dim)">なし</span>';
+      const dropHtml = meta.drops.map(d => {
+        const it = ITEMS[d.item] || {i:'📦', n:d.item};
+        return `${it.i}${it.n} <b>(${d.rate})</b>`;
+      }).join(' ／ ');
+      const sampleFl = Math.max(1, c.baseF + idx * 2);
+      cards.push(`<div class="bst-card ${unlocked?'':'locked'}">
+        <div class="bst-hd">
+          <span class="ic">${unlocked || seen ? meta.icon : '❓'}</span>
+          <div style="flex:1">
+            <div class="nm">${unlocked || seen ? meta.name : '？？？ (未遭遇)'} ${meta.boss?'<span style="color:#facc15;font-size:10px">👑BOSS</span>':''}</div>
+            <div class="cv" style="color:${c.c}">${c.i}${c.n}（出現目安: 第${sampleFl}層〜）</div>
+          </div>
+          <span class="tag-chip" style="color:${arch.c};border-color:${arch.c}">${arch.n}</span>
+        </div>
+        <div class="bst-kv"><span>❤️ 基準HP / 🛡️ 基準装甲</span><b>${unlocked ? `${fmt(meta.sampleHp)} HP ／ 装甲 ${fmt(meta.sampleArm)}` : '🔒 撃破で解析'}</b></div>
+        <div class="bst-kv"><span>🎯 弱点タグ (特効)</span><b>${unlocked ? weakTags : '🔒 撃破で解析'}</b></div>
+        <div class="bst-kv"><span>🛡️ 耐性・特性</span><b>${unlocked ? `${resistTags} <span style="font-size:9.5px;color:var(--dim)">(${arch.d})</span>` : '🔒 撃破で解析'}</b></div>
+        <div class="bst-kv"><span>🎁 ドロップテーブル</span><b>${unlocked ? dropHtml : '🔒 撃破で解析'}</b></div>
+        <div class="bst-kv"><span>⚔️ 討伐記録</span><b style="color:${unlocked?'var(--acc)':'var(--dim)'}">${unlocked ? `討伐 ${fmt(rec.kills)}体 (遭遇 ${fmt(rec.seen)}回)` : (seen ? `遭遇 ${fmt(rec.seen)}回 (未撃破)` : '未遭遇')}</b></div>
+      </div>`);
+    });
+  }
+  bodyEl.innerHTML = cards.join('');
+}
+
+const bBstBtn = $('#bBst'), bstModal = $('#bestiary'), bstCloseBtn = $('#bstClose');
+if(bBstBtn && bstModal){
+  bBstBtn.onclick = () => { renderBestiary(); bstModal.classList.add('on'); };
+}
+if(bstCloseBtn && bstModal){
+  bstCloseBtn.onclick = () => bstModal.classList.remove('on');
+  bstModal.onclick = e => { if(e.target === bstModal) bstModal.classList.remove('on'); };
+}
+const btnRecLp = $('#btnRecoverLp');
+if(btnRecLp) btnRecLp.onclick = () => recoverLpInstant();
+const btnQG = $('#btnQuickGear');
+if(btnQG) btnQG.onclick = () => toggleQuickStarterGear();
+const btnSc = $('#btnScout');
+if(btnSc) btnSc.onclick = () => dispatchScout(btnSc.dataset.cid);
+
 /* リセット。confirm も reload も端末によっては効かないので、
    ボタン自身を2段階にして、その場で作り直す */
 let resetting=false, resetArm=0, resetT=null;
@@ -9353,8 +10391,8 @@ function defaultDevCfg(){
   return {
     v: 1,
     initBoard: {
-      initGold: 0,
-      initIng1: 40,
+      initGold: 500,
+      initIng1: 0,
       nodes: [
         { type:'hero',  x:80,  y:150 },
         { type:'dive1', x:420, y:150 }
@@ -10061,7 +11099,7 @@ function renderDtUi(body){
       </div>
       <div class="dt-grid">
         <div class="dt-field"><label>初期ゴールド (G)</label><input type="number" min="0" id="dtInitGold" value="${ib.initGold||0}"></div>
-        <div class="dt-field"><label>初期の自宅🟫地金 (ing1)</label><input type="number" min="0" id="dtInitIng" value="${ib.initIng1!=null?ib.initIng1:40}"></div>
+        <div class="dt-field"><label>初期の自宅🟫地金 (ing1)</label><input type="number" min="0" id="dtInitIng" value="${ib.initIng1!=null?ib.initIng1:0}"></div>
       </div>
       <div class="dt-sec"><span>初期設置ノード一覧</span><button class="dt-btn acc" id="dtAddInitNode">＋ 初期ノード追加</button></div>
       <table class="dt-tbl">
@@ -10618,12 +11656,15 @@ function newGame(){
   // 主人公自身が⚡体力を生み、その⚡を配線で分けた先が動く。
   // 開発ツール（DEV_CFG.initBoard）で初期配置が編集されていればそれに従う。
   const ib = (DEV_CFG && DEV_CFG.initBoard) || {
-    initGold: 0, initIng1: 40,
+    initGold: 500, initIng1: 0,
     nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:420, y:150}],
     links: [{from:0, item:'sta', to:1}]
   };
-  S.gold = ib.initGold || 0;
-  S.home = { ing1: ib.initIng1 != null ? ib.initIng1 : 40 };
+  S.gold = ib.initGold != null ? ib.initGold : 500;
+  S.rp = 30;     // 初期研究ポイントボーナス！
+  S.stock = 25;  // 初期研究資材ボーナス！
+  S.home = {};   // 銅地金等は初動配布せず、採掘・精錬の自作ループに純化
+  if(ib.initIng1) S.home.ing1 = ib.initIng1;
   S.counts = {};
   const spawned = [];
   for(const nd of (ib.nodes || [])){
@@ -10638,14 +11679,19 @@ function newGame(){
     S.counts.hero = 1;
   }
   const initHero = spawned.find(n => n.type === 'hero');
-  if(initHero) initHero.outBuf.sta = 2; // 開始直後から⚡エネルギー球がコンベアを流れ出すように初期チャージ
+  if(initHero){
+    initHero.outBuf.sta = 2; // 開始直後から⚡エネルギー球がコンベアを流れ出すように初期チャージ
+    initHero.gear = [{item: 'eqp1'}, {item: null}, {item: null}]; // 初期から銅の剣を装備！
+    gearDirty();
+  }
   for(const lk of (ib.links || [])){
     const a = spawned[lk.from], b = spawned[lk.to];
     if(a && b && ITEMS[lk.item]) addLink(a.id, lk.item, b.id);
   }
-  addLog('🧍主人公 ⚡→ 🕳️洞窟 が接続済み。まずは主人公の体力で潜ってゴールドを貯めよう','u');
-  addLog('第1世代の施設も最初は一部のみ。🔬研究室を建てて「🔬研究ツリー」から新施設や🔌発電機を解放しよう','u');
-  addLog('🛠️ 上の「開発ツール」から研究ツリー・施設・初期配置・定数をいつでも自由に編集できます','u');
+  addLog('🎁【冒険開始ボーナス】💰500G ＋ 🎽銅の剣(装備済) ＋ 🔬研究P×30 を支給！すぐに施設建設と探索を始められます','u');
+  addLog('⚡【電力供給】施設が増えると電力が不足します。「🍃風力発電機」を複数建てて発電所を作り、採掘機・精錬炉を増設して工房を拡大しよう','u');
+  addLog('第1世代の施設も最初は一部のみ。🔬研究室を建てて「🔬研究ツリー」から新施設を解放しよう','u');
+  toast('🎁 冒険開始ボーナス支給！ 💰500G ＋ 🎽銅の剣');
   S.at = null; renderBoard();
   fitView(1);                       // 窓が狭くても最初のノードが必ず見えるように
 }
