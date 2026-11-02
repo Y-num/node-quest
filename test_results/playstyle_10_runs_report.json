@@ -1,0 +1,304 @@
+[
+  {
+    "id": 1,
+    "name": "生体アニマ・仲間スウォーム型 (Living Anima & Companion Swarm)",
+    "concept": "酒場スカウトによる仲間大量動員、大好物コンベア自動給餌（親愛度1000/賃金-80%）、純粋生体アニマによるダンジョン踏破",
+    "metrics": {
+      "runId": 1,
+      "gold": 25622,
+      "rp": 11050,
+      "stock": 415,
+      "bestFloor": 53,
+      "era": 1,
+      "trophiesUnlocked": 4,
+      "troMul": "1.09",
+      "ascStat": 0,
+      "nodeCount": 7,
+      "linkCount": 5,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「酒場で無制限に仲間をスカウトできる！職人・学者・戦士ごとに個性と好物が違う！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「コンベアで好物を直接流し込むと、給料が最大-80%引きになり作業速度が跳ね上がる自動福利厚生ラインが作れる！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 2,
+    "name": "機械化工業グリッド＆高圧ワイヤレス型 (Industrial Grid & High-Voltage Wireless)",
+    "concept": "風力・燃料発電機群による地上完全工業化、第2世代280pxワイヤレス給電＆第3世代量子グリッド、戦闘と工場の完全分業",
+    "metrics": {
+      "runId": 2,
+      "gold": 26559,
+      "rp": 12550,
+      "stock": 415,
+      "bestFloor": 61,
+      "era": 3,
+      "trophiesUnlocked": 6,
+      "troMul": "1.17",
+      "ascStat": 0,
+      "nodeCount": 6,
+      "linkCount": 5,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「機械発電機をダンジョンに繋ぐと不適合遮断！ダンジョンは生体アニマ専用で、機械は工場専用という役割分担が面白い」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「第2世代の高圧ワイヤレス給電で、発電機の周囲280px以内の施設が配線なしで一斉に回り始めた！配線が消えて超スッキリする」"
+        },
+        {
+          "phase": "終盤",
+          "text": "「第3世代の量子ワイヤレス送電で盤面全域が完全無線化＋倉庫から素材が自動ワープ搬入される！もはや別次元の快感」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 3,
+    "name": "熱冷サーマル・創発リアクション特化型 (Thermal Emergence & Reaction Engine)",
+    "concept": "熱冷サーマルリアクター陣形、自動急冷焼き入れ(qstl)、ブラストキャノン、ナパーム爆炎＆砕氷連撃による戦闘圧倒",
+    "metrics": {
+      "runId": 3,
+      "gold": 22025,
+      "rp": 12550,
+      "stock": 65,
+      "bestFloor": 69,
+      "era": 1,
+      "trophiesUnlocked": 6,
+      "troMul": "1.17",
+      "ascStat": 0,
+      "nodeCount": 5,
+      "linkCount": 4,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「精錬炉の高温排気と送風機のCRYO冷却気流を同じ施設に流すと、瞬時に『💨🔥急冷焼き入れ』が発生して強化鋼(qstl)に変異した！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「ダンジョン入口に爆風結晶(bdia)と冷気(fcryst)を流し込むと、ボス戦でナパーム爆炎と砕氷連撃が炸裂してボスの装甲が紙のように溶ける！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 4,
+    "name": "神眼スロット・特化工廠型 (Path A: Demon Gem Factory Socketing)",
+    "concept": "5大魔神眼を早期発掘し全基を工場施設へスロットイン（速度2倍/省エネ無公害/研究2.5倍/不死修復/産出3倍）",
+    "metrics": {
+      "runId": 4,
+      "gold": 23996,
+      "rp": 14050,
+      "stock": 65,
+      "bestFloor": 77,
+      "era": 1,
+      "trophiesUnlocked": 8,
+      "troMul": "1.24",
+      "ascStat": 0,
+      "nodeCount": 7,
+      "linkCount": 2,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「盤面の地中に古代の魔神眼が埋まってる！近くに工場を建てて動かすと地中から秘宝が掘り出された！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「5つの魔神眼を各施設にスロットインすると、速度2倍・無公害・研究2.5倍・産出3倍の超絶特化ファクトリーが完成した！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 5,
+    "name": "深淵契約・真ボス討伐型 (Path B: Demon Gem Altar Sacrifice & True Boss Slayer)",
+    "concept": "5大魔神眼を星辰の祭壇へ全奉献（攻撃+1250, 昇華ASC Lv.5+）、ボスの激怒覚醒（HP+200%）を引き受け真ボス『輪廻の主』を討伐",
+    "metrics": {
+      "runId": 5,
+      "gold": 35479,
+      "rp": 24700,
+      "stock": 450,
+      "bestFloor": 85,
+      "era": 1,
+      "trophiesUnlocked": 11,
+      "troMul": "2.17",
+      "ascStat": 5,
+      "nodeCount": 2,
+      "linkCount": 2,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「魔神眼を星辰の祭壇に捧げると、恒久攻撃力+250と研究力+1500に加えて新ステータス『👁️昇華(ASC)』が解放された！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「5個すべて捧げたら深層の主の怒りで警告アラート発生！ボスのHPが激増して真ボス覚醒フラグが立った！」"
+        },
+        {
+          "phase": "終盤",
+          "text": "「真ボス『👁️‍🗨️輪廻の主 Sovereign of Samsara』降臨！激闘の末に討伐するとサガ風秘匿トロフィーが解除されて全域速度+15%の祝福を獲得！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 6,
+    "name": "メガ合体・キメラ吸収特化型 (Megastructure & Chimera Assimilation)",
+    "concept": "近接8ノードをメガ施設・キメラ施設へ吸収合体、極小フットプリントで出力×8倍＆自家発電特異点ノード構築",
+    "metrics": {
+      "runId": 6,
+      "gold": 28025,
+      "rp": 17050,
+      "stock": 65,
+      "bestFloor": 93,
+      "era": 1,
+      "trophiesUnlocked": 11,
+      "troMul": "1.45",
+      "ascStat": 0,
+      "nodeCount": 3,
+      "linkCount": 2,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「隣接する施設同士を『周囲浸食』ボタンで吸収合体できる！4台合体でメガ鍛造機になってスペースが劇的に節約できる！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「異種施設（鍛造＋研究＋発電）を混ぜて合体させたら『🧬キメラ施設』に進化！自家発電しながら部品と研究を同時出力し始めた！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 7,
+    "name": "戦術支援砲台＆遠征前線キャンプ型 (Tactical Turrets & Forward Expedition Camp)",
+    "concept": "洞窟素材特化で戦術支援砲台を量産、前線キャンプ陣形でパーティHP2倍＆敵自己再生バリア完全封印",
+    "metrics": {
+      "runId": 7,
+      "gold": 36559,
+      "rp": 20050,
+      "stock": 415,
+      "bestFloor": 101,
+      "era": 1,
+      "trophiesUnlocked": 12,
+      "troMul": "1.47",
+      "ascStat": 0,
+      "nodeCount": 4,
+      "linkCount": 4,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「洞窟素材（魔獣の核・牙）から戦術支援砲台(turret)を建造！ダンジョンの横に置くと『遠征隊前線キャンプ陣形』が成立してHPが2倍になった！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「深層ボスの厄介な自己再生バリアを支援砲台の砲撃が完全封印！推奨攻撃力未満でも戦術で勝てる！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 8,
+    "name": "逆流ハザード精製＆マッドサイエンス型 (Reverse Hazard Refinery & Mad Science)",
+    "concept": "深層からの腐食粘液・深淵瘴気逆流を意図的に吸引、送風機浄化とマッドサイエンス分解で禁忌の深淵遺物・黒ダイヤを高速量産",
+    "metrics": {
+      "runId": 8,
+      "gold": 32025,
+      "rp": 20240,
+      "stock": 95,
+      "bestFloor": 109,
+      "era": 1,
+      "trophiesUnlocked": 12,
+      "troMul": "1.47",
+      "ascStat": 0,
+      "nodeCount": 4,
+      "linkCount": 4,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「深層から逆流してくる腐食粘液(cslud)と深淵瘴気(miasma)を捨てずに、送風機とマッドサイエンス研究施設に配線注入！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「公害ハザードを研究還元して禁忌の深淵遺物(drelic)と爆風結晶(bdia)を自動精錬！毒を薬に変える化学プラントが完成！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 9,
+    "name": "領土侵食・エイリアンテック極限奪還型 (Territorial Incursion & Alien Tech Reclamation)",
+    "concept": "施設耐久0%で意図的に敵性尖塔化させ、奪還作戦（reclaimSpire）により全施設をエイリアンテックLv.1〜5（自己修復/冷気/抽出/半額/特異点）で武装",
+    "metrics": {
+      "runId": 9,
+      "gold": 34025,
+      "rp": 21550,
+      "stock": 65,
+      "bestFloor": 117,
+      "era": 1,
+      "trophiesUnlocked": 12,
+      "troMul": "1.47",
+      "ascStat": 0,
+      "nodeCount": 4,
+      "linkCount": 2,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「耐久0%で壊れた施設が深淵に呑み込まれて『👾敵性侵食尖塔』に変貌！工場が敵に乗っ取られるスリルが走る！」"
+        },
+        {
+          "phase": "中盤",
+          "text": "「施設奪還作戦を実行して解放すると、失われるどころか『🛸エイリアンテックLv.2』が付与されて自己修復＆冷気オーラを放ち始めた！」"
+        },
+        {
+          "phase": "終盤",
+          "text": "「Tech 5特異点コアまで奪還強化すると、配線不要の自家発電＋毎秒昇華ASC経験値が溜まる外星要塞になった！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  },
+  {
+    "id": 10,
+    "name": "ハイブリッド・全方位メガロポリス型 (Hybrid Omniverse Megalopolis)",
+    "concept": "量子グリッド・陣形共鳴・魔神眼スロット＆奉献・エイリアンテック5・福利厚生自動化を全て融合した究極メガロポリス",
+    "metrics": {
+      "runId": 10,
+      "gold": 57744,
+      "rp": 28492,
+      "stock": 520,
+      "bestFloor": 125,
+      "era": 3,
+      "trophiesUnlocked": 12,
+      "troMul": "4.12",
+      "ascStat": 17.999999999999794,
+      "nodeCount": 5,
+      "linkCount": 2,
+      "moments": [
+        {
+          "phase": "初動",
+          "text": "「初期物資パックで初動が超スムーズ！採掘・発電・露店を瞬時に立ち上げて仲間を雇用」"
+        },
+        {
+          "phase": "終盤",
+          "text": "「量子送電＋自動ワープ搬入＋キメラ合体＋魔神眼＋エイリアンテックが全共鳴！無限塔のどんなギミックボスも圧倒的知恵で瞬殺！」"
+        }
+      ],
+      "cavesCleared": 1
+    }
+  }
+]

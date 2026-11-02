@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-11-02T13:58:08.642Z",
+  "tests": [
+    {
+      "name": "Onboarding & Early Mine Placement Fix",
+      "result": {
+        "initialGold": 500,
+        "claimed": true,
+        "postGold": 800,
+        "postStock": 65,
+        "postRp": 50,
+        "postIng": 10,
+        "mineMatReq": null,
+        "cgenMatReq": null,
+        "shopMatReq": null,
+        "placedMineOk": true,
+        "pass": true
+      }
+    },
+    {
+      "name": "Power Stratification & Dungeon Isolation",
+      "result": {
+        "incompCheck": true,
+        "diveIncomp": true,
+        "diveStall": true,
+        "diveWhy": "⚡電力不足 (0/5) 発電施設を増設してください",
+        "linkClassRail": "rail energy incompatible-power",
+        "incompTagDisplay": "",
+        "attackBlocked": true,
+        "heroIncompCheck": false,
+        "diveHeroIncomp": false,
+        "pass": true
+      }
+    },
+    {
+      "name": "Stealth Wiring, Cable Bundling & Focus Mode",
+      "result": {
+        "hasBundleOffset": true,
+        "focusClass1": "rail focus-link",
+        "dimClass": "rail energy dim dim-link",
+        "pass": true
+      }
+    },
+    {
+      "name": "Territorial Incursion & Alien Tech Liberation",
+      "result": {
+        "isOverrun": true,
+        "isStall": true,
+        "spireTech": 2,
+        "spireClass": true,
+        "postOverrun": false,
+        "postHp": 100,
+        "alienTech": 2,
+        "alienClass": true,
+        "autoRepairedHp": 72,
+        "pass": true
+      }
+    },
+    {
+      "name": "5 Destiny Demon Gems & True Boss Awakening",
+      "result": {
+        "rubyFound": true,
+        "rubyInBag": 1,
+        "slottedGem": "gem_ruby",
+        "hasBadge": true,
+        "sacCount": 5,
+        "ascVal": 5,
+        "enemyName": "👁️‍🗨️【真・輪廻の主】Sovereign of Samsara",
+        "isTrueBoss": true,
+        "enemyHpVal": 3998,
+        "defeatedTrueBoss": true,
+        "troTrueBossHas": true,
+        "troSpeedMul": 2.0100000000000002,
+        "pass": true
+      }
+    },
+    {
+      "name": "Progression Flattening, 4th Stat & AFK Safeties",
+      "result": {
+        "expectedDepthBonus": 4.058077477756376,
+        "actualDepthBonus": 4.058077477756376,
+        "depthDiff": 0,
+        "prevStr": 20,
+        "postStr": 20,
+        "hasSkillAtk1": true,
+        "foodStatBonus": 30,
+        "tempBuff": 1.5,
+        "rebootDur": 100,
+        "goldGained": 3811,
+        "pass": true
+      }
+    }
+  ],
+  "overallStatus": "PASS"
+}

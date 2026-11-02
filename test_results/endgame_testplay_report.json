@@ -1,0 +1,600 @@
+{
+  "logs": [
+    {
+      "phase": "Phase 1",
+      "timeSec": 0,
+      "msg": "Starting Phase 1: Early Game Base Setup (Mine, Smelt, Shop, Lab)",
+      "data": {}
+    },
+    {
+      "phase": "Phase 1",
+      "timeSec": 900,
+      "msg": "15 mins passed. Mining & Lab producing RP/Gold",
+      "data": {
+        "gold": 18573,
+        "rp": 6831,
+        "stock": 686,
+        "atk": 172
+      }
+    },
+    {
+      "phase": "Phase 1",
+      "timeSec": 900,
+      "msg": "Cave 1 (Mossy Cave) Cleared!",
+      "data": {
+        "cave": "cave1",
+        "timeSec": 900,
+        "clears": 4,
+        "atk": 172,
+        "gold": 18573,
+        "rp": 6831,
+        "stock": 686,
+        "mcore": 65
+      }
+    },
+    {
+      "phase": "Phase 2",
+      "timeSec": 900,
+      "msg": "Starting Phase 2: Companion Recruitment & Cave 2",
+      "data": {}
+    },
+    {
+      "phase": "Phase 2",
+      "timeSec": 1020,
+      "msg": "Cave 2 (Underground Canal) Cleared!",
+      "data": {
+        "cave": "cave2",
+        "timeSec": 1020,
+        "clears": 1,
+        "atk": 442,
+        "gold": 57688,
+        "rp": 15207,
+        "stock": 2302,
+        "afang": 39
+      }
+    },
+    {
+      "phase": "Phase 3",
+      "timeSec": 1020,
+      "msg": "Starting Phase 3: Era 2 (High Voltage Evolution) & Caves 3, 4",
+      "data": {}
+    },
+    {
+      "phase": "Phase 3",
+      "timeSec": 4740,
+      "msg": "Cave 3 (Ancient Ruins) Cleared!",
+      "data": {
+        "clears": 5,
+        "atk": 1.5569495814299268e+81,
+        "arelic": 133
+      }
+    },
+    {
+      "phase": "Phase 3",
+      "timeSec": 4860,
+      "msg": "Cave 4 (Lava Cave) Cleared!",
+      "data": {
+        "cave": "cave4",
+        "timeSec": 4860,
+        "clears": 4,
+        "atk": 5.151176655518211e+89,
+        "gold": 1459497448356619500,
+        "rp": 384654,
+        "stock": 59811,
+        "fheart": 138
+      }
+    },
+    {
+      "phase": "Phase 4",
+      "timeSec": 4860,
+      "msg": "Starting Phase 4: Era 3 (Supercritical Evolution) & Caves 5, 6",
+      "data": {}
+    },
+    {
+      "phase": "Phase 4",
+      "timeSec": 12180,
+      "msg": "Cave 5 (Crystal Cave) Cleared!",
+      "data": {
+        "clears": 8,
+        "atk": null,
+        "fcryst": 275
+      }
+    },
+    {
+      "phase": "Phase 4",
+      "timeSec": 12300,
+      "msg": "Cave 6 (Starlit Abyss) Cleared! Unlocking Infinite Tower!",
+      "data": {
+        "cave": "cave6",
+        "timeSec": 12300,
+        "clears": 5,
+        "atk": null,
+        "gold": 5.950210291733531e+183,
+        "rp": 15698713,
+        "stock": 2454664,
+        "acore": 213
+      }
+    },
+    {
+      "phase": "Phase 5",
+      "timeSec": 12300,
+      "msg": "Starting Phase 5: Infinite Tower (Floor 165+ End-Game Push)",
+      "data": {}
+    },
+    {
+      "phase": "Phase 5",
+      "timeSec": 15300,
+      "msg": "Infinite Tower Deep Run Completed!",
+      "data": {
+        "startFloor": 1,
+        "endFloor": 5495,
+        "best": 7582,
+        "effFloor": 7582,
+        "atk": null,
+        "enemyHp": null,
+        "dmgDealt": null,
+        "hitsToKill": null,
+        "gold": null,
+        "totalTimeSec": 15300,
+        "samples": [
+          {
+            "caveFloor": 261,
+            "globalFloor": 516,
+            "enemyHp": 7.058489508481977e+22,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 498,
+            "globalFloor": 836,
+            "enemyHp": 1.2427135226528444e+36,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 739,
+            "globalFloor": 1161,
+            "enemyHp": 3.523657599601951e+49,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 976,
+            "globalFloor": 1481,
+            "enemyHp": 6.20373090157861e+62,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 1216,
+            "globalFloor": 1805,
+            "enemyHp": 1.5991269499995128e+76,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 1456,
+            "globalFloor": 2129,
+            "enemyHp": 4.122046946884873e+89,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 1693,
+            "globalFloor": 2449,
+            "enemyHp": 7.257251676506876e+102,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 1933,
+            "globalFloor": 2773,
+            "enemyHp": 1.870691511760802e+116,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 2172,
+            "globalFloor": 3096,
+            "enemyHp": 4.383686437390903e+129,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 2408,
+            "globalFloor": 3414,
+            "enemyHp": 6.378423660186396e+142,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 2648,
+            "globalFloor": 3738,
+            "enemyHp": 1.6441572555835905e+156,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 2886,
+            "globalFloor": 4060,
+            "enemyHp": 3.502579280504357e+169,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 3122,
+            "globalFloor": 4378,
+            "enemyHp": 5.096380608770135e+182,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 3361,
+            "globalFloor": 4701,
+            "enemyHp": 1.1942607540576836e+196,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 3600,
+            "globalFloor": 5024,
+            "enemyHp": 8.955430031912714e+209,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 3839,
+            "globalFloor": 5346,
+            "enemyHp": 5.961850586991572e+222,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 4079,
+            "globalFloor": 5670,
+            "enemyHp": 1.5367778030318283e+236,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 4318,
+            "globalFloor": 5993,
+            "enemyHp": 3.601209483274448e+249,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 4555,
+            "globalFloor": 6313,
+            "enemyHp": 6.340268293085961e+262,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 4791,
+            "globalFloor": 6632,
+            "enemyHp": 1.0147853788621057e+276,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 5032,
+            "globalFloor": 6957,
+            "enemyHp": 2.877377727860536e+289,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 5269,
+            "globalFloor": 7277,
+            "enemyHp": 5.065894350194222e+302,
+            "dmgDealt": null,
+            "hitsToKill": 0,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 5397,
+            "globalFloor": 7450,
+            "enemyHp": null,
+            "dmgDealt": null,
+            "hitsToKill": null,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 5446,
+            "globalFloor": 7516,
+            "enemyHp": null,
+            "dmgDealt": null,
+            "hitsToKill": null,
+            "recAtk": 75000
+          },
+          {
+            "caveFloor": 5495,
+            "globalFloor": 7582,
+            "enemyHp": null,
+            "dmgDealt": null,
+            "hitsToKill": null,
+            "recAtk": 75000
+          }
+        ]
+      }
+    }
+  ],
+  "phaseMetrics": {
+    "Phase 1": {
+      "cave": "cave1",
+      "timeSec": 900,
+      "clears": 4,
+      "atk": 172,
+      "gold": 18573,
+      "rp": 6831,
+      "stock": 686,
+      "mcore": 65
+    },
+    "Phase 2": {
+      "cave": "cave2",
+      "timeSec": 1020,
+      "clears": 1,
+      "atk": 442,
+      "gold": 57688,
+      "rp": 15207,
+      "stock": 2302,
+      "afang": 39
+    },
+    "Phase 3": {
+      "cave": "cave4",
+      "timeSec": 4860,
+      "clears": 4,
+      "atk": 5.151176655518211e+89,
+      "gold": 1459497448356619500,
+      "rp": 384654,
+      "stock": 59811,
+      "fheart": 138
+    },
+    "Phase 4": {
+      "cave": "cave6",
+      "timeSec": 12300,
+      "clears": 5,
+      "atk": null,
+      "gold": 5.950210291733531e+183,
+      "rp": 15698713,
+      "stock": 2454664,
+      "acore": 213
+    },
+    "Phase 5": {
+      "startFloor": 1,
+      "endFloor": 5495,
+      "best": 7582,
+      "effFloor": 7582,
+      "atk": null,
+      "enemyHp": null,
+      "dmgDealt": null,
+      "hitsToKill": null,
+      "gold": null,
+      "totalTimeSec": 15300,
+      "samples": [
+        {
+          "caveFloor": 261,
+          "globalFloor": 516,
+          "enemyHp": 7.058489508481977e+22,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 498,
+          "globalFloor": 836,
+          "enemyHp": 1.2427135226528444e+36,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 739,
+          "globalFloor": 1161,
+          "enemyHp": 3.523657599601951e+49,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 976,
+          "globalFloor": 1481,
+          "enemyHp": 6.20373090157861e+62,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 1216,
+          "globalFloor": 1805,
+          "enemyHp": 1.5991269499995128e+76,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 1456,
+          "globalFloor": 2129,
+          "enemyHp": 4.122046946884873e+89,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 1693,
+          "globalFloor": 2449,
+          "enemyHp": 7.257251676506876e+102,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 1933,
+          "globalFloor": 2773,
+          "enemyHp": 1.870691511760802e+116,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 2172,
+          "globalFloor": 3096,
+          "enemyHp": 4.383686437390903e+129,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 2408,
+          "globalFloor": 3414,
+          "enemyHp": 6.378423660186396e+142,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 2648,
+          "globalFloor": 3738,
+          "enemyHp": 1.6441572555835905e+156,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 2886,
+          "globalFloor": 4060,
+          "enemyHp": 3.502579280504357e+169,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 3122,
+          "globalFloor": 4378,
+          "enemyHp": 5.096380608770135e+182,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 3361,
+          "globalFloor": 4701,
+          "enemyHp": 1.1942607540576836e+196,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 3600,
+          "globalFloor": 5024,
+          "enemyHp": 8.955430031912714e+209,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 3839,
+          "globalFloor": 5346,
+          "enemyHp": 5.961850586991572e+222,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 4079,
+          "globalFloor": 5670,
+          "enemyHp": 1.5367778030318283e+236,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 4318,
+          "globalFloor": 5993,
+          "enemyHp": 3.601209483274448e+249,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 4555,
+          "globalFloor": 6313,
+          "enemyHp": 6.340268293085961e+262,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 4791,
+          "globalFloor": 6632,
+          "enemyHp": 1.0147853788621057e+276,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 5032,
+          "globalFloor": 6957,
+          "enemyHp": 2.877377727860536e+289,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 5269,
+          "globalFloor": 7277,
+          "enemyHp": 5.065894350194222e+302,
+          "dmgDealt": null,
+          "hitsToKill": 0,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 5397,
+          "globalFloor": 7450,
+          "enemyHp": null,
+          "dmgDealt": null,
+          "hitsToKill": null,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 5446,
+          "globalFloor": 7516,
+          "enemyHp": null,
+          "dmgDealt": null,
+          "hitsToKill": null,
+          "recAtk": 75000
+        },
+        {
+          "caveFloor": 5495,
+          "globalFloor": 7582,
+          "enemyHp": null,
+          "dmgDealt": null,
+          "hitsToKill": null,
+          "recAtk": 75000
+        }
+      ]
+    }
+  }
+}

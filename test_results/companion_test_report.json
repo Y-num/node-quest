@@ -1,0 +1,204 @@
+{
+  "timestamp": "2026-11-01T13:06:23.213Z",
+  "total": 27,
+  "passed": 27,
+  "failed": 0,
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "Initial Gold is at least 500G",
+      "pass": true,
+      "expected": ">=500",
+      "actual": 500,
+      "metric": ""
+    },
+    {
+      "name": "Standard Scout #1 Cost Formula (250G)",
+      "pass": true,
+      "expected": 250,
+      "actual": 250,
+      "metric": "G deducted"
+    },
+    {
+      "name": "Standard Scout #2 Cost Formula (280G)",
+      "pass": true,
+      "expected": 280,
+      "actual": 280,
+      "metric": "G deducted"
+    },
+    {
+      "name": "Standard Scout #3 Cost Formula (313G)",
+      "pass": true,
+      "expected": 313,
+      "actual": 313,
+      "metric": "G deducted"
+    },
+    {
+      "name": "Standard Scout #4 Cost Formula (351G)",
+      "pass": true,
+      "expected": 351,
+      "actual": 351,
+      "metric": "G deducted"
+    },
+    {
+      "name": "Standard Scout #5 Cost Formula (393G)",
+      "pass": true,
+      "expected": 393,
+      "actual": 393,
+      "metric": "G deducted"
+    },
+    {
+      "name": "5 Unique Companions Recruited to Roster",
+      "pass": true,
+      "expected": "5 unique",
+      "actual": "5 (unique 5)",
+      "metric": ""
+    },
+    {
+      "name": "Companions have complete schema (Role, Stats, Traits, FavItem)",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Specialized Scout consumes 2x mcore",
+      "pass": true,
+      "expected": 2,
+      "actual": 2,
+      "metric": "mcore consumed"
+    },
+    {
+      "name": "Specialized Warrior has warrior role",
+      "pass": true,
+      "expected": "warrior",
+      "actual": "warrior",
+      "metric": ""
+    },
+    {
+      "name": "Specialized Warrior has elevated STR (>=10)",
+      "pass": true,
+      "expected": ">=10",
+      "actual": 12,
+      "metric": ""
+    },
+    {
+      "name": "Companions consume real-time Gold wages on pulses",
+      "pass": true,
+      "expected": ">0",
+      "actual": 399,
+      "metric": "G paid"
+    },
+    {
+      "name": "Companions active without strike while funded",
+      "pass": true,
+      "expected": "false, false",
+      "actual": "false, false",
+      "metric": ""
+    },
+    {
+      "name": "Insufficient Gold triggers isStrike on nodes & companions",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Strike indicator class & badge active on DOM",
+      "pass": true,
+      "expected": true,
+      "actual": "true, badge:true",
+      "metric": ""
+    },
+    {
+      "name": "Deposit Gold immediately clears isStrike and resumes work",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "feedRosterAll() clears strike via meal distribution",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Conveyor feeding favorite item boosts Affection",
+      "pass": true,
+      "expected": ">=40",
+      "actual": 63,
+      "metric": ""
+    },
+    {
+      "name": "Conveyor feeding permanently boosts stats (+2)",
+      "pass": true,
+      "expected": 2,
+      "actual": 2,
+      "metric": ""
+    },
+    {
+      "name": "Affection 1000 reaches exactly -80% wage discount ratio",
+      "pass": true,
+      "expected": 0.8,
+      "actual": 0.8,
+      "metric": ""
+    },
+    {
+      "name": "Affection 1000 wage payOf(n) reduced by ~80%",
+      "pass": true,
+      "expected": "<= 4",
+      "actual": 2,
+      "metric": ""
+    },
+    {
+      "name": "Affection 1000 grants +50% work speed multiplier",
+      "pass": true,
+      "expected": 1.5,
+      "actual": 1.5,
+      "metric": ""
+    },
+    {
+      "name": "Affection 1000 grants +2 stamina pulse output",
+      "pass": true,
+      "expected": 2,
+      "actual": 2,
+      "metric": ""
+    },
+    {
+      "name": "Affection 1000 extends human range by +100px",
+      "pass": true,
+      "expected": 100,
+      "actual": 100,
+      "metric": ""
+    },
+    {
+      "name": "Fiery trait triggers Thermal Quench on Smelter with CRYO",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Polluter trait increments local node pollution",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": "+0.0450"
+    },
+    {
+      "name": "Warrior companion outputs KINETIC tag to linked Cave node",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    }
+  ],
+  "screenshots": [
+    "test_01_roster_scout.png",
+    "test_02_strike_state.png",
+    "test_03_affection_feeding.png",
+    "test_04_discount_inspector.png"
+  ]
+}

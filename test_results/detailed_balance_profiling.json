@@ -1,0 +1,415 @@
+{
+  "profiles": [
+    {
+      "id": "cave1",
+      "name": "苔むした洞窟",
+      "icon": "🕳️",
+      "era": 1,
+      "recAtk": 15,
+      "actualAtk": 26,
+      "gear": [
+        "eqp1"
+      ],
+      "f1": {
+        "name": "スライム",
+        "hp": 42,
+        "arm": 4,
+        "dmg": 20,
+        "hits": 3,
+        "gold": 14
+      },
+      "mid": {
+        "floor": 5,
+        "name": "★ 洞窟トロル",
+        "hp": 175,
+        "arm": 9,
+        "dmg": 15,
+        "hits": 12
+      },
+      "boss": {
+        "floor": 10,
+        "name": "👑洞窟主 洞窟トロル",
+        "hp": 533,
+        "arm": 16,
+        "dmg": 11,
+        "hits": 49,
+        "gold": 268
+      },
+      "reward": {
+        "gold10x": 6000,
+        "rp10x": 1500,
+        "mat10x": 350,
+        "item": "mcore",
+        "qty10x": 20
+      }
+    },
+    {
+      "id": "cave2",
+      "name": "地下水路",
+      "icon": "💧",
+      "era": 1,
+      "recAtk": 55,
+      "actualAtk": 48,
+      "gear": [
+        "eqp1",
+        "eqp1"
+      ],
+      "f1": {
+        "name": "スライム",
+        "hp": 42,
+        "arm": 4,
+        "dmg": 36,
+        "hits": 2,
+        "gold": 14
+      },
+      "mid": {
+        "floor": 7,
+        "name": "大ネズミ",
+        "hp": 66,
+        "arm": 11,
+        "dmg": 26,
+        "hits": 3
+      },
+      "boss": {
+        "floor": 15,
+        "name": "★ 洞窟トロル",
+        "hp": 549,
+        "arm": 23,
+        "dmg": 17,
+        "hits": 33,
+        "gold": 559
+      },
+      "reward": {
+        "gold10x": 32000,
+        "rp10x": 8000,
+        "mat10x": 1600,
+        "item": "afang",
+        "qty10x": 20
+      }
+    },
+    {
+      "id": "cave3",
+      "name": "古代遺跡",
+      "icon": "🏛️",
+      "era": 2,
+      "recAtk": 240,
+      "actualAtk": 111,
+      "gear": [
+        "eqp2",
+        "eqp2"
+      ],
+      "f1": {
+        "name": "スライム",
+        "hp": 42,
+        "arm": 4,
+        "dmg": 84,
+        "hits": 1,
+        "gold": 14
+      },
+      "mid": {
+        "floor": 10,
+        "name": "👑洞窟主 洞窟トロル",
+        "hp": 533,
+        "arm": 16,
+        "dmg": 49,
+        "hits": 11
+      },
+      "boss": {
+        "floor": 20,
+        "name": "★ 洞窟トロル",
+        "hp": 885,
+        "arm": 29,
+        "dmg": 33,
+        "hits": 27,
+        "gold": 1029
+      },
+      "reward": {
+        "gold10x": 160000,
+        "rp10x": 40000,
+        "mat10x": 6500,
+        "item": "arelic",
+        "qty10x": 20
+      }
+    },
+    {
+      "id": "cave4",
+      "name": "灼熱の溶岩窟",
+      "icon": "🌋",
+      "era": 2,
+      "recAtk": 1100,
+      "actualAtk": 147,
+      "gear": [
+        "eqp2",
+        "eqp2",
+        "qstl"
+      ],
+      "f1": {
+        "name": "スライム",
+        "hp": 42,
+        "arm": 4,
+        "dmg": 167,
+        "hits": 1,
+        "gold": 14
+      },
+      "mid": {
+        "floor": 12,
+        "name": "ゴブリン",
+        "hp": 117,
+        "arm": 18,
+        "dmg": 90,
+        "hits": 2
+      },
+      "boss": {
+        "floor": 25,
+        "name": "★ 洞窟トロル",
+        "hp": 1569,
+        "arm": 37,
+        "dmg": 56,
+        "hits": 29,
+        "gold": 2144
+      },
+      "reward": {
+        "gold10x": 800000,
+        "rp10x": 200000,
+        "mat10x": 32000,
+        "item": "fheart",
+        "qty10x": 20
+      }
+    },
+    {
+      "id": "cave5",
+      "name": "凍てつく水晶洞",
+      "icon": "❄️",
+      "era": 3,
+      "recAtk": 5000,
+      "actualAtk": 138,
+      "gear": [
+        "eqp3",
+        "eqp3",
+        "bdia"
+      ],
+      "f1": {
+        "name": "スライム",
+        "hp": 42,
+        "arm": 4,
+        "dmg": 290,
+        "hits": 1,
+        "gold": 14
+      },
+      "mid": {
+        "floor": 15,
+        "name": "★ 洞窟トロル",
+        "hp": 549,
+        "arm": 23,
+        "dmg": 238,
+        "hits": 3
+      },
+      "boss": {
+        "floor": 30,
+        "name": "★ 洞窟トロル",
+        "hp": 2779,
+        "arm": 44,
+        "dmg": 199,
+        "hits": 14,
+        "gold": 4464
+      },
+      "reward": {
+        "gold10x": 4000000,
+        "rp10x": 1000000,
+        "mat10x": 160000,
+        "item": "fcryst",
+        "qty10x": 20
+      }
+    },
+    {
+      "id": "cave6",
+      "name": "星詠みの深淵",
+      "icon": "🌌",
+      "era": 3,
+      "recAtk": 22000,
+      "actualAtk": 183,
+      "gear": [
+        "eqp4",
+        "eqp4",
+        "acore"
+      ],
+      "f1": {
+        "name": "スライム",
+        "hp": 42,
+        "arm": 4,
+        "dmg": 555,
+        "hits": 1,
+        "gold": 14
+      },
+      "mid": {
+        "floor": 20,
+        "name": "★ 洞窟トロル",
+        "hp": 885,
+        "arm": 29,
+        "dmg": 220,
+        "hits": 5
+      },
+      "boss": {
+        "floor": 40,
+        "name": "★ 洞窟トロル",
+        "hp": 8723,
+        "arm": 59,
+        "dmg": 128,
+        "hits": 69,
+        "gold": 19351
+      },
+      "reward": {
+        "gold10x": 22000000,
+        "rp10x": 5500000,
+        "mat10x": 850000,
+        "item": "acore",
+        "qty10x": 20
+      }
+    },
+    {
+      "id": "tower",
+      "name": "無限塔（極点）",
+      "icon": "🗼",
+      "era": 3,
+      "recAtk": 75000,
+      "actualAtk": 217,
+      "gear": [
+        "eqp5",
+        "eqp5",
+        "acore"
+      ],
+      "f1": {
+        "name": "スライム",
+        "hp": 42,
+        "arm": 4,
+        "dmg": 1139,
+        "hits": 1,
+        "gold": 14
+      },
+      "mid": {
+        "floor": 20,
+        "name": "★ 洞窟トロル",
+        "hp": 885,
+        "arm": 29,
+        "dmg": 885,
+        "hits": 1
+      },
+      "boss": {
+        "floor": 50,
+        "name": "★ 洞窟トロル",
+        "hp": 27378,
+        "arm": 75,
+        "dmg": 628,
+        "hits": 44,
+        "gold": 83877
+      },
+      "reward": null
+    }
+  ],
+  "towerCurve": [
+    {
+      "towerFloor": 1,
+      "effFloor": 1,
+      "name": "スライム",
+      "hp": 42,
+      "arm": 4,
+      "atk": 240,
+      "dmg": 1260,
+      "hitsToKill": 1,
+      "gold": 14
+    },
+    {
+      "towerFloor": 10,
+      "effFloor": 12,
+      "name": "👑洞窟主 洞窟トロル",
+      "hp": 533,
+      "arm": 16,
+      "atk": 240,
+      "dmg": 1107,
+      "hitsToKill": 1,
+      "gold": 268
+    },
+    {
+      "towerFloor": 25,
+      "effFloor": 29,
+      "name": "★ 洞窟トロル",
+      "hp": 1569,
+      "arm": 37,
+      "atk": 240,
+      "dmg": 914,
+      "hitsToKill": 2,
+      "gold": 2144
+    },
+    {
+      "towerFloor": 50,
+      "effFloor": 59,
+      "name": "★ 洞窟トロル",
+      "hp": 27378,
+      "arm": 75,
+      "atk": 240,
+      "dmg": 695,
+      "hitsToKill": 40,
+      "gold": 83877
+    },
+    {
+      "towerFloor": 75,
+      "effFloor": 88,
+      "name": "★ 洞窟トロル",
+      "hp": 434302,
+      "arm": 113,
+      "atk": 240,
+      "dmg": 560,
+      "hitsToKill": 776,
+      "gold": 2903505
+    },
+    {
+      "towerFloor": 100,
+      "effFloor": 118,
+      "name": "★ 洞窟トロル",
+      "hp": 7578322,
+      "arm": 152,
+      "atk": 240,
+      "dmg": 467,
+      "hitsToKill": 16228,
+      "gold": 113573217
+    },
+    {
+      "towerFloor": 150,
+      "effFloor": 177,
+      "name": "★ 洞窟トロル",
+      "hp": 2097690846,
+      "arm": 232,
+      "atk": 240,
+      "dmg": 349,
+      "hitsToKill": 6010576,
+      "gold": 153781500126
+    },
+    {
+      "towerFloor": 200,
+      "effFloor": 236,
+      "name": "★ 洞窟トロル",
+      "hp": 580643953026,
+      "arm": 313,
+      "atk": 240,
+      "dmg": 278,
+      "hitsToKill": 2088647314,
+      "gold": 208224706506641
+    }
+  ],
+  "eraRequirements": {
+    "era2": {
+      "rp": 18000,
+      "mat": 800,
+      "goldEst": 6000
+    },
+    "era3": {
+      "rp": 650000,
+      "mat": 25000,
+      "goldEst": 65000
+    }
+  },
+  "offlineStats": {
+    "offRate": 0.466,
+    "offCapH": 13.2
+  }
+}

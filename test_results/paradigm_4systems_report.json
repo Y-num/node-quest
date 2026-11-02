@@ -1,0 +1,66 @@
+{
+  "tests": [
+    {
+      "id": "System A: Cave Backflow Pipeline",
+      "pass": true,
+      "metrics": {
+        "diveOutsHasSta": true,
+        "diveOutsHasWaste": true,
+        "cave2Quench": true,
+        "cave2Backflow": true,
+        "cave4HeatTag": true,
+        "cave4GeothermalSta": true,
+        "smeltSpdMul": 2.2,
+        "rpRatio": 2.5,
+        "outStaAfterDive": 1,
+        "outWasteAfterDive": 1
+      }
+    },
+    {
+      "id": "System B: Era 2/3 Wireless & Quantum Warp",
+      "pass": true,
+      "metrics": {
+        "era1Wireless": false,
+        "era2NearWireless": true,
+        "era2FarWireless": false,
+        "era3QuantumActive": true,
+        "era3FarSta": 5,
+        "era3WarpedIng1": 2,
+        "era3InfiniteHumanRange": true
+      }
+    },
+    {
+      "id": "System C: 4 Geometric Formation Resonances",
+      "pass": true,
+      "metrics": {
+        "formTriangle": true,
+        "formThermal": true,
+        "thermalAutoQuench": true,
+        "formCamp": true,
+        "hpRatio": 2,
+        "campWage": 10,
+        "campWageDiscounted": true,
+        "formLine": true,
+        "lineBonusOut": 2
+      }
+    },
+    {
+      "id": "System D: Tower Puzzle Gimmick Bosses & Soft-Cap",
+      "pass": true,
+      "metrics": {
+        "g5": "mirror",
+        "g10": "trash",
+        "g15": "thunder",
+        "g20": "greed",
+        "backflowTrashReady": true,
+        "f10BossHasGimmick": true,
+        "dmgDealt": 6933954271,
+        "finite10000": true,
+        "hpFloor100": 46671015353264,
+        "hpFloor1000": 5.322072270153776e+34,
+        "hpFloor10000": 1.338070624794542e+118
+      }
+    }
+  ],
+  "jsErrors": 0
+}

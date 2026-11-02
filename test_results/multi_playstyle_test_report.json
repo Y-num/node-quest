@@ -1,0 +1,48 @@
+{
+  "run1_geometric": {
+    "buildName": "幾何学・陣形共鳴特化ビルド (Geometric Formation)",
+    "formations": {
+      "triActive": true,
+      "campActive": false,
+      "lineActive": false,
+      "thermalActive": false
+    },
+    "finalStats": {
+      "atk": 1996527361,
+      "hp": 3445,
+      "rp": 39930,
+      "gold": 209500367358
+    },
+    "maxTowerFloor": 25,
+    "gimmickEncounters": 5,
+    "playTimeSec": 7200
+  },
+  "run2_backflow": {
+    "buildName": "ダンジョン逆流・化学パイプライン特化ビルド (Cave Backflow Pipeline)",
+    "backflowMetrics": {
+      "backflowQuench": true,
+      "backflowActive": true,
+      "geoHeatActive": true,
+      "geoStaActive": true
+    },
+    "finalStats": {
+      "atk": 172,
+      "hp": 2570,
+      "rp": 1097,
+      "gold": 500
+    },
+    "maxTowerFloor": 25,
+    "gimmickEncounters": 5,
+    "playTimeSec": 4800
+  },
+  "run3_companions": {
+    "buildName": "仲間親愛度自動化＆大軍団ビルド (Companion Affection Swarm)",
+    "companionCount": 6,
+    "deployedCount": 6,
+    "wagesDiscounted": true,
+    "totalPartyAtk": 8.493862812602876e+91,
+    "maxTowerFloor": 26,
+    "gimmickEncounters": 5,
+    "playTimeSec": 4800
+  }
+}
