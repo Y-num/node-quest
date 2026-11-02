@@ -39,10 +39,22 @@ button{font:inherit;color:inherit;cursor:pointer}
 .tbtn:hover{border-color:var(--acc);color:var(--fg)}
 .tbtn.danger{border-color:var(--bad);color:var(--bad);background:rgba(224,87,107,.14)}
 
-#mid{flex:1;display:flex;min-height:0;position:relative}
-#shop{width:210px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:8px}
-#side{width:245px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:8px}
-.sec{font-size:10px;letter-spacing:.14em;color:var(--dim);margin:2px 0 8px;font-weight:700}
+#mid{flex:1;display:flex;min-height:0;position:relative;overflow:hidden}
+#leftRail{width:46px;flex:none;background:#0a0e17;border-right:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;padding:6px 4px;gap:6px;z-index:45;user-select:none}
+#leftRail .lr-btn{width:38px;height:44px;border-radius:9px;border:1px solid var(--line);background:#101726;
+  color:var(--dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  padding:2px;font-size:9px;font-weight:700;cursor:pointer;transition:all .15s}
+#leftRail .lr-btn i{font-style:normal;font-size:15px;line-height:1.1}
+#leftRail .lr-btn:hover{border-color:var(--acc);color:var(--fg)}
+#leftRail .lr-btn.on{border-color:var(--acc);color:var(--acc);background:rgba(94,224,192,.15);box-shadow:0 0 10px rgba(94,224,192,.2)}
+#leftRail .lr-sp{flex:1}
+#shop{position:absolute;left:46px;top:0;bottom:0;width:205px;background:rgba(15,20,32,.97);
+  border-right:1px solid var(--line);box-shadow:6px 0 22px rgba(0,0,0,.6);overflow-y:auto;padding:8px;
+  z-index:36;display:none;backdrop-filter:blur(8px)}
+#shop.on{display:block}
+#side{width:240px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:8px;z-index:30}
+.sec{font-size:10px;letter-spacing:.12em;color:var(--dim);margin:2px 0 6px;font-weight:700}
 
 .card{width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);
   border-radius:8px;padding:6px 8px;margin-bottom:5px;transition:.12s;position:relative}
@@ -221,22 +233,20 @@ circle.wph.dim{opacity:.12}
 .nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
   background:#0b1119;border:1px solid var(--line);padding:0 5px;border-radius:4px}
 /* 素材ごとに1行＝1ポート。左が入力、右が出力 */
-.rowio{display:flex;align-items:center;height:20px;gap:4px}
+.rowio{display:flex;align-items:center;height:22px;gap:4px}
 .slot{flex:1;min-width:0;display:flex;align-items:center;gap:3px;font-size:9.5px;
-  border-radius:4px;padding:0 4px;height:16px;white-space:nowrap;overflow:hidden}
+  border-radius:4px;padding:0 4px;height:17px;white-space:nowrap;overflow:hidden}
 .slot.i{justify-content:flex-start;background:rgba(122,162,255,.09);color:var(--acc2)}
 .slot.o{justify-content:flex-end;  background:rgba(94,224,192,.09);color:var(--acc)}
 .slot.e{background:none}
-.slot .q{color:var(--dim)}
+.slot .q{color:var(--dim);font-size:8.5px}
 .slot b{color:var(--fg);font-weight:700}
-body:not([data-lens="logistics"]) .slot b,
-body:not([data-lens="logistics"]) .slot .q{display:none !important}
 .slot.full{background:rgba(224,138,75,.18);color:var(--warn)}
 .slot.full b{color:var(--warn)}
 .bar{height:5px;background:#0b1119;border-radius:3px;overflow:hidden;margin-top:5px}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc))}
-.nf{display:none !important}
-.node.stall .nf{display:none !important}
+.nf{font-size:9.5px;color:var(--dim);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:14px;line-height:14px}
+.node.stall .nf{color:var(--warn)}
 .node .aura{position:absolute;border-radius:50%;pointer-events:none;z-index:-1}
 /* 人（主人公・仲間）の行動範囲。この円の中にある施設だけが人の⚡で起動する（発電機は距離制限なし） */
 .node .hrange{position:absolute;border-radius:50%;pointer-events:none;z-index:-1;
@@ -328,46 +338,36 @@ body.lasso #stage{cursor:crosshair}
 .pout{right:-8px;border-radius:50%;background:#10241f;border:2px solid var(--acc);color:var(--acc);cursor:crosshair}
 .pout:hover{background:var(--acc);color:#08131a}
 
-#insp{position:absolute;left:0;top:0;bottom:0;width:210px;padding:8px 8px 24px;
-  background:var(--panel);border-right:1px solid var(--line);
-  box-shadow:4px 0 16px rgba(0,0,0,.6);z-index:35;display:none;flex-direction:column;gap:5px;
-  overflow-y:auto;box-sizing:border-box}
+#insp{position:absolute;left:46px;top:0;bottom:0;width:210px;padding:8px 8px 20px;
+  background:rgba(15,20,32,.97);border-right:1px solid var(--line);
+  box-shadow:6px 0 22px rgba(0,0,0,.65);z-index:38;display:none;flex-direction:column;gap:4px;
+  overflow-y:auto;box-sizing:border-box;backdrop-filter:blur(8px)}
 #insp.on{display:flex}
 #insp .more[hidden]{display:none}
-#insp .mtog{width:100%;margin-top:7px;background:#0c111b;border:1px solid var(--line);
+#insp .mtog{width:100%;margin-top:6px;background:#0c111b;border:1px solid var(--line);
   border-radius:7px;padding:5px;font-size:10.5px;color:var(--dim)}
 #insp .mtog:hover{border-color:var(--acc2);color:var(--acc2)}
 @media (max-width:860px), (max-height:520px){
-  /* 縦画面では下から出る小さなシートにして、盤面を隠しすぎないようにする */
-  #insp{left:6px;right:6px;bottom:6px;width:auto;max-height:44vh;overflow-y:auto;
-    padding:9px 10px;border-radius:12px;-webkit-overflow-scrolling:touch}
-  #insp .kv{margin-top:4px;font-size:10.5px}
-  #insp .t{font-size:12.5px}
-  #insp .btns{margin-top:7px;position:sticky;bottom:-9px;
-    background:linear-gradient(180deg,transparent,rgba(17,22,35,.97) 40%);padding-top:5px}
+  #insp{left:46px;top:0;bottom:0;right:auto;width:min(215px,calc(100vw - 52px));max-height:none;
+    padding:8px;border-radius:0;-webkit-overflow-scrolling:touch}
+  #insp .kv{margin-top:3px;font-size:10.5px}
+  #insp .t{font-size:12px}
+  #insp .btns{margin-top:7px}
 }
 #insp .t{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px}
 #insp .t .lv{margin-left:auto;font-size:10px;color:var(--acc)}
-#insp .kv{display:flex;font-size:11px;color:var(--dim);margin-top:5px;gap:8px}
+#insp .kv{display:flex;font-size:11px;color:var(--dim);margin-top:4px;gap:6px;align-items:center}
 #insp .kv b{margin-left:auto;color:var(--fg);font-weight:600;text-align:right}
-#insp .btns{display:flex;gap:6px;margin-top:9px}
-#insp button{flex:1;border-radius:7px;padding:6px;font-size:11px;font-weight:600;
+#insp .btns{display:flex;gap:5px;margin-top:8px}
+#insp button{flex:none;border-radius:7px;padding:5px 7px;font-size:11px;font-weight:600;
   background:#0c111b;border:1px solid var(--line)}
+#insp .btns button{flex:1}
 #insp .up:hover:not(:disabled),
 #insp .up10:hover:not(:disabled){border-color:var(--acc);color:var(--acc)}
-#insp .up10{flex:0 0 auto;padding-left:9px;padding-right:9px}
+#insp .up10{flex:0 0 auto;padding-left:8px;padding-right:8px}
 #insp .del:hover{border-color:var(--bad);color:var(--bad)}
 #insp button:disabled{opacity:.4;cursor:not-allowed}
-#hint{position:absolute;right:12px;top:12px;font-size:10.5px;color:var(--dim);
-  background:rgba(12,17,27,.92);border:1px solid var(--line);border-radius:8px;
-  padding:6px 10px;line-height:1.8;pointer-events:auto;cursor:help;max-width:340px}
-#hint b{color:var(--fg)}
-#hint .ttl{font-weight:700;color:var(--acc);line-height:1.4}
-#hint #tRestart{margin-top:6px;background:#0c111b;border:1px solid var(--line);
-  border-radius:6px;padding:4px 9px;font-size:10px;font-weight:700;color:var(--dim)}
-#hint #tRestart:hover{border-color:var(--acc);color:var(--acc)}
-#hint .body{display:none}
-#hint:hover .body{display:block;margin-top:4px}
+#hint{display:none !important}
 .slot.short b{color:var(--dim)}
 
 .box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:9px}
@@ -880,80 +880,42 @@ body.linking .node.tgt,body.linking .node.src{opacity:1}
 
 /* ---------- 指で触る端末：当たり判定を広げる ---------- */
 @media (pointer:coarse){
-  .port{width:24px;height:24px;margin-top:-12px;font-size:9px}
-  .pin{left:-12px}
-  .pout{right:-12px}
+  .port{width:20px;height:20px;margin-top:-10px;font-size:8.5px}
+  .pin{left:-10px}
+  .pout{right:-10px}
   path.hit{stroke-width:34}
   circle.wph{r:10}
 }
 
 /* ---------- 縦画面・スマホ ---------- */
-#mtabs{display:none;position:absolute;left:0;right:0;bottom:0;z-index:20;
-  height:calc(48px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
-  background:var(--panel);border-top:1px solid var(--line)}
-#mtabs button{flex:1;background:none;border:none;color:var(--dim);font-size:11.5px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;gap:5px}
-#mtabs button i{font-style:normal;font-size:14px;line-height:1}
-#mtabs button.on{color:var(--acc);box-shadow:inset 0 2px 0 var(--acc)}
+#mtabs{display:none !important}
 
 @media (max-width:860px), (max-height:520px){
-  #top{height:46px;gap:4px;padding:0 6px;overflow-x:auto;overflow-y:hidden}
-  .stat .k em{display:none}          /* 狭い画面では絵文字だけにして横幅を稼ぐ */
+  #top{height:42px;gap:4px;padding:0 6px;overflow-x:auto;overflow-y:hidden}
+  .stat .k em{display:none}
   #top::-webkit-scrollbar{display:none}
   #top .logo{display:none}
-  #top .sp{margin-left:4px}
+  #top .sp{margin-left:auto}
   .stat,.tbtn{flex:none}
-  .stat{padding:3px 6px;gap:4px}
-  .stat .v{font-size:13px}
-  .stat.best .v{font-size:17px}
+  .stat{padding:2px 5px;gap:3px}
+  .stat .v{font-size:12.5px}
+  .stat.best .v{font-size:16px}
 
-  #mid{position:relative;display:block}
-  #mtabs{display:flex}
-  #stage,#shop,#side{position:absolute;left:0;right:0;top:0;
-    bottom:calc(48px + env(safe-area-inset-bottom))}
-  #shop,#side{width:auto;border:none;border-top:1px solid var(--line);display:none;z-index:10}
-  #shop.on,#side.on{display:block}
-
-  #insp{left:8px;right:8px;width:auto;bottom:8px}
-  #hint{max-width:58vw;font-size:10px}
+  #mid{position:relative;display:flex}
+  #stage{flex:1;height:100%}
+  #shop{position:absolute;left:46px;top:0;bottom:0;width:min(205px,calc(100vw - 52px));z-index:36;display:none}
+  #shop.on{display:block}
+  #side{position:absolute;left:46px;top:0;bottom:0;width:min(255px,calc(100vw - 52px));border-left:none;border-right:1px solid var(--line);box-shadow:6px 0 22px rgba(0,0,0,.65);display:none;z-index:37}
+  #side.on{display:block}
+  #insp{left:46px;top:0;bottom:0;right:auto;width:min(215px,calc(100vw - 52px))}
 }
-#offscr{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:none;
+#offscr{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:none;
   background:rgba(12,17,27,.95);border:1px solid var(--acc2);color:var(--acc2);
-  padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700}
+  padding:5px 11px;border-radius:8px;font-size:10.5px;font-weight:700;z-index:25}
 #offscr.on{display:block}
 #offscr:hover{background:var(--acc2);color:#08131a}
 @media (max-width:860px), (max-height:520px){
-  #offscr{top:10px;bottom:auto;font-size:10.5px;max-width:88vw}
-}
-
-/* ---------- 横向き：高さが足りないのでタブを左端の縦レールに ---------- */
-@media (orientation:landscape) and (max-height:520px){
-  #top{height:38px;gap:4px}
-  #top .stat{padding:1px 7px}
-  #top .stat .k{font-size:9px}
-  #top .stat .v{font-size:12px}
-  #top .stat.best .v{font-size:15px}
-  #top .tbtn{padding:3px 8px;font-size:10px}
-
-  #mtabs{flex-direction:column;width:calc(54px + env(safe-area-inset-left));
-    height:auto;top:0;bottom:0;right:auto;padding:0 0 0 env(safe-area-inset-left);
-    border-top:0;border-right:1px solid var(--line)}
-  #mtabs button{flex:none;height:62px;flex-direction:column;gap:2px;font-size:9.5px}
-  #mtabs button i{font-size:17px}
-  #mtabs button.on{box-shadow:inset 2px 0 0 var(--acc)}
-
-  #stage{left:calc(54px + env(safe-area-inset-left));bottom:0}
-  #shop,#side{left:calc(54px + env(safe-area-inset-left));bottom:0;right:auto;
-    width:min(340px,52vw);border-top:0;border-right:1px solid var(--line)}
-
-  /* 下に置くと画面がほぼ埋まるので、インスペクタは右の縦パネルにする */
-  #insp{left:auto;right:8px;top:8px;bottom:8px;width:238px;overflow-y:auto;padding:9px}
-  #insp .kv{margin-top:4px}
-  #insp .btns{margin-top:7px}
-
-  #tut{left:12px;right:auto;transform:none;top:8px;width:min(430px,calc(100% - 270px))}
-  #hint{display:none}
-  #offscr{top:8px;left:auto;right:262px;transform:none}
+  #offscr{top:10px;bottom:auto;font-size:10px;max-width:82vw}
 }
 /* ── Smart Context UI & Data Lens (X-Ray Overlay) & Assimilation Merge & Bestiary ── */
 .status-led{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 7px;margin-right:2px;box-shadow:0 0 5px currentColor;transition:background .2s,color .2s}
@@ -982,19 +944,34 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 .node.chimera .assim-badge{background:linear-gradient(90deg,#78350f,#065f46);border-color:#fbbf24;color:#fef3c7}
 /* Exhausted Human / Stopped Dive Node */
 .node.lp-exhaust{border-color:#ef4444 !important;box-shadow:0 0 0 2px rgba(239,68,68,.7),0 0 20px rgba(239,68,68,.4) !important}
-/* Lens Bar */
-#lensBar{position:absolute;bottom:12px;right:12px;z-index:28;display:flex;gap:4px;background:rgba(12,16,25,.92);border:1px solid #2b3550;border-radius:9px;padding:4px 6px;backdrop-filter:blur(6px);align-items:center}
-#lensBar .lbtn{background:#0b101a;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:10.5px;font-weight:700;color:var(--dim);cursor:pointer;transition:all .15s}
-#lensBar .lbtn.on{border-color:var(--acc);color:var(--acc);background:rgba(94,224,192,.14);box-shadow:0 0 10px rgba(94,224,192,.2)}
+/* Lens Bar (Docked inside Left Menu Drawer) */
+#lensBar{display:none !important}
 /* Radial HUD around selected node (Decluttered: visual-only on canvas, all details in Inspector) */
 #radialHud{position:absolute;pointer-events:none;z-index:26;display:none !important;transform:translate(-50%,-100%);margin-top:-10px}
-#radialHud.on{display:flex;flex-direction:column;align-items:center;gap:4px}
-#radialHud .rh-card{pointer-events:auto;background:rgba(12,17,28,.95);border:1px solid var(--acc);border-radius:10px;padding:5px 9px;box-shadow:0 6px 20px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:3px;min-width:168px;max-width:250px}
-#radialHud .rh-top{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10.5px;font-weight:700;color:var(--fg)}
-#radialHud .rh-tags{display:flex;flex-wrap:wrap;gap:3px}
-#radialHud .rh-acts{display:flex;gap:4px;margin-top:2px}
-#radialHud .rh-acts button{flex:1;background:#0e1624;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:10px;font-weight:700;color:var(--fg);cursor:pointer}
-#radialHud .rh-acts button:hover:not(:disabled){border-color:var(--acc);color:var(--acc)}
+/* Left-Side Menu Drawer (#menuModal docked on the left) */
+#menuModal{position:fixed;left:46px;top:48px;bottom:0;right:auto;width:210px;background:rgba(15,20,32,.97);backdrop-filter:blur(8px);z-index:130;display:none;flex-direction:column;padding:0;border-right:1px solid var(--line);box-shadow:6px 0 24px rgba(0,0,0,.7)}
+#menuModal.on{display:flex}
+.menu-box{width:100%;height:100%;max-height:none;background:transparent;border:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden;box-shadow:none}
+.menu-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.menu-title{font-size:12.5px;font-weight:800;color:var(--fg)}
+.menu-close{background:#0c111b;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--fg);cursor:pointer}
+.menu-grid{padding:8px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;flex:1}
+.mitem{display:flex;align-items:center;gap:8px;background:#0f172a;border:1px solid var(--line);border-radius:7px;padding:7px 9px;color:var(--fg);text-align:left;cursor:pointer;transition:all .15s}
+.mitem:hover{border-color:var(--acc);background:rgba(94,224,192,.1)}
+.mitem i{font-size:15px;font-style:normal;flex:0 0 20px;text-align:center}
+.mitem .mtxt{display:flex;flex-direction:column}
+.mitem .mnm{font-size:11.5px;font-weight:700;color:var(--fg)}
+.mitem small{display:none}
+.mitem.bad{border-color:rgba(239,68,68,.4)}
+.mitem.bad:hover,.mitem.bad.danger{border-color:#ef4444;background:rgba(239,68,68,.22);color:#fecaca}
+.menu-sec{padding:7px 8px;background:#090d14;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.menu-sec-title{font-size:10px;font-weight:700;color:var(--dim)}
+.menu-rx-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.menu-rx-row button{font-size:10px;padding:4px 5px;border-radius:6px;background:#0f172a;border:1px solid var(--line);color:var(--dim);font-weight:700;cursor:pointer}
+.menu-rx-row button.on{border-color:var(--acc);color:var(--acc);background:rgba(94,224,192,.15)}
+@media (max-width:860px), (max-height:520px){
+  #menuModal{top:42px;width:min(210px,calc(100vw - 52px))}
+}
 /* Bestiary Modal */
 #bestiary{position:fixed;inset:0;background:rgba(5,8,14,.82);backdrop-filter:blur(6px);z-index:120;display:none;align-items:center;justify-content:center;padding:16px}
 #bestiary.on{display:flex}
@@ -1027,27 +1004,6 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 .side-tab.on{background:rgba(94,224,192,.15);border-color:var(--acc);color:var(--acc);box-shadow:0 0 8px rgba(94,224,192,.18)}
 .stab-pane{display:flex;flex-direction:column}
 .stab-pane[hidden]{display:none !important}
-
-/* Game Menu Modal */
-#menuModal{position:fixed;inset:0;background:rgba(5,8,14,.82);backdrop-filter:blur(6px);z-index:130;display:none;align-items:center;justify-content:center;padding:14px}
-#menuModal.on{display:flex}
-.menu-box{width:min(580px,94vw);max-height:88vh;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.75)}
-.menu-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--panel2);border-bottom:1px solid var(--line)}
-.menu-title{font-size:15px;font-weight:800;color:var(--fg)}
-.menu-close{background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:4px 12px;color:var(--fg);cursor:pointer}
-.menu-grid{padding:12px 14px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
-.mitem{display:flex;align-items:center;gap:10px;background:#0f172a;border:1px solid var(--line);border-radius:9px;padding:9px 12px;color:var(--fg);text-align:left;cursor:pointer;transition:all .15s}
-.mitem:hover{border-color:var(--acc);background:rgba(94,224,192,.1)}
-.mitem i{font-size:20px;font-style:normal;flex:0 0 24px;text-align:center}
-.mitem .mtxt{display:flex;flex-direction:column}
-.mitem .mnm{font-size:12px;font-weight:700;color:var(--fg)}
-.mitem small{font-size:9.5px;color:var(--dim)}
-.mitem.bad{border-color:rgba(239,68,68,.35)}
-.mitem.bad:hover{border-color:#ef4444;background:rgba(239,68,68,.15)}
-.menu-sec{padding:10px 14px;background:#090d14;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
-.menu-sec-title{font-size:11px;font-weight:700;color:var(--dim)}
-.menu-rx-row{display:flex;flex-wrap:wrap;gap:4px}
-.menu-rx-row button{font-size:10.5px;padding:4px 8px}
 
 /* ── Companion Gacha, Wage & Affection System Styles ── */
 #compModal{position:fixed;inset:0;background:rgba(4,7,13,.84);backdrop-filter:blur(5px);z-index:125;display:none;align-items:center;justify-content:center;padding:14px}
@@ -1114,17 +1070,17 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="app">
   <div id="top">
     <span class="logo">NODE QUEST</span>
-    <div class="stat lp" id="tLpStat" title="パーティLP（全滅ごとに-1。0になると探索停止＆主人公たちの⚡・KINETIC供給が完全停止）"><span class="k">❤️<em>LP</em></span><span class="v num" id="tLp">3/3</span></div>
+    <div class="stat lp" id="tLpStat" title="パーティLP"><span class="k">❤️<em>LP</em></span><span class="v num" id="tLp">3/3</span></div>
     <div class="stat g"><span class="k">GOLD</span><span class="v num" id="tGold">0</span></div>
     <div class="stat r"><span class="k">🔬<em>研究</em></span><span class="v num" id="tRp">0</span></div>
     <div class="stat m"><span class="k">🧱<em>資材</em></span><span class="v num" id="tMat">0</span></div>
-    <div class="stat a hide-mobile"><span class="k">攻<em>撃力</em></span><span class="v num" id="tAtk">0</span></div>
+    <div class="stat a hide-mobile"><span class="k">⚔️<em>攻撃</em></span><span class="v num" id="tAtk">0</span></div>
     <span class="sp"></span>
     <button class="tbtn" id="bSpeed">⏩ ×1</button>
-    <button class="tbtn tree hide-mobile" id="bTree">🔬 研究ツリー</button>
+    <button class="tbtn tree hide-mobile" id="bTree">🔬 研究</button>
     <button class="tbtn" id="bComp" style="border-color:#f59e0b;color:#fde68a">🍻 仲間 <b id="compN">0</b></button>
-    <button class="tbtn bag" id="bBag">🎒 持ち物 <b id="bCount">0</b></button>
-    <button class="tbtn" id="bBst" style="border-color:#38bdf8;color:#7dd3fc">📖 図鑑 <b id="bstN">0</b></button>
+    <button class="tbtn bag" id="bBag">🎒 持物 <b id="bCount">0</b></button>
+    <button class="tbtn hide-mobile" id="bBst" style="border-color:#38bdf8;color:#7dd3fc">📖 図鑑 <b id="bstN">0</b></button>
     <button class="tbtn pri" id="bMenuBtn" style="border-color:var(--acc);color:var(--acc);font-weight:800">☰ メニュー</button>
     <div style="display:none">
       <button id="bFit"></button><button id="bTidy"></button>
@@ -1136,6 +1092,14 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
     </div>
   </div>
   <div id="mid">
+    <aside id="leftRail">
+      <button class="lr-btn" id="lrShopBtn" title="建設メニュー"><i>🏗</i><span>建設</span></button>
+      <button class="lr-btn" id="lrMenuBtn" title="メニュー"><i>☰</i><span>メニュー</span></button>
+      <button class="lr-btn" id="lrDgnBtn" title="洞窟・ステータス"><i>⚔️</i><span>攻略</span></button>
+      <button class="lr-btn" id="lrTreeBtn" title="研究ツリー"><i>🔬</i><span>研究</span></button>
+      <span class="lr-sp"></span>
+      <button class="lr-btn" id="lrFitBtn" title="全体表示"><i>🧭</i><span>全体</span></button>
+    </aside>
     <nav id="mtabs">
       <button data-p="stage" class="on"><i>🗺</i><span>工房</span></button>
       <button data-p="shop"><i>🏗</i><span>建設</span></button>
@@ -1144,11 +1108,14 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
       <button id="mTabMenu"><i>☰</i><span>メニュー</span></button>
     </nav>
     <div id="shop">
-      <div class="sec">行動ノードを建てる</div>
-      <div style="padding:6px 8px 2px">
-        <button id="shopScoutBtn" style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid #f59e0b;background:linear-gradient(180deg,rgba(245,158,11,.22),rgba(245,158,11,.08));color:#fde68a;font-size:11.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-          <span>🍻 仲間スカウト ＆ 待機所</span>
-          <span id="shopScoutSub" style="font-size:10px;color:var(--fg)">上限なし・配置/解雇</span>
+      <div class="sec" style="display:flex;align-items:center;justify-content:space-between">
+        <span>🏗 施設建設</span>
+        <button id="shopCloseBtn" style="background:#0c111b;border:1px solid var(--line);border-radius:5px;color:var(--dim);font-size:10px;padding:1px 6px;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:2px 0 6px">
+        <button id="shopScoutBtn" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid #f59e0b;background:rgba(245,158,11,.15);color:#fde68a;font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+          <span>🍻 仲間スカウト</span>
+          <span id="shopScoutSub" style="font-size:9.5px;color:var(--fg)">0人</span>
         </button>
       </div>
       <div id="shopList"></div>
@@ -1192,65 +1159,61 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
     </div>
     <div id="side">
       <div class="side-tabs">
-        <button class="side-tab on" data-stab="dgn">⚔️ 洞窟攻略</button>
-        <button class="side-tab" data-stab="hero">🧍 主人公</button>
-        <button class="side-tab" data-stab="tech">🔬 技術・留守</button>
+        <button class="side-tab on" data-stab="dgn">⚔️ 攻略</button>
+        <button class="side-tab" data-stab="hero">🧍 能力</button>
+        <button class="side-tab" data-stab="tech">🔬 技術</button>
       </div>
       <div id="alert"></div>
 
-      <!-- Tab 1: 洞窟攻略 (デフォルト表示) -->
+      <!-- Tab 1: 洞窟攻略 -->
       <div class="stab-pane" data-spane="dgn">
         <div class="box" id="dgnBox" style="transition:background .3s,border-color .3s,box-shadow .3s">
           <div class="hd" style="gap:6px;flex-wrap:wrap">
             <span id="zIc">🕳️</span><span id="zName">苔むした洞窟</span>
-            <span class="sub num" id="zFloor">第1 / 10層</span>
+            <span class="sub num" id="zFloor">1 / 10F</span>
           </div>
           <div style="display:flex;align-items:center;gap:4px;margin:4px 0 6px">
             <select id="caveSel" style="flex:1;background:#0c111b;border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:11px;padding:3px 6px"></select>
-            <span id="caveClearBadge" style="font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:99px;background:rgba(242,193,78,.15);border:1px solid var(--gold);color:var(--gold);white-space:nowrap">初回報酬10倍!</span>
+            <span id="caveClearBadge" style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:99px;background:rgba(242,193,78,.15);border:1px solid var(--gold);color:var(--gold);white-space:nowrap">初回×10</span>
           </div>
           <div class="hd zsub"><span id="eIc">👾</span><span id="eName">スライム</span><span class="sub num" id="eHp">0 / 0</span></div>
           <div class="hbar eh"><i id="eHpBar"></i></div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:5px;padding:4px 6px;background:rgba(15,23,42,.65);border:1px solid var(--line);border-radius:6px" id="partyLpBox">
-            <span style="font-size:10px;font-weight:700;color:#fb7185" id="pLpTxt">❤️LP: 3/3 (HP:120/120)</span>
+            <span style="font-size:10px;font-weight:700;color:#fb7185" id="pLpTxt">❤️LP 3/3</span>
             <div style="display:flex;gap:3px">
-              <button class="dt-btn acc" id="btnQuickGear" style="padding:2px 6px;font-size:9.5px" title="装備を装着/解除して「未装備＝敗北(Gear Check)」と「装備時＝撃破」を切り替えます">🎽 装備切替</button>
-              <button class="dt-btn warn" id="btnRecoverLp" style="padding:2px 6px;font-size:9.5px" title="医療物資・糧食（または木材/核/地金/25G）を消費してLPとパーティHPを即時全快し、活動停止を解除します">💊 物資でLP回復</button>
+              <button class="dt-btn acc" id="btnQuickGear" style="padding:2px 6px;font-size:9.5px">🎽 装備</button>
+              <button class="dt-btn warn" id="btnRecoverLp" style="padding:2px 6px;font-size:9.5px">💊 回復</button>
             </div>
           </div>
-          <div id="lpExhaustBanner" hidden style="margin-top:4px;padding:5px 7px;background:rgba(225,29,72,.2);border:1px solid #f43f5e;border-radius:6px;font-size:10px;color:#fecdd3;font-weight:700">
-            💔 LP枯渇・全滅撤退中！ 探索ループ停止 ＆ 🧍主人公・仲間の⚡/KINETIC出力が完全停止しています（💊物資補給または自然回復で再開）
+          <div id="lpExhaustBanner" hidden style="margin-top:4px;padding:4px 6px;background:rgba(225,29,72,.2);border:1px solid #f43f5e;border-radius:6px;font-size:10px;color:#fecdd3;font-weight:700">
+            💔 LP枯渇中（💊回復で再開）
           </div>
-          <div id="scoutBox" hidden style="margin-top:4px;padding:5px 7px;background:rgba(56,189,248,.12);border:1px solid #38bdf8;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:4px">
-            <span style="font-size:10px;color:#bae6fd;font-weight:700" id="scoutTxt">🧭 新洞窟を発見！斥候派遣で解禁</span>
-            <button class="dt-btn acc" id="btnScout" style="padding:2px 7px;font-size:9.5px">🧭 斥候派遣</button>
+          <div id="scoutBox" hidden style="margin-top:4px;padding:4px 6px;background:rgba(56,189,248,.12);border:1px solid #38bdf8;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:4px">
+            <span style="font-size:10px;color:#bae6fd;font-weight:700" id="scoutTxt">🧭 新洞窟発見</span>
+            <button class="dt-btn acc" id="btnScout" style="padding:2px 7px;font-size:9.5px">🧭 開拓</button>
           </div>
           <div class="rows">
-            <div class="row">1回の与ダメージ<b class="num" id="eDmg">0</b></div>
-            <div class="row">撃破まで<b class="num" id="eHits">—</b></div>
-            <div class="row">敵の装甲 / 特性<b class="num" id="eArm">0</b></div>
-            <div class="row">弱点 / 耐性タグ<b class="num" id="eWeak" style="font-size:10px">—</b></div>
-            <div class="row">撃破報酬 ＆ 素材<b class="num" id="eGold">0</b></div>
-            <div class="row" id="eCaveRewardRow" style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:4px;border-top:1px dashed var(--line)">
-              <span style="font-size:10px;color:var(--gold)" id="eCaveRewardTitle">🏆 洞窟制覇報酬（初回10倍！）</span>
-              <b class="num" id="eCaveReward" style="font-size:10px;color:var(--fg);text-align:left;margin-left:0"></b>
+            <div class="row">ダメージ<b class="num" id="eDmg">0</b></div>
+            <div class="row">撃破回数<b class="num" id="eHits">—</b></div>
+            <div class="row">装甲<b class="num" id="eArm">0</b></div>
+            <div class="row">弱点<b class="num" id="eWeak" style="font-size:10px">—</b></div>
+            <div class="row">報酬<b class="num" id="eGold">0</b></div>
+            <div class="row" id="eCaveRewardRow" hidden>
+              <span id="eCaveRewardTitle"></span><b class="num" id="eCaveReward"></b>
             </div>
-            <div class="row" id="eEnvRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:4px;border-top:1px dashed var(--line)">
-              <span style="font-size:10px;color:var(--acc2)">⚔️ 戦場流入・状態異常</span>
+            <div class="row" id="eEnvRow" hidden style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:3px">
               <div id="eEnvTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
             </div>
-            <div class="row" id="eComboRow" hidden style="flex-direction:column;align-items:flex-start;gap:3px;padding-top:3px">
-              <span style="font-size:10px;color:var(--gold)">💥 発動中の戦闘コンボ</span>
+            <div class="row" id="eComboRow" hidden style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:2px">
               <div id="eComboTags" style="display:flex;flex-wrap:wrap;gap:2px"></div>
             </div>
-            <div class="row" id="eHazRow" hidden style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:3px">
-              <span style="font-size:10px;color:#a3e635">⚠️ 深層ハザード逆流警報</span>
+            <div class="row" id="eHazRow" hidden style="flex-direction:column;align-items:flex-start;gap:2px;padding-top:2px">
               <div id="eHazTags" style="display:flex;flex-wrap:wrap;gap:2px;font-size:10px;font-weight:700"></div>
             </div>
           </div>
-          <div style="margin-top:6px;padding-top:5px;border-top:1px solid var(--line)">
-            <div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--dim);font-weight:700">
-              <span>⚔️ リアルタイム戦闘ログ</span>
+          <div style="margin-top:5px;padding-top:4px;border-top:1px solid var(--line)">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:9.5px;color:var(--dim);font-weight:700">
+              <span>⚔️ 戦闘ログ</span>
               <span id="GearCheckBadge" style="color:#10b981">🎽 装備OK</span>
             </div>
             <div id="combatLogBox"></div>
@@ -1260,12 +1223,11 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 
       <!-- Tab 2: 主人公・能力 -->
       <div class="stab-pane" data-spane="hero" hidden>
-        <div class="sec">勇者ステータス</div>
         <div class="box">
           <div class="hd"><span>⚡</span><span id="hName">体力</span><span class="sub num" id="hSta">0</span></div>
           <div class="hbar sta"><i id="hStaBar"></i></div>
           <div class="rows">
-            <div class="row">体力収支（作 − 使）<b class="num" id="hRegen">0 /分</b></div>
+            <div class="row">収支<b class="num" id="hRegen">0 /分</b></div>
             <div class="row">攻撃力<b class="num" id="hAtk">0</b></div>
             <div class="row s1"><span>💪 筋力<i class="rt" id="eStr"></i></span><b class="num" id="sStr">0</b></div>
             <div class="xbar s1"><i id="xStr"></i></div><div class="xnote" id="rStr"></div>
@@ -1273,59 +1235,48 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
             <div class="xbar s2"><i id="xInt"></i></div><div class="xnote" id="rInt"></div>
             <div class="row s3"><span>❤️ 体力<i class="rt" id="eVit"></i></span><b class="num" id="sVit">0</b></div>
             <div class="xbar s3"><i id="xVit"></i></div><div class="xnote" id="rVit"></div>
-            <div class="row s4" id="rowAsc" style="display:none;color:#c084fc"><span>👁️ 昇華 (ASC)<i class="rt" id="eAsc">全域 ×1.00</i></span><b class="num" id="sAsc">0</b></div>
-            <div class="row" id="rowEx">経験値の戻り<b class="num" id="hExIn">—</b></div>
+            <div class="row s4" id="rowAsc" style="display:none;color:#c084fc"><span>👁️ 昇華<i class="rt" id="eAsc">×1.00</i></span><b class="num" id="sAsc">0</b></div>
+            <div class="row" id="rowEx">経験値<b class="num" id="hExIn">—</b></div>
           </div>
         </div>
-        <div class="sec">🍻 仲間スカウト・待機所（上限なし）</div>
         <div class="box">
           <div class="rows">
-            <div class="row">雇用中の仲間<b class="num" id="sideCompCount">0人（配置 0 / 待機 0）</b></div>
-            <div class="row">ストライキ中<b class="num" id="sideStrikeCount" style="color:var(--acc)">0人（全員稼働）</b></div>
-            <div class="row">通常スカウト費<b class="num" id="sideScoutCost">250 G</b></div>
+            <div class="row">仲間<b class="num" id="sideCompCount">0人</b></div>
+            <div class="row">状態<b class="num" id="sideStrikeCount" style="color:var(--acc)">稼働中</b></div>
+            <div class="row">スカウト費<b class="num" id="sideScoutCost">250 G</b></div>
           </div>
-          <div style="display:flex;gap:5px;margin-top:7px;flex-wrap:wrap">
-            <button class="dt-btn acc" id="sideQuickScoutBtn" style="flex:1;padding:6px 8px;font-size:10.5px;font-weight:800">🪙 通常スカウト</button>
-            <button class="dt-btn warn" id="sideOpenCompBtn" style="flex:1;padding:6px 8px;font-size:10.5px;font-weight:800">🍻 待機所・専門スカウト</button>
+          <div style="display:flex;gap:5px;margin-top:6px">
+            <button class="dt-btn acc" id="sideQuickScoutBtn" style="flex:1;padding:5px;font-size:10.5px;font-weight:800">🪙 雇用</button>
+            <button class="dt-btn warn" id="sideOpenCompBtn" style="flex:1;padding:5px;font-size:10.5px;font-weight:800">🍻 待機所</button>
           </div>
         </div>
       </div>
 
       <!-- Tab 3: 技術・留守報酬・ログ -->
       <div class="stab-pane" data-spane="tech" hidden>
-        <div class="sec">研究・技術</div>
         <div class="box">
-          <div class="hd"><span>🔬</span><span>技術レベル</span><span class="sub num" id="rDev">0種</span></div>
+          <div class="hd"><span>🔬</span><span>研究</span><span class="sub num" id="rDev">0種</span></div>
           <div class="rows">
-            <div class="row">いまの時代<b class="num" id="rEra">—</b></div>
-            <div class="row">研究ポイント<b class="num" id="rRp">0</b></div>
-            <div class="row">研究資材<b class="num" id="rMat">0</b></div>
-            <div class="row">研究の速さ<b class="num" id="rSpd">—</b></div>
-            <div class="row">次に開けるもの<b class="num" id="rNext">—</b></div>
+            <div class="row">世代<b class="num" id="rEra">—</b></div>
+            <div class="row">🔬RP<b class="num" id="rRp">0</b></div>
+            <div class="row">🧱資材<b class="num" id="rMat">0</b></div>
+            <div class="row">速度<b class="num" id="rSpd">—</b></div>
+            <div class="row">次目標<b class="num" id="rNext">—</b></div>
           </div>
         </div>
         <div class="box">
-          <div class="hd"><span>🏅</span><span>踏破報酬</span><span class="sub num" id="dTier">0段階</span></div>
+          <div class="hd"><span>🏅</span><span>踏破・留守</span><span class="sub num" id="dTier">0段</span></div>
           <div class="rows">
-            <div class="row">攻撃力<b class="num" id="dBonus">×1.00</b></div>
-            <div class="row">次の踏破<b class="num" id="dNext">第10層</b></div>
-          </div>
-        </div>
-        <div class="sec">留守のあいだの報酬</div>
-        <div class="box">
-          <div class="hd"><span>🌙</span><span>オフライン報酬</span><span class="sub num" id="oSteps">0解放</span></div>
-          <div class="rows">
-            <div class="row">働きぐあい<b class="num" id="oRate">実時間の 33%</b></div>
-            <div class="row">時間の上限<b class="num" id="oCap">6時間</b></div>
-            <div class="row">次に伸びる条件<b class="num" id="oNext">—</b></div>
+            <div class="row">踏破倍率<b class="num" id="dBonus">×1.00</b></div>
+            <div class="row">次節目<b class="num" id="dNext">第10層</b></div>
+            <div class="row">留守効率<b class="num" id="oRate">33%</b></div>
+            <div class="row">留守上限<b class="num" id="oCap">6時間</b></div>
+            <span id="oSteps" hidden></span><span id="oNext" hidden></span>
           </div>
         </div>
         <div class="sec">ログ</div>
         <div id="log"></div>
       </div>
-    </div>
-      <div class="sec">ログ</div>
-      <div id="log"></div>
     </div>
   </div>
 </div>
@@ -1345,10 +1296,9 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
   <div class="tbox">
     <div class="thead">
       <div class="tt">🔬 研究ツリー</div>
-      <div class="tpool">研究ポイント <b id="rpNow">0</b>　研究資材 <b id="matNow">0</b></div>
+      <div class="tpool">🔬 <b id="rpNow">0</b>　🧱 <b id="matNow">0</b></div>
       <button id="tClose">閉じる</button>
     </div>
-    <p class="tnote">各施設は<b>研究ツリーで前提と条件を満たしてアンロック</b>すると建設リストに並びます。最初は<b>🧍主人公・🕳️洞窟・⛏️採掘・♻️廃棄場・🏪露店・🔬研究室</b>の最小構成から始まり、🔬研究室で研究ポイントを貯めることで<b>🔥精錬炉・🔌発電機・🏋️訓練所・⚔️鍛冶屋</b>などを順番に開放できます。</p>
     <div id="treeGrid"></div>
   </div>
 </div>
@@ -1356,8 +1306,8 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="dash">
   <div class="dbox2">
     <div class="dh2">
-      <div class="dt2">📊 ダッシュボード</div>
-      <div class="dsub">選んだ期間の出入りと、いまの勢い。入りが緑、出が赤</div>
+      <div class="dt2">📊 収支</div>
+      <div class="dsub">緑=入 / 赤=出</div>
       <button id="dashClose">閉じる</button>
     </div>
     <div id="dashBody"></div>
@@ -1373,12 +1323,12 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
         <button class="bt1" data-t="home">🏠 自宅 <b id="bcHome">0</b></button>
         <button class="bt1" data-t="part">🔧 パーツ <b id="bcPart">0</b></button>
         <button class="bt1" data-t="skill">✨ スキル <b id="bcSkill">0</b></button>
-        <button class="bt1" data-t="drop">🎁 クリア報酬 <b id="bcDrop">0</b></button>
+        <button class="bt1" data-t="drop">🎁 報酬 <b id="bcDrop">0</b></button>
         <button class="bt1" data-t="ware" id="bcWareTab" hidden>📦 倉庫</button>
       </div>
       <button id="bClose" style="margin-left:auto">閉じる</button>
     </div>
-    <p class="bnote" id="bagNote"></p>
+    <p class="bnote" id="bagNote" hidden></p>
     <div id="bagList"></div>
   </div>
 </div>
@@ -1386,16 +1336,15 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="dbg">
   <div class="dbox">
     <div class="dhead">
-      <div class="dt">🐛 ノード一覧 / 設置（デバッグ）</div>
+      <div class="dt">🐛 デバッグ</div>
       <button id="dClose">閉じる</button>
     </div>
     <div class="dtools">
-      <button data-do="gold">ゴールド +100万</button>
-      <button data-do="stats">能力値 +10</button>
-      <button data-do="dev">最終時代まで解放</button>
-      <label class="dspd">⏩ 速度 <input id="dSpeed" type="range" min="1" max="5" step="0.5" value="1">
+      <button data-do="gold">+100万G</button>
+      <button data-do="stats">能力+10</button>
+      <button data-do="dev">全解放</button>
+      <label class="dspd">⏩ <input id="dSpeed" type="range" min="1" max="5" step="0.5" value="1">
         <b id="dSpeedV">×1.0</b></label>
-      <span class="dnote">この画面は <code>?debug=1</code> か <code>#debug</code> を付けたときだけ開けます</span>
     </div>
     <div class="dwrap"><table id="dTable"></table></div>
   </div>
@@ -1404,16 +1353,16 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="devTool">
   <div class="dt-box">
     <div class="dt-head">
-      <div class="dt-title">🛠️ ゲーム開発ツール <span style="font-size:11px;font-weight:400;color:var(--dim)">研究ツリー・施設・UI配置・定数エディタ</span></div>
+      <div class="dt-title">🛠️ 開発ツール</div>
       <div class="dt-tabs" id="dtTabs">
-        <button class="dt-tab on" data-dtab="tree">🔬 研究ツリー＆開放条件</button>
-        <button class="dt-tab" data-dtab="fac">🏭 施設の作成・機能編集</button>
-        <button class="dt-tab" data-dtab="ui">📐 UI・初期盤面配置</button>
-        <button class="dt-tab" data-dtab="const">⚖️ 定数・数値バランス</button>
-        <button class="dt-tab" data-dtab="io">💾 設定の保存・JSON出力</button>
+        <button class="dt-tab on" data-dtab="tree">🔬 ツリー</button>
+        <button class="dt-tab" data-dtab="fac">🏭 施設</button>
+        <button class="dt-tab" data-dtab="ui">📐 配置</button>
+        <button class="dt-tab" data-dtab="const">⚖️ 定数</button>
+        <button class="dt-tab" data-dtab="io">💾 JSON</button>
       </div>
       <div class="dt-acts">
-        <button class="pri" id="dtSaveBtn">💾 変更を適用＆保存</button>
+        <button class="pri" id="dtSaveBtn">💾 保存</button>
         <button id="dtClose">閉じる</button>
       </div>
     </div>
@@ -1424,13 +1373,11 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="tro">
   <div class="tbox2">
     <div class="th2">
-      <div class="tt2">🏆 トロフィー</div>
+      <div class="tt2">🏆 実績</div>
       <div class="tsum" id="troSum">0/0</div>
-      <button id="troReset">記録を消す</button>
+      <button id="troReset">消去</button>
       <button id="troClose">閉じる</button>
     </div>
-    <p class="tnote2">遊びの節目を永久に残します。ひとつにつき「祝福」がつき、重ねて効きます
-      （すべての施設がそのぶん速くなる）。<b>リセットしても消えません。</b></p>
     <div id="troBody"></div>
   </div>
 </div>
@@ -1438,15 +1385,11 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="bestiary">
   <div class="bst-box">
     <div class="bst-head">
-      <div class="bst-title">📖 モンスター図鑑（Monster Bestiary）</div>
-      <span style="font-size:11px;color:var(--dim)" id="bstSum">討伐・解析記録: 0 / 35種</span>
+      <div class="bst-title">📖 図鑑</div>
+      <span style="font-size:11px;color:var(--dim)" id="bstSum">0 / 35</span>
       <button id="bstClose" style="margin-left:auto;background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:5px 12px;color:var(--fg)">閉じる</button>
     </div>
     <div class="bst-tabs" id="bstTabs"></div>
-    <div style="padding:7px 14px;font-size:10.5px;color:var(--dim);background:#090d14;border-bottom:1px solid var(--line)">
-      💡 敵モンスターを撃破すると生態データ（HP・装甲・耐性・<b>弱点属性タグ 🧪CORROSION / 🔥HEAT / ❄️CRYO / 💥SHOCKWAVE</b>・ドロップ率）が動的にアンロックされます。
-      <b>🛡️重装甲獣</b>は酸(CORROSION)・高熱(HEAT)に弱く、<b>💚再生群棲種</b>は冷却(CRYO)・衝撃波(SHOCKWAVE)で超再生が停止します。
-    </div>
     <div class="bst-body" id="bstBody"></div>
   </div>
 </div>
@@ -1454,30 +1397,39 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="menuModal">
   <div class="menu-box">
     <div class="menu-head">
-      <div class="menu-title">☰ ゲームメニュー</div>
-      <button class="menu-close" id="menuCloseBtn">✕ 閉じる</button>
+      <div class="menu-title">☰ メニュー</div>
+      <button class="menu-close" id="menuCloseBtn">✕</button>
     </div>
     <div class="menu-grid">
-      <button class="mitem" id="mCompBtn"><i>🍻</i><div class="mtxt"><span class="mnm">仲間スカウト・待機所</span><small>無制限ガチャ・好感度・配置</small></div></button>
-      <button class="mitem" id="mTreeBtn"><i>🔬</i><div class="mtxt"><span class="mnm">研究ツリー</span><small>新施設・発電機解放</small></div></button>
-      <button class="mitem" id="mBestBtn"><i>📖</i><div class="mtxt"><span class="mnm">モンスター図鑑</span><small>弱点・耐性・ドロップ</small></div></button>
-      <button class="mitem" id="mBagBtn"><i>🎒</i><div class="mtxt"><span class="mnm">持ち物・倉庫</span><small>装備・パーツ・素材</small></div></button>
-      <button class="mitem" id="mTroBtn"><i>🏆</i><div class="mtxt"><span class="mnm">トロフィー</span><small>実績と祝福ボーナス</small></div></button>
-      <button class="mitem" id="mDashBtn"><i>📊</i><div class="mtxt"><span class="mnm">工房収支</span><small>1分ごとの生産・消費</small></div></button>
-      <button class="mitem" id="mStatsBtn"><i>📈</i><div class="mtxt"><span class="mnm">プレイ記録</span><small>累計撃破数・統計</small></div></button>
-      <button class="mitem" id="mFitBtn"><i>🧭</i><div class="mtxt"><span class="mnm">全体表示</span><small>全ノードを画面内に収める</small></div></button>
-      <button class="mitem" id="mTidyBtn"><i>📐</i><div class="mtxt"><span class="mnm">ノード自動整列</span><small>格子状に綺麗に並べ替え</small></div></button>
-      <button class="mitem" id="mCodeBtn"><i>💾</i><div class="mtxt"><span class="mnm">保存 / 引き継ぎ</span><small>コード書き出し・読み込み</small></div></button>
-      <button class="mitem" id="mDevBtn"><i>🛠️</i><div class="mtxt"><span class="mnm">開発ツール</span><small>ツリー・定数・UI編集</small></div></button>
-      <button class="mitem bad" id="mResetBtn"><i>🔄</i><div class="mtxt"><span class="mnm">最初からやり直す</span><small>データリセット</small></div></button>
+      <button class="mitem" id="mCompBtn"><i>🍻</i><div class="mtxt"><span class="mnm">仲間スカウト</span></div></button>
+      <button class="mitem" id="mTreeBtn"><i>🔬</i><div class="mtxt"><span class="mnm">研究ツリー</span></div></button>
+      <button class="mitem" id="mBestBtn"><i>📖</i><div class="mtxt"><span class="mnm">図鑑</span></div></button>
+      <button class="mitem" id="mBagBtn"><i>🎒</i><div class="mtxt"><span class="mnm">持ち物</span></div></button>
+      <button class="mitem" id="mDashBtn"><i>📊</i><div class="mtxt"><span class="mnm">工房収支</span></div></button>
+      <button class="mitem" id="mStatsBtn"><i>📈</i><div class="mtxt"><span class="mnm">統計・記録</span></div></button>
+      <button class="mitem" id="mTroBtn"><i>🏆</i><div class="mtxt"><span class="mnm">実績</span></div></button>
+      <button class="mitem" id="mFitBtn"><i>🧭</i><div class="mtxt"><span class="mnm">全体表示</span></div></button>
+      <button class="mitem" id="mTidyBtn"><i>📐</i><div class="mtxt"><span class="mnm">自動整列</span></div></button>
+      <button class="mitem" id="mCodeBtn"><i>💾</i><div class="mtxt"><span class="mnm">保存 / 引継</span></div></button>
+      <button class="mitem" id="mDevBtn"><i>🛠️</i><div class="mtxt"><span class="mnm">開発ツール</span></div></button>
+      <button class="mitem bad" id="mResetBtn"><i>🔄</i><div class="mtxt"><span class="mnm" id="mResetLbl">リセット</span></div></button>
     </div>
     <div class="menu-sec">
-      <div class="menu-sec-title">⚗️ 創発リアクション検証プリセット</div>
+      <div class="menu-sec-title">🔍 表示レンズ</div>
       <div class="menu-rx-row">
-        <button class="dt-btn acc" data-rx-quick="A">💨 A: 急冷合金</button>
-        <button class="dt-btn warn" data-rx-quick="B">💥 B: 爆風クラフト</button>
-        <button class="dt-btn bad" data-rx-quick="C">🔄 C: 暴走ループ</button>
-        <button class="dt-btn" data-rx-quick="D" style="border-color:#a855f7;color:#e9d5ff">⚔️ D: 戦闘化学</button>
+        <button class="on" data-lens-btn="normal">👁️ 通常</button>
+        <button data-lens-btn="logistics">📦 物流</button>
+        <button data-lens-btn="power">⚡ 範囲</button>
+        <button data-lens-btn="hazard">☣️ 汚染</button>
+      </div>
+    </div>
+    <div class="menu-sec">
+      <div class="menu-sec-title">⚗️ 検証プリセット</div>
+      <div class="menu-rx-row">
+        <button class="dt-btn acc" data-rx-quick="A">💨 急冷</button>
+        <button class="dt-btn warn" data-rx-quick="B">💥 爆風</button>
+        <button class="dt-btn bad" data-rx-quick="C">🔄 共鳴</button>
+        <button class="dt-btn" data-rx-quick="D" style="border-color:#a855f7;color:#e9d5ff">⚔️ 戦闘</button>
       </div>
     </div>
   </div>
@@ -1486,24 +1438,20 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="compModal" class="scout-modal">
   <div class="comp-box">
     <div class="comp-head">
-      <div class="comp-title">🍻 仲間スカウト ＆ 待機所（Companion Gacha & Roster）</div>
-      <span style="font-size:11px;color:var(--dim)" id="compModalSub">雇用数上限なし ／ 💰給料で⚡クリーン体力供給 ／ 💕好感度(0〜1000)で給料最大-80%割引</span>
+      <div class="comp-title">🍻 仲間スカウト</div>
+      <span style="font-size:11px;color:var(--dim)" id="compModalSub">上限なし</span>
       <button id="compCloseBtn" style="margin-left:auto;background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:5px 12px;color:var(--fg);cursor:pointer">✕ 閉じる</button>
-    </div>
-    <div style="padding:8px 14px;font-size:10.5px;color:var(--dim);background:#090d14;border-bottom:1px solid var(--line);line-height:1.45">
-      💡 <b>ランダム仲間ガチャ＆継続給料システム</b>：スカウトした仲間は盤面に何人でも配置可能（上限なし）。行動（⚡生成）ごとに<b>💰給料</b>を消費し、資金不足になると<b>💢ストライキ（稼働停止）</b>に入ります。<br>
-      🎁 <b>好感度と給料割引</b>：仲間ノードにベルトコンベアで素材（特に<b>🎁好物アイテム</b>）を流し込むか、差し入れボタンを押すと<b>💕好感度（0〜1000）</b>が上昇し、<b>給料が最大80%割引（1/5）＆作業速度+50%・⚡産出量アップ</b>！
     </div>
     <div class="comp-body">
       <div>
-        <div style="font-size:12px;font-weight:800;color:var(--acc);margin-bottom:8px">🎲 新しい仲間をスカウト（上限なし）</div>
+        <div style="font-size:12px;font-weight:800;color:var(--acc);margin-bottom:6px">🎲 スカウト</div>
         <div class="scout-grid" id="scoutGrid"></div>
       </div>
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-          <span style="font-size:12px;font-weight:800;color:var(--fg)" id="rosterHeaderTitle">📋 仲間ロスター（待機所 ＆ 配置中）</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+          <span style="font-size:12px;font-weight:800;color:var(--fg)" id="rosterHeaderTitle">📋 仲間一覧</span>
           <div style="display:flex;gap:6px">
-            <button class="dt-btn acc" id="btnFeedAllStrike" style="padding:4px 9px;font-size:10.5px">🍖 全員に賄い支給＆スト解除</button>
+            <button class="dt-btn acc" id="btnFeedAllStrike" style="padding:4px 9px;font-size:10.5px">🍖 全員に賄い</button>
           </div>
         </div>
         <div class="roster-grid" id="rosterGrid"></div>
@@ -1523,12 +1471,10 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="modal">
   <div class="mbox">
     <div class="mt">引き継ぎコード</div>
-    <p class="mp">ブラウザや端末を変えるときは、このコードを控えて移行先で読み込んでください。
-       セーブはブラウザ内に保存されるため、別の端末には自動では引き継がれません。</p>
     <textarea id="mCode" spellcheck="false"></textarea>
     <div class="mbtns">
-      <button id="mCopy">コードをコピー</button>
-      <button id="mLoad">貼り付けたコードを読み込む</button>
+      <button id="mCopy">コピー</button>
+      <button id="mLoad">読み込む</button>
       <button id="mClose">閉じる</button>
     </div>
     <div class="mmsg" id="mMsg"></div>
@@ -2985,10 +2931,10 @@ function outsOf(n){
     const o = {[lootItem(n)]:1};
     const cd = curCave().drop;
     if(cd && ITEMS[cd]) o[cd] = 1;             // 現在の洞窟の固有素材排出口
-    const hasSec = k => (n.outBuf && (n.outBuf[k]||0) > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item===k));
-    for(const ck of CAVE_ITEMS) if(hasSec(ck)) o[ck] = 1;
-    for(const b of BOXES) if(hasSec(b.k) || n._allOutputs) o[b.k] = 1;
-    for(const sk of ['sta','waste','cslud','miasma']) if(hasSec(sk) || n._allOutputs) o[sk] = 1;
+    const isLinkedOut = k => !!(typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item===k));
+    for(const ck of CAVE_ITEMS) if(isLinkedOut(ck)) o[ck] = 1;
+    for(const b of BOXES) if(isLinkedOut(b.k) || n._allOutputs) o[b.k] = 1;
+    for(const sk of ['sta','waste','cslud','miasma']) if(isLinkedOut(sk) || n._allOutputs) o[sk] = 1;
     return modOuts(n, o);
   }
   if(T.effect==='synt'){
@@ -4187,14 +4133,14 @@ const depthBonus = () => {
   const t = depthTier();
   return 1 + 0.08 * t + 0.02 * Math.pow(t, 1.35);
 };
-const NW = 176, HEAD = 29, ROWH = 20;                 // ノード幅 / ヘッダ下端 / 1行の高さ
+const NW = 176, HEAD = 30, ROWH = 22;                 // ノード幅 / ヘッダ下端 / 1行の高さ
 /* 何でも受け取る口を持つノード（売り場・貯蔵の空き・倉庫） */
 /* 「口を増やす」ボタン。まだ枠が空いているノードだけに出す */
 const anyPort = n => { const T=TYPES[n.type];
-  if(T.store || T.effect==='dive' || T.matIn || T.line==='purify' || T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar' || (T.src && n.type!=='hero' && n._allPorts)) return true;
+  if(T.store) return true;
   return !!(T.chain==='sell' && storeItems(n).length < T.slots); };
 const rowsOf = n => Math.max(1, inKeys(n).length + (anyPort(n)?1:0), outKeys(n).length);
-const nodeH  = n => HEAD + rowsOf(n)*ROWH + 12;
+const nodeH  = n => HEAD + rowsOf(n)*ROWH + 34;
 const portY  = i => HEAD + i*ROWH + ROWH/2;
 
 /* ========================= state ========================= */
@@ -4233,7 +4179,7 @@ function freshState(){
     companionRoster:[], scoutCount:0,
     enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:-1, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -4614,20 +4560,16 @@ function portIns(n){
     for(const k in c) if(POW_ITEM[k]) o[k]=c[k];
     for(const k of storeItems(n)) o[k]=SELL_TAKE;
     return o; }
-  if(isHuman(n) && !n._allPorts){
-    // 人間ノード（主人公・仲間）の未使用ソフト入力（筋力・知力・走力EXP、好物）を折りたたみ、
-    // 配線接続中またはバッファ所持中のポートのみ表示してカード高さを極限までスリム化（スマホ最適化）
+  if(T.src && n.type !== 'hero' && !n._allPorts){
     const o = {};
     const req = insOf(n);
     for(const k in req) o[k] = req[k];
-    const soft = softIns(n);
+    o.exs = 1; o.exi = 1; o.exv = 1;
+    const comp = compOfNode(n);
+    if(comp && comp.favoriteItem && ITEMS[comp.favoriteItem]) o[comp.favoriteItem] = 1;
     const hasLinks = typeof S!=='undefined' && S && S.links;
-    for(const k in soft){
-      const isLinked = hasLinks && S.links.some(l => l.to === n.id && l.item === k);
-      const hasBuf = (n.inBuf && (n.inBuf[k]||0) > 0);
-      if(isLinked || hasBuf){
-        o[k] = soft[k];
-      }
+    if(hasLinks){
+      for(const l of S.links) if(l.to === n.id && l.item !== 'sta') o[l.item] = 1;
     }
     return o;
   }
@@ -5441,25 +5383,19 @@ function tick(dt,fast){
         const need=insOf(n), give=T.loot ? {} : outsOf(n);   // 戦利品は満杯でも止めない
         const wage = payOf(n);
         let ok=true;
-        for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].n+'が満杯'; }
+        for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].i+'満杯'; }
         if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){
           ok=false;
-          const isSta = (k === 'sta');
-          const isOre = (/^ore\d/.test(k));
-          n.why = isSta
-            ? `⚡電力不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])}) 発電施設を増設してください`
-            : isOre
-              ? `🪨${ITEMS[k].n}不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])}) 採掘機を増設してください`
-              : `${ITEMS[k].n}が不足 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`;
+          n.why = `${ITEMS[k].i}待機 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`;
         }
         if(ok && wage > 0 && S.gold < wage){
           ok=false;
           n.isStrike = true;
           const comp = compOfNode(n);
           if(comp) comp.isStrike = true;
-          n.why=`💢 給料未払い・ストライキ中！（💰${fmt(wage)}G 必要）`;
+          n.why=`💢給料不足 (${fmt(wage)}G)`;
         }
-        if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`研究ポイントが足りない（${fmt(payRpOf(n))}）`; }
+        if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`🔬不足 (${fmt(payRpOf(n))})`; }
 
         if(!ok){ n.stall=true; break; }
         for(const k in need){ n.inBuf[k]-=need[k]; flowOut(k, need[k]); nodeFlow(n, k, need[k], 'o'); }
@@ -7734,28 +7670,11 @@ function renderCompModal(){
 
 /* 主人公・仲間のノードに出す一行。個人のステータス・行動費・親愛度・特性・受け取った経験値を数字で見せる */
 function srcFace(n){
-  const T=TYPES[n.type];
   const comp = compOfNode(n);
-  const roleDef = comp ? COMP_ROLES[comp.role] : null;
-  const role = comp ? `${roleDef ? roleDef.i + roleDef.n : T.i + T.n}／` : (n.pname ? `${T.i}${T.n}／` : '');
-  const sk = skillOf(n).filter(Boolean);
-  const skl = sk.length ? '　' + sk.map(k=>SKILL[k].i+SKILL[k].n).join('・') : '';
   const st = statsOf(n);
   const stTxt = `💪${fmt(Math.floor(st.str||0))} 🧠${fmt(Math.floor(st.int||0))} ❤️${fmt(Math.floor(st.vit||0))}`;
-  const discPct = comp ? Math.round(affectionDiscount(comp.affection||0)*100) : 0;
-  const pay = payOf(n)   ? `／💰-${fmt(payOf(n))}G/回(${discPct>0?`💕-${discPct}%・`:''}計${fmt(n.paid||0)}G)`
-            : payRpOf(n) ? `／🔬${fmt(payRpOf(n))}×${fmt(1/craftTime(n)*60)}回/分`
-            : '／💰無料(主人公)';
-  const compInfo = comp ? (() => {
-    const favIt = ITEMS[comp.favoriteItem] || {i:'🎁', n:comp.favoriteItem};
-    const trTxt = (comp.traits||[]).map(tk => COMP_TRAIT_MAP[tk] ? COMP_TRAIT_MAP[tk].n : '').filter(Boolean).join('・');
-    return `／💕${Math.floor(comp.affection||0)} 🎁好物:${favIt.i}${favIt.n}${trTxt ? ' ['+trTxt+']' : ''}${n.isStrike ? ' 🪧ストライキ中' : ''}`;
-  })() : '';
-  const e=n.ex||{}, got=(e.str||0)+(e.int||0)+(e.vit||0);
-  const r=exRate.str+exRate.int+exRate.vit;
-  if(!got) return `${role}${stTxt}${pay}${compInfo}／🌱クリーン⚡供給中`+skl;
-  const rate = r>0 ? `　+${r>=10?Math.round(r):r.toFixed(1)}/分` : '';
-  return `${role}${stTxt}${pay}${compInfo}／受取 💪${fmt(e.str||0)} 🧠${fmt(e.int||0)} ❤️${fmt(e.vit||0)}${rate}${skl}`;
+  if(!comp) return stTxt;
+  return `${stTxt} 💰${fmt(payOf(n))}G 💕${Math.floor(comp.affection||0)}${n.isStrike ? ' 🪧スト' : ''}`;
 }
 function selectCave(caveId, silent){
   const c = caveById(caveId);
@@ -8010,9 +7929,9 @@ function doDive(fast, node, fromCannon){
 
   S.enemy.hp -= netDmg;
   S.enemy._totalDmgTaken = (S.enemy._totalDmgTaken || 0) + netDmg;
-  pushCombatLog(`【攻撃】主人公の攻撃！ 与ダメージ ${fmt(netDmg)}（基礎 ${fmt(baseAtkVal)} × 装備 ${gearM} vs 装甲 ${fmt(effArm)}）`, 'atk');
+  pushCombatLog(`⚔️ ${fmt(netDmg)} DMG (残HP ${fmt(Math.max(0, S.enemy.hp))})`, 'atk');
   if(statusNotes.length){
-    pushCombatLog(`【状態】属性効果発動: ${statusNotes.join(' ＋ ')} → 実ダメージ ${fmt(netDmg)}！`, 'sts');
+    pushCombatLog(`✨ ${statusNotes.join(' ')}`, 'sts');
   }
 
   // 深層または検証モードでは、攻撃サイクルごとにも一定確率で逆流ハザードが噴出する
@@ -8026,8 +7945,8 @@ function doDive(fast, node, fromCannon){
   if(S.enemy.boss) S.bossDefeated = true;
   if(S.enemy.trueBoss){
     S.trueBossDefeated = true;
-    addLog(`👑👁️‍🗨️【真・輪廻の主 討伐！！】全ての魔神眼を捧げし神話の真ボスを討ち滅ぼした！世界の輪廻は解脱され、恒久の全域祝福が盤面に宿る！`, 'b');
-    toast('👑👁️‍🗨️ 真ボス「輪廻の主」討伐達成！【秘匿トロフィー獲得】');
+    addLog(`👑👁️‍🗨️ 真ボス「輪廻の主」討伐達成！`, 'b');
+    toast('👑👁️‍🗨️ 真ボス「輪廻の主」討伐達成！');
     troSave();
   }
   const f=S.floor, g=Math.round(enemyGold(f) * (gim && gim.k === 'greed' ? 10 : 1)), wasTier=depthTier();
@@ -8037,7 +7956,7 @@ function doDive(fast, node, fromCannon){
   if(node){                                  // 撃破すると戦利品＋洞窟固有素材＋たまに宝箱が出る
     const k = lootItem(node);
     node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
-    droppedNames.push(`${ITEMS[k].i}${ITEMS[k].n}`);
+    droppedNames.push(`${ITEMS[k].i}`);
     // 洞窟固有素材ドロップ（ボスは確定2個、通常モンスターも高確率でドロップし分解研究・施設クラフトに使える）
     const dropChance = S.enemy.boss ? 1.0 : 0.65;
     if(ITEMS[cDrop] && Math.random() < dropChance){
@@ -8045,13 +7964,14 @@ function doDive(fast, node, fromCannon){
       node.outBuf[cDrop] = Math.min(capOut(node, cDrop), (node.outBuf[cDrop]||0) + dq);
       homeOf()[cDrop] = (homeOf()[cDrop]||0) + dq;
       flowIn(cDrop, dq); nodeFlow(node, cDrop, dq, 'i');
-      droppedNames.push(`${ITEMS[cDrop].i}${ITEMS[cDrop].n}×${dq}`);
+      droppedNames.push(`${ITEMS[cDrop].i}×${dq}`);
     }
     const tot = BOXES.reduce((a,b)=>a+b.w, 0);
     let r = Math.random() * (tot * 1.6);        // 素材はよく出る（1.6回に1回くらい箱）
     for(const b of BOXES){ r -= b.w; if(r < 0){
       node.outBuf[b.k] = Math.min(capOut(node,b.k), (node.outBuf[b.k]||0) + 1);
-      droppedNames.push(`${ITEMS[b.k].i}${ITEMS[b.k].n}`);
+      homeOf()[b.k] = (homeOf()[b.k]||0) + 1;
+      droppedNames.push(`${ITEMS[b.k].i}`);
       break; } }
     // 深層（第10層以降）や節目ボスの撃破時、ダンジョンから地上へ逆流ハザードが噴出する
     if(ef >= 10 || isBoss(f) || node._emitHazard){
@@ -8059,11 +7979,11 @@ function doDive(fast, node, fromCannon){
     }
   }else if(ITEMS[cDrop]){
     homeOf()[cDrop] = (homeOf()[cDrop]||0) + 1;
-    droppedNames.push(`${ITEMS[cDrop].i}${ITEMS[cDrop].n}`);
+    droppedNames.push(`${ITEMS[cDrop].i}`);
   }
-  pushCombatLog(`【結果】🏆 ${S.enemy.name} 撃破！ 総与ダメージ: ${fmt(S.enemy._totalDmgTaken||S.enemy.max)} ｜ HP: ${fmt(S.partyHp||S.partyMaxHp)}/${fmt(S.partyMaxHp||120)} ｜ LP: ${S.lp}/${S.maxLp||3} ｜ 戦利品: ${droppedNames.join(' ')}`, 'res');
+  pushCombatLog(`🏆 ${S.enemy.name} 撃破! ${droppedNames.join(' ')}`, 'res');
   if(!fast){
-    addLog(`${cave.i}${cave.n} 第${cf}層 ${S.enemy.name} 撃破 → +${fmt(g)}G ＋${ITEMS[cDrop]?ITEMS[cDrop].i+ITEMS[cDrop].n:''}`,'w');
+    addLog(`${cave.i}${cf}F ${S.enemy.name} 撃破 ${droppedNames.join(' ')}`,'w');
   }
 
   // ── 洞窟クリア判定（エンドコンテンツ「無限塔」以外は maxF 到達でクリア＆クリア報酬授与）──
@@ -9268,109 +9188,20 @@ function render(fdt){
     e.lastStall = n.stall?n.why:'';
     e.lastRx = rxSig;
     e.nf.textContent = n.stall
-        ? (T.stat && expMiss(n) ? `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（人タイプへ配線）`
-           : (T.outs && T.outs.wood && /廃材/.test(n.why||'')
-              ? '停止：'+n.why+'（⚡で動く第1世代の施設を残すと廃材が出ます）'
-              : '停止：'+n.why))
+        ? (T.stat && expMiss(n) ? `⚠ ${ITEMS[expMiss(n)].i}未配線` : `⚠ ${n.why||'停止'}`)
       : T.src ? srcFace(n)
-      : T.stat ? (expRouted(n)
-          ? (()=>{ const tgtH = trainTargetOf(n), stObj = statsOf(tgtH), exObj = expOf(tgtH);
-              return `稼働中 → ${ITEMS[EXP_OF[T.stat]].i}（${tierOf(tgtH).n}の+1まで あと${Math.max(1, expNeed(stObj[T.stat]||0) - (exObj[T.stat]||0))}回）`; })()
-          : `⚠ ${ITEMS[expMiss(n)].i}の戻し先がない（人タイプへ配線）`)
-      : T.effect==='equip' ? `装備を製作中（${n.gain||0}個）`
-      : T.effect==='raid'? (n.clear
-          ? `✨ クリア！ タップで受け取る（+${fmt((n.reward||{}).g||0)}G ほか）`
-          : (()=>{ const hp=Math.max(0,n.hp||0), mx=n.hpMax||1;
-              return `残り ${fmt(hp)} / ${fmt(mx)}（あと${Math.ceil(hp/Math.max(1,atk()))}回）`; })())
-      : T.effect==='extr'  ? `🧬魔獣抽出中 → ⚡＋経験値＋🔬累計 ${fmt(n.gain||0)}`
-      : T.effect==='turret'? `🗼支援砲撃＆敵再生封印中（累計 -${fmt(n.gain||0)} HP）`
-      : T.effect==='synt'  ? `🏺遺物・装備・強化パーツ錬成中（${n.gain||0}回）`
-      : T.effect==='altar' ? `⛩️祝福の祈り → 恒久攻撃力＋🔬累計 ${fmt(n.gain||0)}`
-      : T.effect==='dive'? (()=>{ const k=lootItem(n), c=n.outBuf[k]||0, m=capOut(n,k);
-          const cv = curCave(), cf = S.caveFloor||1;
-          return `${cv.i}${cv.n} ${cf}${cv.infinite?'F':'/'+cv.maxF+'F'} → ${n.done}回（${ITEMS[k].i}${fmt(c)}/${fmt(m)}）`; })()
-      : T.effect==='lab' ? `🔬累計 ${fmt(n.gain||0)}`
-          + (n.item?`／${ITEMS[n.item].i}1つ→🧱${fmt(itemVal(n.item)*matMul(n))}＋🔬${fmt(itemVal(n.item)*matRp(n))}`
-                   :'／素材を選ぶと🧱と🔬が増える')
-      : T.tool ? (n.item ? `${ITEMS[n.item].i}を ×${T.mul} に増幅中` : '対象の素材を選んでください')
-      : T.ware ? `倉庫 ${wareKinds(n).length}/${T.kinds||8}種 ${fmt(wareTotal(n))}個`
-                 + `（出す口 ${storeItems(n).length}/${T.slots}）`
-      : T.store ? (storeItems(n).length
-          ? `貯蔵中 ${storeItems(n).length}/${T.slots} スロット（各 ${fmt(capIn(n,'x'))}個まで）`
-          : `空き ${T.slots} スロット／素材をここへ繋ぐと自動で入ります`)
-      : T.lin  ? (()=>{
-          const stuck = Object.keys(n.outBuf).filter(k => (n.outBuf[k]||0) > 0
-            && !S.links.some(l => l.from===n.id && l.item===k));
-          return stuck.length ? `⚠ ${stuck.map(k=>ITEMS[k].n).join('・')} の行き先がない（中のノードへ配線）`
-                              : '外から届いたものがここに出る';
-        })()
-      : T.lout ? (()=>{ const L=N(n.layer); if(!L) return '外へ出すものを選んでください';
-          const ks = layerOutList(L);
-          return ks.length ? `ここに入れると外へ出る（${ks.map(k=>ITEMS[k].i+ITEMS[k].n).join('・')}）`
-                           + `／枠 ${ks.length}/${loutSlots(L)}`
-                           : `外へ出すものを選んでください（枠 ${loutSlots(L)}）`; })()
-      : T.layer ? (()=>{
-          const lo = loutOf(n), ks = layerOutList(n);
-          const miss = ks.filter(k => lo && !S.links.some(l=>l.to===lo.id && l.item===k));
-          return `${memCount(n)}個をまとめている`
-            + (!ks.length ? '／出口なし'
-               : miss.length ? `／⚠ ${miss.map(k=>ITEMS[k].n).join('・')} が🚪出口に繋がっていない`
-               : `／出口 ${ks.map(k=>ITEMS[k].i+ITEMS[k].n).join('・')}`);
-        })()
-      : T.chain==='hout' ? (n.item
-          ? `🏠${ITEMS[n.item].n}を搬出中（自宅に ${fmt(Math.floor(homeOf()[n.item]||0))}）`
-          : '出すものを選んでください')
-      : T.chain==='open' ? (n.item ? `${ITEMS[n.item].n}を開封中（${n.gain||0}個）→ 中身は自宅へ`
-                                    : '開ける箱を選んでください')
-      : T.chain==='alloy' ? (n.item ? `${ITEMS[n.item].n}＋${ITEMS[CHAIN[tierIdx(n.item)+1].ingot].n} → ${ITEMS[alloyOf(tierIdx(n.item)+1)].n}` : '混ぜる地金を選んでください')
-      : T.chain==='anvil' ? (n.item
-          ? `⚔️${gearName(n.item)} を鍛錬中（${n.gain||0}打）` : '鍛える装備を選んでください')
-      : T.chain==='equip' ? (n.item ? `${ITEMS[n.item].n}の装備を製作中（${n.gain||0}個）` : '作る装備を選んでください')
-      : T.chain==='fund' ? `${fmt(fundGold(n))}G → 🔬${fmt(fundRp(n))}（累計 🔬${fmt(n.gain||0)}）`
-      : T.outs && T.outs.wood ? `🗑廃材 → 🪵薪（⚡で動く第1世代の施設が廃材の出し手）`
-      : T.chain==='comp' ? (n.item ? `${ITEMS[n.item].n}を圧縮中` : '圧縮する素材を選んでください')
-      : T.chain==='decomp' ? (n.item ? `分解中 → 🔬累計 ${fmt(n.gain||0)}` : '分解する素材を選んでください')
-      : T.chain==='sell' ? (n.sellK
-          ? `${ITEMS[n.sellK].n}を販売中 → 💰累計 ${fmt(n.gain||0)}`
-          : `受け入れ ${storeItems(n).length}/${T.slots}種 → 💰累計 ${fmt(n.gain||0)}`)
-      : T.chain==='clean' ? (n.item ? `${ITEMS[n.item].i}を処理中` : '片付ける副産物を選んでください')
-      : T.chain==='fuel' ? (n.item ? `${ITEMS[n.item].i}を燃やして ⚡${fmt(fuelOut(n))}` : '燃やす副産物を選んでください')
-      : T.chain ? (chainOf(n)
-          ? `${ITEMS[n.item].i}${ITEMS[n.item].n} を処理中`
-          : '扱う素材を選んでください')
-      : T.aura ? (T.aura.k==='clean' ? `まわりの汚染を抑えている（強さ ${T.aura.v}）`
-                                      : `まわりを速くしている（+${Math.round(T.aura.v*100)}%）`)
-      : T.cleanEnergy ? `🌱クリーン発電中（汚染発生なし）`
+      : T.stat ? (expRouted(n) ? `→ ${ITEMS[EXP_OF[T.stat]].i}` : `⚠ ${ITEMS[expMiss(n)].i}未配線`)
+      : T.effect==='raid' ? (n.clear ? `✨クリア! タップ受取` : `HP ${fmt(Math.max(0,n.hp||0))}/${fmt(n.hpMax||1)}`)
+      : T.effect==='dive' ? `${curCave().i}${S.caveFloor||1}F (${n.done||0}回)`
+      : T.effect==='lab'  ? `🔬+${fmt(n.gain||0)}`
+      : T.chain==='sell'  ? `💰+${fmt(n.gain||0)}G`
+      : T.ware ? `${wareKinds(n).length}/${T.kinds||8}種 (${fmt(wareTotal(n))})`
+      : T.store ? `${storeItems(n).length}/${T.slots}枠`
+      : T.layer ? `${memCount(n)}個収納`
+      : (T.chain && !n.item && T.chain!=='fund') ? '⚠素材未選択'
       : '稼働中';
-    const pt = powerTypeOf(n);
-    if(!T.src && !T.layer && !T.port && !T.raid && !T.cleanEnergy && !n.stall){
-      if(pt === 'human' || pt === 'clean') e.nf.textContent += '　🌱クリーン';
-    }
-    if(n._rxQuench) e.nf.textContent += '　💨🔥焼き入れ';
-    if(n._rxOverload) e.nf.textContent += `　⚡過負荷×4.0(耐久${Math.ceil(n.hpDur??100)}%)`;
-    if(n._rxBerserk)  e.nf.textContent += `　⚡😡過負荷バーサーク×4.0`;
-    if(n._inLoop) e.nf.textContent += `　🔄共鳴(${Math.min(100,Math.round((n.resLoop||0)*100))}%)`;
-    if(n._rxCatW) e.nf.textContent += '　✨職人触媒';
-    if(n._rxCatR) e.nf.textContent += '　🧬研究触媒';
-    if(n._rxCorrosion) e.nf.textContent += `　🧪強酸腐食(耐久${Math.ceil(n.hpDur??100)}%)`;
-    if(n._rxCurse)     e.nf.textContent += '　👁️深淵呪詛';
-    if((n.activeReactions||[]).includes('hazard_purify')) e.nf.textContent += '　🌬️✨ハザード浄化中';
-    if((n.activeReactions||[]).includes('mad_science'))   e.nf.textContent += '　👑🔬狂科学精製';
-    if((n.activeReactions||[]).includes('blast_cannon'))  e.nf.textContent += '　💥🎯ブラストキャノン';
-    if((n.activeReactions||[]).includes('shatter_strike'))e.nf.textContent += '　❄️🔨砕氷撃';
-    if((n.activeReactions||[]).includes('napalm_burst'))  e.nf.textContent += '　🔥💥ナパーム爆炎';
-    if(n._rxCaveBackflow) e.nf.textContent += '　🌋⬆️逆流活用×2.2';
-    if(n._quantumEra3)    e.nf.textContent += '　🌌📡量子給電＆ワープ';
-    else if(n._wirelessEra2) e.nf.textContent += '　⚡📡高圧ワイヤレス';
-    if(n._formTriangle)   e.nf.textContent += '　🔺プラズマ共鳴(RP×3.5)';
-    if(n._formThermal)    e.nf.textContent += '　☯️熱冷陣(速度×2.5)';
-    if(n._formCamp)       e.nf.textContent += '　⛺前線陣(速度×2.5)';
-    if(n._formLine)       e.nf.textContent += '　📏直線陣(速度×2.2・産出+1)';
-    if((n.inTags && n.inTags.SHOCKWAVE) && (T.line==='comp' || T.store)) e.nf.textContent += '　💥💎爆風クラフト';
-    if((n.pol||0) >= POL_EXPLODE_TH) e.nf.textContent += `　💥爆発危険(${Math.round(n.pol*100)}%)`;
-    else if((n.pol||0) > 0.05) e.nf.textContent += `　☣汚染${Math.round(n.pol*100)}%`;
-    else if((n.spd||1) > 1.01) e.nf.textContent += `　⚡加速+${Math.round((n.spd-1)*100)}%`;
-    if(prioOf(n)>1) e.nf.textContent += `　優先${prioOf(n)}`;
+    if((n.pol||0) >= POL_EXPLODE_TH) e.nf.textContent += ` 💥${Math.round(n.pol*100)}%`;
+    else if((n.pol||0) > 0.05) e.nf.textContent += ` ☣${Math.round(n.pol*100)}%`;
     }
     if(e.lastPol !== pv){
       e.lastPol = pv;
@@ -9566,20 +9397,20 @@ function render(fdt){
   const compNEl = $('#compN');
   if(compNEl) compNEl.textContent = roster.length;
   const sideCompCountEl = $('#sideCompCount');
-  if(sideCompCountEl) sideCompCountEl.textContent = `${roster.length}人（盤面配置 ${depCompN}人）`;
+  if(sideCompCountEl) sideCompCountEl.textContent = `${roster.length}人 (${depCompN}配置)`;
   const sideStrikeCountEl = $('#sideStrikeCount');
   if(sideStrikeCountEl){
-    sideStrikeCountEl.textContent = strikeCompN > 0 ? `🪧 ${strikeCompN}人 ストライキ中` : `0人（順調稼働中）`;
+    sideStrikeCountEl.textContent = strikeCompN > 0 ? `🪧${strikeCompN}人スト` : `0人`;
     sideStrikeCountEl.style.color = strikeCompN > 0 ? '#f87171' : '#5ee0c0';
   }
   const sideScoutCostEl = $('#sideScoutCost');
-  if(sideScoutCostEl) sideScoutCostEl.textContent = `${fmt(scCost)} G`;
+  if(sideScoutCostEl) sideScoutCostEl.textContent = `${fmt(scCost)}G`;
   const shopScoutSubEl = $('#shopScoutSub');
-  if(shopScoutSubEl) shopScoutSubEl.textContent = `一般スカウト ${fmt(scCost)}G〜 ／ 在籍 ${roster.length}人 (出撃${depCompN}人)`;
+  if(shopScoutSubEl) shopScoutSubEl.textContent = `${roster.length}人 (${fmt(scCost)}G)`;
   const pLpTxt = $('#pLpTxt');
   if(pLpTxt){
-    const recRem = (S.lp < (S.maxLp||3)) ? ` (自然回復あと${Math.max(1, Math.ceil(LP_RECOV_SEC - (S.lpRecovT||0)))}秒)` : '';
-    pLpTxt.textContent = `❤️ 探索隊LP: ${S.lp ?? 3}/${S.maxLp ?? 3} ｜ HP:${Math.round(S.partyHp ?? 120)}/${S.partyMaxHp ?? 120}${recRem}`;
+    const recRem = (S.lp < (S.maxLp||3)) ? ` (${Math.max(1, Math.ceil(LP_RECOV_SEC - (S.lpRecovT||0)))}s)` : '';
+    pLpTxt.textContent = `❤️LP ${S.lp ?? 3}/${S.maxLp ?? 3} HP:${Math.round(S.partyHp ?? 120)}${recRem}`;
     pLpTxt.style.color = (S.lp <= 0) ? '#ff5c5c' : '#ff8fa3';
   }
   const lpBan = $('#lpExhaustBanner');
@@ -9589,41 +9420,36 @@ function render(fdt){
     const gPow = totalEquippedGearPower();
     const gReady = hasGearOrTacticalReady();
     if(gReady){
-      gBadge.textContent = gPow > 0
-        ? `🎽 装備展開中 (装備倍率 ×${gearMul('firm').toFixed(2)} / 効き合計 ${gPow.toFixed(1)})`
-        : `🧪 戦術支援稼働中 (装備未装着・属性/砲撃支援で突破可能)`;
+      gBadge.textContent = gPow > 0 ? `🎽 装備 ×${gearMul('firm').toFixed(1)}` : `🧪 戦術支援中`;
       gBadge.style.color = '#5ee0c0';
       gBadge.style.borderColor = 'rgba(94,224,192,.4)';
     }else{
-      gBadge.textContent = `⚠️ 未装備・無支援 (Strict Gear Check: このまま潜ると1ダメージ＆敗北必至！)`;
+      gBadge.textContent = `⚠️ 未装備 (要装備/支援)`;
       gBadge.style.color = '#ff8a8a';
       gBadge.style.borderColor = 'rgba(255,92,92,.5)';
     }
   }
   const dt=depthTier();
-  $('#oSteps').textContent=`第${S.era||1}時代/${depthTier()}段`;
-  $('#oRate').textContent='実時間の '+Math.round(offRate()*100)+'%';
+  $('#oSteps').textContent=`第${S.era||1}世代/${depthTier()}段`;
+  $('#oRate').textContent=Math.round(offRate()*100)+'%';
   const ch=offCapH(), chH=Math.floor(ch), chM=Math.round((ch-chH)*60);
-  $('#oCap').textContent = chH+'時間'+(chM?chM+'分':'');
-  $('#oNext').textContent = ((S.era||1) < ERA_MAX ? `第${(S.era||1)+1}時代へ / ` : '')
-    + `第${(dt+1)*BOSS_EVERY}層 踏破`;
-  $('#dTier').textContent=dt+'段階';
+  $('#oCap').textContent = chH+'h'+(chM?chM+'m':'');
+  $('#oNext').textContent = `${(dt+1)*BOSS_EVERY}F`;
+  $('#dTier').textContent=dt+'段';
   $('#dBonus').textContent='×'+depthBonus().toFixed(2);
-  $('#dNext').textContent='第'+((dt+1)*BOSS_EVERY)+'層';
-  // ⚡は主人公（と仲間・発電機）が作る。主人公の手持ちと全体の収支を見せる
+  $('#dNext').textContent=((dt+1)*BOSS_EVERY)+'F';
   const pr=rateOf('sta'), net=pr.i-pr.o;
   $('#hName').textContent = S.name || ITEMS.sta.n;
-  $('#hSta').textContent = `${fmt(sta)} / ${fmt(mx)}`;
+  $('#hSta').textContent = `${fmt(sta)}/${fmt(mx)}`;
   $('#hStaBar').style.width = Math.min(100, sta/Math.max(1,mx)*100)+'%';
   $('#hRegen').textContent = hero
-    ? `${(1/staRate(hero)).toFixed(2)} /秒（収支 ${sign(net)}/分）`
-    : `+${fmtR(pr.i)} − ${fmtR(pr.o)} = ${sign(net)}`;
+    ? `${(1/staRate(hero)).toFixed(1)}/s (${sign(net)}/m)`
+    : `${sign(net)}/m`;
   $('#hAtk').textContent=fmt(atk());
   $('#sStr').textContent=S.stats.str; $('#sInt').textContent=S.stats.int; $('#sVit').textContent=S.stats.vit;
-  // 能力値がどう溜まっているか。棒＋「次の+1まで」＋いまの入り
-  $('#eStr').textContent = `攻撃 ×${(1 + S.stats.str*0.15).toFixed(2)}`;
-  $('#eInt').textContent = `速さ ×${intBoost().toFixed(2)}`;
-  $('#eVit').textContent = `⚡ ×${fmt(Math.pow(VIT_K, S.stats.vit))}`;
+  $('#eStr').textContent = `×${(1 + S.stats.str*0.15).toFixed(2)}`;
+  $('#eInt').textContent = `×${intBoost().toFixed(2)}`;
+  $('#eVit').textContent = `×${fmt(Math.pow(VIT_K, S.stats.vit))}`;
   const asc = (S.stats && S.stats.asc) || 0;
   const isAscOn = asc > 0 || ((S.demonGemsSacrificed && S.demonGemsSacrificed.length > 0)) || S.stats.str >= 35 || S.stats.int >= 35 || S.stats.vit >= 35;
   const rowAsc = $('#rowAsc');
@@ -9631,50 +9457,44 @@ function render(fdt){
     rowAsc.style.display = isAscOn ? '' : 'none';
     if(isAscOn){
       $('#sAsc').textContent = Math.floor(asc);
-      $('#eAsc').textContent = `全域 ×${(1 + asc * 0.10).toFixed(2)}`;
+      $('#eAsc').textContent = `×${(1 + asc * 0.10).toFixed(2)}`;
     }
   }
   const exRow = (st, bar, note) => {
     const e = (S.exp && S.exp[st]) || 0, nd = expNeed(S.stats[st]);
-    const r = exRate[st] || 0;                     // 1分あたりの入り
+    const r = exRate[st] || 0;
     $(bar).style.width = Math.min(100, e/nd*100) + '%';
     const per = r > 0 ? (r>=10 ? Math.round(r) : r.toFixed(1)) : 0;
-    const eta = r > 0 ? `／あと ${hmsShort((nd - e) / (r/60))}` : '';
-    $(note).innerHTML = `次の+1まで <b>${e}/${nd}</b>`
-      + (r > 0 ? `　+${per}/分${eta}` : `　<span class="no">入ってきていない</span>`);
+    $(note).innerHTML = `<b>${e}/${nd}</b>` + (r > 0 ? ` +${per}/m` : ``);
   };
   exRow('str', '#xStr', '#rStr');
   exRow('int', '#xInt', '#rInt');
   exRow('vit', '#xVit', '#rVit');
-  // 経験値がちゃんと主人公へ戻っているか
   const srcs = S.nodes.filter(n=>TYPES[n.type].src);
   const backs = S.links.filter(l=>STAT_OF[l.item] && srcs.some(n=>n.id===l.to)).length;
   const trains = S.nodes.filter(n=>TYPES[n.type].stat).length;
   const rEx = $('#rowEx'), hEx = $('#hExIn');
   const tot = exRate.str + exRate.int + exRate.vit;
-  if(!trains){ hEx.textContent='訓練がまだない'; rEx.classList.remove('warn'); }
-  else if(!backs){ hEx.textContent='戻し先がない'; rEx.classList.add('warn'); }
+  if(!trains){ hEx.textContent='なし'; rEx.classList.remove('warn'); }
+  else if(!backs){ hEx.textContent='未配線'; rEx.classList.add('warn'); }
   else {
     rEx.classList.remove('warn');
     const g=exTotal();
-    hEx.textContent = `💪${fmt(g.str)} 🧠${fmt(g.int)} ❤️${fmt(g.vit)}`
-      + (tot>0 ? `　+${tot>=10?Math.round(tot):tot.toFixed(1)}/分` : '');
+    hEx.textContent = `💪${fmt(g.str)} 🧠${fmt(g.int)} ❤️${fmt(g.vit)}`;
   }
   $('#troN').textContent = TROPHY.filter(t=>troHas(t.k)).length;
   setCls($('#bTro'),'tro', troSum()>0);
-  // 複合化が使える時代になったら、ボタンを出す
   const bc = $('#bComb');
   if(bc){ const on = S.nodes.some(canComb); if(bc.hidden === on) bc.hidden = !on; }
-  // 研究の在庫
   $('#rDev').textContent = devCount()+'種';
   $('#rRp').textContent  = fmt(gotRp());
   $('#rMat').textContent = fmt(gotMat());
   const labs = S.nodes.filter(n=>TYPES[n.type].effect==='lab');
   $('#rSpd').textContent = labs.length
-    ? '🔬'+fmt(labs.reduce((a,n)=>a + rpGain(n)/Math.max(1e-6,craftTime(n)) * 60, 0))+' /分'
-    : '研究所がない';
+    ? '🔬'+fmt(labs.reduce((a,n)=>a + rpGain(n)/Math.max(1e-6,craftTime(n)) * 60, 0))+'/m'
+    : '0/m';
   $('#rNext').textContent = nextResearchText();
-  $('#rEra').textContent = `${eraName(S.era||1).i}${eraName(S.era||1).n}（第${S.era||1}世代）`;
+  $('#rEra').textContent = `${eraName(S.era||1).i}第${S.era||1}世代`;
   if(S.enemy){
     const z = curCave();
     const cf = S.caveFloor || 1;
@@ -9688,8 +9508,8 @@ function render(fdt){
         cSel.innerHTML = CAVES.map(c => {
           const open = isCaveUnlocked(c.id);
           const cl = caveClearsOf(c.id);
-          const sub = c.infinite ? '∞層・エンドコンテンツ' : `全${c.maxF}層${cl>0?'・★'+cl+'回踏破':'・初回報酬10倍'}`;
-          return `<option value="${c.id}" ${open?'':'disabled'}>${open?c.i:'🔒'} ${c.n}（${sub}）</option>`;
+          const sub = c.infinite ? '∞F' : `${c.maxF}F${cl>0?' ★'+cl:''}`;
+          return `<option value="${c.id}" ${open?'':'disabled'}>${open?c.i:'🔒'} ${c.n} (${sub})</option>`;
         }).join('');
         cSel.onchange = () => selectCave(cSel.value);
       }
@@ -9698,13 +9518,13 @@ function render(fdt){
     const cBadge = $('#caveClearBadge');
     if(cBadge){
       if(z.infinite){
-        cBadge.textContent = '🗼 エンドコンテンツ（階層上限なし）';
+        cBadge.textContent = '🗼 ∞F';
         cBadge.style.color = '#5ee0c0';
       }else if(clears === 0){
-        cBadge.textContent = '🎁 初回クリア報酬 10倍！';
+        cBadge.textContent = '🎁 初回×10';
         cBadge.style.color = '#facc15';
       }else{
-        cBadge.textContent = `🔄 周回中（${clears}回踏破・報酬等倍・敵強化×${(1+clears*0.55).toFixed(2)}）`;
+        cBadge.textContent = `🔄 ★${clears}`;
         cBadge.style.color = '#93c5fd';
       }
     }
@@ -9712,39 +9532,38 @@ function render(fdt){
     if(rwRow && rwTitle && rwVal){
       if(z.infinite || !z.rw){
         rwRow.hidden = false;
-        rwTitle.textContent = '🗼 無限塔特典';
-        rwVal.textContent = `🌌星淵の秘石 ＆ 深層スコア無制限更新`;
+        rwTitle.textContent = '報酬';
+        rwVal.textContent = `🌌星淵の秘石`;
       }else{
         rwRow.hidden = false;
         const mul = clears === 0 ? 10 : 1;
-        rwTitle.textContent = clears === 0 ? `🏆 初回踏破報酬(10倍)` : `🔄 周回踏破報酬(等倍)`;
-        const facTxt = (clears === 0 && z.unlockFac && TYPES[z.unlockFac]) ? ` ＋ 🛠️${TYPES[z.unlockFac].n}解放` : '';
-        rwVal.textContent = `💰${fmt(z.rw.g*mul)}G 🔬${fmt(z.rw.rp*mul)} 🧱${fmt(z.rw.mat*mul)} ${ITEMS[z.rw.item].i}×${z.rw.q*mul}${facTxt}`;
+        rwTitle.textContent = `報酬`;
+        rwVal.textContent = `💰${fmt(z.rw.g*mul)}G 🔬${fmt(z.rw.rp*mul)} 🧱${fmt(z.rw.mat*mul)} ${ITEMS[z.rw.item].i}×${z.rw.q*mul}`;
       }
     }
     $('#zIc').textContent=z.i; $('#zName').textContent=z.n; $('#zName').style.color=z.c;
     $('#zFloor').textContent = z.infinite
-      ? `第${cf}層 (無限)${isBoss(S.floor)?' ★節目':''}`
-      : `第${cf} / ${z.maxF}層${cf===z.maxF?' 👑最終BOSS':isBoss(S.floor)?' ★節目':''}`;
+      ? `${cf}F (∞)`
+      : `${cf}/${z.maxF}F${cf===z.maxF?' 👑':''}`;
     $('#eIc').textContent=S.enemy.icon;
     const stIcons = (brx.cryo?'❄️':'') + (brx.heat?'🔥':'') + (brx.pol?'☣️':'') + (brx.shatter?'🔨':'') + ((S.enemy._noRegen>0)?'🚫':'');
     $('#eName').textContent=S.enemy.name + (stIcons ? ' '+stIcons : '');
     $('#eHp').textContent=`${fmt(Math.max(0,Math.round(S.enemy.hp)))} / ${fmt(S.enemy.max)}`;
     $('#eHpBar').style.width=Math.max(0,S.enemy.hp/S.enemy.max*100)+'%';
     const effArm = Math.round(enemyArm(S.floor) * effArmorFactor());
-    $('#eArm').textContent = effArm < enemyArm(S.floor) ? `${fmt(effArm)} (元${fmt(enemyArm(S.floor))})` : fmt(enemyArm(S.floor));
+    $('#eArm').textContent = fmt(effArm);
     const cut=Math.round(100 - 100*100/(100+effArm*ARMOR_K));
-    $('#eDmg').textContent=fmt(dmg())+`（装甲で -${cut}%）`;
-    $('#eHits').textContent=fmt(hitsLeft())+' 回';
-    $('#eGold').textContent=fmt(enemyGold(S.floor))+' G ＋ '+(ITEMS[z.drop]?ITEMS[z.drop].i+ITEMS[z.drop].n:'');
+    $('#eDmg').textContent=fmt(dmg())+` (-${cut}%)`;
+    $('#eHits').textContent=fmt(hitsLeft())+'回';
+    $('#eGold').textContent=fmt(enemyGold(S.floor))+'G '+(ITEMS[z.drop]?ITEMS[z.drop].i:'');
     const eWeakEl = $('#eWeak');
     if(eWeakEl){
       const eIdx = Math.min((z.e && z.e.length ? z.e.length - 1 : 0), Math.floor(((cf - 1) / Math.max(1, z.maxF || 20)) * ((z.e && z.e.length) || 5)));
       const meta = monsterMetaOf(z, eIdx);
       const arch = meta.arch;
       const gim = S.enemy && S.enemy.gimmick;
-      const gimHtml = gim ? `<div style="margin-top:3px;padding:3px 6px;border-radius:4px;background:rgba(250,204,21,.12);border:1px solid ${gim.c};color:#fde68a;font-size:10.5px"><b>🧩${gim.n}:</b> ${gim.d}</div>` : '';
-      eWeakEl.innerHTML = `<span style="color:${arch.c}">${arch.n}</span> ／ 弱点: <b>${arch.weak.map(w => REACTION_TAGS[w] ? REACTION_TAGS[w].i+REACTION_TAGS[w].n : w).join('・')}</b>` + gimHtml;
+      const gimHtml = gim ? ` ｜ <span style="color:#fde68a">🧩${gim.n}</span>` : '';
+      eWeakEl.innerHTML = `<span style="color:${arch.c}">${arch.n}</span> 弱点:<b>${arch.weak.map(w => REACTION_TAGS[w] ? REACTION_TAGS[w].i : w).join('')}</b>` + gimHtml;
     }
     const scBox = $('#scoutBox'), scTxt = $('#scoutTxt'), scBtn = $('#btnScout');
     if(scBox && scTxt && scBtn){
@@ -9753,8 +9572,8 @@ function render(fdt){
       if(nextLocked){
         scBox.style.display = 'flex';
         const costG = Math.round(150 * Math.pow(3.2, Math.max(0, (nextLocked.era||1) - 1)));
-        scTxt.textContent = `🧭 新洞窟発見: ${nextLocked.i}${nextLocked.n}（斥候派遣でルート開拓）`;
-        scBtn.textContent = `🧭 斥候派遣 (${fmt(costG)}G)`;
+        scTxt.textContent = `🧭 ${nextLocked.i}${nextLocked.n}`;
+        scBtn.textContent = `開拓 (${fmt(costG)}G)`;
         scBtn.dataset.cid = nextLocked.id;
       }else{
         scBox.style.display = 'none';
@@ -9770,49 +9589,46 @@ function render(fdt){
     const envEl = $('#eEnvTags'), envRow = $('#eEnvRow');
     if(envEl && envRow){
       const envs = [];
-      if(brx.cryo) envs.push('<span class="rx-tag" style="--tc:#45d6ff">❄️氷結・脆化(被ダメ×1.5)</span>');
-      if(brx.heat) envs.push('<span class="rx-tag" style="--tc:#ff5c38">🔥高熱・装甲貫通(-70%)</span>');
-      if(brx.pol)  envs.push('<span class="rx-tag" style="--tc:#c084fc">☣️猛毒霧(毎秒6%削り)</span>');
-      if(brx.cannon) envs.push('<span class="rx-tag" style="--tc:#ff3b5c">💥支援砲撃余波</span>');
+      if(brx.cryo) envs.push('<span class="rx-tag" style="--tc:#45d6ff">❄️氷結</span>');
+      if(brx.heat) envs.push('<span class="rx-tag" style="--tc:#ff5c38">🔥高熱</span>');
+      if(brx.pol)  envs.push('<span class="rx-tag" style="--tc:#c084fc">☣️毒霧</span>');
+      if(brx.cannon) envs.push('<span class="rx-tag" style="--tc:#ff3b5c">💥砲撃</span>');
       envRow.hidden = !envs.length;
       envEl.innerHTML = envs.join('');
     }
     const cbEl = $('#eComboTags'), cbRow = $('#eComboRow');
     if(cbEl && cbRow){
       const cbs = [];
-      if(brx.cannon)       cbs.push('<span class="rx-tag" style="--tc:#ff3b5c">💥🎯ブラストキャノン</span>');
-      if(brx.shatter)      cbs.push('<span class="rx-tag" style="--tc:#38bdf8">❄️🔨砕氷撃(×2.2・装甲破砕)</span>');
-      if(brx.napalm)       cbs.push('<span class="rx-tag" style="--tc:#f97316">🔥💥ナパーム爆炎(×1.6・炎上DoT)</span>');
-      if(brx.berserk)      cbs.push('<span class="rx-tag" style="--tc:#e11d48">⚡😡過負荷バーサーク(速度×4・火力×2.5)</span>');
-      if(brx.formCamp)     cbs.push('<span class="rx-tag" style="--tc:#facc15">⛺⚔️前線遠征キャンプ陣形(速度×2.5・HP×2)</span>');
-      if(brx.trashCounter) cbs.push('<span class="rx-tag" style="--tc:#a3e635">♻️💥逆噴射カウンター(×5.0)</span>');
+      if(brx.cannon)       cbs.push('<span class="rx-tag" style="--tc:#ff3b5c">💥キャノン</span>');
+      if(brx.shatter)      cbs.push('<span class="rx-tag" style="--tc:#38bdf8">❄️🔨砕氷</span>');
+      if(brx.napalm)       cbs.push('<span class="rx-tag" style="--tc:#f97316">🔥💥爆炎</span>');
+      if(brx.berserk)      cbs.push('<span class="rx-tag" style="--tc:#e11d48">⚡😡過負荷</span>');
+      if(brx.formCamp)     cbs.push('<span class="rx-tag" style="--tc:#facc15">⛺陣形</span>');
+      if(brx.trashCounter) cbs.push('<span class="rx-tag" style="--tc:#a3e635">♻️逆噴射</span>');
       cbRow.hidden = !cbs.length;
       cbEl.innerHTML = cbs.join('');
     }
     const hzEl = $('#eHazTags'), hzRow = $('#eHazRow');
     if(hzEl && hzRow){
       const hzs = [];
-      if(brx.hazCorrosion) hzs.push('<span class="rx-tag" style="--tc:#84cc16">🧪腐食粘液逆流中</span>');
-      if(brx.hazCurse)     hzs.push('<span class="rx-tag" style="--tc:#a855f7">👁️深淵瘴気逆流中</span>');
-      if(brx.hazPurified)  hzs.push('<span class="rx-tag" style="--tc:#5ee0c0">🌬️✨浄化中和稼働</span>');
-      if(brx.madScience)   hzs.push('<span class="rx-tag" style="--tc:#facc15">👑🔬狂科学・深淵遺物精製</span>');
+      if(brx.hazCorrosion) hzs.push('<span class="rx-tag" style="--tc:#84cc16">🧪腐食</span>');
+      if(brx.hazCurse)     hzs.push('<span class="rx-tag" style="--tc:#a855f7">👁️呪詛</span>');
+      if(brx.hazPurified)  hzs.push('<span class="rx-tag" style="--tc:#5ee0c0">🌬️浄化</span>');
+      if(brx.madScience)   hzs.push('<span class="rx-tag" style="--tc:#facc15">👑狂科学</span>');
       hzRow.hidden = !hzs.length;
       hzEl.innerHTML = hzs.join('');
     }
   }
   const al=$('#alert');
   if(jam){ al.classList.add('on');
-    al.innerHTML = /廃材/.test(jam.w)
-      ? `${jam.i} <b>${jam.n}</b> が<b>廃材</b>で詰まって停止中。<br>♻️廃棄場に ⚡体力 と 🗑️廃材 を送って片付けてください。`
-      : `${jam.i} <b>${jam.n}</b> が「${jam.w}」で停止中。<br>出力の行き先を作るか、配線を繋いでください。`; }
+    al.innerHTML = `⚠️ ${jam.i}<b>${jam.n}</b>: ${jam.w}`; }
   else if(farAlert){ al.classList.add('on');
-    al.innerHTML = `🚫 ${farAlert.i} <b>${farAlert.n}</b> が<b>人の行動範囲（${HUMAN_R}px）の外</b>にあるため起動できません。<br>施設または🧍主人公・仲間をドラッグして、<b>金色の点線円の中</b>に入れてください（🔌発電機なら距離制限なし）。`; }
+    al.innerHTML = `🚫 ${farAlert.i}<b>${farAlert.n}</b>: 人の行動範囲外 (🔌発電機なら距離無制限)`; }
   else al.classList.remove('on');
   const oc=offscreenCount(), ob=$('#offscr');
   ob.classList.toggle('on', oc>0);
-  if(oc>0) ob.textContent=`⤢ ${oc}個のノードが画面外です — クリックで全体表示`;
+  if(oc>0) ob.textContent=`⤢ 画面外 ${oc}`;
   if($('#tree').classList.contains('on')) renderTree();
-  $('#bCount').textContent=S.drops.length;
   $('#bCount').textContent = bagCount();
   renderShop(); renderInspLive(); renderRadialHud(); tutRender();
 }
@@ -9821,45 +9637,41 @@ function render(fdt){
 const shopEls={};
 function ioText(T){
   const f=o=>Object.keys(o||{}).filter(k=>ITEMS[k]).map(k=>ITEMS[k].i+(o[k]>1?'×'+o[k]:'')).join(' ');
-
-  if(T.chain==='comp') return `素材×${COMP_TAKE}<span class="ar">→</span>1段上×1（段の上限なし）`;
-  if(T.chain==='decomp') return `素材×${DECOMP_TAKE} ⚡<span class="ar">→</span>🔬研究ポイント＋🧱研究資材`;
-  if(T.lin)  return `レイヤーの外から<span class="ar">→</span>中へ`;
-  if(T.lout) return `中から<span class="ar">→</span>レイヤーの外へ`;
-  if(T.layer) return `まとめたノードのかたまり<span class="ar">→</span>出口はひとつだけ`;
-  if(T.chain==='hout')   return `🏠自宅から1つ ⚡<span class="ar">→</span>工房へ`;
-  if(T.chain==='open')   return `宝箱×1 ⚡<span class="ar">→</span>🏠自宅へ（素材・装備・ゴールド）`;
-  if(T.chain==='sell')   return `⚡があれば ${T.time}秒ごとに1個ずつ<span class="ar">→</span>💰ゴールド`;
-  if(T.chain==='fund')   return `💰ゴールド ⚡<span class="ar">→</span>🔬研究ポイント（割はとても悪い）`;
-  if(T.pay)              return `💰給料<span class="ar">→</span>⚡体力（払えなくなると止まる）`;
-  if(T.payRp)            return `🔬研究ポイント<span class="ar">→</span>⚡体力（尽きると止まる）`;
-  if(T.chain==='clean')  return `副産物×3 ⚡<span class="ar">→</span>消す`;
-  if(T.chain==='fuel')   return `副産物×4<span class="ar">→</span>⚡体力`;
+  if(T.chain==='comp') return `📦×${COMP_TAKE} <span class="ar">→</span> ⬆️×1`;
+  if(T.chain==='decomp') return `📦×${DECOMP_TAKE} ⚡ <span class="ar">→</span> 🔬 🧱`;
+  if(T.lin)  return `外 <span class="ar">→</span> 中`;
+  if(T.lout) return `中 <span class="ar">→</span> 外`;
+  if(T.layer) return `📦ノード圧縮`;
+  if(T.chain==='hout')   return `🏠⚡ <span class="ar">→</span> 📦搬出`;
+  if(T.chain==='open')   return `🎁⚡ <span class="ar">→</span> 🏠開封`;
+  if(T.chain==='sell')   return `📦⚡ <span class="ar">→</span> 💰売却`;
+  if(T.chain==='fund')   return `💰⚡ <span class="ar">→</span> 🔬研究`;
+  if(T.pay)              return `💰 <span class="ar">→</span> ⚡動力`;
+  if(T.payRp)            return `🔬 <span class="ar">→</span> ⚡動力`;
+  if(T.chain==='clean')  return `🗑️×3 ⚡ <span class="ar">→</span> 消去`;
+  if(T.chain==='fuel')   return `🗑️×4 <span class="ar">→</span> ⚡発電`;
   if(T.chain){
-    const m={ore:'⚡<span class="ar">→</span>原鉱＋🗑️',
-             ingot:'原鉱×2 ⚡<span class="ar">→</span>地金＋🗑️',
-             part:'地金×2 ⚡<span class="ar">→</span>部品＋🗑️×2',
-             equip:'部品×1 ＋ 地金×2<span class="ar">→</span>🎽装備をひとつ作る（時間も⚡も大きい）',
-             alloy:'地金×2 ＋ 1つ上の地金×1<span class="ar">→</span>合金＋🗑️',
-             anvil:'装備×1 ＋ 合金×2<span class="ar">→</span>一段鍛えた装備×1（伸びは鈍る）'};
+    const m={ore:'⚡ <span class="ar">→</span> 🪨 🗑️',
+             ingot:'🪨×2 ⚡ <span class="ar">→</span> 🟫 🗑️',
+             part:'🟫×2 ⚡ <span class="ar">→</span> ⚙️ 🗑️×2',
+             equip:'⚙️ 🟫×2 ⚡ <span class="ar">→</span> 🎽装備',
+             alloy:'🟫×2 ⬆️×1 ⚡ <span class="ar">→</span> 🔩 🗑️',
+             anvil:'🎽 🔩×2 ⚡ <span class="ar">→</span> ⚔️鍛錬'};
     return m[T.chain] || '—';
   }
-  if(T.effect==='extr')   return `⚡ ＋ 洞窟素材<span class="ar">→</span>⚡大出力 ＋ 💪🧠❤️経験値 ＋ 🔬研究分解`;
-  if(T.effect==='turret') return `⚡（＋弾薬素材）<span class="ar">→</span>🎯洞窟へ支援砲撃＆敵再生封印 ＋ 周囲加速`;
-  if(T.effect==='synt')   return `⚡（＋洞窟素材）<span class="ar">→</span>🛡️強化鋼・🏺遺物・🎽装備・⚙️強化パーツ錬成`;
-  if(T.effect==='altar')  return `⚡（＋秘石・遺物）<span class="ar">→</span>⚔️恒久攻撃力UP ＋ 🔬研究力 ＋ 周囲浄化`;
-  if(T.raid) return `⚡<span class="ar">→</span>裂け目を削る（閉じると確定で報酬）`;
-  if(T.loot) return `⚡<span class="ar">→</span>⚔️攻撃 ＋🎁戦利品・👾洞窟素材（${LOOT_CAP}個まで）`;
-  if(T.aura) return T.aura.k==='clean'
-    ? `⚡<span class="ar">→</span>半径${T.aura.r}の汚染を抑える（強さ ${T.aura.v}）`
-    : `⚡<span class="ar">→</span>半径${T.aura.r}の作業が +${Math.round(T.aura.v*100)}%`;
-  if(T.ware)  return `${T.kinds||8}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
-  if(T.store) return `${T.slots}種類 × ${fmt(T.cap)}個<span class="ar">まで</span>貯蔵`;
-  if(T.tool) return `素材×${T.take} ⚡×${T.sta}<span class="ar">→</span>素材×${Math.round(T.take*T.mul)}`;
-  const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?statName(T.stat):T.effect==='dive'?'⚔️攻撃':T.effect==='equip'?'🎽装備':T.effect==='lab'?'🔬研究力':'—');
-  return `${a}<span class="ar">→</span>${b}`;
+  if(T.effect==='extr')   return `👾⚡ <span class="ar">→</span> ⚡ 💪🧠❤️ 🔬`;
+  if(T.effect==='turret') return `⚡ <span class="ar">→</span> 🎯砲撃・加速`;
+  if(T.effect==='synt')   return `👾⚡ <span class="ar">→</span> 🏺🎽⚙️錬成`;
+  if(T.effect==='altar')  return `💎⚡ <span class="ar">→</span> ⚔️ 🔬 浄化`;
+  if(T.raid) return `⚡ <span class="ar">→</span> ⚔️討伐`;
+  if(T.loot) return `⚡ <span class="ar">→</span> ⚔️ 🎁`;
+  if(T.aura) return T.aura.k==='clean' ? `⚡ <span class="ar">→</span> 🌬️浄化` : `⚡ <span class="ar">→</span> ⚡周囲加速`;
+  if(T.ware)  return `📦${T.kinds||8}種×${fmt(T.cap)}`;
+  if(T.store) return `📦${T.slots}枠×${fmt(T.cap)}`;
+  if(T.tool) return `📦×${T.take} ⚡ <span class="ar">→</span> ×${T.mul}`;
+  const a=f(T.ins)||'—', b=f(T.outs)|| (T.stat?ITEMS[EXP_OF[T.stat]].i:T.effect==='dive'?'⚔️':T.effect==='equip'?'🎽':T.effect==='lab'?'🔬':'—');
+  return `${a} <span class="ar">→</span> ${b}`;
 }
-/* 建設リストは役割ごとに1枚。いま解放済みの中でいちばん新しい版が並ぶ */
 let SHOP_ROWS = ['hero'].concat(LINE_ORDER);
 function rowType(r){
   if(r==='hero') return 'hero';
@@ -9870,7 +9682,7 @@ function rowType(r){
     const k = r + f.e;
     if(f.e <= (S.era||1) && isDev(k)) best = f;
   }
-  return best ? r+best.e : null;      // 未アンロックの施設はnullを返しインベントリに表示しない
+  return best ? r+best.e : null;
 }
 function buildShop(){
   const box=$('#shopList'); if(!box) return;
@@ -9884,9 +9696,9 @@ function buildShop(){
     const unlocked = !!rowType(r) && isDev(t);
     const b=document.createElement('button');
     b.className='card';
-    b.hidden = !unlocked; // アンロックするまでインベントリには一切表示しない
+    b.hidden = !unlocked;
     b.innerHTML=`<div class="r1"><span class="ic">${T.i}</span><span class="nm">${T.n}</span><span class="price"></span></div>
-                 <div class="io">${ioText(T)}</div><div class="d">${T.d}</div><div class="rq"></div>`;
+                 <div class="io">${ioText(T)}</div><div class="rq"></div>`;
     b.onclick=()=>startPlace(shopEls[r].cur);
     box.appendChild(b);
     shopEls[r]={root:b, cur:t, ic:b.querySelector('.ic'), name:b.querySelector('.nm'),
@@ -9900,36 +9712,29 @@ function renderShop(){
     const t=rowType(r);
     const T=t ? TYPES[t] : null;
     const dev=!!(T && isDev(t));
-    e.root.hidden = !dev;                       // アンロック済みの施設だけインベントリに表示する
+    e.root.hidden = !dev;
     if(!dev) continue;
     if(e.cur!==t){ e.cur=t; e.ic.textContent=T.i; e.io.innerHTML=ioText(T); }
     const uniq=T.unique && (S.counts[t]||0)>=1;
     const cost=buyCost(t), need=buyMat(t), okMat=matOk(need);
     e.name.textContent=T.n;
     e.price.textContent = uniq ? '設置済'
-      : fmt(cost)+' G' + (need ? '　'+matText(need) : '');
+      : fmt(cost)+'G' + (need ? ' '+matText(need) : '');
     setCls(e.price,'short', !uniq && !okMat);
     const w = powerWarn(t);
-    e.rq.textContent = (LINE_LABEL[r] ? LINE_LABEL[r] + '　' : '')
-      + (T.era ? `${eraName(T.era).i}第${T.era}世代` : '')
-      + (!okMat && need ? `　⚠ 資材が足りない（手元 ${Object.keys(need).map(k=>ITEMS[k].i+fmt(stockOfMat(k))).join(' ')}）`
-         : w ? `　⚠ ${w}` : '');
+    e.rq.textContent = (!okMat && need) ? `⚠資材不足` : (w ? `⚠${w}` : '');
     setCls(e.rq,'warn', !!w || !okMat);
     setCls(e.root,'off', uniq || S.gold<cost || !okMat);
   }
 }
-/* その動力を工房のどこかで作れているか */
 const makesItem = k => S.nodes.some(n => outsOf(n)[k]);
-/* 動力の作り手が居ないまま、それを要る施設を建てようとしていないか */
 function powerWarn(t){
   const x = eraPow(TYPES[t]); if(!x) return null;
   for(const k in x) if(!makesItem(k)){
-    const src = Object.keys(TYPES).find(u => isDev(u) && outsOf({type:u,level:1,item:null,inBuf:{},outBuf:{}})[k]);
-    return `${ITEMS[k].i}${ITEMS[k].n}が要ります` + (src ? `（${TYPES[src].i}${TYPES[src].n}を建ててください）` : '');
+    return `${ITEMS[k].i}未生産`;
   }
   return null;
 }
-/* 建てるものを選んでから、置く場所をタップして決める（使用するクラフト素材で性能が大幅に変化） */
 let placing = null;
 function defaultCraftMatOf(t){
   const T = TYPES[t]; if(!T) return 'ing1';
@@ -9949,15 +9754,17 @@ function pickInitialCraftMat(t){
   return def;
 }
 function startPlace(t){
-  if(placing === t) return cancelPlace();          // もう一度押したら取り消し
+  if(placing === t) return cancelPlace();
   const T = TYPES[t];
-  if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は1つだけです`);
-  if(!isDev(t)) return toast(`🔬 研究ツリーで解放すると建てられます`);
-  if(S.gold < buyCost(t)) return toast('ゴールドが足りません');
+  if(T.unique && (S.counts[t]||0)>=1) return toast(`${T.n}は設置済です`);
+  if(!isDev(t)) return toast(`🔬未解放`);
+  if(S.gold < buyCost(t)) return toast('💰不足');
   selCraftMat = pickInitialCraftMat(t);
   const need = buyMat(t, selCraftMat);
-  if(!matOk(need)) return toast(`資材が足りません（${matText(need)} が要ります）`);
+  if(!matOk(need)) return toast(`資材不足 (${matText(need)})`);
   placing = t; document.body.classList.add('placing');
+  if(typeof toggleShopDrawer === 'function') toggleShopDrawer(false);
+  if(typeof toggleMenuDrawer === 'function') toggleMenuDrawer(false);
   setPane('stage'); renderPlaceBar();
 }
 function cancelPlace(){ placing = null; selCraftMat = null; document.body.classList.remove('placing'); renderPlaceBar(); }
@@ -10240,34 +10047,32 @@ function renderLinkInsp(){
   const n = pinsOf(l).length, isEng = !!ENERGY_ITEM[l.item];
   const isFar = isLinkOutOfRange(l), dist = Math.round(nodeDist(a, b)), rLim = humanRangeOf(a);
   geomOf(l);
-  const stTxt = isFar ? `<span style="color:var(--bad)">🚫 行動範囲外で停止（あと${Math.max(1, dist - rLim)}px近づける）</span>`
-              : l.jam ? '⚠ 送り先が満杯（詰まり中）'
-              : l.packets.length ? (isEng ? `⚡ 動力供給中（${l.packets.length}/${beltCap(l)}個）` : `📦 搬送中（${l.packets.length}/${beltCap(l)}個）`)
+  const stTxt = isFar ? `<span style="color:var(--bad)">🚫 範囲外 (+${Math.max(1, dist - rLim)}px)</span>`
+              : l.jam ? '⚠ 満杯'
+              : l.packets.length ? `${isEng ? '⚡' : '📦'} ${l.packets.length}/${beltCap(l)}`
               : '待機';
   const distRow = (isHuman(a) && l.item==='sta')
-    ? `<div class="kv">人からの距離<b style="color:${isFar?'var(--bad)':'var(--acc)'}">${dist}px / 上限${rLim}px（${isFar?'範囲外':'範囲内'}）</b></div>`
+    ? `<div class="kv">距離<b style="color:${isFar?'var(--bad)':'var(--acc)'}">${dist}/${rLim}px</b></div>`
     : '';
   box.innerHTML =
     `<div class="t"><span class="ic2">${ITEMS[l.item].i}</span>`
-    + `<span class="nm2">${ITEMS[l.item].n}の${isEng?'動力コンベア':'ベルトコンベア'}</span></div>`
-    + `<div class="kv">つないでいる<b>#${a.no||'-'} ${tierOf(a).n} → #${b.no||'-'} ${tierOf(b).n}</b></div>`
+    + `<span class="nm2">${ITEMS[l.item].n}</span></div>`
+    + `<div class="kv">接続<b>#${a.no||'-'} → #${b.no||'-'}</b></div>`
     + distRow
     + `<div class="kv">状態<b>${stTxt}</b></div>`
-    + `<div class="kv">流れ<b>${isFar ? '0' : fmtR((a.rate&&a.rate[l.item])||0)} /分</b></div>`
-    + `<div class="kv">ピン<b>${n}本 / ${PIN_MAX}本</b></div>`
-    + `<div class="lnote">丸を掴むと、直角のラインがそのピンを通るように折れ曲がります。`
-    + `線の上の「＋」を押すと、そこに中継ピンが増えます</div>`
-    + `<div class="btns"><button class="badd">＋ ピン</button>`
-    + `<button class="bdel">− ピン</button>`
-    + `<button class="bstr">まっすぐ</button></div>`
-    + `<div class="btns"><button class="del">コンベアを切る</button></div>`;
+    + `<div class="kv">流量<b>${isFar ? '0' : fmtR((a.rate&&a.rate[l.item])||0)}/m</b></div>`
+    + `<div class="kv">ピン<b>${n}/${PIN_MAX}</b></div>`
+    + `<div class="btns"><button class="badd">＋ピン</button>`
+    + `<button class="bdel">−ピン</button>`
+    + `<button class="bstr">直線</button></div>`
+    + `<div class="btns"><button class="del">切断</button></div>`;
   box.classList.add('on');
   box.querySelector('.badd').onclick=()=>addBend(l.id,'tail');
   box.querySelector('.bdel').onclick=()=>delBend(l.id);
   box.querySelector('.bstr').onclick=()=>{ l.pins=null; renderHandles(); renderInsp();
-    toast('まっすぐに戻しました'); };
+    toast('直線化'); };
   box.querySelector('.del').onclick=()=>{ removeLink(l.id); selLink=null;
-    renderHandles(); renderInsp(); toast('切断しました'); };
+    renderHandles(); renderInsp(); toast('切断'); };
   return true;
 }
 let curInspTab = '1';
@@ -10277,50 +10082,48 @@ function renderInsp(){
   if(!n){ box.classList.remove('on'); box.innerHTML=''; return; }
   if(selLink!==null){ selLink=null; renderHandles(); }
   const T=TYPES[n.type], isLab=T.effect==='lab', tr=tierOf(n);
-  const selLabel = T.loot ? '狙う戦利品'
-    : ({ore:'掘る鉱石',ingot:'精錬する鉱石',part:'加工する地金',equip:'作る装備の素',
-        anvil:'鍛える装備',alloy:'混ぜる地金',comp:'圧縮する素材',decomp:'分解する素材',
-        sell:'売るものを絞る',clean:'片付ける副産物',fuel:'燃やす副産物',
-        open:'開ける宝箱',hout:'自宅から出すもの'}[T.chain] || '扱うもの');
+  const selLabel = T.loot ? '戦利品'
+    : ({ore:'鉱石',ingot:'鉱石',part:'地金',equip:'素材',
+        anvil:'装備',alloy:'地金',comp:'素材',decomp:'素材',
+        sell:'売却対象',clean:'副産物',fuel:'燃料',
+        open:'宝箱',hout:'搬出物'}[T.chain] || '対象');
 
   const topHeader = `
     <div class="insp-top-bar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div class="t" style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px">
         <span class="ic2">${tr.i}</span><span class="nm2">${tr.n}</span><span class="lv" style="font-size:10px;color:var(--acc)">Lv.${n.level}</span>
       </div>
-      <button class="insp-close-btn" style="background:#0c111b;border:1px solid var(--line);border-radius:5px;color:var(--dim);font-size:10px;padding:3px 7px;cursor:pointer" title="閉じて建設メニューへ戻る">✕ 閉じる</button>
+      <button class="insp-close-btn" style="background:#0c111b;border:1px solid var(--line);border-radius:5px;color:var(--dim);font-size:10px;padding:3px 7px;cursor:pointer">✕</button>
     </div>
     <div class="insp-tabs" style="display:flex;gap:4px;margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:5px">
-      <button class="itab ${curInspTab==='1'?'on':''}" data-itab="1" style="flex:1;padding:5px 2px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${curInspTab==='1'?'var(--acc)':'var(--line)'};background:${curInspTab==='1'?'rgba(94,224,192,.16)':'#0c111b'};color:${curInspTab==='1'?'var(--acc)':'var(--dim)'};cursor:pointer">基本・操作</button>
-      <button class="itab ${curInspTab==='2'?'on':''}" data-itab="2" style="flex:1;padding:5px 2px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${curInspTab==='2'?'var(--acc2)':'var(--line)'};background:${curInspTab==='2'?'rgba(122,162,255,.16)':'#0c111b'};color:${curInspTab==='2'?'var(--acc2)':'var(--dim)'};cursor:pointer">改造・技術</button>
+      <button class="itab ${curInspTab==='1'?'on':''}" data-itab="1" style="flex:1;padding:5px 2px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${curInspTab==='1'?'var(--acc)':'var(--line)'};background:${curInspTab==='1'?'rgba(94,224,192,.16)':'#0c111b'};color:${curInspTab==='1'?'var(--acc)':'var(--dim)'};cursor:pointer">基本</button>
+      <button class="itab ${curInspTab==='2'?'on':''}" data-itab="2" style="flex:1;padding:5px 2px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${curInspTab==='2'?'var(--acc2)':'var(--line)'};background:${curInspTab==='2'?'rgba(122,162,255,.16)':'#0c111b'};color:${curInspTab==='2'?'var(--acc2)':'var(--dim)'};cursor:pointer">改造</button>
     </div>
   `;
 
   let tabBody = '';
   if(curInspTab === '1'){
-    // Tab 1: Overview & Control (基本・操作)
     tabBody = `
       ${canRename(n) ? `<div class="kv">名前<button class="ren"></button></div>` : ''}
-      ${n.comb ? `<div class="kv">まとめた段<b>${combStages(n).map(c=>TYPES[c.type].i+TYPES[c.type].n).join(' → ')}</b></div><button class="unc">🔗 ほどいて ${combStages(n).length}台に戻す</button>` : ''}
-      ${n._incompatiblePower ? `<div style="background:rgba(239,68,68,.25);border:1px solid #ef4444;border-radius:6px;padding:6px;margin:4px 0;color:#fca5a5;font-weight:700;font-size:11px">🚫 アニマ不適合：ダンジョンは生体エネルギー（主人公・仲間のアニマ）でのみ稼働します。機械発電機の電力は受け付けられません。</div>` : ''}
-      ${n.isOverrun ? `<div style="background:rgba(239,68,68,.18);border:1px solid #ef4444;border-radius:6px;padding:6px;margin:4px 0;text-align:center"><div style="color:#f87171;font-weight:700">👾 敵性侵食尖塔化（機能停止中）</div><button class="reclaim-btn" style="background:#8b5cf6;color:#fff;font-weight:700;padding:6px 12px;border-radius:6px;margin-top:6px;width:100%;cursor:pointer">⚔️ 施設奪還作戦（エイリアンテック解放）</button></div>` : ''}
+      ${n.comb ? `<div class="kv">構成<b>${combStages(n).map(c=>TYPES[c.type].i).join('→')}</b></div><button class="unc">🔗 分離 (${combStages(n).length}台)</button>` : ''}
+      ${n._incompatiblePower ? `<div style="background:rgba(239,68,68,.25);border:1px solid #ef4444;border-radius:6px;padding:6px;margin:4px 0;color:#fca5a5;font-weight:700;font-size:11px">🚫 要アニマ (人・仲間の動力のみ)</div>` : ''}
+      ${n.isOverrun ? `<div style="background:rgba(239,68,68,.18);border:1px solid #ef4444;border-radius:6px;padding:6px;margin:4px 0;text-align:center"><div style="color:#f87171;font-weight:700">👾 侵食停止中</div><button class="reclaim-btn" style="background:#8b5cf6;color:#fff;font-weight:700;padding:6px 12px;border-radius:6px;margin-top:6px;width:100%;cursor:pointer">⚔️ 奪還</button></div>` : ''}
       <div class="kv">状態<b class="st2"></b></div>
-      <div class="kv rxdur-row" hidden><span class="rxdurk">🔧 耐久度</span><b class="rxdurv"></b></div>
-      <div class="kv">生産速度<b class="flow-spd"></b></div>
-      <button class="stats-jump-btn" style="width:100%;margin:4px 0 6px;padding:5px;font-size:10.5px;font-weight:700;border-radius:6px;border:1px solid var(--acc2);background:rgba(56,189,248,.12);color:var(--acc2);cursor:pointer">📊 全体統計・収支ダッシュボード</button>
-      <div class="kv wrow"><span>つながり<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>
+      <div class="kv rxdur-row" hidden><span class="rxdurk">🔧 耐久</span><b class="rxdurv"></b></div>
+      <div class="kv">速度<b class="flow-spd"></b></div>
+      <div class="kv wrow"><span>配線<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>
       ${((T.chain && T.chain!=='sell' && T.chain!=='fund')||T.loot) ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : ''}
-      ${T.matIn ? `<div class="kv">受け取る部品<select class="mat"></select></div>` : ''}
-      ${T.tool ? `<div class="kv">対象の素材<select class="itm"></select></div>` : ''}
-      ${T.lout ? `<div class="kv">外へ出すもの<b class="lcap"></b></div><div class="exits"></div>` : ''}
-      ${T.layer ? `<button class="lopen">🧩 中を開く</button><div class="kv">外へ出すもの<b class="lcap"></b></div><div class="exits"></div><div class="kv">中のノード<b class="lmem"></b></div><button class="lbreak">🧩 ほどく</button>` : ''}
-      ${(T.store || T.ware) ? `<div class="kv">扱う素材<div class="slotsel"></div></div>` : ''}
-      ${T.ware ? `<button class="wopen">📦 中身を見る</button>` : ''}
-      ${T.chain==='sell' ? `<div class="kv">受け入れる素材<div class="slotsel"></div></div>` : ''}
-      ${T.effect==='dive' ? `<div class="kv">🧭 派遣先の洞窟<select class="dcave"></select></div><button class="dive-expand-btn" style="width:100%;margin:3px 0;padding:4px;font-size:10.5px;border-radius:5px;background:#0c111b;border:1px solid var(--line);color:var(--dim);cursor:pointer">${n._allOutputs?'📦 副産物口をたたむ':'📦 すべての副産物口を展開'}</button>` : ''}
-      ${T.src ? `<button class="human-expand-btn" style="width:100%;margin:3px 0;padding:4px;font-size:10.5px;border-radius:5px;background:#0c111b;border:1px solid var(--line);color:var(--dim);cursor:pointer">${n._allPorts?'📦 訓練・給餌口をたたむ':'📋 全スロットを展開'}</button>` : ''}
-      ${(!n.drop && !T.layer && !T.port && !T.unique && !T.raid && !T.src && T.effect!=='dive') ? `<div class="kv assim-row" hidden><span>🦠 浸食合体</span><b class="assim-info" style="color:#a855f7"></b></div><button class="assim-btn" style="width:100%;margin:4px 0;padding:6px 8px;border-radius:6px;border:1px solid #a855f7;background:rgba(168,85,247,.16);color:#e9d5ff;font-size:11px;font-weight:700;cursor:pointer"></button>` : ''}
-      <div class="btns comp-act-row" hidden style="margin:4px 0"><button class="cfeed-fav" style="border-color:#f472b6;color:#f9a8d4"></button><button class="cfeed-meal" style="border-color:#fbbf24;color:#fde68a"></button><button class="crecall" style="border-color:#38bdf8;color:#7dd3fc">🏠 待機所へ</button></div>
+      ${T.matIn ? `<div class="kv">部品<select class="mat"></select></div>` : ''}
+      ${T.tool ? `<div class="kv">対象<select class="itm"></select></div>` : ''}
+      ${T.lout ? `<div class="kv">搬出<b class="lcap"></b></div><div class="exits"></div>` : ''}
+      ${T.layer ? `<button class="lopen">🧩 開く</button><div class="kv">搬出<b class="lcap"></b></div><div class="exits"></div><div class="kv">内部<b class="lmem"></b></div><button class="lbreak">🧩 展開</button>` : ''}
+      ${(T.store || T.ware) ? `<div class="kv">素材<div class="slotsel"></div></div>` : ''}
+      ${T.ware ? `<button class="wopen">📦 在庫</button>` : ''}
+      ${T.chain==='sell' ? `<div class="kv">素材<div class="slotsel"></div></div>` : ''}
+      ${T.effect==='dive' ? `<div class="kv">🧭 洞窟<select class="dcave"></select></div><button class="dive-expand-btn" style="width:100%;margin:3px 0;padding:4px;font-size:10.5px;border-radius:5px;background:#0c111b;border:1px solid var(--line);color:var(--dim);cursor:pointer">${n._allOutputs?'📦 口を閉じる':'📦 全出力口'}</button>` : ''}
+      ${T.src ? `<button class="human-expand-btn" style="width:100%;margin:3px 0;padding:4px;font-size:10.5px;border-radius:5px;background:#0c111b;border:1px solid var(--line);color:var(--dim);cursor:pointer">${n._allPorts?'📦 口を閉じる':'📋 全スロット'}</button>` : ''}
+      ${(!n.drop && !T.layer && !T.port && !T.unique && !T.raid && !T.src && T.effect!=='dive') ? `<div class="kv assim-row" hidden><span>🦠 合体</span><b class="assim-info" style="color:#a855f7"></b></div><button class="assim-btn" style="width:100%;margin:4px 0;padding:6px 8px;border-radius:6px;border:1px solid #a855f7;background:rgba(168,85,247,.16);color:#e9d5ff;font-size:11px;font-weight:700;cursor:pointer"></button>` : ''}
+      <div class="btns comp-act-row" hidden style="margin:4px 0"><button class="cfeed-fav" style="border-color:#f472b6;color:#f9a8d4"></button><button class="cfeed-meal" style="border-color:#fbbf24;color:#fde68a"></button><button class="crecall" style="border-color:#38bdf8;color:#7dd3fc">🏠 待機</button></div>
       <div class="btns" style="margin-top:8px">
         <button class="up"></button>
         <button class="up10"></button>
@@ -10329,32 +10132,35 @@ function renderInsp(){
       </div>
     `;
   } else {
-    // Tab 2: Customization & Tech (改造・技術)
     tabBody = `
-      ${n.alienTech ? `<div class="kv"><span>🛸 エイリアンテック</span><b style="color:#06b6d4">Lv.${n.alienTech} 稼働中</b></div>` : ''}
-      ${(!n.drop && !T.layer && !T.port && !T.unique && !T.raid) ? `<div class="kv">🛠️ クラフト素材<select class="cmat"></select></div><div class="kv">✨ 素材性能補正<b class="cmat-info" style="color:#facc15"></b></div>` : ''}
+      ${n.alienTech ? `<div class="kv"><span>🛸 異星技術</span><b style="color:#06b6d4">Lv.${n.alienTech}</b></div>` : ''}
+      ${(!n.drop && !T.layer && !T.port && !T.unique && !T.raid) ? `<div class="kv">🛠️ 材質<select class="cmat"></select></div><div class="kv">✨ 補正<b class="cmat-info" style="color:#facc15"></b></div>` : ''}
       ${nextGenType(n) ? `<button class="core"></button>` : ''}
-      ${(!T.port && !T.layer && !T.unique) ? `<div class="kv gem-row"><span>👁️ 魔神眼スロット</span><select class="gem-sel" style="background:#0f172a;color:#facc15;border:1px solid #334155;border-radius:4px;padding:2px 4px;font-size:11px"></select></div>` : ''}
-      ${slotsOf(n) ? `<div class="kv gearhd">アイテムスロット<b class="psum"></b></div><div class="partsel"></div>` : ''}
-      ${gearSlots(n) ? `<div class="kv gearhd">装備スロット<b class="gsum"></b></div><div class="gearsel"></div>` : ''}
+      ${(!T.port && !T.layer && !T.unique) ? `<div class="kv gem-row"><span>👁️ 魔神眼</span><select class="gem-sel" style="background:#0f172a;color:#facc15;border:1px solid #334155;border-radius:4px;padding:2px 4px;font-size:11px"></select></div>` : ''}
+      ${slotsOf(n) ? `<div class="kv gearhd">パーツ<b class="psum"></b></div><div class="partsel"></div>` : ''}
+      ${gearSlots(n) ? `<div class="kv gearhd">装備<b class="gsum"></b></div><div class="gearsel"></div>` : ''}
       ${skillSlots(n) ? `<div class="kv gearhd">スキル<b class="ksum"></b></div><div class="skillsel"></div>` : ''}
-      ${perksOf(T).length ? `<div class="kv">世代の特性<b class="perk"></b></div>` : ''}
-      <div class="kv hstat-row" hidden><span class="hstatk">能力値</span><b class="hstatv"></b></div>
-      <div class="kv hpay-row" hidden><span class="hpayk">行動コスト</span><b class="hpayv"></b></div>
-      <div class="kv comp-aff-row" hidden><span class="compaffk">💕 親愛度・好物</span><b class="compaffv"></b></div>
-      <div class="kv comp-trait-row" hidden><span class="comptraitk">✨ 個性・特性</span><b class="comptraitv"></b></div>
-      <div class="kv pstat-row" hidden><span class="pstatk">動力・汚染</span><b class="pstatv"></b></div>
-      <div class="kv rxtag-row" hidden><span class="rxtagk">🧪 流入・保有タグ</span><b class="rxtagv"></b></div>
-      <div class="kv rxst-row" hidden><span class="rxstk">⚡ 特殊リアクション</span><b class="rxstv"></b></div>
-      <div class="kv rng-row" hidden><span class="rngk">行動範囲</span><b class="rngv"></b></div>
-      <div class="kv">受け取る優先度<span class="prio"><button class="pm">−</button><b class="pv">1</b><button class="pp">＋</button></span></div>
-      ${Object.keys(outsOf(n)).map(k=>`<div class="kv">${ITEMS[k].i}${ITEMS[k].n}の行き先<b class="dst" data-i="${k}"></b></div><div class="kv">${ITEMS[k].i}が届く割合<b class="alc" data-i="${k}"></b></div>`).join('')}
-      <div class="kv">解体で戻る研究<b class="srp"></b></div>
+      ${perksOf(T).length ? `<div class="kv">特性<b class="perk"></b></div>` : ''}
+      <div class="kv hstat-row" hidden><span class="hstatk">能力</span><b class="hstatv"></b></div>
+      <div class="kv hpay-row" hidden><span class="hpayk">給料</span><b class="hpayv"></b></div>
+      <div class="kv comp-aff-row" hidden><span class="compaffk">💕 親愛</span><b class="compaffv"></b></div>
+      <div class="kv comp-trait-row" hidden><span class="comptraitk">✨ 個性</span><b class="comptraitv"></b></div>
+      <div class="kv pstat-row" hidden><span class="pstatk">動力</span><b class="pstatv"></b></div>
+      <div class="kv rxtag-row" hidden><span class="rxtagk">🧪 タグ</span><b class="rxtagv"></b></div>
+      <div class="kv rxst-row" hidden><span class="rxstk">⚡ 反応</span><b class="rxstv"></b></div>
+      <div class="kv rng-row" hidden><span class="rngk">範囲</span><b class="rngv"></b></div>
+      <div class="kv">優先度<span class="prio"><button class="pm">−</button><b class="pv">1</b><button class="pp">＋</button></span></div>
+      ${Object.keys(outsOf(n)).map(k=>`<div class="kv">${ITEMS[k].i}送先<b class="dst" data-i="${k}"></b></div><div class="kv">${ITEMS[k].i}配分<b class="alc" data-i="${k}"></b></div>`).join('')}
+      <div class="kv">解体還元<b class="srp"></b></div>
     `;
   }
 
   box.innerHTML = topHeader + tabBody;
   box.classList.add('on');
+  if($('#shop')) $('#shop').classList.remove('on');
+  if($('#lrShopBtn')) $('#lrShopBtn').classList.remove('on');
+  if($('#menuModal')) $('#menuModal').classList.remove('on');
+  if($('#lrMenuBtn')) $('#lrMenuBtn').classList.remove('on');
 
   // Tab switcher
   box.querySelectorAll('.itab').forEach(btn => {
@@ -10748,7 +10554,7 @@ function renderInspLive(){
     }
     if(cands.length > 0){
       asBtn.hidden = false;
-      asBtn.textContent = `🦠 周囲 ${cands.length}台を浸食合体する`;
+      asBtn.textContent = `🦠 周囲${cands.length}台合体`;
     }else{
       asBtn.hidden = true;
     }
@@ -10767,7 +10573,7 @@ function renderInspLive(){
       const spdB = Math.round((compAffectionSpdMul(nodeComp)-1)*100);
       const affEl = compAffRow.querySelector('.compaffv');
       if(affEl){
-        affEl.innerHTML = `<span style="color:#f472b6">💕 ${Math.floor(nodeComp.affection||0)}/1000</span> (賃金-${disc}%・速度+${spdB}%) ／ 🎁好物: <span style="color:#fde68a">${favIt.i}${favIt.n}</span>`;
+        affEl.innerHTML = `<span style="color:#f472b6">💕${Math.floor(nodeComp.affection||0)}</span> (-${disc}%/+${spdB}%) 🎁${favIt.i}`;
       }
     }
     if(compTraitRow){
@@ -10788,8 +10594,8 @@ function renderInspLive(){
       const mealCost = Math.max(50, Math.round(nodeComp.basePay * 2));
       const cfFav = compActRow.querySelector('.cfeed-fav');
       const cfMeal = compActRow.querySelector('.cfeed-meal');
-      if(cfFav) cfFav.textContent = `🎁 好物支給(${favIt.i}所持${favHave})`;
-      if(cfMeal) cfMeal.textContent = `🍖 賄い支給(${fmt(mealCost)}G)`;
+      if(cfFav) cfFav.textContent = `🎁好物(${favIt.i}${favHave})`;
+      if(cfMeal) cfMeal.textContent = `🍖賄い(${fmt(mealCost)}G)`;
     }
   } else {
     if(compAffRow) compAffRow.hidden = true;
@@ -10803,7 +10609,7 @@ function renderInspLive(){
       hstatRow.hidden = false;
       const st = statsOf(n);
       const hv = box.querySelector('.hstatv');
-      if(hv) hv.textContent = `STR ${st.str} / INT ${st.int} / VIT ${st.vit}`;
+      if(hv) hv.textContent = `💪${st.str} 🧠${st.int} ❤️${st.vit}`;
     } else {
       hstatRow.hidden = true;
     }
@@ -10815,7 +10621,7 @@ function renderInspLive(){
       hpayRow.hidden = false;
       const pay = payOf(n);
       const hpv = box.querySelector('.hpayv');
-      if(hpv) hpv.textContent = `${fmt(pay)}G / 動作`;
+      if(hpv) hpv.textContent = `${fmt(pay)}G`;
     } else {
       hpayRow.hidden = true;
     }
@@ -10843,15 +10649,14 @@ function renderInspLive(){
       const rxv = rxstRow.querySelector('.rxstv');
       if(rxv){
         if(n.broken){
-          rxv.innerHTML = `<span class="rx-chip" style="color:var(--bad);border-color:var(--bad)">🔧🔥 過負荷故障（稼働停止中）</span>`;
+          rxv.innerHTML = `<span class="rx-chip" style="color:var(--bad);border-color:var(--bad)">🔧🔥 故障</span>`;
         }else if(rxs.length){
           rxv.innerHTML = rxs.map(r => {
             const ri = REACTION_INFO[r];
-            const extra = r === 'resonance' ? ` (${Math.round((n.resLoop||0)*100)}%)` : '';
-            return `<span class="rx-chip" style="color:${ri.c};border-color:${ri.c}" title="${ri.d}">${ri.i}${ri.n}${extra}</span>`;
+            return `<span class="rx-chip" style="color:${ri.c};border-color:${ri.c}" title="${ri.d}">${ri.i}${ri.n}</span>`;
           }).join('');
         }else{
-          rxv.innerHTML = `<span style="color:var(--dim);font-weight:400">待機中（タグ条件未成立）</span>`;
+          rxv.innerHTML = `<span style="color:var(--dim);font-weight:400">なし</span>`;
         }
       }
     }else{
@@ -10868,8 +10673,8 @@ function renderInspLive(){
       const dCol = n.broken || dPct <= 25 ? 'var(--bad)' : dPct <= 60 ? 'var(--warn)' : 'var(--acc)';
       const rv = rxdurRow.querySelector('.rxdurv');
       if(rv){
-        rv.innerHTML = `<span style="color:${dCol}">${dPct}%${n.broken?'（故障停止）':n._rxOverload?'（摩耗進行中）':''}</span>` +
-          (n.broken || dPct < 100 ? ` <button class="dt-btn acc rx-repair-btn" style="padding:2px 7px;font-size:10px;margin-left:6px">🔧 修理する</button>` : '');
+        rv.innerHTML = `<span style="color:${dCol}">${dPct}%</span>` +
+          (n.broken || dPct < 100 ? ` <button class="dt-btn acc rx-repair-btn" style="padding:2px 7px;font-size:10px;margin-left:6px">🔧修理</button>` : '');
         const rBtn = rxdurRow.querySelector('.rx-repair-btn');
         if(rBtn) rBtn.onclick = () => repairNode(n);
       }
@@ -10883,14 +10688,13 @@ function renderInspLive(){
     const pt = powerTypeOf(n);
     const pol = n.pol || 0, pct = Math.round(pol * 100);
     const isCrit = pol >= POL_EXPLODE_TH;
-    const ptLabel = pt === 'human'     ? `<span style="color:var(--acc)">🌱 人力稼働（汚染発生なし）</span>`
-                  : pt === 'clean'     ? `<span style="color:var(--acc)">🍃 クリーン電力（汚染発生なし）</span>`
-                  : pt === 'passive'   ? `<span style="color:var(--dim)">稼働汚染なし</span>`
-                  : pt === 'dirty_gen' ? `<span style="color:#c895ff">☣ 汚染発生源（非クリーン発電/燃焼）</span>`
-                  :                      `<span style="color:#c895ff">☣ 汚染発生（非クリーン動力で稼働）</span>`;
+    const ptLabel = pt === 'human'     ? `<span style="color:var(--acc)">🌱アニマ</span>`
+                  : pt === 'clean'     ? `<span style="color:var(--acc)">🍃クリーン</span>`
+                  : pt === 'passive'   ? `<span style="color:var(--dim)">—</span>`
+                  :                      `<span style="color:#c895ff">☣汚染源</span>`;
     const critLabel = isCrit
-      ? ` ／ <span style="color:var(--bad);font-weight:700">💥 危険域 ${pct}%（施設爆発危険！）</span>`
-      : (pct > 0 ? ` ／ 汚染 ${pct}%（効率 ×${(1/(1+pol*POL_SLOW)).toFixed(2)}）` : '');
+      ? ` <span style="color:var(--bad);font-weight:700">💥${pct}%</span>`
+      : (pct > 0 ? ` ☣${pct}%` : '');
     const pv = pstatRow.querySelector('.pstatv');
     if(pv) pv.innerHTML = ptLabel + critLabel;
   }
@@ -10901,20 +10705,20 @@ function renderInspLive(){
     if(rngK && rngV){
       if(TYPES[n.type].src){
         rngRow.hidden = false;
-        rngK.textContent = '🧍 行動範囲';
-        rngV.innerHTML = `<span style="color:var(--gold)">半径 ${humanRangeOf(n)}px</span>`;
+        rngK.textContent = '範囲';
+        rngV.innerHTML = `<span style="color:var(--gold)">${humanRangeOf(n)}px</span>`;
       }else{
         const far = farHumanInfo(n);
         const hLinks = S.links.filter(l => l.to===n.id && l.item==='sta' && isHuman(N(l.from)));
         if(far){
           rngRow.hidden = false;
-          rngK.textContent = '🧍 人からの距離';
-          rngV.innerHTML = `<span style="color:var(--bad)">🚫 ${tierOf(far.src).n}まで ${far.dist}px / 上限${far.lim || humanRangeOf(far.src)}px（あと${far.over}px近づける）</span>`;
+          rngK.textContent = '距離';
+          rngV.innerHTML = `<span style="color:var(--bad)">🚫 ${far.dist}/${far.lim || humanRangeOf(far.src)}px</span>`;
         }else if(hLinks.length){
           const src = N(hLinks[0].from), d = Math.round(nodeDist(src, n)), lim = humanRangeOf(src);
           rngRow.hidden = false;
-          rngK.textContent = '🧍 人からの距離';
-          rngV.innerHTML = `<span style="color:var(--acc)">✓ ${tierOf(src).n}の範囲内（${d}px / 上限${lim}px）</span>`;
+          rngK.textContent = '距離';
+          rngV.innerHTML = `<span style="color:var(--acc)">✓ ${d}/${lim}px</span>`;
         }else{
           rngRow.hidden = true;
         }
@@ -10923,11 +10727,11 @@ function renderInspLive(){
   }
 
   const psum = box.querySelector('.psum');
-  if(psum) psum.textContent = `${partsOf(n).filter(Boolean).length} / ${slotsOf(n)} 個`;
+  if(psum) psum.textContent = `${partsOf(n).filter(Boolean).length}/${slotsOf(n)}`;
   const gsum = box.querySelector('.gsum');
-  if(gsum) gsum.textContent = `${gearOf(n).filter(x=>x.item).length} / ${gearSlots(n)} 個`;
+  if(gsum) gsum.textContent = `${gearOf(n).filter(x=>x.item).length}/${gearSlots(n)}`;
   const ksum = box.querySelector('.ksum');
-  if(ksum) ksum.textContent = `${skillOf(n).filter(Boolean).length} / ${skillSlots(n)} 個`;
+  if(ksum) ksum.textContent = `${skillOf(n).filter(Boolean).length}/${skillSlots(n)}`;
   const perkEl = box.querySelector('.perk');
   if(perkEl) perkEl.textContent = perksOf(TYPES[n.type]).map(p=>p.n).join('・') || 'なし';
 
@@ -10937,13 +10741,13 @@ function renderInspLive(){
   const ubtn = box.querySelector('button.up');
   if(ubtn){
     const c = upCost(n);
-    ubtn.textContent = `強化 ${fmt(c)} G`;
+    ubtn.textContent = `強化 ${fmt(c)}G`;
     ubtn.disabled = S.gold < c;
   }
   const u10btn = box.querySelector('button.up10');
   if(u10btn){
     const c10 = upCostN(n, UP_BULK);
-    u10btn.textContent = `+${UP_BULK} (${fmt(c10)} G)`;
+    u10btn.textContent = `+${UP_BULK} (${fmt(c10)}G)`;
     u10btn.disabled = S.gold < c10;
   }
 
@@ -10954,14 +10758,12 @@ function renderInspLive(){
   if(sr){
     const pol = n.pol||0, bonus = polScrapRp(n, pol), sl = polScrapItems(n, pol);
     sr.textContent = TYPES[n.type].unique ? '—'
-      : '🔬 '+fmt(scrapRp(n.type,n.level,n.grade||0) + bonus)
-        + (bonus ? `（☣のぶん +${fmt(bonus)}）` : '')
-        + (sl ? ` ＋🫙×${sl}` : '');
+      : '🔬'+fmt(scrapRp(n.type,n.level,n.grade||0) + bonus) + (sl ? ` +🫙×${sl}` : '');
   }
 
   const del = box.querySelector('.del');
   if(del){
-    del.textContent = compOfNode(n) ? '🏠 待機所へ戻す' : '撤去';
+    del.textContent = compOfNode(n) ? '🏠 待機' : '撤去';
     del.disabled = !!(TYPES[n.type].unique || TYPES[n.type].port);
   }
 }
@@ -11906,10 +11708,35 @@ function load(){
     return true;
   }catch(_){ return false; }
 }
-// 狭い画面のパネル切替
+// 左レール＆左ドロワー切替
+function toggleShopDrawer(force){
+  const sh = $('#shop'), btn = $('#lrShopBtn');
+  if(!sh) return;
+  const next = force !== undefined ? !!force : !sh.classList.contains('on');
+  sh.classList.toggle('on', next);
+  if(btn) btn.classList.toggle('on', next);
+  if(next){
+    toggleMenuDrawer(false);
+    if(sel !== null || selLink !== null){ sel = null; selLink = null; renderHandles(); renderInsp(); }
+    if(window.innerWidth <= 820) $('#side').classList.remove('on');
+  }
+}
+function toggleMenuDrawer(force){
+  const m = $('#menuModal'), btn = $('#lrMenuBtn');
+  if(!m) return;
+  const next = force !== undefined ? !!force : !m.classList.contains('on');
+  m.classList.toggle('on', next);
+  if(btn) btn.classList.toggle('on', next);
+  if(next){
+    toggleShopDrawer(false);
+    if(window.innerWidth <= 820) $('#side').classList.remove('on');
+  }
+}
 function setPane(p){
-  $('#shop').classList.toggle('on', p==='shop');
+  toggleShopDrawer(p==='shop');
   $('#side').classList.toggle('on', p==='side');
+  const dgnBtn = $('#lrDgnBtn');
+  if(dgnBtn) dgnBtn.classList.toggle('on', p==='side');
   document.querySelectorAll('#mtabs button[data-p]').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
 }
 document.querySelectorAll('#mtabs button[data-p]').forEach(b=>b.onclick=()=>{
@@ -11919,12 +11746,38 @@ document.querySelectorAll('#mtabs button[data-p]').forEach(b=>b.onclick=()=>{
     if(dt) dt.click();
   }
 });
+const lrShopBtn = $('#lrShopBtn');
+if(lrShopBtn) lrShopBtn.onclick = () => toggleShopDrawer();
+const shopCloseBtn = $('#shopCloseBtn');
+if(shopCloseBtn) shopCloseBtn.onclick = () => toggleShopDrawer(false);
+const lrMenuBtn = $('#lrMenuBtn');
+if(lrMenuBtn) lrMenuBtn.onclick = () => toggleMenuDrawer();
+const lrDgnBtn = $('#lrDgnBtn');
+if(lrDgnBtn) lrDgnBtn.onclick = () => {
+  const sd = $('#side');
+  if(!sd) return;
+  if(window.innerWidth <= 820){
+    const next = !sd.classList.contains('on');
+    setPane(next ? 'side' : 'stage');
+  } else {
+    const dt = document.querySelector('.side-tab[data-stab="dgn"]');
+    if(dt) dt.click();
+  }
+};
+const lrTreeBtn = $('#lrTreeBtn');
+if(lrTreeBtn) lrTreeBtn.onclick = () => { toggleMenuDrawer(false); toggleShopDrawer(false); renderTree(); $('#tree').classList.add('on'); };
+const lrFitBtn = $('#lrFitBtn');
+if(lrFitBtn) lrFitBtn.onclick = () => { fitView(); toast('全体表示'); };
+stage.addEventListener('pointerdown', () => {
+  if($('#menuModal') && $('#menuModal').classList.contains('on')) toggleMenuDrawer(false);
+  if(!placing && $('#shop') && $('#shop').classList.contains('on')) toggleShopDrawer(false);
+}, {passive:true});
 const mTabBst = $('#mTabBestiary');
 if(mTabBst) mTabBst.onclick = () => { renderBestiary(); $('#bestiary').classList.add('on'); };
 const mTabMenu = $('#mTabMenu');
-if(mTabMenu) mTabMenu.onclick = () => openMenuModal();
+if(mTabMenu) mTabMenu.onclick = () => toggleMenuDrawer();
 
-// Side tabs (洞窟攻略 / 主人公 / 技術)
+// Side tabs (洞窟 / 主人公 / 技術)
 document.querySelectorAll('.side-tab').forEach(btn => {
   btn.onclick = () => {
     const target = btn.dataset.stab;
@@ -11933,11 +11786,10 @@ document.querySelectorAll('.side-tab').forEach(btn => {
   };
 });
 
-function openMenuModal(){ const m = $('#menuModal'); if(m) m.classList.add('on'); }
-function closeMenuModal(){ const m = $('#menuModal'); if(m) m.classList.remove('on'); }
-const bMenuBtn = $('#bMenuBtn'); if(bMenuBtn) bMenuBtn.onclick = openMenuModal;
+function openMenuModal(){ toggleMenuDrawer(true); }
+function closeMenuModal(){ toggleMenuDrawer(false); }
+const bMenuBtn = $('#bMenuBtn'); if(bMenuBtn) bMenuBtn.onclick = () => toggleMenuDrawer();
 const menuCloseBtn = $('#menuCloseBtn'); if(menuCloseBtn) menuCloseBtn.onclick = closeMenuModal;
-const menuModalEl = $('#menuModal'); if(menuModalEl) menuModalEl.onclick = e => { if(e.target === menuModalEl) closeMenuModal(); };
 
 const bindMenuAct = (id, fn) => {
   const el = $(id);
@@ -11956,13 +11808,13 @@ const btnFeedAllStrikeEl = $('#btnFeedAllStrike');
 if(btnFeedAllStrikeEl){
   btnFeedAllStrikeEl.onclick = () => {
     const roster = S.companionRoster || [];
-    if(!roster.length){ toast('まだ仲間がいません'); return; }
+    if(!roster.length){ toast('仲間がいません'); return; }
     const strikers = roster.filter(c => c.isStrike || (c.deployedNodeId && N(c.deployedNodeId) && N(c.deployedNodeId).isStrike));
     const targets = strikers.length > 0 ? strikers : roster;
     const costPer = strikers.length > 0 ? 80 : 50;
     const totalCost = targets.length * costPer;
     if(S.gold < totalCost){
-      toast(`💰 ゴールドが足りません（必要: ${fmt(totalCost)}G）`);
+      toast(`💰不足 (${fmt(totalCost)}G)`);
       return;
     }
     S.gold -= totalCost;
@@ -11973,7 +11825,7 @@ if(btnFeedAllStrikeEl){
       const dn = c.deployedNodeId ? N(c.deployedNodeId) : null;
       if(dn){ dn.isStrike = false; dn.stall = false; dn.why = ''; }
     }
-    toast(`🍖 ${targets.length}人の仲間に特製賄いを振る舞いました！（親愛度UP・ストライキ全解除）`);
+    toast(`🍖 ${targets.length}人に賄い支給！`);
     renderCompModal();
     renderInsp();
     render();
@@ -11983,18 +11835,19 @@ bindMenuAct('#mBagBtn', () => { renderBag(); $('#bag').classList.add('on'); });
 bindMenuAct('#mTroBtn', () => { renderTro(); $('#tro').classList.add('on'); });
 bindMenuAct('#mDashBtn', () => { renderDash(); $('#dash').classList.add('on'); });
 bindMenuAct('#mStatsBtn', () => { renderStats(); $('#stats').classList.add('on'); });
-bindMenuAct('#mFitBtn', () => { fitView(); toast('全体が入るように表示しました'); });
-bindMenuAct('#mTidyBtn', () => { if(confirm('ノードを格子状に並べ直します。よろしいですか？')){ tidyLayout(); toast('整列しました'); } });
+bindMenuAct('#mFitBtn', () => { fitView(); toast('全体表示'); });
+bindMenuAct('#mTidyBtn', () => { if(confirm('ノードを整列しますか？')){ tidyLayout(); toast('整列しました'); } });
 bindMenuAct('#mCodeBtn', () => { S.savedAt=Date.now(); $('#mCode').value=b64enc(dumpState()); $('#mMsg').textContent=''; $('#modal').classList.add('on'); });
 bindMenuAct('#mDevBtn', () => { renderDtTree(); $('#devTool').classList.add('on'); });
-bindMenuAct('#mResetBtn', () => { $('#bReset').click(); });
+const mResetBtnEl = $('#mResetBtn');
+if(mResetBtnEl) mResetBtnEl.onclick = (ev) => { ev.stopPropagation(); doResetGame(); };
 document.querySelectorAll('#menuModal [data-rx-quick]').forEach(b => {
   b.onclick = () => { closeMenuModal(); loadReactionPreset(b.dataset.rxQuick); };
 });
 $('#hint').onclick=()=>$('#hint').classList.toggle('open');
-$('#bFit').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
-$('#offscr').onclick=()=>{ fitView(); toast('全体が入るように表示しました'); };
-$('#bTidy').onclick=()=>{ if(confirm('ノードを格子状に並べ直します。よろしいですか？')){ tidyLayout(); toast('整列しました'); } };
+$('#bFit').onclick=()=>{ fitView(); toast('全体表示'); };
+$('#offscr').onclick=()=>{ fitView(); toast('全体表示'); };
+$('#bTidy').onclick=()=>{ if(confirm('ノードを整列しますか？')){ tidyLayout(); toast('整列しました'); } };
 /* ===== 引き継ぎコード（別ブラウザ・別端末へセーブを移す） ===== */
 function b64enc(str){
   const b=new TextEncoder().encode(str); let o='', CH=0x8000;
@@ -12006,9 +11859,6 @@ function b64dec(c){
   for(let i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i);
   return new TextDecoder().decode(b);
 }
-/* セーブに残さないもの：DOM への参照と、数え直せる作業用の値。
-   「_」で始まるキーはすべて作業用（描き直しの目印・キャッシュ）なので外す。
-   ここに漏れがあると、読み込んだあとに「もう描いた」と誤解して線が消える */
 const saveSkip = (k,v) => (k==='el' || k==='G' || k==='sent' || k.charAt(0)==='_')
                           ? undefined : v;
 const dumpState = () => JSON.stringify(Object.assign({}, S, {tro:TRO}), saveSkip);
@@ -12025,12 +11875,11 @@ $('#tree').onclick=e=>{ if(e.target===$('#tree')) $('#tree').classList.remove('o
 $('#bTro').onclick=()=>{ renderTro(); $('#tro').classList.add('on'); };
 $('#troClose').onclick=()=>$('#tro').classList.remove('on');
 $('#tro').onclick=e=>{ if(e.target===$('#tro')) $('#tro').classList.remove('on'); };
-$('#troReset').onclick=()=>ask('トロフィーの記録を消す',
-  `いま ${TROPHY.filter(t=>troHas(t.k)).length}個・祝福 +${troSum()}% です。\n`
-  + 'これは工房をリセットしても残る記録です。消すと、祝福もゼロに戻ります。',
+$('#troReset').onclick=()=>ask('トロフィー消去',
+  `いま ${TROPHY.filter(t=>troHas(t.k)).length}個 (+${troSum()}%) です。消去しますか？`,
   [{n:'消す', c:'bad', f:()=>{ TRO={}; troSave(); renderTro();
-      addLog('🏆 トロフィーの記録を消しました','u'); toast('トロフィーを消しました'); }},
-   {n:'やめる'}]);
+      addLog('🏆 トロフィー初期化','u'); toast('消去しました'); }},
+   {n:'キャンセル'}]);
 $('#bDash').onclick=()=>{ renderDash(); $('#dash').classList.add('on'); };
 $('#dashClose').onclick=()=>$('#dash').classList.remove('on');
 $('#dash').onclick=e=>{ if(e.target===$('#dash')) $('#dash').classList.remove('on'); };
@@ -12049,24 +11898,24 @@ $('#mClose').onclick=()=>$('#modal').classList.remove('on');
 $('#modal').onclick=e=>{ if(e.target===$('#modal')) $('#modal').classList.remove('on'); };
 $('#mCopy').onclick=async()=>{
   const t=$('#mCode'); t.select();
-  try{ await navigator.clipboard.writeText(t.value); $('#mMsg').textContent='コピーしました'; }
-  catch(_){ try{ document.execCommand('copy'); $('#mMsg').textContent='コピーしました'; }
-            catch(e){ $('#mMsg').textContent='コピーできません。手動で選択してください'; } }
+  try{ await navigator.clipboard.writeText(t.value); $('#mMsg').textContent='コピー済'; }
+  catch(_){ try{ document.execCommand('copy'); $('#mMsg').textContent='コピー済'; }
+            catch(e){ $('#mMsg').textContent='手動で選択してください'; } }
 };
 $('#mLoad').onclick=()=>{
   const msg=$('#mMsg');
   try{
     const d=migrate(JSON.parse(b64dec($('#mCode').value)));
-    if(!d || !Array.isArray(d.nodes) || !d.nodes.length) throw new Error('中身が読めません');
-    if(!confirm('いまのデータは失われます。読み込みますか？')) return;
+    if(!d || !Array.isArray(d.nodes) || !d.nodes.length) throw new Error('無効');
+    if(!confirm('現在のデータを上書きして読み込みますか？')) return;
     try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(_){}
     for(const l of [...S.links]) removeLink(l.id);
     for(const n of [...S.nodes]) removeNode(n.id);
-    if(load()){ $('#modal').classList.remove('on'); fitView(); toast('引き継ぎました'); }
-    else msg.textContent='読み込みに失敗しました';
-  }catch(e){ msg.textContent='コードが正しくありません（'+e.message+'）'; }
+    if(load()){ $('#modal').classList.remove('on'); fitView(); toast('読込完了'); }
+    else msg.textContent='読込失敗';
+  }catch(e){ msg.textContent='コード無効'; }
 };
-$('#bSave').onclick=()=>toast(save()?'保存しました':'保存できませんでした');
+$('#bSave').onclick=()=>toast(save()?'保存しました':'保存失敗');
 document.querySelectorAll('[data-rx-quick]').forEach(b => {
   b.onclick = () => loadReactionPreset(b.dataset.rxQuick);
 });
@@ -12076,18 +11925,18 @@ let curLens = 'normal';
 function setLens(mode){
   curLens = mode || 'normal';
   document.body.setAttribute('data-lens', curLens);
-  document.querySelectorAll('#lensBar [data-lens-btn]').forEach(b => {
+  document.querySelectorAll('[data-lens-btn]').forEach(b => {
     b.classList.toggle('on', b.dataset.lensBtn === curLens);
   });
   const names = {
-    normal: '👁️ Normal（ミニマリスト表示）',
-    logistics: '📦 Logistics Lens（流量・ボトルネック表示）',
-    power: '⚡ Power/Range Lens（380px行動範囲・動力網表示）',
-    hazard: '☣️ Hazard Lens（汚染・熱・腐食ヒートマップ表示）'
+    normal: '👁️ 通常表示',
+    logistics: '📦 物流レンズ',
+    power: '⚡ 電力・範囲レンズ',
+    hazard: '☣️ 汚染・熱レンズ'
   };
   toast(names[curLens] || curLens);
 }
-document.querySelectorAll('#lensBar [data-lens-btn]').forEach(b => {
+document.querySelectorAll('[data-lens-btn]').forEach(b => {
   b.onclick = () => setLens(b.dataset.lensBtn);
 });
 
@@ -12219,29 +12068,43 @@ if(btnQG) btnQG.onclick = () => toggleQuickStarterGear();
 const btnSc = $('#btnScout');
 if(btnSc) btnSc.onclick = () => dispatchScout(btnSc.dataset.cid);
 
-/* リセット。confirm も reload も端末によっては効かないので、
-   ボタン自身を2段階にして、その場で作り直す */
+/* リセット：1回目で確認状態、2回目（6秒以内）で初期化。メニューが勝手に閉じない設計 */
 let resetting=false, resetArm=0, resetT=null;
-$('#bReset').onclick=()=>{
-  const b=$('#bReset');
-  if(Date.now() > resetArm){                       // 1回目：確認待ちにする
-    resetArm=Date.now()+5000; b.textContent='本当に消す？'; b.classList.add('danger');
+function doResetGame(force){
+  const b = $('#bReset'), mb = $('#mResetBtn'), ml = $('#mResetLbl');
+  if(!force && Date.now() > resetArm){
+    resetArm = Date.now() + 6000;
+    if(b){ b.textContent = '本当に消す？'; b.classList.add('danger'); }
+    if(mb) mb.classList.add('danger');
+    if(ml) ml.textContent = '⚠️ もう一度タップで初期化';
+    toast('⚠️ もう一度押すと初期化します');
     clearTimeout(resetT);
-    resetT=setTimeout(()=>{ resetArm=0; b.textContent='リセット'; b.classList.remove('danger'); },5000);
+    resetT = setTimeout(()=>{
+      resetArm = 0;
+      if(b){ b.textContent = 'リセット'; b.classList.remove('danger'); }
+      if(mb) mb.classList.remove('danger');
+      if(ml) ml.textContent = 'リセット';
+    }, 6000);
     return;
   }
-  clearTimeout(resetT); resetArm=0;
-  b.textContent='リセット'; b.classList.remove('danger');
-  resetting=true;                                  // 以降の保存を止めてから消す
-  try{ localStorage.removeItem(KEY); }catch(_){}
+  clearTimeout(resetT); resetArm = 0;
+  if(b){ b.textContent = 'リセット'; b.classList.remove('danger'); }
+  if(mb) mb.classList.remove('danger');
+  if(ml) ml.textContent = 'リセット';
+  resetting = true;
+  try{ localStorage.removeItem(KEY); localStorage.removeItem(DEV_KEY); }catch(_){}
+  DEV_CFG = defaultDevCfg();
+  applyDevCfg();
   for(const l of [...S.links]) removeLink(l.id);
   for(const n of [...S.nodes]) removeNode(n.id);
-  sel=null; tutHi=null; tutShown=-1;
+  sel = null; selLink = null; tutHi = null; tutShown = -1;
   newGame(); spawnEnemy();
   buildShop(); renderShop(); renderTree(true); renderInsp(); tutRender(); render();
-  resetting=false; save();
-  toast('最初からやり直しました');
-};
+  toggleMenuDrawer(false); toggleShopDrawer(false);
+  resetting = false; save();
+  toast('🔄 最初からやり直しました');
+}
+if($('#bReset')) $('#bReset').onclick = () => doResetGame();
 
 /* ========================= デバッグ：ノード一覧と設置 =========================
    ?debug=1 が付いているときだけ開ける。通常プレイではボタンごと出さない */
@@ -12382,7 +12245,7 @@ takeBaseSnapshot();
 
 function defaultDevCfg(){
   return {
-    v: 1,
+    v: 2,
     initBoard: {
       initGold: 500,
       initIng1: 0,
@@ -12395,10 +12258,10 @@ function defaultDevCfg(){
       ]
     },
     ui: {
-      shopW: 230,
-      sideW: 256,
+      shopW: 210,
+      sideW: 235,
       swapSide: false,
-      hideHint: false,
+      hideHint: true,
       shopRows: [...SHOP_ROWS]
     },
     consts: JSON.parse(JSON.stringify(BASE_SNAPSHOT.consts)),
@@ -12433,7 +12296,6 @@ function registerFacType(k, def){
 
 function applyDevCfg(){
   if(!DEV_CFG) return;
-  // 1. 定数の反映
   const c = DEV_CFG.consts || {};
   if(c.CURVE_INDEX != null) CURVE.index = Math.max(10, +c.CURVE_INDEX);
   if(c.CURVE_TAPER != null) CURVE.taper = Math.max(10, +c.CURVE_TAPER);
@@ -12473,31 +12335,16 @@ function applyDevCfg(){
   if(c.ERA_MAT && typeof c.ERA_MAT === 'object'){
     for(const k in c.ERA_MAT) ERA_MAT[k] = +c.ERA_MAT[k];
   }
-  // 2. カスタム施設の登録
   for(const k in (DEV_CFG.customFacs||{})){
     registerFacType(k, DEV_CFG.customFacs[k]);
   }
-  // 3. 既存施設へのオーバーライド反映
   for(const k in BASE_SNAPSHOT.types){
     if(TYPES[k]) Object.assign(TYPES[k], JSON.parse(JSON.stringify(BASE_SNAPSHOT.types[k])));
   }
   for(const k in (DEV_CFG.typeOverrides||{})){
     if(TYPES[k]) Object.assign(TYPES[k], JSON.parse(JSON.stringify(DEV_CFG.typeOverrides[k])));
   }
-  // 4. UI配置設定の反映
   const u = DEV_CFG.ui || {};
-  const mid = $('#mid'), shop = $('#shop'), side = $('#side'), hint = $('#hint');
-  if(mid && u.shopW && u.sideW){
-    mid.style.gridTemplateColumns = u.swapSide
-      ? `${u.sideW}px 1fr ${u.shopW}px`
-      : `${u.shopW}px 1fr ${u.sideW}px`;
-  }
-  if(shop && side){
-    shop.style.order = u.swapSide ? '3' : '';
-    side.style.order = u.swapSide ? '1' : '';
-    const stg = $('#stage'); if(stg) stg.style.order = u.swapSide ? '2' : '';
-  }
-  if(hint) hint.style.display = u.hideHint ? 'none' : '';
   if(Array.isArray(u.shopRows) && u.shopRows.length){
     SHOP_ROWS = u.shopRows.filter(r => r==='hero' || FAC[r] || TYPES[r]);
   }
@@ -12519,14 +12366,16 @@ function loadDevCfg(){
     const raw = localStorage.getItem(DEV_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
-    if(d && typeof d === 'object'){
-      DEV_CFG = Object.assign(defaultDevCfg(), d);
-      DEV_CFG.consts = Object.assign(defaultDevCfg().consts, d.consts||{});
-      DEV_CFG.ui = Object.assign(defaultDevCfg().ui, d.ui||{});
-      DEV_CFG.initBoard = Object.assign(defaultDevCfg().initBoard, d.initBoard||{});
-      applyDevCfg();
-      return true;
+    if(!d || typeof d !== 'object' || d.v !== 2){
+      localStorage.removeItem(DEV_KEY);
+      return false;
     }
+    DEV_CFG = Object.assign(defaultDevCfg(), d);
+    DEV_CFG.consts = Object.assign(defaultDevCfg().consts, d.consts||{});
+    DEV_CFG.ui = Object.assign(defaultDevCfg().ui, d.ui||{});
+    DEV_CFG.initBoard = Object.assign(defaultDevCfg().initBoard, d.initBoard||{});
+    applyDevCfg();
+    return true;
   }catch(e){ console.error(e); }
   return false;
 }
@@ -13645,18 +13494,16 @@ loadDevCfg();
 function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
-  // 出発点は「主人公・洞窟」の2つ（発電機は初期からは無く、研究ツリーで解放する）。
-  // 主人公自身が⚡体力を生み、その⚡を配線で分けた先が動く。
-  // 開発ツール（DEV_CFG.initBoard）で初期配置が編集されていればそれに従う。
   const ib = (DEV_CFG && DEV_CFG.initBoard) || {
     initGold: 500, initIng1: 0,
     nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:420, y:150}],
     links: [{from:0, item:'sta', to:1}]
   };
   S.gold = ib.initGold != null ? ib.initGold : 500;
-  S.rp = 30;     // 初期研究ポイントボーナス！
-  S.stock = 25;  // 初期研究資材ボーナス！
-  S.home = {};   // 銅地金等は初動配布せず、採掘・精錬の自作ループに純化
+  S.rp = 30;
+  S.stock = 25;
+  S.home = {};
+  S.starterKitClaimed = true;
   if(ib.initIng1) S.home.ing1 = ib.initIng1;
   S.counts = {};
   const spawned = [];
@@ -13673,20 +13520,21 @@ function newGame(){
   }
   const initHero = spawned.find(n => n.type === 'hero');
   if(initHero){
-    initHero.outBuf.sta = 2; // 開始直後から⚡エネルギー球がコンベアを流れ出すように初期チャージ
-    initHero.gear = [{item: 'eqp1'}, {item: null}, {item: null}]; // 初期から銅の剣を装備！
+    initHero.outBuf.sta = 3;
+    initHero.gear = [{item: 'eqp1'}, {item: null}, {item: null}];
     gearDirty();
+  }
+  const initDive = spawned.find(n => TYPES[n.type] && TYPES[n.type].effect === 'dive');
+  if(initDive){
+    initDive.inBuf.sta = 5;
   }
   for(const lk of (ib.links || [])){
     const a = spawned[lk.from], b = spawned[lk.to];
     if(a && b && ITEMS[lk.item]) addLink(a.id, lk.item, b.id);
   }
-  addLog('🎁【冒険開始ボーナス】💰500G ＋ 🎽銅の剣(装備済) ＋ 🔬研究P×30 を支給！すぐに施設建設と探索を始められます','u');
-  addLog('⚡【電力供給】施設が増えると電力が不足します。「🍃風力発電機」を複数建てて発電所を作り、採掘機・精錬炉を増設して工房を拡大しよう','u');
-  addLog('第1世代の施設も最初は一部のみ。🔬研究室を建てて「🔬研究ツリー」から新施設を解放しよう','u');
-  toast('🎁 冒険開始ボーナス支給！ 💰500G ＋ 🎽銅の剣');
+  addLog('🎁 開始ボーナス: 💰500G 🎽銅の剣 🔬30RP 🧱25','u');
   S.at = null; renderBoard();
-  fitView(1);                       // 窓が狭くても最初のノードが必ず見えるように
+  fitView(1);
 }
 if(!load()) newGame();
 for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が未配線なので一度だけ繋ぐ
