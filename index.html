@@ -21,7 +21,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 #app{display:flex;flex-direction:column;height:100%}
 #top{flex:none;height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;
-  background:var(--panel);border-bottom:1px solid var(--line)}
+  background:var(--panel);border-bottom:1px solid var(--line);
+  overflow-x:auto !important;overflow-y:hidden !important;white-space:nowrap !important;
+  -webkit-overflow-scrolling:touch !important;scrollbar-width:none !important;touch-action:pan-x}
+#top::-webkit-scrollbar{display:none !important}
+#top > *{flex-shrink:0 !important}
 #top .logo{font-weight:700;letter-spacing:.14em;font-size:12px;color:var(--acc);margin-right:8px}
 .stat{display:flex;align-items:baseline;gap:6px;padding:4px 10px;border-radius:7px;
   background:#0c111b;border:1px solid var(--line)}
@@ -1049,9 +1053,97 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 @keyframes strikePulse{from{box-shadow:0 0 6px rgba(239,68,68,.35)}to{box-shadow:0 0 18px rgba(239,68,68,.85)}}
 .strike-badge{position:absolute;top:-11px;right:8px;background:#dc2626;color:#fff;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:99px;border:1px solid #fecaca;z-index:5;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.6)}
 
+.node-more-btn{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:4px;
+  background:rgba(15,23,42,.88);border:1px solid rgba(148,163,184,.45);color:#38bdf8;
+  font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:12;padding:0;transition:all .15s ease;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+.node-more-btn:hover,.node-more-btn:active{background:#38bdf8;color:#0f172a;border-color:#38bdf8;transform:scale(1.12)}
+
+.smart-cable-hud{position:fixed;top:54px;left:50%;transform:translateX(-50%);
+  background:rgba(15,23,42,.95);border:2px solid var(--acc);
+  box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 14px rgba(94,224,192,.4);
+  color:#f1f5f9;padding:6px 16px;border-radius:99px;font-size:12px;font-weight:700;
+  display:none;align-items:center;gap:12px;z-index:120}
+.smart-cable-hud.on{display:flex}
+.smart-cable-hud button{background:#ef4444;border:none;border-radius:99px;color:#fff;
+  font-size:11px;font-weight:700;padding:3px 10px;cursor:pointer}
+
+.node.tgt-candidate{outline:3px solid var(--acc) !important;outline-offset:2px;
+  box-shadow:0 0 18px rgba(94,224,192,.7) !important;cursor:pointer !important;
+  animation:candPulse 1.2s infinite alternate !important}
+@keyframes candPulse{
+  from{box-shadow:0 0 8px rgba(94,224,192,.4);outline-color:rgba(94,224,192,.7)}
+  to{box-shadow:0 0 24px rgba(94,224,192,.95);outline-color:#5ee0c0}
+}
+@keyframes flashFocus{
+  0%{transform:scale(1);outline:3px solid #38bdf8}
+  50%{transform:scale(1.15);outline:5px solid #5ee0c0;box-shadow:0 0 30px #5ee0c0}
+  100%{transform:scale(1);outline:1px solid var(--line)}
+}
+.node.flash-focus{animation:flashFocus 1.2s ease;z-index:50 !important}
+
+.milestone-pill{display:flex;align-items:center;gap:5px;
+  background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.08));
+  border:1px solid rgba(245,158,11,.5);border-radius:7px;padding:3px 9px;
+  font-size:11px;font-weight:700;color:#fbbf24;cursor:pointer;white-space:nowrap;
+  flex-shrink:0;transition:all .15s ease}
+.milestone-pill:hover{background:rgba(245,158,11,.28);border-color:#f59e0b}
+
+#codexModal{position:fixed;inset:0;background:rgba(4,7,13,.85);z-index:108;display:none;
+  align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(8px)}
+#codexModal.on{display:flex}
+.cdx-box{width:min(940px,100%);max-height:88vh;display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--acc2);border-radius:12px;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.cdx-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+  border-bottom:1px solid var(--line);background:#0c121d}
+.cdx-title{font-size:14px;font-weight:800;color:#38bdf8;display:flex;align-items:center;gap:8px}
+.cdx-close{background:#111827;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+  font-size:13px;padding:3px 9px;cursor:pointer}
+.cdx-tabs{display:flex;gap:6px;padding:8px 14px;background:#090e17;border-bottom:1px solid var(--line);overflow-x:auto}
+.cdx-tab{padding:6px 14px;border-radius:7px;font-size:11.5px;font-weight:700;border:1px solid var(--line);
+  background:#111827;color:var(--dim);cursor:pointer;white-space:nowrap;transition:all .15s}
+.cdx-tab.on{background:rgba(56,189,248,.18);border-color:#38bdf8;color:#38bdf8}
+.cdx-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+
+.cdx-search-wrap{display:flex;flex-direction:column;gap:8px}
+.cdx-search-row{display:flex;gap:8px;align-items:center}
+.cdx-search-input{flex:1;background:#090e17;border:1px solid var(--line);border-radius:6px;padding:7px 12px;color:#fff;font-size:12px}
+.cdx-search-input:focus{outline:none;border-color:#38bdf8}
+.cdx-chips{display:flex;gap:5px;flex-wrap:wrap}
+.cdx-chip{padding:4px 10px;border-radius:99px;font-size:11px;background:#111827;border:1px solid var(--line);color:var(--dim);cursor:pointer;transition:all .15s}
+.cdx-chip.on{background:rgba(56,189,248,.18);border-color:#38bdf8;color:#38bdf8;font-weight:700}
+.cdx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.cdx-card{background:#0d1424;border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cdx-card-hd{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cdx-card-title{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:#f1f5f9}
+.cdx-card-badge{font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--line);color:var(--dim)}
+.cdx-card-io{display:flex;gap:8px;font-size:11px;background:#060a12;padding:5px 8px;border-radius:6px;flex-wrap:wrap}
+.cdx-card-desc{font-size:11px;color:#94a3b8;line-height:1.4}
+.cdx-card-tip{font-size:10.5px;color:#38bdf8;background:rgba(56,189,248,.08);padding:4px 7px;border-radius:4px;border-left:2px solid #38bdf8}
+.cdx-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.cdx-table th{background:#090e17;color:var(--dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.cdx-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:#cbd5e1}
+.cdx-table tr:hover td{background:rgba(255,255,255,.02)}
+.cdx-btn-jump{background:rgba(56,189,248,.15);border:1px solid #38bdf8;color:#38bdf8;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+.cdx-btn-jump:hover{background:#38bdf8;color:#090e17}
+.cdx-mile-card{background:#0d1424;border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;gap:12px;align-items:center}
+.cdx-mile-card.done{border-color:#22c55e;background:rgba(34,197,94,.06)}
+.cdx-mile-card.ready{border-color:#f59e0b;background:rgba(245,158,11,.1);box-shadow:0 0 10px rgba(245,158,11,.25)}
+.cdx-mile-icon{font-size:24px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:#1e293b;border-radius:8px;flex-shrink:0}
+.cdx-mile-info{flex:1;display:flex;flex-direction:column;gap:3px}
+.cdx-mile-title{font-size:13px;font-weight:800;color:#f8fafc}
+.cdx-mile-desc{font-size:11px;color:#94a3b8}
+.cdx-mile-reward{font-size:11px;color:#fbbf24;font-weight:700}
+.cdx-claim-btn{background:#f59e0b;color:#0f172a;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:all .15s}
+.cdx-claim-btn:hover{background:#fbbf24}
+.cdx-claimed-badge{font-size:11px;font-weight:700;color:#22c55e;background:rgba(34,197,94,.15);border:1px solid #22c55e;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.milestone-pill.ready{background:rgba(245,158,11,.25);border-color:#f59e0b;box-shadow:0 0 12px rgba(245,158,11,.5);animation:pillPulse 1.2s infinite alternate}
+@keyframes pillPulse{from{box-shadow:0 0 4px rgba(245,158,11,.3)}to{box-shadow:0 0 14px rgba(245,158,11,.8)}}
+
 @media (max-width:860px){
   .hide-mobile{display:none !important}
-  #top{height:44px;gap:4px;padding:0 6px;overflow-x:hidden}
+  #top{height:44px;gap:4px;padding:0 6px;overflow-x:auto !important;white-space:nowrap !important;-webkit-overflow-scrolling:touch !important}
   #top .logo{display:none}
   #top .stat{padding:2px 5px;gap:3px}
   #top .stat .k{font-size:9.5px}
@@ -1075,6 +1167,7 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
     <div class="stat r"><span class="k">🔬<em>研究</em></span><span class="v num" id="tRp">0</span></div>
     <div class="stat m"><span class="k">🧱<em>資材</em></span><span class="v num" id="tMat">0</span></div>
     <div class="stat a hide-mobile"><span class="k">⚔️<em>攻撃</em></span><span class="v num" id="tAtk">0</span></div>
+    <div class="milestone-pill" id="milestonePill" title="冒険マイルストーン（目標・達成報酬）"><span id="mPillTxt">🎯 目標を確認</span></div>
     <span class="sp"></span>
     <button class="tbtn" id="bSpeed">⏩ ×1</button>
     <button class="tbtn tree hide-mobile" id="bTree">🔬 研究</button>
@@ -1091,12 +1184,18 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
       <span id="tFloor"></span>
     </div>
   </div>
+  <div id="smartCableHud" class="smart-cable-hud">
+    <span id="smartCableTxt">🔗 接続先施設を選択中...</span>
+    <button id="smartCableCancel">✕ 取消</button>
+  </div>
   <div id="mid">
     <aside id="leftRail">
       <button class="lr-btn" id="lrShopBtn" title="建設メニュー"><i>🏗</i><span>建設</span></button>
       <button class="lr-btn" id="lrMenuBtn" title="メニュー"><i>☰</i><span>メニュー</span></button>
       <button class="lr-btn" id="lrDgnBtn" title="洞窟・ステータス"><i>⚔️</i><span>攻略</span></button>
       <button class="lr-btn" id="lrTreeBtn" title="研究ツリー"><i>🔬</i><span>研究</span></button>
+      <button class="lr-btn" id="lrCodexBtn" title="工房事典＆モニター"><i>📚</i><span>事典</span></button>
+      <button class="lr-btn" id="lrMileBtn" title="冒険マイルストーン"><i>🎯</i><span>目標</span></button>
       <span class="lr-sp"></span>
       <button class="lr-btn" id="lrFitBtn" title="全体表示"><i>🧭</i><span>全体</span></button>
     </aside>
@@ -1401,6 +1500,8 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
       <button class="menu-close" id="menuCloseBtn">✕</button>
     </div>
     <div class="menu-grid">
+      <button class="mitem" id="mCodexBtn"><i>📚</i><div class="mtxt"><span class="mnm">事典＆モニター</span></div></button>
+      <button class="mitem" id="mMileBtn"><i>🎯</i><div class="mtxt"><span class="mnm">マイルストーン</span></div></button>
       <button class="mitem" id="mCompBtn"><i>🍻</i><div class="mtxt"><span class="mnm">仲間スカウト</span></div></button>
       <button class="mitem" id="mTreeBtn"><i>🔬</i><div class="mtxt"><span class="mnm">研究ツリー</span></div></button>
       <button class="mitem" id="mBestBtn"><i>📖</i><div class="mtxt"><span class="mnm">図鑑</span></div></button>
@@ -1432,6 +1533,22 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
         <button class="dt-btn" data-rx-quick="D" style="border-color:#a855f7;color:#e9d5ff">⚔️ 戦闘</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="codexModal">
+  <div class="cdx-box">
+    <div class="cdx-head">
+      <div class="cdx-title"><span>📚</span><span>工房全書 ＆ 稼働センター</span></div>
+      <button class="cdx-close" id="codexCloseBtn">✕ 閉じる</button>
+    </div>
+    <div class="cdx-tabs">
+      <button class="cdx-tab on" data-cdxtab="codex">📚 施設事典</button>
+      <button class="cdx-tab" data-cdxtab="monitor">⚙️ 稼働モニター</button>
+      <button class="cdx-tab" data-cdxtab="dash">📊 収支ダッシュボード</button>
+      <button class="cdx-tab" data-cdxtab="mile">🎯 冒険マイルストーン</button>
+    </div>
+    <div class="cdx-body" id="codexBody"></div>
   </div>
 </div>
 
@@ -1601,7 +1718,7 @@ const ITEMS = {
   eqp5 :{n:'魔導の装備', i:'🧥', c:'#c79bff'},
   eqp6 :{n:'星の装備',   i:'👘', c:'#7ff2dd'},
   // 時代ごとの動力。これが無いとその時代の施設は動かない
-  wood :{n:'薪',     i:'🪵', c:'#a3743f'},
+  wood :{n:'木材',     i:'🪵', c:'#a3743f'},
   coal :{n:'石炭',   i:'⚫', c:'#6b6b6b'},
   power:{n:'高圧電力', i:'🔋', c:'#f2e14e'},
   nfl  :{n:'臨界電力', i:'🌀', c:'#7ee06b'},
@@ -1676,12 +1793,12 @@ const STAT_OF = {exs:'str', exi:'int', exv:'vit'};
 /* 素材の系統。原鉱→地金→部品 が1対1で対応する。
    floor = この最深到達層で解放 / sta = 採掘1回の体力 / val = 部品1つ分の攻撃力 */
 const CHAIN = [
-  {ore:'ore1', ingot:'ing1', part:'prt1', floor:1,   sta:4,  val:8},
-  {ore:'ore2', ingot:'ing2', part:'prt2', floor:10,  sta:7,  val:28},
-  {ore:'ore3', ingot:'ing3', part:'prt3', floor:30,  sta:12, val:100},
-  {ore:'ore4', ingot:'ing4', part:'prt4', floor:60,  sta:20, val:360},
-  {ore:'ore5', ingot:'ing5', part:'prt5', floor:100, sta:34, val:1300},
-  {ore:'ore6', ingot:'ing6', part:'prt6', floor:175, sta:58, val:4600},
+  {ore:'ore1', ingot:'ing1', part:'prt1', floor:1,   sta:6,  val:8},
+  {ore:'ore2', ingot:'ing2', part:'prt2', floor:10,  sta:10, val:28},
+  {ore:'ore3', ingot:'ing3', part:'prt3', floor:30,  sta:18, val:100},
+  {ore:'ore4', ingot:'ing4', part:'prt4', floor:60,  sta:30, val:360},
+  {ore:'ore5', ingot:'ing5', part:'prt5', floor:100, sta:50, val:1300},
+  {ore:'ore6', ingot:'ing6', part:'prt6', floor:175, sta:85, val:4600},
 ];
 /* =========================================================================
    素材の特性。系統ごとに得意なことがちがう。合金は混ぜた2つの性質を受け継ぐ。
@@ -1923,7 +2040,7 @@ const TYPES = {
           d:'すべての行動の源。主人公個人の体力（⚡1）を生み出す。小規模な活動は賄えるが、工場全体の稼働には風力発電機など複数の発電施設が必要'},
   mate  :{n:'仲間',      i:'👩‍🌾', cost:450,  up:600,  time:1.2, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:5, baseStats:{str:1,int:1,vit:2},
           d:'固有のステータス（💪/🧠/❤️）を持つ人タイプ。主人公と異なり、行動するたびに💰お金（給料）を消費して⚡体力を生む。人が動かす施設は☣️汚染を出さない'},
-  dive  :{n:'ダンジョン', i:'🚪', cost:250,  up:350,  time:3.0, ins:{sta:5}, outs:{}, effect:'dive', loot:true,
+  dive  :{n:'ダンジョン', i:'🚪', cost:250,  up:350,  time:3.0, ins:{sta:6}, outs:{}, effect:'dive', loot:true,
           d:'体力を消費して1回攻撃する。撃破すると戦利品が出る。'
            +'また地上の配管・排気を繋ぐと戦場介入（❄️氷結・🔥装甲貫通・☣️毒霧・💥爆風砲撃）が起き、深層からは🧪腐食粘液や👁️深淵瘴気が逆流する'},
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:3.0, ins:{}, outs:{}, chain:'ore',
@@ -1933,14 +2050,14 @@ const TYPES = {
            +'片付けなくても止まりはしないが、溜めるほどまわりが汚染されて仕事が遅くなる'},
   fund  :{n:'出資窓口',  i:'💱', cost:5000, up:6000, time:8.0, ins:{}, outs:{}, chain:'fund',
           d:'ゴールドを研究ポイントに変える。割はとても悪いが、余ったゴールドの使い道になる'},
-  lab   :{n:'研究所',    i:'🔬', cost:120,  up:160,  time:4.0, ins:{sta:8}, outs:{}, effect:'lab', matIn:true,
+  lab   :{n:'研究所',    i:'🔬', cost:120,  up:160,  time:4.0, ins:{sta:10}, outs:{}, effect:'lab', matIn:true,
           d:'体力を研究力に変える。素材を1種類だけ受け取れて、送り込むと🧱研究資材になる。'
            +'世代とレベルが上がるほど、同じ素材から取れる資材が増える'},
-  tstr  :{n:'筋トレ',    i:'🏋️', cost:150,  up:200,  time:8.0, ins:{sta:6}, outs:{exs:1}, stat:'str',
+  tstr  :{n:'筋トレ',    i:'🏋️', cost:150,  up:200,  time:8.0, ins:{sta:8}, outs:{exs:1}, stat:'str',
           d:'💪筋力+1。攻撃力が上がる。送り先の人タイプ（主人公・仲間）の💪筋力を鍛える'},
-  tint  :{n:'読書',      i:'📖', cost:150,  up:200,  time:8.0, ins:{sta:6}, outs:{exi:1}, stat:'int',
+  tint  :{n:'読書',      i:'📖', cost:150,  up:200,  time:8.0, ins:{sta:8}, outs:{exi:1}, stat:'int',
           d:'🧠知力+1。研究も生産も速くなる。送り先の人タイプ（主人公・仲間）の🧠知力を鍛える'},
-  tvit  :{n:'走り込み',  i:'🏃', cost:150,  up:200,  time:8.0, ins:{sta:6}, outs:{exv:1}, stat:'vit',
+  tvit  :{n:'走り込み',  i:'🏃', cost:150,  up:200,  time:8.0, ins:{sta:8}, outs:{exv:1}, stat:'vit',
           d:'❤️体力+1。送り先の人タイプ（主人公・仲間）の⚡体力生成と上限・行動範囲が伸びる'},
   smelt :{n:'精錬',      i:'🔥', cost:150,  up:200,  time:1.8, ins:{}, outs:{}, chain:'ingot',
           d:'原鉱2つを地金1つにする（1.8秒ごとに2個消費するため、複数の採掘機からの供給が必要）'},
@@ -1965,16 +2082,14 @@ const TYPES = {
           d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になるが、燃焼時に☣️汚染も発生する'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
-  wood  :{n:'薪割り小屋', i:'🪓', cost:900, up:1100, time:2.4, ins:{sta:6, waste:2}, outs:{wood:2},
-          d:'廃材を割って薪にする。第2〜第4の施設は⚡では動かず薪が要るので、'
-           +'⚡で動く第1世代の施設を「廃材の出し手」として残しておくとよい'},
+  wood  :{n:'木こり小屋', i:'🪓', cost:90,  up:120,  time:2.4, ins:{sta:2}, outs:{wood:2},
+          d:'木を切って木材（wood）を生産する作業場。人間（主人公・仲間）が直接生体アニマ（⚡2）を供給することで木材を生成する。火力発電機などの重要な燃料となる'},
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
-  gen   :{n:'発電機',    i:'🔌', cost:300, up:400, time:1.6, ins:{}, outs:{sta:7}, gen:true,
-          d:'機械・燃料で⚡電力を作る動力源。距離制限はないが、人やクリーンエネルギーではないため、'
-           +'自身と供給先の施設が☣️汚染を発生させる（高汚染で💥爆発・施設破壊の危険あり）'},
-  cgen  :{n:'風力発電機',i:'🍃', cost:70, up:90, time:2.0, ins:{}, outs:{sta:3}, gen:true, cleanEnergy:true,
-          d:'自然の風力で⚡クリーン電力を生み出す小型発電施設。出力は控えめ（⚡3）なため、採掘機や精錬炉を増設するたびに複数基の増設・発電所群の建設が必要になる'},
+  gen   :{n:'火力発電機', i:'🔌', cost:180, up:240, time:1.6, ins:{wood:1}, outs:{sta:14}, gen:true,
+          d:'木材（wood）を燃料にして大出力の⚡電力を生み出す発電機。配線距離制限なし。木こり小屋から木材を搬入して動かす。少量の☣️汚染を発生'},
+  cgen  :{n:'人力発電機',i:'🌪️', cost:70, up:90, time:1.8, ins:{sta:2}, outs:{sta:8}, gen:true, cleanEnergy:true,
+          d:'人間の生体アニマ（⚡2）を機械用電力（⚡8）へ高効率変換する装置。人の行動円内に設置する必要があるが、変換された電力は距離無制限で工場全体に送電可能。汚染ゼロ'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
@@ -2095,12 +2210,12 @@ const ERA_EXTRA = {
 const FAC = {
   /* 動力の源。通常の発電機は燃料や機械で動くため汚染を出す。
      クリーン発電（cgen）は自然エネルギーで動き、汚染を一切出さない */
-  gen:   [{e:1,n:'発電機',        i:'🔌'},
-          {e:2,n:'高性能発電機',   i:'⚡', ins:{wood:1}, outs:{sta:26, power:4}},
-          {e:3,n:'超高性能発電機', i:'🌟', ins:{coal:1}, outs:{sta:90, power:16, nfl:3}}],
-  cgen:  [{e:1,n:'風力発電機',    i:'🍃', outs:{sta:3}, cleanEnergy:true, time:2.0, cost:70},
-          {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:14, power:3}, cleanEnergy:true},
-          {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:50, power:12, nfl:2}, cleanEnergy:true}],
+  gen:   [{e:1,n:'火力発電機',    i:'🔌', ins:{wood:1}, outs:{sta:14}},
+          {e:2,n:'高性能発電機',   i:'⚡', ins:{wood:1}, outs:{sta:38, power:4}},
+          {e:3,n:'超高性能発電機', i:'🌟', ins:{coal:1}, outs:{sta:120, power:18, nfl:3}}],
+  cgen:  [{e:1,n:'人力発電機',    i:'🌪️', ins:{sta:2}, outs:{sta:8}, cleanEnergy:true, time:1.8, cost:70},
+          {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:24, power:4}, cleanEnergy:true},
+          {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:75, power:16, nfl:2}, cleanEnergy:true}],
   mine:  [{e:1,n:'採掘機',      i:'⛏️'},{e:2,n:'高速採掘機',i:'🚜'},{e:3,n:'重層採掘機',i:'🛰'}],
   smelt: [{e:1,n:'精錬炉',      i:'🔥'},{e:2,n:'高炉',      i:'🏭'},{e:3,n:'プラズマ炉',i:'🌞'}],
   alloy: [{e:1,n:'合金炉',      i:'⚗️'},{e:2,n:'電気合成炉',i:'🧪'},{e:3,n:'分子合成炉',i:'🧬'}],
@@ -2127,8 +2242,8 @@ const FAC = {
   mate:  [{e:1,n:'村人',        i:'👩‍🌾', baseStats:{str:1,int:1,vit:2}},
           {e:2,n:'職人',        i:'👩‍🔧', baseStats:{str:4,int:3,vit:4}},
           {e:3,n:'研究者',      i:'👩‍🔬', baseStats:{str:3,int:8,vit:5}}],
-  wood:  [{e:1,n:'薪割り小屋',  i:'🪓'},{e:2,n:'製材所',    i:'🪚', outs:{wood:4}},
-          {e:3,n:'自動林場',    i:'🌲', outs:{wood:14}}],
+  wood:  [{e:1,n:'木こり小屋',  i:'🪓', ins:{sta:2}, outs:{wood:2}},{e:2,n:'製材所',    i:'🪚', outs:{wood:6}},
+          {e:3,n:'自動林場',    i:'🌲', outs:{wood:18}}],
   coal:  [{e:1,n:'炭窯',        i:'🪵'},{e:2,n:'コークス炉',i:'🏭', outs:{coal:14, waste:2}},
           {e:3,n:'合成炭素炉',  i:'💎', outs:{coal:48, waste:6}}],
   open:  [{e:1,n:'開封所',      i:'📦'},{e:2,n:'開封場',    i:'🏗'},{e:3,n:'自動開封機',i:'🤖'}],
@@ -2304,39 +2419,41 @@ const baseName= t => TYPES[t].i + TYPES[t].n;
 const ROLE_TREE_DEFAULT = {
   dive:   {start:true,  reqRole:null,     treeX:0, treeY:0, rp:0},
   shop:   {start:true,  reqRole:null,     treeX:0, treeY:1, rp:0},
-  box:    {start:false, reqRole:'shop',   treeX:1, treeY:0, rp:20},
-  open:   {start:false, reqRole:'box',    treeX:2, treeY:0, rp:45,  reqFloor:3},
-  hout:   {start:false, reqRole:'open',   treeX:3, treeY:0, rp:90},
-  fund:   {start:false, reqRole:'shop',   treeX:1, treeY:1, rp:150, gold:1000},
+  box:    {start:false, reqRole:'shop',   treeX:1, treeY:0, rp:20,  mat:5},
+  open:   {start:false, reqRole:'box',    treeX:2, treeY:0, rp:45,  reqFloor:3, mat:8},
+  hout:   {start:false, reqRole:'open',   treeX:3, treeY:0, rp:90,  reqFloor:5, mat:15},
+  fund:   {start:false, reqRole:'shop',   treeX:1, treeY:1, rp:150, reqFloor:4, gold:500},
 
   mine:   {start:true,  reqRole:null,     treeX:0, treeY:2, rp:0},
-  smelt:  {start:false, reqRole:'mine',   treeX:1, treeY:2, rp:15},
-  forge:  {start:false, reqRole:'smelt',  treeX:2, treeY:2, rp:60,  reqFloor:5},
-  equip:  {start:false, reqRole:'forge',  treeX:3, treeY:2, rp:200, reqFloor:10},
-  anvil:  {start:false, reqRole:'equip',  treeX:4, treeY:2, rp:550, mat:30, reqFloor:15},
-  comp:   {start:false, reqRole:'smelt',  treeX:2, treeY:3, rp:120, reqFloor:8},
-  tool:   {start:false, reqRole:'comp',   treeX:3, treeY:3, rp:280, mat:15},
-  alloy:  {start:false, reqRole:'forge',  treeX:4, treeY:3, rp:320, reqFloor:12},
+  smelt:  {start:false, reqRole:'mine',   treeX:1, treeY:2, rp:15,  reqFloor:1},
+  forge:  {start:false, reqRole:'smelt',  treeX:2, treeY:2, rp:60,  reqFloor:4, mat:10},
+  equip:  {start:false, reqRole:'forge',  treeX:3, treeY:2, rp:200, reqFloor:8, mat:25, reqStr:3},
+  anvil:  {start:false, reqRole:'equip',  treeX:4, treeY:2, rp:500, reqFloor:12, mat:45, reqStr:5},
+  comp:   {start:false, reqRole:'smelt',  treeX:2, treeY:3, rp:120, reqFloor:6, mat:15},
+  tool:   {start:false, reqRole:'comp',   treeX:3, treeY:3, rp:250, reqFloor:9, mat:25},
+  alloy:  {start:false, reqRole:'forge',  treeX:4, treeY:3, rp:320, reqFloor:10, mat:35, reqInt:4},
 
   dump:   {start:true,  reqRole:null,     treeX:0, treeY:4, rp:0},
-  fuel:   {start:false, reqRole:'dump',   treeX:1, treeY:4, rp:50},
-  purify: {start:false, reqRole:'dump',   treeX:2, treeY:4, rp:160},
-  boost:  {start:false, reqRole:'purify', treeX:3, treeY:4, rp:350, mat:20},
+  fuel:   {start:false, reqRole:'dump',   treeX:1, treeY:4, rp:45,  reqFloor:3, mat:8},
+  decomp: {start:false, reqRole:'fuel',   treeX:2, treeY:4, rp:380, reqFloor:12, mat:40, reqInt:5},
+  purify: {start:false, reqRole:'dump',   treeX:1, treeY:5, rp:80,  reqFloor:5, mat:12},
+  boost:  {start:false, reqRole:'purify', treeX:2, treeY:5, rp:180, reqFloor:7, mat:20},
 
-  lab:    {start:true,  reqRole:null,     treeX:0, treeY:5, rp:0},
-  tstr:   {start:false, reqRole:'lab',    treeX:1, treeY:5, rp:20},
-  decomp: {start:false, reqRole:'tstr',   treeX:2, treeY:5, rp:80},
   cgen:   {start:true,  reqRole:null,     treeX:0, treeY:6, rp:0},
-  gen:    {start:false, reqRole:'cgen',   treeX:1, treeY:6, rp:40},
-  tvit:   {start:false, reqRole:'lab',    treeX:1, treeY:7, rp:20},
-  mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:7, rp:45,  reqVit:1},
-  tint:   {start:false, reqRole:'lab',    treeX:1, treeY:8, rp:20},
-  wood:   {start:false, reqRole:'gen',    treeX:2, treeY:6, rp:220, mat:20},
-  coal:   {start:false, reqRole:'wood',   treeX:3, treeY:6, rp:450, mat:40},
-  extr:   {start:false, reqRole:'dive',   treeX:1, treeY:9, rp:90,   mat:10, reqFloor:5},
-  turret: {start:false, reqRole:'extr',   treeX:2, treeY:9, rp:240,  mat:25, reqFloor:10},
-  synt:   {start:false, reqRole:'turret', treeX:3, treeY:9, rp:680,  mat:60, reqFloor:18},
-  altar:  {start:false, reqRole:'synt',   treeX:4, treeY:9, rp:1800, mat:140, reqFloor:28},
+  wood:   {start:false, reqRole:'cgen',   treeX:1, treeY:6, rp:25,  reqFloor:2},
+  gen:    {start:false, reqRole:'wood',   treeX:2, treeY:6, rp:70,  reqFloor:4, mat:12},
+  coal:   {start:false, reqRole:'gen',    treeX:3, treeY:6, rp:320, reqFloor:9, mat:35},
+
+  lab:    {start:true,  reqRole:null,     treeX:0, treeY:7, rp:0},
+  tstr:   {start:false, reqRole:'lab',    treeX:1, treeY:7, rp:25,  reqFloor:2},
+  tvit:   {start:false, reqRole:'lab',    treeX:1, treeY:8, rp:25,  reqFloor:2},
+  tint:   {start:false, reqRole:'lab',    treeX:1, treeY:9, rp:25,  reqFloor:2},
+  mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:8, rp:60,  reqFloor:5, reqVit:2, gold:300},
+
+  extr:   {start:false, reqRole:'dive',   treeX:1, treeY:10, rp:100, mat:15, reqFloor:5},
+  turret: {start:false, reqRole:'extr',   treeX:2, treeY:10, rp:260, mat:30, reqFloor:10},
+  synt:   {start:false, reqRole:'turret', treeX:3, treeY:10, rp:720, mat:60, reqFloor:18},
+  altar:  {start:false, reqRole:'synt',   treeX:4, treeY:10, rp:1900, mat:140, reqFloor:28},
 };
 
 const ORDER = ['hero'];
@@ -2398,7 +2515,7 @@ const LINE_ORDER = Object.keys(FAC);
 const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',equip:'装備',anvil:'鍛錬',
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
-  wood:'薪',coal:'石炭',gen:'発電',cgen:'クリーン発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',
+  wood:'木こり小屋',coal:'石炭',gen:'火力発電',cgen:'人力発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',
   extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
@@ -2746,7 +2863,7 @@ const hitsLeft = () => S.enemy ? Math.ceil(Math.max(0,S.enemy.hp) / dmg()) : 0;
 // 訓練は鍛えるほど1回の体力消費が増える → 放置ゲームらしい対数的な伸びになる
 const storeItems = n => (n.items||[]).filter(Boolean);
 // 系統ノードの体力コスト（段階ごとの倍率）
-const CHAIN_STA = {ore:1.0, ingot:1.2, part:2.0, equip:3.5, alloy:1.4, anvil:2.2};
+const CHAIN_STA = {ore:1.0, ingot:1.5, part:2.2, equip:4.0, alloy:1.8, anvil:2.5};
 // 部品でも合金でも段位を返す（合金の段位i は CHAIN[i] と CHAIN[i+1] の混合）
 function matTier(k){ const b=baseOf(k||'');
   const m=/^aly(\d)$/.exec(b); if(m) return +m[1]-1;
@@ -4172,6 +4289,7 @@ function freshState(){
   return {
     gold:40, nextId:1, nextNo:0, counts:{}, nodes:[], links:[],
     demonGemVeins:null, demonGemsSacrificed:[], demonGemsSlotted:{}, trueBossDefeated:false,
+    claimedMilestones:{},
     stats:{str:0, int:0, vit:0}, atkBonus:0, rp:0, dev:{}, stock:0,
     floor:1, best:1, caveId:'cave1', caveFloor:1, caveClears:{}, caveUnlocked:{cave1:1}, caveDiscovered:{cave1:1},
     lp:3, maxLp:3, lpExhausted:false, lpRecovT:0, partyHp:120, partyMaxHp:120,
@@ -4230,12 +4348,13 @@ const N = id => idx.get(id);
 /* ── 人（主人公・仲間）を動力にする場合の行動範囲（距離制限） ──
    人（TYPES[n.type].src）から生体アニマ⚡体力を送って施設を起動するには、
    人と施設の距離が HUMAN_R 以内でなければならない（🔌発電機からの電力などは距離無制限） */
-let HUMAN_R = 750;
+let HUMAN_R = 260;
 const isHuman = n => !!(n && TYPES[n.type] && TYPES[n.type].src);
 const nodeDist = (a, b) => (!a || !b) ? Infinity : Math.hypot((a.x + NW/2) - (b.x + NW/2), (a.y + 45) - (b.y + 45));
 const humanRangeOf = n => {
   if(!isHuman(n)) return HUMAN_R;
-  let r = HUMAN_R + Math.min(300, (statsOf(n).vit||0)*10 + (statsOf(n).str||0)*5);
+  const st = statsOf(n) || {};
+  let r = HUMAN_R + (st.vit || 0) * 8 + (st.str || 0) * 4 + (n.level || 1) * 5;
   const comp = (n.type !== 'hero') ? compOfNode(n) : null;
   if(comp){
     for(const tk of (comp.traits || [])){
@@ -4244,7 +4363,7 @@ const humanRangeOf = n => {
     }
     r += Math.floor((comp.affection || 0) / 10);
   }
-  return Math.max(300, r);
+  return Math.max(200, r);
 };
 const inHumanRange = (a, b) => {
   if(!a || !b) return false;
@@ -4628,6 +4747,7 @@ function mkNodeEl(n){
     ? `<div class="alien-badge" style="position:absolute;top:-12px;left:10px;background:#059669;color:#fff;border-radius:4px;padding:1px 6px;font-size:9.5px;font-weight:700;z-index:4">🛸 Tech ${n.alienTech}</div>`
     : '';
   el.innerHTML = auraEl + asBadge + strikeBadge + gemBadge + spireBadge +
+    `<button class="node-more-btn" data-more="${n.id}" title="詳細・設定を開く">＋</button>`+
     `<div class="nh"><span class="status-led led-run" title="稼働状態LED"></span><span class="no">#${n.no||'-'}</span>`+
     `<span class="ic">${tr.i}</span><span class="nm">${tr.n}</span>`+
     `<span class="sk"></span><span class="lv">Lv.${n.level}</span></div>`+
@@ -4637,6 +4757,25 @@ function mkNodeEl(n){
     if(asInfo.chimera) el.classList.add('chimera');
   }
   if(n.isStrike) el.classList.add('strike');
+
+  const moreBtn = el.querySelector('.node-more-btn');
+  if(moreBtn){
+    moreBtn.addEventListener('pointerdown', ev => ev.stopPropagation());
+    moreBtn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      sel = n.id;
+      renderInsp();
+      render();
+    });
+  }
+  el.querySelectorAll('.slot.o[data-s]').forEach(s => {
+    s.addEventListener('pointerdown', ev => ev.stopPropagation());
+    s.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const m = /^out-(.+)$/.exec(s.dataset.s || '');
+      if(m && m[1]) startSmartWiring(n.id, m[1]);
+    });
+  });
 
   const slots = {};
   el.querySelectorAll('.slot[data-s]').forEach(s=>slots[s.dataset.s]=s);
@@ -8101,6 +8240,32 @@ function grantRp(amount){
   return amount;
 }
 
+function outputsSummary(T){
+  if(!T) return '';
+  if(T.outs && Object.keys(T.outs).length){
+    return Object.keys(T.outs).map(k=>`${ITEMS[k]?ITEMS[k].i:''}${ITEMS[k]?ITEMS[k].n:k}×${T.outs[k]}`).join(' ');
+  }
+  if(T.chain==='ore') return '原鉱石';
+  if(T.chain==='ingot') return '金属地金';
+  if(T.chain==='part') return '精密部品';
+  if(T.chain==='alloy') return '高密度合金';
+  if(T.chain==='equip') return '武器・防具';
+  if(T.chain==='anvil') return '鍛錬装備';
+  if(T.chain==='comp') return '圧縮素材';
+  if(T.chain==='decomp') return '🔬研究・🧱資材';
+  if(T.chain==='sell') return '💰ゴールド';
+  if(T.stat) return `${T.stat==='str'?'💪筋力':T.stat==='int'?'🧠知力':'❤️体力'}+1`;
+  if(T.effect==='lab') return '🔬研究・🧱資材';
+  if(T.effect==='dive') return '⚔️戦闘・🎁戦利品';
+  if(T.effect==='purify' || T.line==='purify') return '🌬️清浄・冷却気流';
+  if(T.effect==='boost' || T.line==='boost') return '💡施設加速オーラ';
+  if(T.effect==='extr' || T.line==='extr') return '⚡電力・魔獣エキス';
+  if(T.effect==='turret' || T.line==='turret') return '🗼戦術砲撃・加速';
+  if(T.effect==='synt' || T.line==='synt') return '🏺遺物・強化鋼';
+  if(T.effect==='altar' || T.line==='altar') return '⛩️恒久バフ・⚡電力';
+  return ioText(T);
+}
+
 /* ========================= 研究ツリー ========================= */
 /* その時代で新しく建てられるようになるもの */
 function eraBrings(e){
@@ -8119,6 +8284,12 @@ function renderTree(force){
     + nodesInEra.map(t => (isDev(t)?'2':condMet(t)?'1':treeReqMet(t)?'0':'-')).join('');
   if(sig!==treeKey || force){
     treeKey=sig;
+    const oldWrap = g.querySelector('.rt-wrap');
+    const prevScrollLeft = oldWrap ? oldWrap.scrollLeft : 0;
+    const prevScrollTop = oldWrap ? oldWrap.scrollTop : 0;
+    const treeModal = g.closest('#tree') || g.closest('.modal') || document.querySelector('#tree');
+    const prevModalTop = treeModal ? treeModal.scrollTop : 0;
+
     const NW_T = 188, NH_T = 96, GX = 224, GY = 134, PADX = 20, PADY = 20;
     let maxX = 4, maxY = 6;
     for(const t of nodesInEra){
@@ -8154,22 +8325,22 @@ function renderTree(force){
       let reqTxt = '';
       if(!dev){
         const miss = [];
-        if(T.era > cur) miss.push(`第${T.era}世代が未解放`);
+        if(T.era > cur) miss.push(`第${T.era}世代未解放`);
         if(reqNode && !isDev(T.req)) miss.push(`前提:${reqNode.i}${reqNode.n}`);
         if(prevEraNode && !isDev(T.line + (T.era - 1))) miss.push(`前世代:${prevEraNode.i}${prevEraNode.n}`);
         reqTxt = miss.join(' / ');
       }
       const condHtml = dev
-        ? `<div class="rt-cond done">${T.start ? '✓ 初期から解放済' : '✓ 研究解放済'}</div>`
+        ? `<div class="rt-cond done">${T.start ? '✓ 初期解放済' : '✓ 解放済'}</div>`
         : `<div class="rt-cond">${parts.length ? parts.map(c=>`<span class="rc ${c.ok?'ok':'ng'}">${c.txt}</span>`).join(' ') : '<span class="rc ok">条件なし</span>'}</div>`
           + (reqTxt ? `<div class="rt-req">🔒 ${reqTxt}</div>` : '');
       const btnHtml = dev
         ? ''
-        : `<button class="rt-btn" data-rt="${t}" ${cMet?'':'disabled'}>${cMet?'🔬 研究して解放':'条件未達'}</button>`;
+        : `<button class="rt-btn" data-rt="${t}" ${cMet?'':'disabled'}>${cMet?'🔬 解放する':'条件未達'}</button>`;
       return `<div class="rt-node ${stCls}" style="left:${p.x}px;top:${p.y}px;width:${NW_T}px">
         <div class="rt-hd"><span class="rt-ic">${T.i}</span><span class="rt-nm">${T.n}</span>
           <span class="rt-cat">${LINE_LABEL[T.line]||'施設'}</span></div>
-        <div class="rt-io">${ioText(T)}</div>
+        <div class="rt-io" style="color:#38bdf8;font-size:10px">産出: <b>${outputsSummary(T)}</b></div>
         ${condHtml}
         ${btnHtml}
       </div>`;
@@ -8196,11 +8367,20 @@ function renderTree(force){
         </div>`;
       }).join('<span class="tarrow">▸</span>') + `</div>`
       + `<div class="rt-bar"><div class="rt-tabs">${eraTabsHtml}</div>
-          <span class="rt-hint">前提ノードから順番に条件（🔬研究ポイント等）を満たして施設をアンロックできます</span></div>`
+          <span class="rt-hint">前提ノードから順に条件を満たしてアンロックできます</span></div>`
       + `<div class="rt-wrap"><div class="rt-canvas" style="width:${cw}px;height:${ch}px">
           <svg class="rt-svg" width="${cw}" height="${ch}">${linesSvg}</svg>
           ${cardsHtml}
         </div></div>`;
+
+    const newWrap = g.querySelector('.rt-wrap');
+    if(newWrap){
+      newWrap.scrollLeft = prevScrollLeft;
+      newWrap.scrollTop = prevScrollTop;
+    }
+    if(treeModal){
+      treeModal.scrollTop = prevModalTop;
+    }
 
     const b=g.querySelector('.rs');
     if(b) b.onclick=()=>{ if(doEra()){ treeEraTab = S.era; renderTree(true); buildShop(); renderShop(); }
@@ -9630,6 +9810,7 @@ function render(fdt){
   if(oc>0) ob.textContent=`⤢ 画面外 ${oc}`;
   if($('#tree').classList.contains('on')) renderTree();
   $('#bCount').textContent = bagCount();
+  if(slow && typeof updateMilestonePill === 'function') updateMilestonePill();
   renderShop(); renderInspLive(); renderRadialHud(); tutRender();
 }
 
@@ -10101,6 +10282,12 @@ function renderInsp(){
     </div>
   `;
 
+  const outsMap = outsOf(n);
+  const outWireBtnsHtml = Object.keys(outsMap).map(k => {
+    const item = ITEMS[k] || {i:'📦', n:k};
+    return `<button class="insp-wire-btn" data-out-wire="${k}" style="background:#1e293b;border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;margin:3px 0;width:100%">🔗 ${item.i} ${item.n} を配線接続</button>`;
+  }).join('');
+
   let tabBody = '';
   if(curInspTab === '1'){
     tabBody = `
@@ -10112,6 +10299,7 @@ function renderInsp(){
       <div class="kv rxdur-row" hidden><span class="rxdurk">🔧 耐久</span><b class="rxdurv"></b></div>
       <div class="kv">速度<b class="flow-spd"></b></div>
       <div class="kv wrow"><span>配線<i class="wno">#${n.no||'-'}</i></span><span class="wire2"></span></div>
+      ${outWireBtnsHtml}
       ${((T.chain && T.chain!=='sell' && T.chain!=='fund')||T.loot) ? `<div class="kv">${selLabel}<select class="chn"></select></div>` : ''}
       ${T.matIn ? `<div class="kv">部品<select class="mat"></select></div>` : ''}
       ${T.tool ? `<div class="kv">対象<select class="itm"></select></div>` : ''}
@@ -10171,6 +10359,10 @@ function renderInsp(){
 
   const sjBtn = box.querySelector('.stats-jump-btn');
   if(sjBtn) sjBtn.onclick = () => openStatsModal('A');
+
+  box.querySelectorAll('.insp-wire-btn').forEach(btn => {
+    btn.onclick = () => startSmartWiring(n.id, btn.dataset.outWire);
+  });
 
   const deBtn = box.querySelector('.dive-expand-btn');
   if(deBtn) deBtn.onclick = () => { n._allOutputs = !n._allOutputs; rebuildNodeEl(n); renderInsp(); };
@@ -11101,15 +11293,19 @@ stage.addEventListener('pointerdown', e=>{
   const port=e.target.closest('.pout'), nodeEl=e.target.closest('.node');
   // 口をタップして待っている最中：相手をタップしたら繋ぐ
   if(tapLink && nodeEl && +nodeEl.dataset.id !== tapLink.from){
-    finishLink(N(tapLink.from), tapLink.item, N(+nodeEl.dataset.id));
-    clearTapLink(); drag=null; return;
+    const a = N(tapLink.from), b = N(+nodeEl.dataset.id);
+    if(a && b){
+      const ok = finishLink(a, tapLink.item, b);
+      if(ok) toast(`🔗 ${ITEMS[tapLink.item]?.i||''}${ITEMS[tapLink.item]?.n||tapLink.item} を ${TYPES[b.type]?.n||''} に接続しました`);
+    }
+    clearSmartWiring(); drag=null; return;
   }
   if(port&&nodeEl){
     const from=+nodeEl.dataset.id, item=port.dataset.item;
     if(tapLink && tapLink.from===from && tapLink.item===item){   // 同じ口をもう一度＝取り消し
-      clearTapLink(); drag=null; return;
+      clearSmartWiring(); drag=null; return;
     }
-    clearTapLink();
+    clearSmartWiring();
     drag={mode:'link', from, item, sx:e.clientX, sy:e.clientY, moved:0};
     document.body.classList.add('linking'); nodeEl.classList.add('src');
     markTargets(N(drag.from), drag.item);      // 受け取れる口を光らせておく
@@ -11227,7 +11423,31 @@ function clearTemp(){
   $('#lasso').setAttribute('d',''); $('#lasso').style.display='none';
   document.querySelectorAll('.node.over').forEach(x=>x.classList.remove('over'));
 }
-function clearTapLink(){ tapLink = null; clearTargets(); clearTemp(); }
+function clearSmartWiring(){
+  tapLink = null;
+  const hud = $('#smartCableHud');
+  if(hud) hud.classList.remove('on');
+  clearTargets();
+  clearTemp();
+}
+function clearTapLink(){ clearSmartWiring(); }
+function startSmartWiring(fromId, item){
+  const a = N(fromId);
+  if(!a) return;
+  tapLink = {from: fromId, item: item};
+  clearTargets();
+  document.body.classList.add('linking');
+  if(a.el && a.el.root) a.el.root.classList.add('src');
+  markTargets(a, item);
+  const hud = $('#smartCableHud');
+  const txt = $('#smartCableTxt');
+  if(hud){
+    hud.classList.add('on');
+    const itm = ITEMS[item] || {n: item, i: '📦'};
+    if(txt) txt.textContent = `🔗 ${itm.i} ${itm.n} の接続先施設をタップ`;
+  }
+  toast(`🔗 ${ITEMS[item]?.i||''}${ITEMS[item]?.n||item} の接続先施設をタップしてください`);
+}
 /* 口をタップして待っている最中の光。盤面を動かしても消えないよう、必要なら出し直す */
 function showTapLink(){
   if(!tapLink) return clearTargets();
@@ -11236,6 +11456,13 @@ function showTapLink(){
   document.body.classList.add('linking');
   a.el.root.classList.add('src');
   markTargets(a, tapLink.item);
+  const hud = $('#smartCableHud');
+  const txt = $('#smartCableTxt');
+  if(hud){
+    hud.classList.add('on');
+    const itm = ITEMS[tapLink.item] || {n: tapLink.item, i: '📦'};
+    if(txt) txt.textContent = `🔗 ${itm.i} ${itm.n} の接続先施設をタップ`;
+  }
 }
 function finishLink(a, item, b){
   if(!a || !b) return false;
@@ -11259,6 +11486,7 @@ function finishLink(a, item, b){
       const over = Math.max(1, Math.ceil(nodeDist(a, b) - humanRangeOf(a)));
       toast(`🚫 ${tierOf(a).n}の行動範囲外です（あと${over}px近づけると起動します）`);
     }
+    if(typeof checkMilestones === 'function') checkMilestones();
     return true;
   }
   const T=TYPES[b.type];
@@ -11272,20 +11500,21 @@ function markTargets(a, item){
   for(const m of S.nodes){
     if(!canLink(a, item, m)) continue;
     m.el.root.classList.add('tgt');
+    m.el.root.classList.add('tgt-candidate');
     if(isHuman(a) && item==='sta' && !inHumanRange(a, m)){
       m.el.root.classList.add('tgt-far');
     }
     const p = m.el.root.querySelector(`.port.pin[data-item="${item}"]`)
            || m.el.root.querySelector('.port.pin.any');
     if(p) p.classList.add('hot');
-    const sl = m.el.slots['in-'+item];
+    const sl = m.el.slots && m.el.slots['in-'+item];
     if(sl) sl.classList.add('hot');
     else { const any=m.el.root.querySelector('.slot.anyslot'); if(any) any.classList.add('hot'); }
   }
 }
 function clearTargets(){
   document.body.classList.remove('linking');
-  document.querySelectorAll('.node.tgt,.node.tgt-far,.node.src,.node.over').forEach(x=>x.classList.remove('tgt','tgt-far','src','over'));
+  document.querySelectorAll('.node.tgt,.node.tgt-far,.node.tgt-candidate,.node.src,.node.over').forEach(x=>x.classList.remove('tgt','tgt-far','tgt-candidate','src','over'));
   document.querySelectorAll('.port.hot,.slot.hot').forEach(x=>x.classList.remove('hot'));
 }
 function endPointer(e){
@@ -11317,9 +11546,7 @@ stage.addEventListener('pointerup', e=>{
     const a=N(drag.from), b=tn?N(+tn.dataset.id):null;
     // 動かさずに離した＝タップ。相手をタップするまで待つ
     if((drag.moved||0) < 8 && (!b || b.id===a.id)){
-      tapLink = {from:a.id, item:drag.item};
-      clearTemp();
-      toast(`${ITEMS[drag.item].i}${ITEMS[drag.item].n} の届け先をタップ（同じ口をもう一度で取り消し）`);
+      startSmartWiring(a.id, drag.item);
       drag=null; stage.classList.remove('panning');
       return;                                   // 光らせたままにする
     }
@@ -12068,6 +12295,570 @@ if(btnQG) btnQG.onclick = () => toggleQuickStarterGear();
 const btnSc = $('#btnScout');
 if(btnSc) btnSc.onclick = () => dispatchScout(btnSc.dataset.cid);
 
+/* ========================= 冒険マイルストーン ＆ 工房全書（事典・モニター・収支） ========================= */
+const eraOf = t => (TYPES[t] && TYPES[t].era) || 1;
+function panToNode(id){
+  const n = N(id);
+  if(!n) return;
+  const sw = stage.clientWidth || window.innerWidth;
+  const sh = stage.clientHeight || window.innerHeight;
+  S.view.x = Math.round(sw/2 - (n.x + NW/2) * S.view.s);
+  S.view.y = Math.round(sh/2 - (n.y + 40) * S.view.s);
+  applyView();
+  if(n.el && n.el.root){
+    n.el.root.classList.remove('flash-focus');
+    void n.el.root.offsetWidth;
+    n.el.root.classList.add('flash-focus');
+    setTimeout(() => { if(n.el && n.el.root) n.el.root.classList.remove('flash-focus'); }, 1800);
+  }
+}
+
+const MILESTONES = [
+  {
+    id: 'm1_anima',
+    i: '⚡',
+    title: '生体アニマの供給',
+    desc: '最初の洞窟(dive1)に主人公の万能動力(アニマ⚡)を配線で接続する',
+    reqText: '主人公と洞窟を動力線で接続',
+    gold: 150, rp: 15, mat: 20,
+    check: () => S.links && S.links.some(l => l.item==='sta' && N(l.to) && TYPES[N(l.to).type]?.effect==='dive'),
+    rewardDesc: '💰150G 🔬15RP 🧱20資材'
+  },
+  {
+    id: 'm2_first_dive',
+    i: '⚔️',
+    title: '初陣と魔石回収',
+    desc: '洞窟1層のボスを撃破し、初クリアまたは第2層へ到達する',
+    reqText: '洞窟第2層到達 または 探索完了1回',
+    gold: 200, rp: 25, mat: 25,
+    check: () => (S.floor || 1) >= 2 || (S.diveDone || 0) >= 1 || (S.nodes && S.nodes.some(n => TYPES[n.type]?.effect==='dive' && (n.done||0) >= 1)),
+    rewardDesc: '💰200G 🔬25RP 🧱25資材'
+  },
+  {
+    id: 'm3_cgen',
+    i: '🌪️',
+    title: '人力発電の稼働',
+    desc: '人力発電機を設置し、主人公のアニマを入力して機械電力⚡8を出力する',
+    reqText: '人力発電機(🌪️)の稼働',
+    gold: 250, rp: 30, items: { wood: 10 },
+    check: () => S.nodes && S.nodes.some(n => n.type==='cgen' && (n.done || 0) >= 1),
+    rewardDesc: '💰250G 🔬30RP 🪵木材10'
+  },
+  {
+    id: 'm4_wood',
+    i: '🪓',
+    title: '木こり小屋の開設',
+    desc: '木こり小屋を設置し、人間アニマで原木を伐採して燃料源を確保する',
+    reqText: '木こり小屋(🪓)で木材生産',
+    gold: 300, rp: 35, mat: 30,
+    check: () => S.nodes && S.nodes.some(n => n.type==='wood' && (n.done || 0) >= 1),
+    rewardDesc: '💰300G 🔬35RP 🧱30資材'
+  },
+  {
+    id: 'm5_gen',
+    i: '🔌',
+    title: '火力発電網の構築',
+    desc: '火力発電機を設置し、木材を燃やして広域機械電力⚡14を出力する',
+    reqText: '火力発電機(🔌)の稼働',
+    gold: 400, rp: 45, items: { ing1: 15 },
+    check: () => S.nodes && S.nodes.some(n => n.type==='gen' && (n.done || 0) >= 1),
+    rewardDesc: '💰400G 🔬45RP 🥉銅インゴット15'
+  },
+  {
+    id: 'm6_ingot',
+    i: '🏭',
+    title: '銅の製錬自動化',
+    desc: '製錬所で銅鉱石から銅インゴットを自動製錬するラインを構築する',
+    reqText: '製錬所(🏭)でインゴット生産',
+    gold: 500, rp: 50, mat: 40, items: { part1: 10 },
+    check: () => S.nodes && S.nodes.some(n => n.type==='ingot' && (n.done || 0) >= 1),
+    rewardDesc: '💰500G 🔬50RP ⚙️部品10'
+  },
+  {
+    id: 'm7_train',
+    i: '💪',
+    title: '肉体鍛錬と行動域拡大',
+    desc: '筋トレや体力強化を行い、主人公のステータスを伸ばして行動円を広げる',
+    reqText: '主人公のSTRまたはVIT上昇',
+    gold: 600, rp: 60, mat: 50,
+    check: () => ((S.stats?.str || 0) > 0 || (S.stats?.vit || 0) > 0 || (S.nodes && S.nodes.some(n => (n.type==='tstr'||n.type==='tvit') && (n.done||0)>=1))),
+    rewardDesc: '💰600G 🔬60RP 🧱50資材'
+  },
+  {
+    id: 'm8_parts',
+    i: '⚙️',
+    title: '工業部品の量産',
+    desc: '部品工場を稼働させ、機械製作に必要な銅部品を自動生産する',
+    reqText: '部品工場(⚙️)で部品生産',
+    gold: 800, rp: 80, items: { alo1: 10 },
+    check: () => S.nodes && S.nodes.some(n => n.type==='part' && (n.done || 0) >= 1),
+    rewardDesc: '💰800G 🔬80RP 🧪青銅合金10'
+  },
+  {
+    id: 'm9_floor5',
+    i: '🛡️',
+    title: '深層への到達',
+    desc: 'ダンジョン第5層を突破し、より過酷な環境への足がかりを築く',
+    reqText: '洞窟第5層突破',
+    gold: 1000, rp: 100, mat: 60,
+    check: () => (S.floor || 1) >= 5,
+    rewardDesc: '💰1,000G 🔬100RP 🧱60資材'
+  },
+  {
+    id: 'm10_companion',
+    i: '🍻',
+    title: '冒険者ギルドと仲間',
+    desc: '酒場で仲間を1人スカウトし、遠征や工房防衛に任命する',
+    reqText: '仲間を1人スカウト',
+    gold: 1200, rp: 120, mat: 80,
+    check: () => (S.companions && S.companions.length > 0) || (S.companionRoster && S.companionRoster.length > 0),
+    rewardDesc: '💰1,200G 🔬120RP 🧱80資材'
+  },
+  {
+    id: 'm11_iron_era',
+    i: '⚔️',
+    title: '第2世代・鉄器時代',
+    desc: '第2時代へ移行し、鉄鉱石の採掘と鉄製品の生産を開始する',
+    reqText: '第2時代(鉄器時代)突入 または 鉄製錬',
+    gold: 2000, rp: 200, items: { ing2: 20 },
+    check: () => (S.era || 1) >= 2 || (S.nodes && S.nodes.some(n => n.type==='ingot' && (n.matKey==='fe' || n.targetOre==='ore2'))),
+    rewardDesc: '💰2,000G 🔬200RP 🥈鉄インゴット20'
+  },
+  {
+    id: 'm12_tower',
+    i: '🏰',
+    title: '巨塔・天廊の制覇',
+    desc: '試練の巨塔または深層第15層へ到達し、王国の真の脅威に立ち向かう',
+    reqText: '試練の塔挑戦 または 第15層到達',
+    gold: 5000, rp: 500, mat: 200,
+    check: () => (S.towerFloor || 0) >= 1 || (S.floor || 1) >= 15,
+    rewardDesc: '💰5,000G 🔬500RP 🧱200資材'
+  }
+];
+
+function updateMilestonePill(){
+  const pill = $('#milestonePill');
+  const txt = $('#mPillTxt');
+  if(!pill || !txt) return;
+  S.claimedMilestones = S.claimedMilestones || {};
+  const readyM = MILESTONES.find(m => !S.claimedMilestones[m.id] && m.check());
+  if(readyM){
+    pill.classList.add('ready');
+    txt.innerHTML = `✨ <b>達成！</b> ${readyM.i}${readyM.title} (タップで受取)`;
+    return;
+  }
+  const nextM = MILESTONES.find(m => !S.claimedMilestones[m.id]);
+  if(nextM){
+    pill.classList.remove('ready');
+    txt.innerHTML = `🎯 <b>目標:</b> ${nextM.i}${nextM.title}`;
+  } else {
+    pill.classList.remove('ready');
+    txt.innerHTML = `🏆 <b>全目標制覇！</b>`;
+  }
+}
+
+function checkMilestones(){
+  updateMilestonePill();
+}
+
+function claimMilestone(mId){
+  S.claimedMilestones = S.claimedMilestones || {};
+  if(S.claimedMilestones[mId]) return;
+  const m = MILESTONES.find(x => x.id === mId);
+  if(!m || !m.check()) return;
+  S.claimedMilestones[mId] = Date.now();
+  if(m.gold) S.gold = (S.gold || 0) + m.gold;
+  if(m.rp) grantRp(m.rp, false);
+  if(m.mat) S.stock = (S.stock || 0) + m.mat;
+  if(m.items){
+    const H = homeOf();
+    for(const k of Object.keys(m.items)){
+      H[k] = (H[k] || 0) + m.items[k];
+    }
+  }
+  toast(`🎉 マイルストーン達成！【${m.title}】\n報酬: ${m.rewardDesc}`);
+  addLog(`🎯 マイルストーン【${m.title}】達成！報酬: ${m.rewardDesc}`, 'b');
+  updateMilestonePill();
+  renderCodex();
+  render();
+}
+
+function claimAllMilestones(){
+  let count = 0;
+  for(const m of MILESTONES){
+    if(!S.claimedMilestones?.[m.id] && m.check()){
+      claimMilestone(m.id);
+      count++;
+    }
+  }
+  if(!count) toast('受取可能な報酬はありません');
+}
+
+let curCdxTab = 'codex';
+let cdxSearchStr = '';
+let cdxCategory = 'all';
+
+function toggleCodexModal(force, tab){
+  const modal = $('#codexModal');
+  if(!modal) return;
+  const next = force !== undefined ? !!force : !modal.classList.contains('on');
+  if(tab) curCdxTab = tab;
+  modal.classList.toggle('on', next);
+  if(next){
+    renderCodex();
+  }
+}
+
+function renderCodex(){
+  const body = $('#codexBody');
+  if(!body) return;
+  document.querySelectorAll('#codexModal .cdx-tab').forEach(b => {
+    b.classList.toggle('on', b.dataset.cdxtab === curCdxTab);
+  });
+
+  if(curCdxTab === 'codex'){
+    renderCodexGlossary(body);
+  } else if(curCdxTab === 'monitor'){
+    renderCodexMonitor(body);
+  } else if(curCdxTab === 'dash'){
+    renderCodexDash(body);
+  } else if(curCdxTab === 'mile'){
+    renderCodexMilestones(body);
+  }
+}
+
+function renderCodexGlossary(body){
+  const cats = [
+    {k: 'all', n: '🌐 全部'},
+    {k: 'power', n: '⚡ 動力・発電'},
+    {k: 'wood', n: '🪵 木材・燃料'},
+    {k: 'mine', n: '⛏️ 資源・採取'},
+    {k: 'factory', n: '🏭 加工・製造'},
+    {k: 'dungeon', n: '⚔️ 冒険・育成'},
+    {k: 'store', n: '📦 保管・物流'}
+  ];
+  let h = `
+    <div class="cdx-search-wrap">
+      <div class="cdx-search-row">
+        <input class="cdx-search-input" id="cdxSearchInput" type="text" placeholder="🔍 施設名・アイテム・説明文で検索..." value="${cdxSearchStr||''}">
+      </div>
+      <div class="cdx-chips">
+        ${cats.map(c => `<button class="cdx-chip ${cdxCategory===c.k?'on':''}" data-cdxcat="${c.k}">${c.n}</button>`).join('')}
+      </div>
+    </div>
+    <div class="cdx-grid">
+  `;
+
+  const q = (cdxSearchStr || '').trim().toLowerCase();
+  const list = ORDER.filter(t => {
+    const T = TYPES[t];
+    if(!T) return false;
+    if(cdxCategory === 'power' && !(T.gen || T.cleanEnergy || t==='cgen' || t==='gen' || t==='fuel' || t==='hero')) return false;
+    if(cdxCategory === 'wood' && !(t==='wood' || t==='gen' || t==='coal')) return false;
+    if(cdxCategory === 'mine' && !(T.mine || T.src || t==='mine' || t==='coal')) return false;
+    if(cdxCategory === 'factory' && !(T.craft || T.chain || t==='ingot' || t==='part' || t==='alloy' || t==='equip' || t==='anvil')) return false;
+    if(cdxCategory === 'dungeon' && !(T.effect==='dive' || T.train || t==='dive' || t==='tstr' || t==='tint' || t==='tvit' || t==='lab')) return false;
+    if(cdxCategory === 'store' && !(T.store || T.ware || T.conv || t==='store' || t==='ware' || t==='belt' || t==='pipe')) return false;
+    if(q){
+      const name = (baseName(t) || '').toLowerCase();
+      const desc = (T.d || '').toLowerCase();
+      const inOut = Object.keys(T.ins||{}).concat(Object.keys(T.outs||{})).map(k=>ITEMS[k]?.n||'').join(' ').toLowerCase();
+      if(!name.includes(q) && !desc.includes(q) && !inOut.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if(!list.length){
+    h += `<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--dim)">一致する施設が見つかりませんでした</div>`;
+  } else {
+    for(const t of list){
+      const T = TYPES[t];
+      const inStr = Object.entries(T.ins||{}).map(([k,v]) => `${ITEMS[k]?.i||'📦'}${ITEMS[k]?.n||k}×${v}`).join(' ＋ ') || 'なし';
+      const outStr = Object.entries(T.outs||{}).map(([k,v]) => `${ITEMS[k]?.i||'📦'}${ITEMS[k]?.n||k}×${v}`).join(' ＋ ') || 'なし';
+      const era = eraOf(t);
+      const isUniq = T.unique ? '<span class="cdx-card-badge" style="color:#f59e0b;border-color:#f59e0b">固有</span>' : '';
+      let tip = '';
+      if(t==='hero') tip = '生体アニマを出力。ダンジョン稼働に必須の生命力';
+      else if(t==='cgen') tip = '生体アニマを機械電力×8に変換。広域配線可能（ダンジョン給電不可）';
+      else if(t==='wood') tip = '人間が原木を伐採。木材は火力発電や建築の燃料資材';
+      else if(t==='gen') tip = '木材を燃やして広域機械電力×14を出力';
+      else if(t==='dive') tip = '生体アニマのみ稼働可能。機械電力は接続不可（ブロック）';
+      else if(T.train) tip = '主人公の能力値を強化。体力/筋力向上で行動円が拡大';
+
+      h += `
+        <div class="cdx-card">
+          <div class="cdx-card-hd">
+            <div class="cdx-card-title"><span>${T.i}</span><span>${baseName(t)}</span></div>
+            <div style="display:flex;gap:4px">
+              ${isUniq}
+              <span class="cdx-card-badge">${kindOf(t)}</span>
+              <span class="cdx-card-badge" style="color:var(--acc);border-color:var(--acc)">第${era}世代</span>
+            </div>
+          </div>
+          <div class="cdx-card-io">
+            <div>📥 <b>入:</b> ${inStr}</div>
+            <div>📤 <b>出:</b> ${outStr}</div>
+          </div>
+          <div class="cdx-card-desc">${T.d || '特殊施設'}</div>
+          ${tip ? `<div class="cdx-card-tip">💡 ${tip}</div>` : ''}
+          <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);margin-top:auto;padding-top:4px;border-top:1px solid rgba(255,255,255,.05)">
+            <span>建設費: 💰${fmt(T.cost)}G${T.mat?` 🧱${T.mat}`:''}</span>
+            <span>周期: ${T.time ? T.time+'秒' : '即時'}</span>
+          </div>
+        </div>
+      `;
+    }
+  }
+  h += `</div>`;
+  body.innerHTML = h;
+
+  const inp = body.querySelector('#cdxSearchInput');
+  if(inp){
+    inp.oninput = () => {
+      cdxSearchStr = inp.value;
+      renderCodexGlossary(body);
+      const newInp = body.querySelector('#cdxSearchInput');
+      if(newInp){ newInp.focus(); newInp.setSelectionRange(newInp.value.length, newInp.value.length); }
+    };
+  }
+  body.querySelectorAll('.cdx-chip').forEach(btn => {
+    btn.onclick = () => {
+      cdxCategory = btn.dataset.cdxcat;
+      renderCodexGlossary(body);
+    };
+  });
+}
+
+function renderCodexMonitor(body){
+  const nodes = S.nodes.filter(onBoard);
+  let h = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:700;color:var(--acc)">⚡ 稼働中施設一覧（全 ${nodes.length} 基）</span>
+      <span style="font-size:11px;color:var(--dim)">行の「📍移動」でカメラがジャンプします</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="cdx-table">
+        <thead>
+          <tr>
+            <th>施設</th>
+            <th>状態</th>
+            <th>電力(Sta)</th>
+            <th>生産回数</th>
+            <th>詳細</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  if(!nodes.length){
+    h += `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--dim)">設置されている施設がありません</td></tr>`;
+  } else {
+    for(const n of nodes){
+      const T = TYPES[n.type] || {};
+      let stColor = '#22c55e', stText = '稼働中';
+      if(n.isStrike){ stColor = '#ef4444'; stText = 'ストライキ'; }
+      else if(n.broken){ stColor = '#ef4444'; stText = '故障中'; }
+      else if(n._incompatiblePower){ stColor = '#f43f5e'; stText = '🚫機械電力不可'; }
+      else if(n.stall && n.why && n.why.includes('範囲外')){ stColor = '#f59e0b'; stText = 'アニマ範囲外'; }
+      else if(n.stall && n.why && (n.why.includes('不足') || n.why.includes('空'))){ stColor = '#f59e0b'; stText = '原料/電力不足'; }
+      else if(n.stall){ stColor = '#eab308'; stText = '待機中'; }
+
+      const inSta = (T.ins && T.ins.sta) ? `${T.ins.sta}` : '-';
+      const done = n.done || 0;
+      h += `
+        <tr>
+          <td><b>${T.i||'📦'} ${baseName(n.type)}</b> <span style="font-size:10px;color:var(--dim)">Lv${n.level||1}</span></td>
+          <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${stColor};margin-right:4px"></span><span style="color:${stColor}">${stText}</span></td>
+          <td>${inSta !== '-' ? `⚡${inSta}` : '-'}</td>
+          <td>${fmt(done)}回</td>
+          <td style="font-size:10.5px;color:var(--dim);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.why || '正常稼働'}</td>
+          <td><button class="cdx-btn-jump" data-jump="${n.id}">📍 移動</button></td>
+        </tr>
+      `;
+    }
+  }
+  h += `</tbody></table></div>`;
+  body.innerHTML = h;
+
+  body.querySelectorAll('.cdx-btn-jump').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const id = +btn.dataset.jump;
+      toggleCodexModal(false);
+      panToNode(id);
+    };
+  });
+}
+
+function renderCodexDash(body){
+  const nodes = S.nodes.filter(onBoard);
+  const eraCounts = {};
+  let totalAnimaGen = 0, totalAnimaReq = 0;
+  let totalMachGen = 0, totalMachReq = 0;
+
+  for(const n of nodes){
+    const T = TYPES[n.type] || {};
+    const e = eraOf(n.type);
+    eraCounts[e] = (eraCounts[e] || 0) + 1;
+    if(isHuman(n)){
+      totalAnimaGen += (T.outs?.sta || 6);
+    } else if(T.gen || T.cleanEnergy){
+      totalMachGen += (T.outs?.sta || 0);
+    }
+    if(T.ins?.sta){
+      if(isDungeonNode(n)){
+        totalAnimaReq += T.ins.sta;
+      } else {
+        totalMachReq += T.ins.sta;
+      }
+    }
+  }
+
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+      <div class="cdx-card">
+        <div style="font-size:11px;color:var(--dim)">💰 国庫ゴールド</div>
+        <div style="font-size:18px;font-weight:800;color:#fbbf24">${fmt(S.gold)} G</div>
+        <div style="font-size:10.5px;color:var(--dim)">総獲得: ${fmt(S.gTotal||S.gold)} G</div>
+      </div>
+      <div class="cdx-card">
+        <div style="font-size:11px;color:var(--dim)">🔬 研究ポイント (RP)</div>
+        <div style="font-size:18px;font-weight:800;color:#38bdf8">${fmt(S.rp)} RP</div>
+        <div style="font-size:10.5px;color:var(--dim)">現在世代: 第${S.era||1}世代</div>
+      </div>
+      <div class="cdx-card">
+        <div style="font-size:11px;color:var(--dim)">🧱 建築・技術資材</div>
+        <div style="font-size:18px;font-weight:800;color:#a3e635">${fmt(S.stock||0)} 🧱</div>
+        <div style="font-size:10.5px;color:var(--dim)">設置施設数: ${nodes.length} 基</div>
+      </div>
+      <div class="cdx-card">
+        <div style="font-size:11px;color:var(--dim)">⚔️ 最高到達フロア</div>
+        <div style="font-size:18px;font-weight:800;color:#f87171">第 ${S.best||1} 層</div>
+        <div style="font-size:10.5px;color:var(--dim)">現在層: 第${S.floor||1}層 (${curCave().n})</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:6px">
+      <div class="cdx-card">
+        <div class="cdx-card-hd">
+          <span style="font-size:13px;font-weight:800;color:#a855f7">⚡ 万能生体アニマ網</span>
+          <span class="cdx-card-badge" style="color:#a855f7;border-color:#a855f7">ダンジョン専用</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px">
+          <span>アニマ供給能力:</span><b style="color:#a855f7">⚡ +${totalAnimaGen}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px">
+          <span>ダンジョン消費要求:</span><b>⚡ -${totalAnimaReq}</b>
+        </div>
+        <div style="font-size:10.5px;color:var(--dim);margin-top:4px">
+          ※ 生体アニマは主人公と仲間の生命力です。ダンジョン進出・討伐に不可欠です。
+        </div>
+      </div>
+
+      <div class="cdx-card">
+        <div class="cdx-card-hd">
+          <span style="font-size:13px;font-weight:800;color:#38bdf8">🔌 工業機械電力網</span>
+          <span class="cdx-card-badge" style="color:#38bdf8;border-color:#38bdf8">工場・施設専用</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px">
+          <span>機械発電能力:</span><b style="color:#38bdf8">⚡ +${totalMachGen}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px">
+          <span>地上工場消費要求:</span><b>⚡ -${totalMachReq}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px">
+          <span>余剰電力:</span><b style="color:${(totalMachGen-totalMachReq)>=0?'#22c55e':'#ef4444'}">${(totalMachGen-totalMachReq)>=0?'+':''}${totalMachGen-totalMachReq}</b>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCodexMilestones(body){
+  S.claimedMilestones = S.claimedMilestones || {};
+  let claimedCount = 0;
+  for(const m of MILESTONES){
+    if(S.claimedMilestones[m.id]) claimedCount++;
+  }
+  const canClaimAny = MILESTONES.some(m => !S.claimedMilestones[m.id] && m.check());
+
+  let h = `
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#090e17;padding:10px 14px;border-radius:8px;border:1px solid var(--line);flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#f8fafc">🎯 冒険マイルストーン進捗</div>
+        <div style="font-size:11px;color:var(--dim)">達成度: <b style="color:#fbbf24">${claimedCount} / ${MILESTONES.length}</b> 制覇（自由プレイで自動達成・受取可能）</div>
+      </div>
+      <button class="dt-btn ${canClaimAny?'acc':''}" id="cdxClaimAllBtn" ${canClaimAny?'':'disabled'}>🎁 達成済みを一括受取</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+  `;
+
+  for(const m of MILESTONES){
+    const isClaimed = !!S.claimedMilestones[m.id];
+    const isReady = !isClaimed && m.check();
+    let stateHtml = '';
+    if(isClaimed){
+      stateHtml = `<span class="cdx-claimed-badge">✓ 達成受取済</span>`;
+    } else if(isReady){
+      stateHtml = `<button class="cdx-claim-btn" data-claim-mid="${m.id}">🎁 報酬受取</button>`;
+    } else {
+      stateHtml = `<span style="font-size:11px;color:var(--dim);padding:3px 8px;border:1px solid rgba(255,255,255,.08);border-radius:4px">進行中...</span>`;
+    }
+
+    h += `
+      <div class="cdx-mile-card ${isClaimed?'done':(isReady?'ready':'')}">
+        <div class="cdx-mile-icon">${m.i}</div>
+        <div class="cdx-mile-info">
+          <div class="cdx-mile-title">${m.title}</div>
+          <div class="cdx-mile-desc">${m.desc}</div>
+          <div style="font-size:10.5px;color:var(--dim)">目標: <b>${m.reqText}</b></div>
+          <div class="cdx-mile-reward">🎁 報酬: ${m.rewardDesc}</div>
+        </div>
+        <div>
+          ${stateHtml}
+        </div>
+      </div>
+    `;
+  }
+  h += `</div>`;
+  body.innerHTML = h;
+
+  const claimAll = body.querySelector('#cdxClaimAllBtn');
+  if(claimAll){
+    claimAll.onclick = () => claimAllMilestones();
+  }
+  body.querySelectorAll('[data-claim-mid]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      claimMilestone(btn.dataset.claimMid);
+    };
+  });
+}
+
+// UI Event bindings
+const lrCodexBtn = $('#lrCodexBtn');
+if(lrCodexBtn) lrCodexBtn.onclick = () => toggleCodexModal(true, 'codex');
+const lrMileBtn = $('#lrMileBtn');
+if(lrMileBtn) lrMileBtn.onclick = () => toggleCodexModal(true, 'mile');
+const mCodexBtn = $('#mCodexBtn');
+if(mCodexBtn) mCodexBtn.onclick = () => { closeMenuModal(); toggleCodexModal(true, 'codex'); };
+const mMileBtn = $('#mMileBtn');
+if(mMileBtn) mMileBtn.onclick = () => { closeMenuModal(); toggleCodexModal(true, 'mile'); };
+const mPill = $('#milestonePill');
+if(mPill) mPill.onclick = () => toggleCodexModal(true, 'mile');
+const sCancel = $('#smartCableCancel');
+if(sCancel) sCancel.onclick = () => clearSmartWiring();
+const codexCloseBtn = $('#codexCloseBtn');
+if(codexCloseBtn) codexCloseBtn.onclick = () => toggleCodexModal(false);
+const cdxModalEl = $('#codexModal');
+if(cdxModalEl) cdxModalEl.onclick = (e) => { if(e.target === cdxModalEl) toggleCodexModal(false); };
+document.querySelectorAll('#codexModal .cdx-tab').forEach(btn => {
+  btn.onclick = () => {
+    curCdxTab = btn.dataset.cdxtab;
+    renderCodex();
+  };
+});
+
 /* リセット：1回目で確認状態、2回目（6秒以内）で初期化。メニューが勝手に閉じない設計 */
 let resetting=false, resetArm=0, resetT=null;
 function doResetGame(force){
@@ -12099,6 +12890,7 @@ function doResetGame(force){
   for(const n of [...S.nodes]) removeNode(n.id);
   sel = null; selLink = null; tutHi = null; tutShown = -1;
   newGame(); spawnEnemy();
+  updateMilestonePill();
   buildShop(); renderShop(); renderTree(true); renderInsp(); tutRender(); render();
   toggleMenuDrawer(false); toggleShopDrawer(false);
   resetting = false; save();
@@ -12245,13 +13037,13 @@ takeBaseSnapshot();
 
 function defaultDevCfg(){
   return {
-    v: 2,
+    v: 3,
     initBoard: {
       initGold: 500,
       initIng1: 0,
       nodes: [
         { type:'hero',  x:80,  y:150 },
-        { type:'dive1', x:420, y:150 }
+        { type:'dive1', x:290, y:150 }
       ],
       links: [
         { from:0, item:'sta', to:1 }
@@ -12366,7 +13158,7 @@ function loadDevCfg(){
     const raw = localStorage.getItem(DEV_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
-    if(!d || typeof d !== 'object' || d.v !== 2){
+    if(!d || typeof d !== 'object' || d.v !== 3){
       localStorage.removeItem(DEV_KEY);
       return false;
     }
@@ -13496,7 +14288,7 @@ function newGame(){
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
   const ib = (DEV_CFG && DEV_CFG.initBoard) || {
     initGold: 500, initIng1: 0,
-    nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:420, y:150}],
+    nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:290, y:150}],
     links: [{from:0, item:'sta', to:1}]
   };
   S.gold = ib.initGold != null ? ib.initGold : 500;
@@ -13543,11 +14335,12 @@ for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が�
 }
 buildShop();                       // 建設リストは研究の進み具合を見るので S を作ってから
 if(!S.enemy) spawnEnemy();
+updateMilestonePill();
 
 let last=performance.now(), accS=0;
 let SPEED = 1;                      // デバッグ時だけ変えられる進行速度
 let loopErr = 0;
-let dashT = 0;
+let dashT = 0, cdxMonitorT = 0;
 function loop(now){
   const raw=Math.min(0.1,(now-last)/1000);
   const dt=raw * SPEED; last=now;
@@ -13555,6 +14348,10 @@ function loop(now){
     edgeScroll(raw);
     tick(dt,false); render(dt);
     if(dashOpen()){ dashT+=raw; if(dashT>0.5){ dashT=0; renderDash(); } }
+    if($('#codexModal') && $('#codexModal').classList.contains('on') && curCdxTab === 'monitor'){
+      cdxMonitorT += raw;
+      if(cdxMonitorT > 0.8){ cdxMonitorT = 0; const cdxB = $('#codexBody'); if(cdxB) renderCodexMonitor(cdxB); }
+    }
     accS+=dt; if(accS>5){ accS=0; save(); }
   }catch(e){
     // ここで止まると盤面が丸ごと動かなくなる。次のコマへ進めて生き延びる

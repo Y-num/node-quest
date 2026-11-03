@@ -1,0 +1,100 @@
+{
+  "timestamp": "2026-11-03T09:05:12.147Z",
+  "tests": [
+    {
+      "name": "Initial Hero powers Dive within range",
+      "pass": true,
+      "details": {
+        "heroX": 80,
+        "diveX": 290,
+        "dist": 210,
+        "range": 265,
+        "hasLink": true,
+        "diveStall": false,
+        "pillTxt": "✨ 達成！ ⚡生体アニマの供給 (タップで受取)"
+      }
+    },
+    {
+      "name": "Node + button opens inspector drawer",
+      "pass": true,
+      "details": {
+        "hasMoreBtn": true,
+        "isInspectorOn": true,
+        "selectedId": 2,
+        "targetId": 2
+      }
+    },
+    {
+      "name": "Smart Wiring activates HUD & candidate glow then clears cleanly",
+      "pass": true,
+      "details": {
+        "hudOn": true,
+        "hudTxt": "🔗 ⚡ 体力 の接続先施設をタップ",
+        "cands": 1,
+        "hudAfter": false,
+        "candsAfter": 0
+      }
+    },
+    {
+      "name": "Power stratification (cgen, wood, gen, distance unlimited, dungeon blocked from machine)",
+      "pass": true,
+      "details": {
+        "cgenIns": {
+          "sta": 2
+        },
+        "cgenOuts": {
+          "sta": 8
+        },
+        "woodIns": {
+          "sta": 2
+        },
+        "woodOuts": {
+          "wood": 2
+        },
+        "genIns": {
+          "wood": 1
+        },
+        "genOuts": {
+          "sta": 14
+        },
+        "farDist": 562.9387178015028,
+        "distantStallFar": false,
+        "diveIncompatible": true,
+        "diveWhy": "🚫 Incompatible Power: Dungeon requires living Anima"
+      }
+    },
+    {
+      "name": "Milestones condition check, claiming rewards and updating pill",
+      "pass": true,
+      "details": {
+        "m1Met": true,
+        "goldGain": 150,
+        "isClaimed": true,
+        "pillTxt": "🎯 目標: ⚔️初陣と魔石回収"
+      }
+    },
+    {
+      "name": "Codex Modal (4 tabs: Codex, Monitor, Dash, Milestones) and PanToNode flash animation",
+      "pass": true,
+      "details": {
+        "modalOn": true,
+        "cardsCount": 97,
+        "monitorRows": 6,
+        "hasDash": true,
+        "mileCards": 12,
+        "flash": true
+      }
+    },
+    {
+      "name": "Mobile Header horizontal scrolling and responsive layout",
+      "pass": true,
+      "details": {
+        "isOverflowX": true,
+        "scrollWidth": 767,
+        "clientWidth": 390,
+        "canScroll": true
+      }
+    }
+  ],
+  "errors": []
+}
