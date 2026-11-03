@@ -1,0 +1,225 @@
+{
+  "timestamp": "2026-11-03T11:54:11.336Z",
+  "total": 31,
+  "passed": 31,
+  "failed": 0,
+  "testResults": [
+    {
+      "name": "Tavern facility unlocked (S.dev.tavern1)",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Garagary joined the roster",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Garagary name is 女店長 ガラガリー",
+      "pass": true,
+      "expected": "女店長 ガラガリー",
+      "actual": "女店長 ガラガリー",
+      "metric": ""
+    },
+    {
+      "name": "Garagary role is tavern_master",
+      "pass": true,
+      "expected": "tavern_master",
+      "actual": "tavern_master",
+      "metric": ""
+    },
+    {
+      "name": "Garagary is SSR rarity (sum 22 >= 18)",
+      "pass": true,
+      "expected": "SSR >= 18",
+      "actual": "SSR (sum 22)",
+      "metric": ""
+    },
+    {
+      "name": "Garagary has tavern_cheer trait",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Tutorial Gacha flagged available",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Base Progression dice count is 3",
+      "pass": true,
+      "expected": 3,
+      "actual": 3,
+      "metric": ""
+    },
+    {
+      "name": "Cave 2 clear scales dice count to 4",
+      "pass": true,
+      "expected": 4,
+      "actual": 4,
+      "metric": ""
+    },
+    {
+      "name": "Cave 4 clear scales dice count to 5",
+      "pass": true,
+      "expected": 5,
+      "actual": 5,
+      "metric": ""
+    },
+    {
+      "name": "Cave 6 clear scales dice count to 6",
+      "pass": true,
+      "expected": 6,
+      "actual": 6,
+      "metric": ""
+    },
+    {
+      "name": "Player INT >= 40 grants +1 die bonus early",
+      "pass": true,
+      "expected": 4,
+      "actual": 4,
+      "metric": ""
+    },
+    {
+      "name": "Sum 10 results in C rarity",
+      "pass": true,
+      "expected": "C",
+      "actual": "C",
+      "metric": ""
+    },
+    {
+      "name": "Sum 20 (>=18) results in SSR rarity",
+      "pass": true,
+      "expected": "SSR",
+      "actual": "SSR",
+      "metric": ""
+    },
+    {
+      "name": "SSR tier has 3 skill slots",
+      "pass": true,
+      "expected": 3,
+      "actual": 3,
+      "metric": ""
+    },
+    {
+      "name": "SSR tier has elevated stats (STR>=13, INT>=13, VIT>=15)",
+      "pass": true,
+      "expected": true,
+      "actual": "{\"str\":15,\"int\":21,\"vit\":21}",
+      "metric": ""
+    },
+    {
+      "name": "Sum 32 (>=30) results in LEGEND rarity",
+      "pass": true,
+      "expected": "LEGEND",
+      "actual": "LEGEND",
+      "metric": ""
+    },
+    {
+      "name": "LEGEND tier has 4 skill slots",
+      "pass": true,
+      "expected": 4,
+      "actual": 4,
+      "metric": ""
+    },
+    {
+      "name": "LEGEND tier has guaranteed Mythic trait",
+      "pass": true,
+      "expected": true,
+      "actual": "overlord,shock,resonator,frugal",
+      "metric": ""
+    },
+    {
+      "name": "isNearTavern returns true within 280px",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Tavern reduces companion wage by ~30%",
+      "pass": true,
+      "expected": "30%",
+      "actual": "30%",
+      "metric": ""
+    },
+    {
+      "name": "Tavern aura grants strike immunity on zero gold",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Hero INT 50 boosts RP research output (+75%)",
+      "pass": true,
+      "expected": ">=1.70",
+      "actual": 1.75,
+      "metric": ""
+    },
+    {
+      "name": "Hero VIT 40 discounts Gacha cost (~32%)",
+      "pass": true,
+      "expected": ">=0.30",
+      "actual": 0.32,
+      "metric": ""
+    },
+    {
+      "name": "Hero STR 40 gives initial affection boost (+200)",
+      "pass": true,
+      "expected": ">=200",
+      "actual": 260,
+      "metric": ""
+    },
+    {
+      "name": "Tavern Gacha Modal opens with .on class",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Gacha pane active and roster pane hidden initially",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Dice arena visible with rolled dice cubes",
+      "pass": true,
+      "expected": true,
+      "actual": "3 cubes",
+      "metric": ""
+    },
+    {
+      "name": "Companion result card revealed after roll",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Roster tab active with companion cards",
+      "pass": true,
+      "expected": true,
+      "actual": "11 cards",
+      "metric": ""
+    },
+    {
+      "name": "Garagary displayed in companion roster with SSR badge",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    }
+  ]
+}

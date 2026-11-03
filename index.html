@@ -287,6 +287,8 @@ body.dragging-node .node.in-hrange, body.placing .node.in-hrange{
   background:radial-gradient(circle,rgba(94,224,192,.09),transparent 70%)}
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
+.node .aura.tavern{border:1px dashed rgba(245,158,11,.45);
+  background:radial-gradient(circle,rgba(245,158,11,.14),transparent 70%)}
 .node.stall .aura{opacity:.25}
 /* ダンジョンで拾った施設。性能がばらついているので色で見分ける */
 .node.drop{border-color:#4fb0d8;
@@ -1011,11 +1013,45 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 
 /* ── Companion Gacha, Wage & Affection System Styles ── */
 #compModal{position:fixed;inset:0;background:rgba(4,7,13,.84);backdrop-filter:blur(5px);z-index:125;display:none;align-items:center;justify-content:center;padding:14px}
-#compModal.on{display:flex}
+#compModal.on, #compModal.open{display:flex}
 .comp-box{width:min(960px,96vw);max-height:90vh;background:#0b101b;border:1px solid var(--acc);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.85);display:flex;flex-direction:column;overflow:hidden}
-.comp-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#070b12;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.comp-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#070b12;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .comp-title{font-size:15px;font-weight:800;color:var(--fg);display:flex;align-items:center;gap:6px}
+.comp-tabs{display:flex;gap:4px;margin-left:8px}
+.comp-tab{background:#0f172a;border:1px solid var(--line);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--dim);cursor:pointer;transition:all .15s}
+.comp-tab.on{background:rgba(94,224,192,.18);border-color:var(--acc);color:var(--acc);box-shadow:0 0 8px rgba(94,224,192,.2)}
 .comp-body{padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+
+/* Tavern & Gacha Arena */
+.tavern-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(245,158,11,.16),rgba(15,23,42,.85));border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px}
+.gacha-status-card{display:flex;gap:8px;flex-wrap:wrap;background:#080c14;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:11px}
+.gstat-pill{background:#111927;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 8px}
+.gacha-actions-row{display:flex;gap:10px;flex-wrap:wrap}
+.gacha-roll-btn{flex:1;min-width:160px;padding:11px 16px;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,box-shadow .15s}
+.gacha-roll-btn.pri{background:linear-gradient(135deg,#10b981,#059669);border:1px solid #34d399;color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.35)}
+.gacha-roll-btn.sec{background:#1e293b;border:1px solid #475569;color:#f1f5f9}
+.gacha-roll-btn.tut-free{background:linear-gradient(135deg,#f59e0b,#d97706);border:1px solid #fbbf24;color:#000;box-shadow:0 4px 14px rgba(245,158,11,.45);animation:goldPulse 1.4s infinite alternate}
+@keyframes goldPulse{from{box-shadow:0 0 8px rgba(245,158,11,.4)}to{box-shadow:0 0 20px rgba(245,158,11,.8)}}
+.gacha-roll-btn:hover:not(:disabled){transform:translateY(-2px)}
+.gacha-roll-btn:disabled{opacity:.45;cursor:not-allowed}
+
+.dice-arena{background:#070a10;border:1px solid #334155;border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.dice-arena-title{font-size:12px;font-weight:700;color:var(--dim)}
+.dice-row{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.dice-cube{width:46px;height:46px;background:#f8fafc;color:#0f172a;border-radius:8px;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.6);transition:all .2s ease}
+.dice-cube.rolling{animation:diceRollAnim .45s infinite ease-in-out}
+@keyframes diceRollAnim{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.15)}100%{transform:rotate(360deg) scale(1)}}
+.dice-cube.rerolled{border-color:#38bdf8;background:#e0f2fe;box-shadow:0 0 14px #38bdf8}
+.dice-sum-display{font-size:14px;font-weight:800;color:#f1f5f9;margin-top:2px}
+
+/* Rarity Enhancements */
+.rarity-ssr-glow{border:2px solid #f59e0b !important;box-shadow:0 0 20px rgba(245,158,11,.6) !important;background:linear-gradient(180deg,#1c1824,#0d111c) !important;animation:goldGlow 1.8s infinite alternate}
+@keyframes goldGlow{from{box-shadow:0 0 8px rgba(245,158,11,.35)}to{box-shadow:0 0 24px rgba(245,158,11,.85)}}
+.rarity-legend-glow{border:2px solid #a855f7 !important;box-shadow:0 0 25px rgba(168,85,247,.7) !important;background:linear-gradient(180deg,#1e122b,#0c0b17) !important;animation:rainbowGlow 3s infinite linear}
+@keyframes rainbowGlow{0%{border-color:#ef4444;box-shadow:0 0 18px #ef4444}33%{border-color:#10b981;box-shadow:0 0 18px #10b981}66%{border-color:#3b82f6;box-shadow:0 0 18px #3b82f6}100%{border-color:#ef4444;box-shadow:0 0 18px #ef4444}}
+.rarity-badge-ssr{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-weight:900;font-size:10px;padding:2px 7px;border-radius:99px}
+.rarity-badge-legend{background:linear-gradient(135deg,#ec4899,#8b5cf6,#3b82f6);color:#fff;font-weight:900;font-size:10px;padding:2px 7px;border-radius:99px;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+
 .scout-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
 .scout-card{background:linear-gradient(180deg,#111a2e,#0b111e);border:1px solid var(--line);border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,transform .15s}
 .scout-card:hover{border-color:var(--acc);transform:translateY(-1px)}
@@ -1040,6 +1076,7 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 .trait-chip.pos{border-color:rgba(94,224,192,.45);color:#5ee0c0}
 .trait-chip.quirk{border-color:rgba(245,158,11,.45);color:#fbbf24}
 .trait-chip.elem{border-color:rgba(56,189,248,.55);color:#7dd3fc}
+.trait-chip.mythic{border-color:rgba(168,85,247,.65);color:#d8b4fe;background:rgba(168,85,247,.12)}
 .aff-wrap{display:flex;flex-direction:column;gap:2px}
 .aff-row{display:flex;justify-content:space-between;font-size:10px;color:var(--dim)}
 .aff-bar{height:6px;background:#070a10;border-radius:99px;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
@@ -1555,17 +1592,62 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
 <div id="compModal" class="scout-modal">
   <div class="comp-box">
     <div class="comp-head">
-      <div class="comp-title">🍻 仲間スカウト</div>
-      <span style="font-size:11px;color:var(--dim)" id="compModalSub">上限なし</span>
+      <div class="comp-title">🍻 酒場 ＆ 仲間スカウト</div>
+      <div class="comp-tabs">
+        <button class="comp-tab on" data-ctab="gacha">🎲 サイコロガチャ</button>
+        <button class="comp-tab" data-ctab="roster">📋 仲間ロスター (<span id="compRosterTabCount">0</span>)</button>
+      </div>
       <button id="compCloseBtn" style="margin-left:auto;background:#0c111b;border:1px solid var(--line);border-radius:7px;padding:5px 12px;color:var(--fg);cursor:pointer">✕ 閉じる</button>
     </div>
     <div class="comp-body">
-      <div>
-        <div style="font-size:12px;font-weight:800;color:var(--acc);margin-bottom:6px">🎲 スカウト</div>
-        <div class="scout-grid" id="scoutGrid"></div>
+      <!-- Tab 1: Dice Gacha Pane -->
+      <div id="compGachaPane" class="comp-pane">
+        <div id="tavernBanner" class="tavern-banner">
+          <div style="font-size:24px">🍻</div>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:12.5px;color:var(--gold)" id="tavernBannerTitle">🍻 冒険者の酒場「ガラガリー亭」</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:2px" id="tavernBannerDesc">女店長ガラガリー「サイコロを振って運命の仲間を迎えな！18以上でSSR級、30以上で伝説級だよ！」</div>
+          </div>
+        </div>
+
+        <div class="gacha-status-card">
+          <div class="gstat-pill">🎲 <b>サイコロ数:</b> <span id="gachaDiceCountTxt" style="color:var(--acc);font-weight:800">3個</span></div>
+          <div class="gstat-pill">🧠 <b>知略ボーナス:</b> <span id="gachaIntBonusTxt" style="color:#38bdf8;font-weight:800">+0 (出目加算)</span></div>
+          <div class="gstat-pill">💪 <b>剛腕ボーナス:</b> <span id="gachaStrBonusTxt" style="color:#f59e0b;font-weight:800">初期STR+0 / 親愛+0</span></div>
+          <div class="gstat-pill">❤️ <b>人望値引き:</b> <span id="gachaVitDiscountTxt" style="color:#ec4899;font-weight:800">-0%</span></div>
+        </div>
+
+        <div class="gacha-actions-row">
+          <button id="btnRollGachaSingle" class="gacha-roll-btn pri">
+            <span style="font-size:15px">🎲</span>
+            <span id="btnRollSingleTxt">サイコロを振る (💰 350G)</span>
+          </button>
+          <button id="btnRollGachaTen" class="gacha-roll-btn sec">
+            <span style="font-size:15px">🎲×10</span>
+            <span id="btnRollTenTxt">10連サイコロ (💰 3500G)</span>
+          </button>
+        </div>
+
+        <!-- Dice Arena -->
+        <div id="diceArena" class="dice-arena" hidden>
+          <div class="dice-arena-title" id="diceArenaTitle">🎲 サイコロを振っています…</div>
+          <div class="dice-row" id="diceRow"></div>
+          <div class="dice-sum-display" id="diceSumDisplay"></div>
+        </div>
+
+        <!-- Latest Pulled Companion Result Card -->
+        <div id="gachaResultContainer" hidden></div>
+
+        <!-- Special Scouting (Materials) -->
+        <div style="margin-top:6px">
+          <div style="font-size:11.5px;font-weight:800;color:var(--dim);margin-bottom:6px">🧭 洞窟素材スカウト（特定役職指名）</div>
+          <div class="scout-grid" id="scoutGrid"></div>
+        </div>
       </div>
-      <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+
+      <!-- Tab 2: Companion Roster Pane -->
+      <div id="compRosterPane" class="comp-pane" hidden>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
           <span style="font-size:12px;font-weight:800;color:var(--fg)" id="rosterHeaderTitle">📋 仲間一覧</span>
           <div style="display:flex;gap:6px">
             <button class="dt-btn acc" id="btnFeedAllStrike" style="padding:4px 9px;font-size:10.5px">🍖 全員に賄い</button>
@@ -1933,22 +2015,43 @@ const compTraitSpdMul = comp => {
   return m;
 };
 const compAffectionSpdMul = comp => comp ? (1 + (Math.max(0, Math.min(1000, comp.affection || 0)) / 1000) * 0.50) : 1;
+function isNearTavern(n){
+  if(!n || !S || !S.nodes) return false;
+  return S.nodes.some(m => {
+    if(!m || m.stall || !TYPES[m.type] || (m.layer||0) !== (n.layer||0)) return false;
+    const a = (typeof auraOf==='function' ? auraOf(m) : TYPES[m.type].aura);
+    if(a && a.k === 'tavern' && nodeDist(m, n) <= (a.r || 280)) return true;
+    const c = (typeof compOfNode==='function') ? compOfNode(m) : null;
+    if(c && c.traits && c.traits.includes('tavern_cheer') && nodeDist(m, n) <= 280) return true;
+    return false;
+  });
+}
 const payOf   = n => {
   if(!n || n.type==='hero') return 0;
   const T = TYPES[n.type]; if(!T) return 0;
   if(!T.src && !T.pay) return 0;
   const campMul = n._formCamp ? 0.5 : 1.0;
   const comp = compOfNode(n);
+  // 周囲酒場オーラ（給料-30%）＆主人公体力（人望給料割引 最大-30%）
+  const tavernMul = isNearTavern(n) ? 0.70 : 1.0;
+  const heroVit = (S && S.stats && S.stats.vit) || 0;
+  const inHeroCircle = (typeof inHumanRange==='function' && S && S.nodes)
+    ? inHumanRange(S.nodes.find(x => x.type === 'hero'), n)
+    : false;
+  const heroVitDisc = inHeroCircle ? Math.min(0.30, heroVit * 0.006) : 0;
+  const leadershipMul = tavernMul * (1 - heroVitDisc);
+
   if(comp){
+    if(comp.traits && comp.traits.includes('god_hand')) return 0; // 神の手は0G無償奉仕
     const base = Math.max(1, comp.basePay || 5);
     const lvScale = 1 + (Math.max(1, n.level||1)-1) * 0.10;
     const tMul = compTraitPayMul(comp);
     const disc = affectionDiscount(comp.affection || 0);
-    return Math.max(1, Math.round(base * lvScale * tMul * (1 - disc) * modsOf(n).payK * campMul));
+    return Math.max(0, Math.round(base * lvScale * tMul * (1 - disc) * modsOf(n).payK * campMul * leadershipMul));
   }
   const basePay = (T.pay != null && T.pay > 0) ? T.pay : 5;
   return Math.max(1, Math.round(basePay * Math.pow(2.5, (T.era||1)-1)
-                                * (1 + (Math.max(1, n.level||1)-1)*0.12) * modsOf(n).payK * campMul));
+                                * (1 + (Math.max(1, n.level||1)-1)*0.12) * modsOf(n).payK * campMul * leadershipMul));
 };
 const payRpOf = n => { const T=TYPES[n.type];
   return T.payRp ? Math.max(1, Math.round(T.payRp * Math.pow(2.6, (T.era||1)-1))) : 0; };
@@ -2124,6 +2227,9 @@ const TYPES = {
           d:'【洞窟素材クラフト施設】⚙️古代の歯車から建設。🛡️強化鋼・🏺レア遺物・🎽装備を自動で一括錬成し、洞窟素材を投入すると⚙️強化パーツや💎爆風結晶・👑深淵遺物をクラフトする'},
   altar :{n:'星辰の祭壇',  i:'⛩️', cost:24000,up:28000,time:4.5, ins:{sta:8}, soft:{mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1, drelic:1, core_cursed:1}, outs:{sta:6}, effect:'altar', cleanEnergy:true, aura:{k:'clean', v:1.4, r:320}, caveMat:{fheart:2, arelic:2},
           d:'【洞窟素材クラフト施設】❤️‍🔥獄炎の竜晶から建設。周囲の汚染を強力に浄化しつつ、稼働ごとに主人公たちの恒久攻撃力ボーナスと🔬研究力を授ける聖域'},
+  tavern:{n:'酒場', i:'🍻', cost:280, up:360, time:2.0, ins:{}, outs:{sta:4}, cleanEnergy:true, role:'tavern', line:'tavern',
+          aura:{k:'tavern', v:0.8, r:280},
+          d:'冒険者や職人が集まる活気ある酒場。周囲280pxの仲間の好感度上昇+50%＆給料-30%の福利厚生オーラを放出。施設をクリックして🎲サイコロガチャで新たな仲間をスカウト可能'},
   abyssal_rift:{n:'深淵の亀裂', i:'👁️‍🗨️', cost:0, up:0, time:2.0, ins:{sta:12}, outs:{miasma:2, cslud:1}, effect:'abyssal_rift', unique:true,
           d:'【深淵の侵食】深層から盤面へ突如出現する異界の亀裂。周囲の施設へ寄生触手を伸ばし耐久力を侵食する。アニマ電力で浄化可能'},
 };
@@ -2268,6 +2374,9 @@ const FAC = {
   altar: [{e:1,n:'星辰の祭壇',  i:'⛩️', outs:{sta:6}, cleanEnergy:true},
           {e:2,n:'深淵の聖堂',  i:'🔮', outs:{sta:22, power:3}, cleanEnergy:true},
           {e:3,n:'神託の星宮',  i:'👑', outs:{sta:80, power:12, nfl:2}, cleanEnergy:true}],
+  tavern:[{e:1,n:'酒場',       i:'🍻', outs:{sta:4}, aura:{k:'tavern', v:0.8, r:280}},
+          {e:2,n:'ギルド酒場', i:'🏰', outs:{sta:16, power:2}, aura:{k:'tavern', v:1.2, r:320}},
+          {e:3,n:'星辰のサロン',i:'🌌', outs:{sta:50, power:8, nfl:1}, aura:{k:'tavern', v:1.8, r:380}}],
 };
 
 /* =========================================================================
@@ -2457,6 +2566,7 @@ const ROLE_TREE_DEFAULT = {
   tvit:   {start:false, reqRole:'lab',    treeX:1, treeY:8, rp:25,  reqFloor:2},
   tint:   {start:false, reqRole:'lab',    treeX:1, treeY:9, rp:25,  reqFloor:2},
   mate:   {start:false, reqRole:'tvit',   treeX:2, treeY:8, rp:60,  reqFloor:5, reqVit:2, gold:300},
+  tavern: {start:false, reqRole:'mate',   treeX:3, treeY:8, rp:120, reqFloor:10, gold:400},
 
   extr:   {start:false, reqRole:'dive',   treeX:1, treeY:10, rp:100, mat:15, reqFloor:5},
   turret: {start:false, reqRole:'extr',   treeX:2, treeY:10, rp:260, mat:30, reqFloor:10},
@@ -2527,7 +2637,7 @@ const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',e
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
   wood:'木こり小屋',coal:'石炭',gen:'火力発電',cgen:'人力発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',
-  extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇'};
+  extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇',tavern:'酒場'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -2570,6 +2680,11 @@ const COMP_ROLES = {
     k:'laborer', n:'労務者', en:'Laborer', i:'👷', nodeType:'mate1',
     baseStr:[2, 5], baseInt:[1, 4], baseVit:[5, 10], basePay:[4, 8],
     tag:'KINETIC', d:'❤️体力が高く低賃金で雇える働き者。広い行動範囲と安定した⚡体力供給を担う'
+  },
+  tavern_master: {
+    k:'tavern_master', n:'酒場主', en:'Tavern Master', i:'🍻', nodeType:'mate2',
+    baseStr:[10, 16], baseInt:[10, 16], baseVit:[14, 20], basePay:[8, 14],
+    tag:'CATALYST_WORKER', d:'🍻酒場の女主人。仲間たちの士気を最高潮に高め、周囲好感度+60%＆給料-30%＆作業速度+25%の大盤振る舞いオーラを放つ'
   }
 };
 
@@ -2577,24 +2692,32 @@ const COMP_PREFIXES = {
   warrior: ['歴戦の','隻眼の','豪腕の','錆び剣の','猪突の','不屈の','傭兵崩れの','疾風の','鉄壁の','荒ぶる'],
   artisan: ['錆び腕の','煤まみれの','頑固な','指先の器用な','徹夜明けの','熟練の','火花散る','几帳面な','偏屈な','伝説追いし'],
   scholar: ['咳き込む','寝不足の','眼鏡の','古書狂いの','星読みの','白衣の','真理を覗く','独り言の多い','博覧強記の','異端の'],
-  laborer: ['陽気な','健脚の','大汗かきの','働き者の','素朴な','力自慢の','早起きの','旅帰りの','口笛吹きの','タフな']
+  laborer: ['陽気な','健脚の','大汗かきの','働き者の','素朴な','力自慢の','早起きの','旅帰りの','口笛吹きの','タフな'],
+  tavern_master: ['豪快なる','大盤振る舞いの','看板娘の','肝っ玉の','酔いどれの','笑顔輝く']
 };
 
 const COMP_TRAIT_LIST = [
   // Positive traits
-  {k:'frugal',       n:'🪙倹約家',     kind:'pos',   payMul:0.75, d:'給料 -25%'},
-  {k:'swift',        n:'⚡俊敏',       kind:'pos',   spdMul:1.30, d:'⚡生成速度 +30%'},
-  {k:'hercules',     n:'💪怪力',       kind:'pos',   strAdd:3, tag:'KINETIC', d:'💪筋力+3・⚔️物理打撃'},
-  {k:'genius',       n:'🧠博識',       kind:'pos',   intAdd:3, tag:'CATALYST_RESEARCH', d:'🧠知力+3・🧬研究触媒'},
-  {k:'tough',        n:'❤️健脚',       kind:'pos',   vitAdd:3, rangeAdd:80, d:'❤️体力+3・行動範囲+80px'},
-  {k:'artisan_soul', n:'✨匠の魂',     kind:'pos',   boostAdd:0.20, tag:'CATALYST_WORKER', d:'供給先の施設速度+20%・✨職人触媒'},
-  {k:'devoted',      n:'💕献身的',     kind:'pos',   payMul:0.85, affMul:1.35, d:'給料-15%・好感度上昇+35%'},
+  {k:'frugal',       n:'🪙倹約家',     kind:'pos',   good:true, payMul:0.75, d:'給料 -25%'},
+  {k:'swift',        n:'⚡俊敏',       kind:'pos',   good:true, spdMul:1.30, d:'⚡生成速度 +30%'},
+  {k:'hercules',     n:'💪怪力',       kind:'pos',   good:true, strAdd:3, tag:'KINETIC', d:'💪筋力+3・⚔️物理打撃'},
+  {k:'genius',       n:'🧠博識',       kind:'pos',   good:true, intAdd:3, tag:'CATALYST_RESEARCH', d:'🧠知力+3・🧬研究触媒'},
+  {k:'tough',        n:'❤️健脚',       kind:'pos',   good:true, vitAdd:3, rangeAdd:80, d:'❤️体力+3・行動範囲+80px'},
+  {k:'artisan_soul', n:'✨匠の魂',     kind:'pos',   good:true, boostAdd:0.20, tag:'CATALYST_WORKER', d:'供給先の施設速度+20%・✨職人触媒'},
+  {k:'devoted',      n:'💕献身的',     kind:'pos',   good:true, payMul:0.85, affMul:1.35, d:'給料-15%・好感度上昇+35%'},
+  // Tavern Special trait
+  {k:'tavern_cheer', n:'🍻大盤振る舞い', kind:'pos', good:true, payMul:0.70, affMul:1.60, spdMul:1.25, tag:'CATALYST_WORKER', d:'周囲仲間の好感度上昇+60%、給料-30%、作業速度+25%'},
   // Elemental / Reaction Specialized Positive traits
-  {k:'pyro',         n:'🔥焔の血脈',   kind:'elem',  strAdd:2, tag:'HEAT', d:'配線に🔥高熱(HEAT)タグを常時付与'},
-  {k:'fiery',        n:'🔥熱血漢',     kind:'elem',  strAdd:2, spdMul:1.20, tag:'HEAT', d:'配線に🔥高熱(HEAT)タグを常時付与・速度+20%'},
-  {k:'cryo',         n:'❄️氷の吐息',   kind:'elem',  intAdd:2, tag:'CRYO', d:'配線に❄️冷却(CRYO)タグを常時付与'},
-  {k:'shock',        n:'💥轟雷の拳',   kind:'elem',  strAdd:3, tag:'SHOCKWAVE', d:'配線に💥衝撃波(SHOCKWAVE)タグを常時付与'},
-  {k:'resonator',    n:'🔄共鳴体質',   kind:'elem',  intAdd:3, tag:'RESONANCE', d:'配線に🔄共鳴(RESONANCE)タグを常時付与'},
+  {k:'pyro',         n:'🔥焔の血脈',   kind:'elem',  good:true, strAdd:2, tag:'HEAT', d:'配線に🔥高熱(HEAT)タグを常時付与'},
+  {k:'fiery',        n:'🔥熱血漢',     kind:'elem',  good:true, strAdd:2, spdMul:1.20, tag:'HEAT', d:'配線に🔥高熱(HEAT)タグを常時付与・速度+20%'},
+  {k:'cryo',         n:'❄️氷の吐息',   kind:'elem',  good:true, intAdd:2, tag:'CRYO', d:'配線に❄️冷却(CRYO)タグを常時付与'},
+  {k:'shock',        n:'💥轟雷の拳',   kind:'elem',  good:true, strAdd:3, tag:'SHOCKWAVE', d:'配線に💥衝撃波(SHOCKWAVE)タグを常時付与'},
+  {k:'resonator',    n:'🔄共鳴体質',   kind:'elem',  good:true, intAdd:3, tag:'RESONANCE', d:'配線に🔄共鳴(RESONANCE)タグを常時付与'},
+  // Mythic / Legend traits (サイコロ出目30以上のレジェンド級確定特性)
+  {k:'god_hand',     n:'👑神の手',     kind:'mythic', good:true, payMul:0, spdMul:1.40, d:'給料0G永久無償奉仕・作業速度+40%'},
+  {k:'overlord',     n:'⚡覇王の威光', kind:'mythic', good:true, strAdd:8, intAdd:8, vitAdd:8, spdMul:1.30, tag:'KINETIC', d:'全ステータス+8・速度+30%・⚔️物理撃破'},
+  {k:'archmage',     n:'🔮大賢者',     kind:'mythic', good:true, intAdd:10, tag:'CATALYST_RESEARCH', d:'知力+10・全体研究RP+50%・触媒効果2倍'},
+  {k:'immortal',     n:'🕊️不死鳥の魂', kind:'mythic', good:true, vitAdd:10, affMul:2.0, rangeAdd:120, d:'ストライキ完全無効・親愛度2倍・行動範囲+120px'},
   // Quirky / Defect traits
   {k:'greedy',       n:'💰強欲',       kind:'quirk', payMul:1.30, spdMul:1.15, d:'給料+30%・作業速度+15%'},
   {k:'glutton',      n:'🍖大食い',     kind:'quirk', payMul:1.15, affMul:1.50, d:'給料+15%・差し入れ好感度×1.5倍'},
@@ -2611,19 +2734,39 @@ const COMP_FAV_POOL = {
   warrior: ['ing1','prt1','eqp1','mcore','fheart','qstl'],
   artisan: ['ing1','prt1','afang','qstl','bdia','artf'],
   scholar: ['ore1','arelic','fcryst','acore','tdat','mcore'],
-  laborer: ['ore1','ing1','wood','lot1','prt1','mcore']
+  laborer: ['ore1','ing1','wood','lot1','prt1','mcore'],
+  tavern_master: ['wood','coal','ing1','mcore']
 };
 
 function randInt(lo, hi){
   return Math.floor(lo + Math.random() * (hi - lo + 1));
 }
 
-function scoutCostGold(mode){
+/* ── 酒場サイコロガチャ・ダイス数・コスト・出目判定 ──
+   サイコロ3〜6個進捗で増加。数字が大きいほど強い。18以上でSSR級、30以上でレジェンド級 */
+function gachaDiceCount(){
+  let d = 3;
+  if((typeof caveClearsOf==='function' && caveClearsOf('cave2') >= 1) || (S && S.best >= 25)) d = 4;
+  if((typeof caveClearsOf==='function' && caveClearsOf('cave4') >= 1) || (S && S.best >= 100)) d = 5;
+  if((typeof caveClearsOf==='function' && caveClearsOf('cave6') >= 1) || (S && S.best >= 275)) d = 6;
+  const heroInt = (S && S.stats && S.stats.int) || 0;
+  if(heroInt >= 40 && d < 6) d += 1;
+  return Math.min(6, Math.max(3, d));
+}
+
+function gachaCostGold(mode){
   const cnt = (S && S.scoutCount) || 0;
   const base = Math.floor(250 * Math.pow(1.12, cnt));
-  return (mode === 'spec' || mode === 'special' || mode === 'warrior' || mode === 'artisan' || mode === 'scholar')
+  const heroVit = (S && S.stats && S.stats.vit) || 0;
+  const vitDiscount = Math.min(0.35, heroVit * 0.008);
+  const rawCost = (mode === 'spec' || mode === 'special' || mode === 'warrior' || mode === 'artisan' || mode === 'scholar')
     ? Math.floor(base * 1.35)
     : base;
+  return Math.max(120, Math.round(rawCost * (1 - vitDiscount)));
+}
+
+function scoutCostGold(mode){
+  return gachaCostGold(mode);
 }
 
 const SPEC_SCOUT_REQ = {
@@ -2632,46 +2775,82 @@ const SPEC_SCOUT_REQ = {
   scholar: {mat:'arelic', qty:2, item:'arelic', q:2, label:'👩‍🔬 熟練学者スカウト',   desc:'🧠高知力＋🧬研究触媒＆❄️冷却/🔄共鳴タグ確定'}
 };
 
-function generateCompanion(mode, specRole){
-  const roles = ['warrior','artisan','scholar','laborer'];
-  const isSpec = (mode === 'spec' || mode === 'special' || (specRole && COMP_ROLES[specRole]));
+/* 出目・レアリティに基づく新規仲間の生成 */
+function createCompanionFromDice({rawDice, rerolledIndex, origVal, intBonus, rawSum, totalSum, rarity, specRole}){
+  const roles = ['warrior', 'artisan', 'scholar', 'laborer'];
   const role = (specRole && COMP_ROLES[specRole]) ? specRole : rnd(roles);
-  const R = COMP_ROLES[role];
-  const eraScale = 1 + ((S && S.era ? S.era : 1) - 1) * 0.45;
-  const specBoost = isSpec ? 1.65 : 1.0;
+  const R = COMP_ROLES[role] || COMP_ROLES.warrior;
+  const heroStr = (S && S.stats && S.stats.str) || 0;
+  const strBonus = Math.floor(heroStr * 0.15);
+  const affBonus = Math.min(300, heroStr * 5);
 
-  // Roll traits: 1-2 positive traits + 1 quirky trait
-  const posPool = COMP_TRAIT_LIST.filter(t => t.kind === 'pos');
+  const posPool = COMP_TRAIT_LIST.filter(t => t.kind === 'pos' && t.k !== 'tavern_cheer');
   const elemPool = COMP_TRAIT_LIST.filter(t => t.kind === 'elem');
   const quirkPool = COMP_TRAIT_LIST.filter(t => t.kind === 'quirk');
-  const pickedTraits = [];
+  const mythicPool = COMP_TRAIT_LIST.filter(t => t.kind === 'mythic');
 
-  if(isSpec){
-    // Guaranteed elemental/specialized trait + 1 positive trait
-    const roleElem = role === 'warrior' ? ['pyro','shock']
+  const pickedTraits = [];
+  let numSlots = 1;
+  let baseStr = 3, baseInt = 3, baseVit = 3;
+  let title = '';
+
+  if(rarity === 'LEGEND'){
+    numSlots = 4;
+    title = rnd(['🌈『神話の英霊』','🌈『星辰の覇者』','🌈『天衣無縫の巨匠』','🌈『万象を統べる賢者』']);
+    const mTrait = rnd(mythicPool);
+    if(mTrait) pickedTraits.push(mTrait.k);
+    const e1 = rnd(elemPool); if(e1) pickedTraits.push(e1.k);
+    const e2 = rnd(elemPool.filter(t => !pickedTraits.includes(t.k))); if(e2) pickedTraits.push(e2.k);
+    const p1 = rnd(posPool.filter(t => !pickedTraits.includes(t.k))); if(p1) pickedTraits.push(p1.k);
+
+    baseStr = Math.max(20, Math.floor(randInt(22, 34) + (R.baseStr[0] * 1.5)));
+    baseInt = Math.max(20, Math.floor(randInt(22, 34) + (R.baseInt[0] * 1.5)));
+    baseVit = Math.max(24, Math.floor(randInt(24, 38) + (R.baseVit[0] * 1.5)));
+  } else if(rarity === 'SSR'){
+    numSlots = 3;
+    title = rnd(['🌟『希代の英傑』','🌟『黄金の職人』','🌟『深淵を覗く賢者』','🌟『不撓不屈の猛者』']);
+    const roleElem = role === 'warrior' ? ['pyro','shock','hercules']
                    : role === 'artisan' ? ['artisan_soul','pyro','cryo']
                    : ['cryo','resonator','genius'];
     const eKey = rnd(roleElem);
     pickedTraits.push(eKey);
-    const p2 = rnd(posPool.filter(t => t.k !== eKey));
-    if(p2) pickedTraits.push(p2.k);
-  }else{
-    const p1 = rnd(posPool);
-    if(p1) pickedTraits.push(p1.k);
-    if(Math.random() < 0.45){
-      const extraPool = posPool.concat(elemPool).filter(t => !pickedTraits.includes(t.k));
-      const p2 = rnd(extraPool);
-      if(p2) pickedTraits.push(p2.k);
-    }
+    const p1 = rnd(posPool.filter(t => !pickedTraits.includes(t.k))); if(p1) pickedTraits.push(p1.k);
+    const p2 = rnd(posPool.concat(elemPool).filter(t => !pickedTraits.includes(t.k))); if(p2) pickedTraits.push(p2.k);
+
+    baseStr = Math.max(13, Math.floor(randInt(13, 20) + R.baseStr[0]));
+    baseInt = Math.max(13, Math.floor(randInt(13, 20) + R.baseInt[0]));
+    baseVit = Math.max(15, Math.floor(randInt(15, 22) + R.baseVit[0]));
+  } else if(rarity === 'SR'){
+    numSlots = 2;
+    title = rnd(['✨『熟練の冒険者』','✨『腕利きの匠』','✨『気鋭の学者』','✨『タフな現場監督』']);
+    const p1 = rnd(posPool); if(p1) pickedTraits.push(p1.k);
+    const p2 = rnd(elemPool.concat(quirkPool).filter(t => !pickedTraits.includes(t.k))); if(p2) pickedTraits.push(p2.k);
+
+    baseStr = randInt(7, 12);
+    baseInt = randInt(7, 12);
+    baseVit = randInt(8, 14);
+  } else {
+    numSlots = 1;
+    title = rnd(['👤『新米の旅人』','👤『見習い工』','👤『街角の書生』','👤『下積みの労務者』']);
+    const p1 = rnd(posPool.concat(quirkPool)); if(p1) pickedTraits.push(p1.k);
+
+    baseStr = randInt(3, 6);
+    baseInt = randInt(3, 6);
+    baseVit = randInt(4, 8);
   }
-  const q1 = rnd(quirkPool);
-  if(q1) pickedTraits.push(q1.k);
 
-  let baseStr = randInt(R.baseStr[0], R.baseStr[1]) * eraScale * specBoost;
-  let baseInt = randInt(R.baseInt[0], R.baseInt[1]) * eraScale * specBoost;
-  let baseVit = randInt(R.baseVit[0], R.baseVit[1]) * eraScale * specBoost;
-  let initAff = 0;
+  // 役職固有の基礎補正＆専門指名スカウトのステータス保証
+  if(role === 'warrior') baseStr = Math.max(baseStr, randInt(R.baseStr[0], R.baseStr[1]));
+  if(role === 'scholar') baseInt = Math.max(baseInt, randInt(R.baseInt[0], R.baseInt[1]));
+  if(role === 'laborer') baseVit = Math.max(baseVit, randInt(R.baseVit[0], R.baseVit[1]));
+  if(role === 'artisan') baseVit = Math.max(baseVit, randInt(R.baseVit[0], R.baseVit[1]));
+  if(specRole){
+    if(specRole === 'warrior') baseStr = Math.max(10, baseStr + 4);
+    if(specRole === 'scholar') baseInt = Math.max(10, baseInt + 4);
+    if(specRole === 'artisan') baseVit = Math.max(10, baseVit + 4);
+  }
 
+  let initAff = affBonus;
   for(const tk of pickedTraits){
     const tr = COMP_TRAIT_MAP[tk];
     if(!tr) continue;
@@ -2680,12 +2859,12 @@ function generateCompanion(mode, specRole){
     if(tr.vitAdd) baseVit += tr.vitAdd;
     if(tr.initAff) initAff += tr.initAff;
   }
+  baseStr += strBonus;
 
-  const statSum = Math.floor(baseStr) + Math.floor(baseInt) + Math.floor(baseVit);
-  const computedBasePay = Math.max(2, Math.round((randInt(R.basePay[0], R.basePay[1]) + statSum * 0.35) * (mode === 'spec' ? 1.15 : 1.0)));
+  let computedBasePay = Math.max(2, Math.round((randInt(R.basePay[0], R.basePay[1]) + (baseStr + baseInt + baseVit) * 0.28)));
+  if(pickedTraits.includes('god_hand')) computedBasePay = 0;
 
   const favCandidates = COMP_FAV_POOL[role] || ['ing1','prt1','mcore'];
-  // Prefer items that exist in ITEMS
   const validFavs = favCandidates.filter(k => ITEMS[k]);
   const favItem = validFavs.length ? rnd(validFavs) : 'ing1';
 
@@ -2693,10 +2872,17 @@ function generateCompanion(mode, specRole){
   const pName = randPerson();
   const generatedName = `${prefix}${R.n} ${pName}`;
 
+  const gearSlotsArr = Array(numSlots).fill(0).map(() => ({item:null}));
+  const skSlotsArr = Array(numSlots).fill(null);
+
   return {
     id: "comp_" + Math.random().toString(36).substr(2, 9),
     name: generatedName,
     role: role,
+    title: title,
+    rarity: rarity,
+    diceRolls: (rawDice || []).slice(),
+    diceSum: totalSum,
     stats: {
       str: Math.max(1, Math.floor(baseStr)),
       int: Math.max(1, Math.floor(baseInt)),
@@ -2704,8 +2890,8 @@ function generateCompanion(mode, specRole){
     },
     exp: {str:0, int:0, vit:0},
     level: 1,
-    gear: [{item:null}],
-    sk: [null],
+    gear: gearSlotsArr,
+    sk: skSlotsArr,
     basePay: computedBasePay,
     affection: Math.min(1000, initAff),
     traits: pickedTraits,
@@ -2713,6 +2899,85 @@ function generateCompanion(mode, specRole){
     isStrike: false,
     deployedNodeId: null
   };
+}
+
+/* 🎲 サイコロガチャ実行エンジン */
+function rollTavernGacha(isTutorial = false, specRole = null){
+  const numDice = gachaDiceCount();
+  const rawDice = [];
+  for(let i = 0; i < numDice; i++){
+    rawDice.push(randInt(1, 6));
+  }
+
+  // 🧠知力パラメータ連携：出目再抽選＆加算
+  const heroInt = (S && S.stats && S.stats.int) || 0;
+  let rerolledIndex = -1;
+  let origVal = null;
+  if(heroInt >= 20){
+    let minVal = 7, minIdx = -1;
+    for(let i = 0; i < rawDice.length; i++){
+      if(rawDice[i] < minVal){ minVal = rawDice[i]; minIdx = i; }
+    }
+    if(minVal <= 2 && minIdx >= 0){
+      rerolledIndex = minIdx;
+      origVal = rawDice[minIdx];
+      rawDice[minIdx] = randInt(3, 6);
+    }
+  }
+
+  const intBonus = Math.floor(heroInt / 10);
+  const rawSum = rawDice.reduce((a, b) => a + b, 0);
+  const totalSum = rawSum + intBonus;
+
+  // 18以上でSSR級、30以上でレジェンド級
+  let rarity = 'C';
+  if(totalSum >= 30) rarity = 'LEGEND';
+  else if(totalSum >= 18) rarity = 'SSR';
+  else if(totalSum >= 12) rarity = 'SR';
+  else rarity = 'C';
+
+  if(!isTutorial){
+    const cost = gachaCostGold('standard');
+    if(S.gold < cost){
+      toast(`💰 ゴールドが足りません（必要: ${fmt(cost)}G）`);
+      return null;
+    }
+    S.gold -= cost;
+    S.scoutCount = (S.scoutCount || 0) + 1;
+  } else {
+    S.tutorialGachaAvailable = false;
+  }
+
+  const comp = createCompanionFromDice({
+    rawDice,
+    rerolledIndex,
+    origVal,
+    intBonus,
+    rawSum,
+    totalSum,
+    rarity,
+    specRole
+  });
+
+  return {
+    comp,
+    diceInfo: {
+      rawDice,
+      rerolledIndex,
+      origVal,
+      intBonus,
+      rawSum,
+      totalSum,
+      rarity
+    }
+  };
+}
+
+function generateCompanion(mode, specRole){
+  const res = rollTavernGacha(true, specRole);
+  return res ? res.comp : createCompanionFromDice({
+    rawDice:[3,3,3], rerolledIndex:-1, origVal:null, intBonus:0, rawSum:9, totalSum:9, rarity:'C', specRole
+  });
 }
 
 /* 既存の仲間ノード（mate1..3）が companionRoster に未登録なら登録して紐付ける */
@@ -2811,9 +3076,14 @@ function humanBoostOf(n){
         const st = statsOf(a);
         const comp = compOfNode(a);
         let b = (st.int||0)*0.03 + (st.str||0)*0.02;
+        if(a.type === 'hero'){
+          b += ((S && S.stats && S.stats.int) || 0) * 0.005; // 主人公知力による戦術加速
+        }
         if(comp){
           b += ((comp.affection||0) / 1000) * 0.25;
           if(comp.traits && comp.traits.includes('artisan_soul')) b += 0.20;
+          if(comp.traits && comp.traits.includes('tavern_cheer')) b += 0.25;
+          if(comp.traits && comp.traits.includes('god_hand')) b += 0.40;
         }
         bonus = Math.max(bonus, b);
       }
@@ -5527,17 +5797,17 @@ function tick(dt,fast){
     }
     // 仲間（人タイプ）の給料未払いチェック（資金不足なら即座にストライキ突入）
     if(T.src && n.type !== 'hero'){
+      const comp = compOfNode(n);
+      const isImmune = isNearTavern(n) || (comp && comp.traits && (comp.traits.includes('tavern_cheer') || comp.traits.includes('immortal') || comp.traits.includes('god_hand')));
       const wage = payOf(n);
-      if(wage > 0 && S.gold < wage){
+      if(wage > 0 && S.gold < wage && !isImmune){
         n.isStrike = true;
-        const comp = compOfNode(n);
         if(comp) comp.isStrike = true;
         n.stall = true;
         n.why = `💢 給料未払い・ストライキ中！（💰${fmt(wage)}G 必要）`;
         continue;
-      }else if(n.isStrike && wage > 0 && S.gold >= wage){
+      }else if(n.isStrike && (isImmune || (wage > 0 && S.gold >= wage))){
         n.isStrike = false;
-        const comp = compOfNode(n);
         if(comp) comp.isStrike = false;
         n.stall = false;
         n.why = '';
@@ -5588,10 +5858,11 @@ function tick(dt,fast){
             }
           }
         }
-        if(ok && wage > 0 && S.gold < wage){
+        const comp = compOfNode(n);
+        const isImmune = isNearTavern(n) || (comp && comp.traits && (comp.traits.includes('tavern_cheer') || comp.traits.includes('immortal') || comp.traits.includes('god_hand')));
+        if(ok && wage > 0 && S.gold < wage && !isImmune){
           ok=false;
           n.isStrike = true;
-          const comp = compOfNode(n);
           if(comp) comp.isStrike = true;
           n.why=`💢給料不足 (${fmt(wage)}G)`;
         }
@@ -5628,10 +5899,10 @@ function tick(dt,fast){
             n.isStrike = false;
             if(!fast) spawnReactionPop(n, '💰 給料支払い再開！ ストライキ解除', '#5ee0c0');
           }
-          const comp = compOfNode(n);
           if(comp){
             comp.isStrike = false;
-            comp.affection = Math.min(1000, +((comp.affection || 0) + 0.5).toFixed(1));
+            const tavMul = isNearTavern(n) ? 1.5 : 1.0;
+            comp.affection = Math.min(1000, +((comp.affection || 0) + 0.5 * tavMul).toFixed(1));
           }
         }
         if(T.payRp) S.rp = (S.rp||0) - payRpOf(n);
@@ -5648,6 +5919,20 @@ function tick(dt,fast){
       }
       const dbl = hasPerk(T,'twin') && Math.random() < 0.25;   // 複製・覚醒・並列
       if(dbl){ const g2={}; for(const k in give) g2[k]=give[k]*2; give=g2; }
+      // ── 主人公パラメータ連携：💪剛力打撃 (Hero Power Strike: +1個追加生産) ──
+      const heroStr = (S && S.stats && S.stats.str) || 0;
+      if(heroStr > 0 && (n.type === 'hero' || (S && S.links && S.links.some(l => l.to === n.id && N(l.from) && N(l.from).type === 'hero')))){
+        const procRate = Math.min(0.40, heroStr * 0.008);
+        if(Math.random() < procRate){
+          for(const k in give){
+            if(!POW_ITEM[k] && !isByp(k) && give[k] > 0){
+              give[k] += 1;
+              if(!fast) spawnReactionPop(n, '💪 剛力打撃！ 収量+1', '#f59e0b');
+              break;
+            }
+          }
+        }
+      }
       // ── 創発リアクション①：急冷・焼き入れ (Thermal Shock / Quench) ──
       if(n._rxQuench){
         let quenched = 0;
@@ -7443,7 +7728,8 @@ function feedCompanionByNode(n, itemKey, qty, fast){
   const valBonus = it && it.sell ? Math.min(25, Math.floor(Math.log10(Math.max(10, it.sell)) * 5)) : 5;
   const baseGain = isFav ? (42 + valBonus) : (10 + Math.floor(valBonus * 0.4));
   const affMul = compTraitAffMul(comp);
-  const gain = Math.max(1, Math.round(baseGain * affMul * qty));
+  const tavMul = isNearTavern(n) ? 1.5 : 1.0;
+  const gain = Math.max(1, Math.round(baseGain * affMul * tavMul * qty));
   const oldAff = comp.affection || 0;
   comp.affection = Math.min(1000, oldAff + gain);
   // 差し入れによる能力成長（上限+30まで恒久加算、それ以降は+50%の一時ブースト）
@@ -7737,18 +8023,27 @@ window.setCompanionAffection = (nodeOrComp, aff = 1000) => {
   }
 };
 
-function openCompModal(){
+let curCompModalTab = 'gacha';
+function openCompModal(tab = 'gacha', isTutorial = false){
   const m = document.getElementById('compModal');
   if(!m) return;
-  renderCompModal();
+  curCompModalTab = tab || 'gacha';
+  renderCompModal(isTutorial);
+  m.classList.add('on');
   m.classList.add('open');
+}
+function openTutorialGachaModal(){
+  openCompModal('gacha', true);
 }
 function closeCompModal(){
   const m = document.getElementById('compModal');
-  if(m) m.classList.remove('open');
+  if(m){
+    m.classList.remove('on');
+    m.classList.remove('open');
+  }
 }
 
-function renderCompModal(){
+function renderCompModal(isTutorial = false){
   const m = document.getElementById('compModal');
   if(!m) return;
   // 念のため盤面の既存仲間ノードをすべて同期
@@ -7761,8 +8056,21 @@ function renderCompModal(){
   const deployedCount = roster.filter(c => c.deployedNodeId && N(c.deployedNodeId)).length;
   const strikeCount = roster.filter(c => c.isStrike || (c.deployedNodeId && N(c.deployedNodeId) && N(c.deployedNodeId).isStrike)).length;
 
-  const rCountEl = document.getElementById('compRosterCount');
-  if(rCountEl) rCountEl.textContent = `${roster.length}人 (出撃${deployedCount} / 待機${roster.length - deployedCount}${strikeCount > 0 ? ` / 🪧スト${strikeCount}` : ''})`;
+  // タブ切り替え
+  m.querySelectorAll('.comp-tab').forEach(b => {
+    b.classList.toggle('on', b.dataset.ctab === curCompModalTab);
+    b.onclick = () => { curCompModalTab = b.dataset.ctab; renderCompModal(); };
+  });
+  const gPane = document.getElementById('compGachaPane');
+  const rPane = document.getElementById('compRosterPane');
+  if(gPane) gPane.hidden = (curCompModalTab !== 'gacha');
+  if(rPane) rPane.hidden = (curCompModalTab !== 'roster');
+
+  const rCountTabEl = document.getElementById('compRosterTabCount');
+  if(rCountTabEl) rCountTabEl.textContent = roster.length;
+
+  const rCountEl = document.getElementById('rosterHeaderTitle');
+  if(rCountEl) rCountEl.textContent = `📋 仲間一覧 (${roster.length}人／出撃${deployedCount}／待機${roster.length - deployedCount}${strikeCount > 0 ? `／🪧スト${strikeCount}` : ''})`;
 
   const strikeBtn = document.getElementById('btnFeedAllStrike');
   if(strikeBtn){
@@ -7771,63 +8079,150 @@ function renderCompModal(){
       : `🍖 全員に賄い差し入れ (${roster.length}人・${fmt(Math.max(50, roster.length * 50))}G)`;
   }
 
-  // スカウトガチャカード描画
+  // ── ガチャタブ描画 ──
+  const heroInt = (S && S.stats && S.stats.int) || 0;
+  const heroStr = (S && S.stats && S.stats.str) || 0;
+  const heroVit = (S && S.stats && S.stats.vit) || 0;
+  const diceCount = gachaDiceCount();
+  const intBonus = Math.floor(heroInt / 10);
+  const strBonus = Math.floor(heroStr * 0.15);
+  const affBonus = Math.min(300, heroStr * 5);
+  const vitDiscPct = Math.round(Math.min(0.35, heroVit * 0.008) * 100);
+
+  const dCountTxt = document.getElementById('gachaDiceCountTxt');
+  if(dCountTxt) dCountTxt.textContent = `${diceCount}個 (進捗/知力)`;
+  const intTxt = document.getElementById('gachaIntBonusTxt');
+  if(intTxt) intTxt.textContent = `+${intBonus} (出目加算)${heroInt >= 20 ? '・知将再抽選発動中' : ''}`;
+  const strTxt = document.getElementById('gachaStrBonusTxt');
+  if(strTxt) strTxt.textContent = `初期STR+${strBonus} / 親愛+${affBonus}`;
+  const vitTxt = document.getElementById('gachaVitDiscountTxt');
+  if(vitTxt) vitTxt.textContent = `-${vitDiscPct}%`;
+
+  const tTitle = document.getElementById('tavernBannerTitle');
+  const tDesc = document.getElementById('tavernBannerDesc');
+  const hasTavern = S && S.dev && S.dev.tavern1;
+  if(tTitle && tDesc){
+    if(hasTavern){
+      tTitle.textContent = '🍻 冒険者の酒場「ガラガリー亭」営業中';
+      tDesc.innerHTML = '女店長ガラガリー「サイコロを振って運命の仲間を迎えな！<b>18以上でSSR級、30以上でレジェンド級</b>だよ！」';
+    }else{
+      tTitle.textContent = '🍻 冒険者の酒場（準備中）';
+      tDesc.innerHTML = '最初のダンジョン【苔むした洞窟】をクリアすると、酒場と女店長ガラガリーが仲間になり、サイコロガチャが解禁されます！';
+    }
+  }
+
+  // ガチャボタン設定
+  const isFree = isTutorial || !!(S && S.tutorialGachaAvailable);
+  const cost1 = gachaCostGold('standard');
+  const cost10 = cost1 * 10;
+  const btnSingle = document.getElementById('btnRollGachaSingle');
+  const btnSingleTxt = document.getElementById('btnRollSingleTxt');
+  const btnTen = document.getElementById('btnRollGachaTen');
+  const btnTenTxt = document.getElementById('btnRollTenTxt');
+
+  if(btnSingle && btnSingleTxt){
+    if(isFree){
+      btnSingle.classList.add('tut-free');
+      btnSingleTxt.innerHTML = '🎉 チュートリアル無料サイコロ！ (0G)';
+      btnSingle.disabled = false;
+    }else{
+      btnSingle.classList.remove('tut-free');
+      btnSingleTxt.innerHTML = `サイコロを振る (💰 ${fmt(cost1)}G)`;
+      btnSingle.disabled = (S.gold < cost1);
+    }
+  }
+  if(btnTen && btnTenTxt){
+    btnTenTxt.innerHTML = `10連サイコロ (💰 ${fmt(cost10)}G)`;
+    btnTen.disabled = (S.gold < cost10);
+  }
+
+  // 単発ガチャ実行
+  if(btnSingle){
+    btnSingle.onclick = () => {
+      const isFreeNow = isTutorial || !!(S && S.tutorialGachaAvailable);
+      const res = rollTavernGacha(isFreeNow);
+      if(!res) return;
+      renderGachaRollAnimation(res);
+      renderBag(); renderShop(); render();
+    };
+  }
+
+  // 10連ガチャ実行
+  if(btnTen){
+    btnTen.onclick = () => {
+      if(S.gold < cost10){
+        toast(`💰 10連分のゴールドが足りません (${fmt(cost10)}G 必要)`);
+        return;
+      }
+      const results = [];
+      for(let i = 0; i < 10; i++){
+        const res = rollTavernGacha(false);
+        if(res) results.push(res);
+      }
+      renderTenGachaResults(results);
+      renderBag(); renderShop(); render();
+    };
+  }
+
+  // 特殊素材スカウトグリッド
   const sGrid = document.getElementById('scoutGrid');
   if(sGrid){
-    const stdCost = scoutCostGold('standard');
-    const spcCost = scoutCostGold('special');
+    const spcCost = gachaCostGold('special');
     const bag = homeOf();
     const cards = [
       {
-        mode:'standard', role:null,
-        title:'🎲 一般スカウト（酒場募集）',
-        desc:'ランダムな役職・特性の冒険者や職人を1名スカウトします。人数制限なし！',
-        costTxt:`💰 ${fmt(stdCost)} G`,
-        can: S.gold >= stdCost
-      },
-      {
-        mode:'special', role:'warrior',
+        role:'warrior',
         title:'⚔️ 熟練戦士スカウト',
-        desc:'高STR・物理打撃[KINETIC]＋戦闘系レア特性確定の精鋭前衛を募集します。',
-        costTxt:`💰 ${fmt(spcCost)} G ＋ 👾魔獣の核×2 (所持:${bag.mcore||0})`,
+        desc:'高STR・物理打撃[KINETIC]＋戦闘系レア特性確定の前衛戦士。',
+        costTxt:`💰 ${fmt(spcCost)}G ＋ 👾魔獣の核×2 (所持:${bag.mcore||0})`,
         can: S.gold >= spcCost && (bag.mcore||0) >= 2
       },
       {
-        mode:'special', role:'artisan',
+        role:'artisan',
         title:'🔨 宮廷職人スカウト',
-        desc:'高DEX/VIT・職人触媒[CATALYST_WORKER]＋加工/熱冷特性確定の名工を募集します。',
-        costTxt:`💰 ${fmt(spcCost)} G ＋ 🦷猛獣の牙×2 (所持:${bag.afang||0})`,
+        desc:'高VIT・職人触媒[CATALYST_WORKER]＋加工/熱冷特性確定の名工。',
+        costTxt:`💰 ${fmt(spcCost)}G ＋ 🦷猛獣の牙×2 (所持:${bag.afang||0})`,
         can: S.gold >= spcCost && (bag.afang||0) >= 2
       },
       {
-        mode:'special', role:'scholar',
+        role:'scholar',
         title:'🔮 古代学者スカウト',
-        desc:'高INT・研究触媒[CATALYST_RESEARCH]＋共鳴/知識特性確定の賢者を募集します。',
-        costTxt:`💰 ${fmt(spcCost)} G ＋ ⚙️古代の歯車×2 (所持:${bag.arelic||0})`,
+        desc:'高INT・研究触媒[CATALYST_RESEARCH]＋共鳴/知識特性確定の賢者。',
+        costTxt:`💰 ${fmt(spcCost)}G ＋ ⚙️古代の歯車×2 (所持:${bag.arelic||0})`,
         can: S.gold >= spcCost && (bag.arelic||0) >= 2
       }
     ];
-    sGrid.innerHTML = cards.map((c, idx) => `
-      <div class="scout-card">
-        <div class="sc-title">${c.title}</div>
+    sGrid.innerHTML = cards.map(c => `
+      <div class="scout-card spec">
+        <div class="sc-hd"><span>${c.title}</span></div>
         <div class="sc-desc">${c.desc}</div>
         <div class="sc-cost">${c.costTxt}</div>
-        <button data-scout-idx="${idx}" ${c.can ? '' : 'disabled'}>🍻 スカウト実行</button>
+        <button data-role="${c.role}" ${c.can ? '' : 'disabled'}>🍻 役職指名ガチャ</button>
       </div>
     `).join('');
-    sGrid.querySelectorAll('button[data-scout-idx]').forEach(btn => {
+    sGrid.querySelectorAll('button[data-role]').forEach(btn => {
       btn.onclick = () => {
-        const c = cards[+btn.dataset.scoutIdx];
-        if(c) scoutCompanion(c.mode, c.role);
+        const rk = btn.dataset.role;
+        const req = SPEC_SCOUT_REQ[rk];
+        const cost = gachaCostGold('special');
+        if(S.gold < cost){ toast('💰 ゴールドが足りません'); return; }
+        if((homeOf()[req.mat] || 0) < req.qty){ toast('📦 素材が足りません'); return; }
+        homeOf()[req.mat] -= req.qty;
+        if(homeOf()[req.mat] <= 0) delete homeOf()[req.mat];
+        const res = rollTavernGacha(false, rk);
+        if(res){
+          renderGachaRollAnimation(res);
+          renderBag(); renderShop(); render();
+        }
       };
     });
   }
 
-  // ロスター一覧描画
+  // ── ロスタータブ描画 ──
   const rGrid = document.getElementById('rosterGrid');
   if(rGrid){
     if(roster.length === 0){
-      rGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted);font-size:12px">まだ仲間がいません。上の「一般スカウト」または「専門スカウト」から仲間を募集しましょう！</div>`;
+      rGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted);font-size:12px">まだ仲間がいません。「サイコロガチャ」で新たな仲間を酒場から迎えましょう！</div>`;
       return;
     }
     rGrid.innerHTML = roster.map(comp => {
@@ -7837,51 +8232,71 @@ function renderCompModal(){
       const isStrk = !!(comp.isStrike || (depNode && depNode.isStrike));
       const discPct = Math.round(affectionDiscount(comp.affection || 0) * 100);
       const spdBonusPct = Math.round((compAffectionSpdMul(comp) - 1) * 100);
-      const curPay = depNode ? payOf(depNode) : Math.max(1, Math.round(comp.basePay * compTraitPayMul(comp) * (1 - affectionDiscount(comp.affection || 0))));
+      const curPay = depNode ? payOf(depNode) : Math.max(0, Math.round(comp.basePay * compTraitPayMul(comp) * (1 - affectionDiscount(comp.affection || 0))));
       const favKey = comp.favoriteItem || 'ing1';
       const favIt = ITEMS[favKey] || {i:'🎁', n:favKey};
       const favHave = (homeOf()[favKey] || 0);
       const st = depNode ? statsOf(depNode) : comp.stats;
+      const rarity = comp.rarity || (comp.diceSum >= 30 ? 'LEGEND' : comp.diceSum >= 18 ? 'SSR' : comp.diceSum >= 12 ? 'SR' : 'C');
+      const isLegend = rarity === 'LEGEND';
+      const isSsr = rarity === 'SSR';
+      const rarityBadge = isLegend ? '<span class="rarity-badge-legend">🌈 LEGEND</span>'
+                        : isSsr ? '<span class="rarity-badge-ssr">🌟 SSR</span>'
+                        : rarity === 'SR' ? '<span style="background:#7c3aed;color:#fff;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:99px">✨ SR</span>'
+                        : '<span style="background:#334155;color:#94a3b8;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:99px">C級</span>';
+
       const traitsHtml = (comp.traits || []).map(tk => {
         const tr = COMP_TRAIT_MAP[tk];
         if(!tr) return '';
-        return `<span class="trait-chip ${tr.good ? 'good' : 'quirk'}" title="${tr.desc}">${tr.i}${tr.n} (${tr.desc})</span>`;
+        const cls = tr.kind === 'mythic' ? 'mythic' : tr.kind === 'elem' ? 'elem' : tr.kind === 'quirk' ? 'quirk' : 'pos';
+        return `<span class="trait-chip ${cls}" title="${tr.d}">${tr.n}</span>`;
       }).join('');
-      const mealCost = Math.max(50, Math.round(comp.basePay * 2));
+      const mealCost = Math.max(50, Math.round((comp.basePay || 5) * 2));
+      const diceBreakdown = (comp.diceRolls && comp.diceRolls.length)
+        ? `<div style="font-size:9.5px;color:#94a3b8;margin-top:2px">🎲 [${comp.diceRolls.join('+')}] = <b>${comp.diceSum}</b></div>`
+        : '';
+      const titleHtml = comp.title ? `<div style="font-size:10px;font-weight:700;color:var(--gold);margin-top:1px">${comp.title}</div>` : '';
+
       return `
-        <div class="comp-card ${isDep ? 'deployed' : ''} ${isStrk ? 'strike' : ''}">
-          <div class="cc-head">
+        <div class="comp-card ${isLegend ? 'rarity-legend-glow' : isSsr ? 'rarity-ssr-glow' : ''} ${isDep ? 'deployed' : ''} ${isStrk ? 'strike' : ''}">
+          <div class="cc-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
             <div>
-              <div class="cc-name">${rDef.i} ${comp.name}</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:16px">${rDef.i}</span>
+                <span class="cc-name" style="font-weight:800;font-size:12.5px">${comp.name}</span>
+                ${rarityBadge}
+              </div>
+              ${titleHtml}
+              ${diceBreakdown}
               <div style="font-size:10px;color:#93a4be;margin-top:2px">
-                賃金: <b style="color:#ffd166">${fmt(curPay)}G/回</b> <span style="color:#64748b">(基本${fmt(comp.basePay)}G / 親愛割引-${discPct}%)</span>
+                賃金: <b style="color:#ffd166">${fmt(curPay)}G/回</b> <span style="color:#64748b">(基本${fmt(comp.basePay)}G / 割引-${discPct}%)</span>
               </div>
             </div>
-            <span class="cc-role">${rDef.n} ${isStrk ? '🪧スト中' : isDep ? '🟢配置中' : '🏠待機中'}</span>
+            <span class="cc-role">${rDef.n} ${isStrk ? '🪧スト' : isDep ? '🟢配置中' : '🏠待機中'}</span>
           </div>
-          <div class="cc-stats">
-            <span>💪筋力 <b>${fmt(Math.floor(st.str||0))}</b></span>
-            <span>🧠知力 <b>${fmt(Math.floor(st.int||0))}</b></span>
-            <span>❤️体力 <b>${fmt(Math.floor(st.vit||0))}</b></span>
-            <span>🎁好物: <b style="color:#f9a8d4">${favIt.i}${favIt.n}</b>(所持${favHave})</span>
+          <div class="cc-stats" style="display:flex;gap:8px;font-size:11px;font-weight:700;background:#090e17;padding:4px 8px;border-radius:6px;margin:4px 0">
+            <span>💪 <b>${fmt(Math.floor(st.str||0))}</b></span>
+            <span>🧠 <b>${fmt(Math.floor(st.int||0))}</b></span>
+            <span>❤️ <b>${fmt(Math.floor(st.vit||0))}</b></span>
+            <span style="margin-left:auto">🎁 <b style="color:#f9a8d4">${favIt.i}${favIt.n}</b>(${favHave})</span>
           </div>
-          <div class="trait-list">${traitsHtml}</div>
-          <div class="aff-wrap">
-            <div class="aff-head">
+          <div class="trait-list" style="display:flex;flex-wrap:wrap;gap:4px;margin:3px 0">${traitsHtml}</div>
+          <div class="aff-wrap" style="margin:4px 0">
+            <div class="aff-head" style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim)">
               <span>💕 親愛度: <b>${Math.floor(comp.affection||0)} / 1000</b></span>
-              <span>賃金-${discPct}% / 速度+${spdBonusPct}%</span>
+              <span>速度+${spdBonusPct}%</span>
             </div>
             <div class="aff-bar"><i style="width:${Math.min(100, (comp.affection||0)/10)}%"></i></div>
           </div>
-          <div class="cc-actions">
+          <div class="cc-actions" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
             ${isDep
-              ? `<button class="btn-recall" data-act="focus" data-cid="${comp.id}">📍 場所へ</button>
-                 <button class="btn-recall" data-act="recall" data-cid="${comp.id}">🏠 待機へ戻す</button>`
-              : `<button class="btn-deploy" data-act="deploy" data-cid="${comp.id}">🚀 盤面へ配置</button>`
+              ? `<button class="dt-btn acc" data-act="focus" data-cid="${comp.id}" style="padding:4px 8px;font-size:10px">📍 場所へ</button>
+                 <button class="dt-btn warn" data-act="recall" data-cid="${comp.id}" style="padding:4px 8px;font-size:10px">🏠 待機へ戻す</button>`
+              : `<button class="dt-btn acc" data-act="deploy" data-cid="${comp.id}" style="padding:4px 8px;font-size:10px">🚀 盤面へ配置</button>`
             }
-            <button class="btn-feed" data-act="fav" data-cid="${comp.id}">🎁 好物支給(${favIt.i})</button>
-            <button class="btn-feed" data-act="meal" data-cid="${comp.id}">🍖 賄い(${fmt(mealCost)}G)</button>
-            <button class="btn-dismiss" data-act="dismiss" data-cid="${comp.id}" title="契約解消">👋</button>
+            <button class="dt-btn" data-act="fav" data-cid="${comp.id}" style="padding:4px 8px;font-size:10px">🎁 好物支給</button>
+            <button class="dt-btn" data-act="meal" data-cid="${comp.id}" style="padding:4px 8px;font-size:10px">🍖 賄い(${fmt(mealCost)}G)</button>
+            <button class="dt-btn bad" data-act="dismiss" data-cid="${comp.id}" style="padding:4px 8px;font-size:10px" title="契約解消">👋</button>
           </div>
         </div>
       `;
@@ -7911,13 +8326,176 @@ function renderCompModal(){
   }
 }
 
+/* 単発サイコロガチャ演出アニメーション */
+function renderGachaRollAnimation(rollResult){
+  const { comp, diceInfo } = rollResult;
+  const arena = document.getElementById('diceArena');
+  const dRow = document.getElementById('diceRow');
+  const dSum = document.getElementById('diceSumDisplay');
+  const resCont = document.getElementById('gachaResultContainer');
+  if(!arena || !dRow) return;
+
+  arena.hidden = false;
+  if(resCont) resCont.hidden = true;
+
+  const diceFaces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  dRow.innerHTML = diceInfo.rawDice.map(() => `
+    <div class="dice-cube rolling">🎲</div>
+  `).join('');
+  dSum.innerHTML = '<span style="color:var(--dim)">サイコロ回転中…</span>';
+
+  setTimeout(() => {
+    // 確定出目の表示
+    dRow.innerHTML = diceInfo.rawDice.map((val, idx) => {
+      const isRerolled = (idx === diceInfo.rerolledIndex);
+      const face = diceFaces[val - 1] || val;
+      return `
+        <div class="dice-cube ${isRerolled ? 'rerolled' : ''}" title="${isRerolled ? `知略再抽選: ${diceInfo.origVal}→${val}` : `出目: ${val}`}">
+          ${face}
+        </div>
+      `;
+    }).join('');
+
+    const isLegend = diceInfo.rarity === 'LEGEND';
+    const isSsr = diceInfo.rarity === 'SSR';
+    const rarityClass = isLegend ? 'rarity-badge-legend' : isSsr ? 'rarity-badge-ssr' : '';
+    const rarityName = isLegend ? '🌈 レジェンド級' : isSsr ? '🌟 SSR級' : diceInfo.rarity === 'SR' ? '✨ SR級' : '👤 C級';
+
+    dSum.innerHTML = `
+      🎲 出目合計: <b>${diceInfo.rawSum}</b> ${diceInfo.intBonus > 0 ? `+ 知略加算 <b>${diceInfo.intBonus}</b>` : ''} =
+      <b style="font-size:18px;color:${isLegend?'#c084fc':isSsr?'#fbbf24':'#38bdf8'}">${diceInfo.totalSum}</b>
+      <span class="${rarityClass}" style="margin-left:8px">${rarityName}</span>
+      ${diceInfo.rerolledIndex >= 0 ? '<span style="font-size:10.5px;color:#38bdf8;margin-left:6px">（🧠知将再抽選発動！）</span>' : ''}
+    `;
+
+    // 結果カード描画
+    if(resCont){
+      resCont.hidden = false;
+      const rDef = COMP_ROLES[comp.role] || COMP_ROLES.warrior;
+      const traitsHtml = (comp.traits || []).map(tk => {
+        const tr = COMP_TRAIT_MAP[tk];
+        if(!tr) return '';
+        const cls = tr.kind === 'mythic' ? 'mythic' : tr.kind === 'elem' ? 'elem' : tr.kind === 'quirk' ? 'quirk' : 'pos';
+        return `<span class="trait-chip ${cls}" title="${tr.d}">${tr.n} (${tr.d})</span>`;
+      }).join('');
+      const favIt = ITEMS[comp.favoriteItem] || {i:'🎁', n:comp.favoriteItem};
+
+      resCont.innerHTML = `
+        <div class="comp-card ${isLegend ? 'rarity-legend-glow' : isSsr ? 'rarity-ssr-glow' : ''}" style="margin-top:10px;padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:22px">${rDef.i}</span>
+                <span style="font-size:14px;font-weight:900;color:var(--fg)">${comp.name}</span>
+                <span class="${rarityClass}">${rarityName}</span>
+              </div>
+              <div style="font-size:11px;font-weight:800;color:var(--gold);margin-top:2px">${comp.title || ''}</div>
+            </div>
+            <span class="cc-role" style="font-size:11px">${rDef.n}</span>
+          </div>
+
+          <div style="display:flex;gap:12px;background:#090e17;padding:6px 12px;border-radius:7px;margin:8px 0;font-size:12px;font-weight:800">
+            <span>💪 筋力: <b style="color:#f59e0b">${comp.stats.str}</b></span>
+            <span>🧠 知力: <b style="color:#38bdf8">${comp.stats.int}</b></span>
+            <span>❤️ 体力: <b style="color:#ec4899">${comp.stats.vit}</b></span>
+            <span style="margin-left:auto">💰 賃金: <b style="color:#ffd166">${comp.basePay}G</b></span>
+          </div>
+
+          <div style="font-size:11px;color:var(--dim);margin-bottom:4px">🎁 大好物: <b>${favIt.i}${favIt.n}</b> ／ 初期親愛度: <b>${comp.affection}/1000</b></div>
+          <div class="trait-list" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${traitsHtml}</div>
+
+          <div style="display:flex;gap:8px">
+            <button id="btnGachaDeployNow" class="dt-btn acc" style="flex:1;padding:8px 12px;font-size:12px;font-weight:800">🚀 すぐ盤面に配置する</button>
+            <button id="btnGachaSaveRoster" class="dt-btn pri" style="flex:1;padding:8px 12px;font-size:12px;font-weight:800">🏠 待機所へ保存する</button>
+          </div>
+        </div>
+      `;
+
+      const bDeploy = resCont.querySelector('#btnGachaDeployNow');
+      if(bDeploy) bDeploy.onclick = () => {
+        deployCompanion(comp.id);
+        closeCompModal();
+      };
+      const bSave = resCont.querySelector('#btnGachaSaveRoster');
+      if(bSave) bSave.onclick = () => {
+        curCompModalTab = 'roster';
+        renderCompModal();
+        toast(`🏠 ${comp.name} を待機所に保存しました`);
+      };
+    }
+
+    if(isLegend){
+      toast(`🌈【レジェンド級降臨！】出目${diceInfo.totalSum}！神話の英霊「${comp.name}」が酒場に現れた！`);
+      addLog(`🌈【レジェンド級降臨！】🎲サイコロ出目「${diceInfo.totalSum}」！神話の英霊「${comp.name}」が仲間になった！`, 'g');
+    }else if(isSsr){
+      toast(`🌟【SSR級獲得！】出目${diceInfo.totalSum}！英傑「${comp.name}」が仲間になりました！`);
+      addLog(`🌟【SSR仲間獲得！】🎲サイコロ出目「${diceInfo.totalSum}」！黄金の英傑「${comp.name}」が仲間になった！`, 'g');
+    }else{
+      toast(`🍻 スカウト成功！ ${comp.name} が酒場に加わりました`);
+    }
+
+    renderCompModal();
+  }, 400);
+}
+
+/* 10連サイコロガチャ結果描画 */
+function renderTenGachaResults(results){
+  const arena = document.getElementById('diceArena');
+  const resCont = document.getElementById('gachaResultContainer');
+  if(!arena || !resCont) return;
+
+  arena.hidden = false;
+  resCont.hidden = false;
+
+  const dSum = document.getElementById('diceSumDisplay');
+  const dRow = document.getElementById('diceRow');
+  dRow.innerHTML = '';
+  dSum.innerHTML = `🎲 <b>10連サイコロ結果一覧</b> (仲間10名が加入しました)`;
+
+  resCont.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:10px;max-height:380px;overflow-y:auto;padding:4px">
+      ${results.map(r => {
+        const { comp, diceInfo } = r;
+        const rDef = COMP_ROLES[comp.role] || COMP_ROLES.warrior;
+        const isLegend = diceInfo.rarity === 'LEGEND';
+        const isSsr = diceInfo.rarity === 'SSR';
+        const rarityBadge = isLegend ? '<span class="rarity-badge-legend">🌈 LEGEND</span>'
+                          : isSsr ? '<span class="rarity-badge-ssr">🌟 SSR</span>'
+                          : diceInfo.rarity === 'SR' ? '<span style="background:#7c3aed;color:#fff;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:99px">SR</span>'
+                          : '<span style="background:#334155;color:#94a3b8;font-size:9.5px;padding:1px 5px;border-radius:99px">C</span>';
+        return `
+          <div class="comp-card ${isLegend ? 'rarity-legend-glow' : isSsr ? 'rarity-ssr-glow' : ''}" style="padding:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-weight:800;font-size:11.5px">${rDef.i} ${comp.name}</span>
+              ${rarityBadge}
+            </div>
+            <div style="font-size:9.5px;color:var(--gold);margin-top:1px">${comp.title || ''}</div>
+            <div style="font-size:9.5px;color:#94a3b8">🎲 出目${diceInfo.totalSum} (💪${comp.stats.str} 🧠${comp.stats.int} ❤️${comp.stats.vit})</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button id="btnTenSaveAll" class="dt-btn acc" style="width:100%;padding:8px;font-size:12px;font-weight:800">🏠 全員を待機所へ保存して一覧を見る</button>
+    </div>
+  `;
+
+  const bSave = resCont.querySelector('#btnTenSaveAll');
+  if(bSave) bSave.onclick = () => {
+    curCompModalTab = 'roster';
+    renderCompModal();
+    toast('🏠 10名の仲間を待機所に保存しました');
+  };
+}
+
 /* 主人公・仲間のノードに出す一行。個人のステータス・行動費・親愛度・特性・受け取った経験値を数字で見せる */
 function srcFace(n){
   const comp = compOfNode(n);
   const st = statsOf(n);
   const stTxt = `💪${fmt(Math.floor(st.str||0))} 🧠${fmt(Math.floor(st.int||0))} ❤️${fmt(Math.floor(st.vit||0))}`;
   if(!comp) return stTxt;
-  return `${stTxt} 💰${fmt(payOf(n))}G 💕${Math.floor(comp.affection||0)}${n.isStrike ? ' 🪧スト' : ''}`;
+  const rarBadge = comp.rarity === 'LEGEND' ? ' 🌈' : comp.rarity === 'SSR' ? ' 🌟' : '';
+  return `${stTxt} 💰${fmt(payOf(n))}G 💕${Math.floor(comp.affection||0)}${rarBadge}${n.isStrike ? ' 🪧スト' : ''}`;
 }
 function selectCave(caveId, silent){
   const c = caveById(caveId);
@@ -8250,6 +8828,47 @@ function doDive(fast, node, fromCannon){
     }
     if(isFirst){
       addPart('core', 1); // 初回クリアで換装コアも1個進呈
+      if(cave.id === 'cave1'){
+        S.dev = S.dev || {};
+        S.dev.tavern1 = 1;
+        devDirty();
+        buildShop(); renderShop(); renderTree(true);
+
+        S.companionRoster = S.companionRoster || [];
+        if(!S.companionRoster.some(c => c.id === 'comp_garagary')){
+          const garagary = {
+            id: 'comp_garagary',
+            name: '女店長 ガラガリー',
+            role: 'tavern_master',
+            title: '🍺『豪快なる酒場の女主人』',
+            rarity: 'SSR',
+            diceRolls: [5, 5, 6, 6],
+            diceSum: 22,
+            stats: {str: 14, int: 14, vit: 18},
+            exp: {str: 0, int: 0, vit: 0},
+            level: 1,
+            gear: [{item:null}, {item:null}, {item:null}],
+            sk: [null, null, null],
+            basePay: 10,
+            affection: 200,
+            traits: ['tavern_cheer', 'frugal', 'devoted'],
+            favoriteItem: 'wood',
+            isStrike: false,
+            deployedNodeId: null
+          };
+          S.companionRoster.push(garagary);
+          if(!fast){
+            addLog('🍻【女店長 ガラガリー加入＆酒場解放】「よくやったね坊や！うちの酒場とツケ払いの仲間たちを連れてっていいよ！」酒場施設とサイコロガチャが解放された！', 'g');
+            toast('🍻 女店長ガラガリーが加入！酒場＆サイコロガチャ解禁');
+          }
+        }
+        S.tutorialGachaAvailable = true;
+        if(!fast){
+          setTimeout(() => {
+            openCompModal('gacha', true);
+          }, 650);
+        }
+      }
     }
     // 次の洞窟を「発見（caveDiscovered）」状態にし、🧭斥候派遣（Scout Dispatch）で解禁できるようにする
     const nextCave = CAVES[cave.idx + 1];
@@ -8339,7 +8958,8 @@ function spawnEnemy(){
 /* 研究ポイントを、判明済みでまだ開発していない対象に均等に配る */
 function grantRp(amount){
   if(!(amount>0)) return 0;
-  amount *= skillMul('rp');
+  const heroInt = (S && S.stats && S.stats.int) || 0;
+  amount *= skillMul('rp') * (1 + heroInt * 0.015);
   S.rp = (S.rp||0) + amount;
   return amount;
 }
@@ -10395,6 +11015,20 @@ function renderInsp(){
   let tabBody = '';
   if(curInspTab === '1'){
     tabBody = `
+      ${(T.role==='tavern'||T.line==='tavern') ? `
+        <div style="background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(15,23,42,.85));border:1px solid #f59e0b;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:6px;font-weight:800;color:var(--gold);font-size:12.5px">
+            <span>🍻</span><span>冒険者の酒場（稼働中）</span>
+          </div>
+          <div style="font-size:10.5px;color:#cbd5e1;margin-top:3px;line-height:1.4">
+            周囲280pxの仲間の好感度上昇+50%・給料-30%・ストライキ防止！<br>
+            サイコロ <b>${gachaDiceCount()}個</b> で新たな仲間をスカウトできます。
+          </div>
+          <button id="btnInspTavernGacha" style="margin-top:6px;width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:6px;padding:7px;color:#000;font-weight:800;font-size:12px;cursor:pointer">
+            🎲 酒場でサイコロガチャを引く (💰${fmt(gachaCostGold('standard'))}G)
+          </button>
+        </div>
+      ` : ''}
       ${canRename(n) ? `<div class="kv">名前<button class="ren"></button></div>` : ''}
       ${n.comb ? `<div class="kv">構成<b>${combStages(n).map(c=>TYPES[c.type].i).join('→')}</b></div><button class="unc">🔗 分離 (${combStages(n).length}台)</button>` : ''}
       ${n._incompatiblePower ? `<div style="background:rgba(239,68,68,.25);border:1px solid #ef4444;border-radius:6px;padding:6px;margin:4px 0;color:#fca5a5;font-weight:700;font-size:11px">🚫 要アニマ (人・仲間の動力のみ)</div>` : ''}
@@ -10713,6 +11347,8 @@ function renderInsp(){
     cb.disabled = !canCore(n);
     cb.onclick = ()=>useCore(n);
   }
+  const btnTavernGacha = box.querySelector('#btnInspTavernGacha');
+  if(btnTavernGacha) btnTavernGacha.onclick = () => { openCompModal('gacha'); };
 
   const uc=box.querySelector('.unc');
   if(uc) uc.onclick=()=>breakComb(n);

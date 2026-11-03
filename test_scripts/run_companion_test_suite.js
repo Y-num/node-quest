@@ -289,7 +289,7 @@ async function runTestSuite() {
     await pageCdp.eval(`
       S.gold = 0;
       for(let i=0; i<4; i++) tick(1.0, false);
-      S.gold = 500;
+      S.gold = 1000;
       feedRosterAll();
       render();
     `);
