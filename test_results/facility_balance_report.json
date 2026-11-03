@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-11-03T09:34:18.173Z",
+  "allPassed": true,
+  "results": [
+    {
+      "name": "gen1_ash_byproduct_and_clog",
+      "pass": true,
+      "data": {
+        "bCap": 25,
+        "genOutsWaste": 1,
+        "wasteHeld": 25,
+        "isStalled": true,
+        "stallWhy": "🗑️満杯"
+      }
+    },
+    {
+      "name": "dump1_0_stamina_landfill_recovery",
+      "pass": true,
+      "data": {
+        "dumpIns": {
+          "waste": 3
+        },
+        "dumpStaCost": 0,
+        "genWasteAfterWire": 0,
+        "genStalledAfterWire": false,
+        "dumpDone": 11
+      }
+    },
+    {
+      "name": "cgen1_clean_aura_and_zero_waste",
+      "pass": true,
+      "data": {
+        "cAura": {
+          "k": "clean",
+          "v": 0.8,
+          "r": 240
+        },
+        "cOuts": {
+          "sta": 8
+        },
+        "wasteInCgen": 0,
+        "cgenDone": 2,
+        "cgenStaOut": 16
+      }
+    },
+    {
+      "name": "pollution_slowdown_and_durability_corrosion",
+      "pass": true,
+      "data": {
+        "baseCraftTime": 3.5,
+        "timeAt50": 8.4,
+        "timeAt100": 13.3,
+        "speedRatio100": 0.263,
+        "hpDurAfterPollution": 99.1
+      }
+    },
+    {
+      "name": "facility_tradeoffs_matrix",
+      "pass": true,
+      "data": {
+        "decompStaCost": 10,
+        "toolStaCost": 5,
+        "fuelPtype": "dirty_gen",
+        "fuelPollution": 11.03,
+        "cgenPollution": 0
+      }
+    }
+  ]
+}

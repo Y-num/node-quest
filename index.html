@@ -2046,8 +2046,7 @@ const TYPES = {
   mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:3.0, ins:{}, outs:{}, chain:'ore',
           d:'原鉱を掘る。精錬炉（1.8秒で2鉱石消費）をフル稼働させるには、採掘機が3台以上必要になる'},
   dump  :{n:'廃棄場',    i:'♻️', cost:80,   up:110,  time:1.8, chain:'clean',
-          d:'副産物を片付ける。扱える種類はその施設の時代まで。'
-           +'片付けなくても止まりはしないが、溜めるほどまわりが汚染されて仕事が遅くなる'},
+          d:'副産物を安全に無害化・埋立処分する。⚡電力消費ゼロ・汚染排出ゼロの安全施設。エネルギーは回収できないが、安定した廃材物流の基盤となる'},
   fund  :{n:'出資窓口',  i:'💱', cost:5000, up:6000, time:8.0, ins:{}, outs:{}, chain:'fund',
           d:'ゴールドを研究ポイントに変える。割はとても悪いが、余ったゴールドの使い道になる'},
   lab   :{n:'研究所',    i:'🔬', cost:120,  up:160,  time:4.0, ins:{sta:10}, outs:{}, effect:'lab', matIn:true,
@@ -2069,8 +2068,8 @@ const TYPES = {
           d:'持ち物から装備をひとつ選んでセットし、合金を打ち込んで鍛える。打つほど伸びは鈍る'},
   equip :{n:'装備工房',  i:'🎽', cost:600,  up:800,  time:12.0, ins:{}, outs:{}, chain:'equip', effect:'equip',
           d:'部品1つと地金2つで装備を1つ作る。手間も⚡も大きいぶん、できた装備は長く使える'},
-  tool  :{n:'道具',      i:'🪵', cost:300,  up:400,  time:2.5, tool:true, mul:1.5, take:4, sta:3,
-          d:'間に挟むと通した素材が増える増幅器'},
+  tool  :{n:'道具',      i:'🪵', cost:300,  up:400,  time:2.5, tool:true, mul:1.5, take:4, sta:6,
+          d:'間に挟むと通した素材が増える増幅器。素材を50%増量するが高電力を要求する贅沢設備'},
   box   :{n:'木箱',      i:'📦', cost:100,  up:140,  time:0.4, store:true, slots:1, cap:200,
           d:'素材を貯めておける。詰まりを防げる'},
   comp  :{n:'圧縮機',    i:'🗜️', cost:500,  up:650,  time:2.0, chain:'comp',
@@ -2086,10 +2085,10 @@ const TYPES = {
           d:'木を切って木材（wood）を生産する作業場。人間（主人公・仲間）が直接生体アニマ（⚡2）を供給することで木材を生成する。火力発電機などの重要な燃料となる'},
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
-  gen   :{n:'火力発電機', i:'🔌', cost:180, up:240, time:1.6, ins:{wood:1}, outs:{sta:14}, gen:true,
-          d:'木材（wood）を燃料にして大出力の⚡電力を生み出す発電機。配線距離制限なし。木こり小屋から木材を搬入して動かす。少量の☣️汚染を発生'},
-  cgen  :{n:'人力発電機',i:'🌪️', cost:70, up:90, time:1.8, ins:{sta:2}, outs:{sta:8}, gen:true, cleanEnergy:true,
-          d:'人間の生体アニマ（⚡2）を機械用電力（⚡8）へ高効率変換する装置。人の行動円内に設置する必要があるが、変換された電力は距離無制限で工場全体に送電可能。汚染ゼロ'},
+  gen   :{n:'火力発電機', i:'🔌', cost:180, up:240, time:1.8, ins:{wood:1}, outs:{sta:11, waste:1}, gen:true,
+          d:'木材（wood）を燃料にして大出力の⚡電力を生み出す工業発電機。配線距離無制限。稼働時に強い煤煙汚染と木灰（🗑️廃材）を排出。排気配管を繋がないと25個で満杯停止する'},
+  cgen  :{n:'人力発電機',i:'🌪️', cost:70, up:90, time:1.4, ins:{sta:2}, outs:{sta:8}, gen:true, cleanEnergy:true, aura:{k:'clean', v:0.8, r:240},
+          d:'人間の生体アニマ（⚡2）を高密度機械電力（⚡8）へ変換。汚染ゼロ＆周囲240pxを浄化する清浄オーラを常時放出。繊細な研究所や住宅エリアの保護に最適'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
@@ -2198,7 +2197,7 @@ const hasPerk = (T, k) => perksOf(T).some(p => p.k === k);
 const ERA_EXTRA = {
   purify: g => ({aura:{k:'clean', v:+(1.0*Math.pow(1.55,g)).toFixed(2), r:280+g*14}}),
   boost:  g => ({aura:{k:'speed', v:+(0.5+g*0.25).toFixed(2), r:250+g*12}}),
-  tool: g => ({mul: 1.5 + g*0.45, sta: 3 + g}),
+  tool: g => ({mul: 1.5 + g*0.45, sta: 6 + g*4}),
   // 貯蔵はどんな素材でも受け取る。外へ出す口の数と、しまえる種類・量が時代で伸びる
   // 第5時代からは「倉庫」。専用のインベントリで中身を見られる
   box:  g => ({slots: 1 + Math.floor(g/2), kinds: 4 + g*4,
@@ -2210,12 +2209,12 @@ const ERA_EXTRA = {
 const FAC = {
   /* 動力の源。通常の発電機は燃料や機械で動くため汚染を出す。
      クリーン発電（cgen）は自然エネルギーで動き、汚染を一切出さない */
-  gen:   [{e:1,n:'火力発電機',    i:'🔌', ins:{wood:1}, outs:{sta:14}},
-          {e:2,n:'高性能発電機',   i:'⚡', ins:{wood:1}, outs:{sta:38, power:4}},
-          {e:3,n:'超高性能発電機', i:'🌟', ins:{coal:1}, outs:{sta:120, power:18, nfl:3}}],
-  cgen:  [{e:1,n:'人力発電機',    i:'🌪️', ins:{sta:2}, outs:{sta:8}, cleanEnergy:true, time:1.8, cost:70},
-          {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:24, power:4}, cleanEnergy:true},
-          {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:75, power:16, nfl:2}, cleanEnergy:true}],
+  gen:   [{e:1,n:'火力発電機',    i:'🔌', ins:{wood:1}, outs:{sta:11, waste:1}, time:1.8},
+          {e:2,n:'高性能発電機',   i:'⚡', ins:{wood:1}, outs:{sta:30, power:4, waste:2}},
+          {e:3,n:'超高性能発電機', i:'🌟', ins:{coal:1}, outs:{sta:100, power:16, waste:3}}],
+  cgen:  [{e:1,n:'人力発電機',    i:'🌪️', ins:{sta:2}, outs:{sta:8}, cleanEnergy:true, time:1.4, cost:70, aura:{k:'clean', v:0.8, r:240}},
+          {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:24, power:4}, cleanEnergy:true, aura:{k:'clean', v:1.2, r:280}},
+          {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:75, power:16, nfl:2}, cleanEnergy:true, aura:{k:'clean', v:1.8, r:320}}],
   mine:  [{e:1,n:'採掘機',      i:'⛏️'},{e:2,n:'高速採掘機',i:'🚜'},{e:3,n:'重層採掘機',i:'🛰'}],
   smelt: [{e:1,n:'精錬炉',      i:'🔥'},{e:2,n:'高炉',      i:'🏭'},{e:3,n:'プラズマ炉',i:'🌞'}],
   alloy: [{e:1,n:'合金炉',      i:'⚗️'},{e:2,n:'電気合成炉',i:'🧪'},{e:3,n:'分子合成炉',i:'🧬'}],
@@ -2498,6 +2497,9 @@ function buildFac(){
       if(f.hd)   T.hd   = f.hd.slice();
       if(f.baseStats) T.baseStats = Object.assign({}, f.baseStats);
       if(f.cleanEnergy !== undefined) T.cleanEnergy = !!f.cleanEnergy;
+      if(f.time) T.time = f.time;
+      if(f.cost) T.cost = f.cost;
+      if(f.aura) T.aura = Object.assign({}, f.aura);
       if(ERA_EXTRA[role]) Object.assign(T, ERA_EXTRA[role](g));
       // 共鳴：第8以降。世代が上がるほど強く届く
       if(hasPerk(T,'aura') && !T.aura)
@@ -2894,8 +2896,8 @@ function insOf(n){
   if(n.comb) return modIns(n, combCalc(n).ins);      // 複合施設
   if(T.chain==='clean'){                       // 副産物を片付ける
     if(!n.item) return {};
-    // 厄介なものほど片付けるのに体力が要る
-    return modIns(n, {sta:staCost(1.6*(1+bypVal(baseOf(n.item))/6), e), [n.item]:3});
+    // 安全な物理埋立処分：⚡電力消費ゼロで安全に消去
+    return modIns(n, {[n.item]:3});
   }
   if(T.chain==='fund'){                        // ゴールドを研究に変える（要るのは⚡だけ）
     return modIns(n, eraIn(T, {sta:staCost(8, e)}));
@@ -2933,7 +2935,7 @@ function insOf(n){
   if(T.chain==='comp' || T.chain==='decomp' || T.chain==='sell'){
     if(!n.item && T.chain!=='sell') return {};
     const take = T.chain==='comp' ? COMP_TAKE : T.chain==='sell' ? SELL_TAKE : DECOMP_TAKE;
-    const st = staCost((T.chain==='comp'?3:T.chain==='sell'?0.6:2)
+    const st = staCost((T.chain==='comp'?3:T.chain==='sell'?0.6:12)
                        * (hasPerk(T,'thrift') ? 0.5 : 1), e);
     const k  = T.chain==='sell' ? (n.sellK || n.item) : n.item;
     if(!k) return modIns(n, eraIn(T, {sta:st}));
@@ -3508,10 +3510,14 @@ const capIn   = (n,item) => Math.ceil(capMul(n) * layerWide(n,item)
                           ? TYPES[n.type].cap * lvPow(n.level)
                           : Math.max(CAP, (allIns(n)[item]||0) * 2)));
 const LOOT_CAP = 5;                       // ダンジョン自身に積んでおける戦利品の数
-const BYP_CAP  = 100;                     // 副産物はここまでしか溜まらない。満杯になると施設が止まる
+const BYP_CAP  = 25;                      // 序盤の基準副産物容量（第1世代:25、第2世代:60、第3世代:120）
 const isByp    = k => BYP.some(b=>b.k===k);
-/* 副産物を抱えておける量。複合施設は中の段の数だけ、ふつうの施設ぶん持てる */
-const bypCap = n => BYP_CAP * (n.comb ? n.comb.length + 1 : 1);
+/* 副産物を抱えておける量。世代が上がるほど大容量化し、複合施設は段数倍 */
+const bypCap = n => {
+  const e = (TYPES[n.type]?.era || 1);
+  const base = e === 1 ? 25 : e === 2 ? 60 : 120;
+  return base * (n.comb ? n.comb.length + 1 : 1);
+};
 const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
                           : (TYPES[n.type].src && item==='sta') ? maxStaOf(n)
                           : isByp(item) ? bypCap(n)
@@ -6292,19 +6298,19 @@ function raidClaim(n){
    汚れた施設は仕事が遅くなり、汚染が危険域（既定80%以上）に達すると爆発・施設破壊の危険が生じる。 */
 const POL_ITEM = {waste:0.9, toxic:1.6, rad:3.5, rift:8, slud:5};
 let POL_R    = 280;      // 汚染が届く距離
-let POL_SLOW = 1.6;      // 汚染1.0でどれだけ遅くなるか
-let POL_UP    = 0.0027;  // 汚染源1.0あたり毎秒どれだけ上がるか
-let POL_HEAL  = 0.0009;  // 何もしなくても薄まる速さ（100%→0%で約18分）
-let POL_CLEAN = 0.0006;  // 清浄ピンの強さ1.0あたりの上乗せ
-let POL_WORK  = 0.95;    // 人・クリーンエネルギー以外で稼働したときの汚染発生強度
-let POL_EXPLODE_TH   = 0.80; // 汚染爆発の危険域に入るしきい値（0.80 = 80%）
-let POL_EXPLODE_RATE = 0.045;// 危険域での毎秒爆発確率係数
+let POL_SLOW = 2.8;      // 汚染1.0でどれだけ遅くなるか（速度低下最大約74%）
+let POL_UP    = 0.0036;  // 汚染源1.0あたり毎秒どれだけ上がるか（ビルドアップ加速）
+let POL_HEAL  = 0.0006;  // 何もしなくても薄まる速さ（自然減衰は鈍化）
+let POL_CLEAN = 0.0010;  // 清浄ピン・清浄オーラの強さ1.0あたりの上乗せ
+let POL_WORK  = 1.75;    // 人・クリーンエネルギー以外で稼働したときの汚染発生強度（84%強化）
+let POL_EXPLODE_TH   = 0.75; // 汚染爆発の危険域に入るしきい値（0.75 = 75%）
+let POL_EXPLODE_RATE = 0.060;// 危険域での毎秒爆発確率係数
 let polT = 0;
 
 /* 動力源の種類を判定する:
    - 'human'     : 人タイプ自身、または人タイプ（主人公・仲間）の⚡だけで動く施設（クリーン）
    - 'clean'     : クリーン発電（cgen）自身、または人・クリーン発電の動力だけで動く施設（クリーン）
-   - 'passive'   : 貯蔵・倉庫・ピン・レイヤー・ポート（稼働汚染なし）
+   - 'passive'   : 貯蔵・倉庫・ピン・レイヤー・ポート・安全廃棄場（稼働汚染なし）
    - 'dirty_gen' : 燃料や機械で動く通常の発電機（gen）・焼却発電（fuel）・炭窯（coal）
    - 'dirty'     : 通常の発電機などの非クリーン動力で動いている施設 */
 function powerTypeOf(n){
@@ -6313,7 +6319,7 @@ function powerTypeOf(n){
   if(!T || T.layer || T.port || T.raid) return 'passive';
   if(isHuman(n)) return 'human';
   if(T.cleanEnergy || modsOf(n).clean) return 'clean';
-  if(T.store || T.ware || T.aura) return 'passive';
+  if(T.store || T.ware || T.aura || T.chain === 'clean') return 'passive';
   if((T.gen && !T.cleanEnergy) || T.chain === 'fuel' || T.line === 'coal') return 'dirty_gen';
   const pLinks = S.links.filter(l => l.to === n.id && ENERGY_ITEM[l.item] && !isLinkOutOfRange(l));
   if(pLinks.length > 0){
@@ -6365,9 +6371,10 @@ function polSource(n){
   const isWorking = notInputStall && (n.crafting || (n.prog||0) > 0 || T.gen
                     || S.links.some(l => l.to === n.id && ENERGY_ITEM[l.item]));
   if(pt === 'dirty_gen' && notInputStall){
-    v += POL_WORK * 1.15 * eraK;
+    const fuelBonus = (T.chain === 'fuel') ? 1.8 * (1 + (bypVal(baseOf(n.item||'')) / 5)) : 1.0;
+    v += POL_WORK * 1.25 * eraK * fuelBonus;
   }else if(pt === 'dirty' && isWorking){
-    v += POL_WORK * 0.80 * eraK;
+    v += POL_WORK * 0.85 * eraK;
   }
   return v;
 }
@@ -7283,8 +7290,22 @@ function polTick(dt, fast){
     // 端数を0に丸めるのは「薄まっているとき」だけ。
     // 上がっている最中に丸めると、じわじわ進む汚染がいつまでも0のままになる
     n.pol = (nv < 0.001 && up <= down) ? 0 : nv;
-    // 汚染が危険域（POL_EXPLODE_TH 以上）に達した施設は爆発・破壊の危険がある
     const T = TYPES[n.type];
+    // 汚染が50%以上の高濃度環境下では酸性煤煙により施設の耐久度が摩耗
+    if(T && !T.src && !T.unique && !T.port && !T.layer && !n.broken && !n.isOverrun && n.pol >= 0.50){
+      n.hpDur = Math.max(0, (n.hpDur != null ? n.hpDur : 100) - 0.45 * d * (n.pol - 0.5));
+      if(n.hpDur <= 0){
+        n.broken = true;
+        n.stall = true;
+        n.why = '💥酸性煤煙腐食（修理要）';
+        if(!fast){
+          spawnReactionPop(n, '💥 汚染腐食・故障停止！', '#ff4040');
+          toast(`💥 ${tierOf(n).i}${tierOf(n).n} が高濃度汚染の腐食により故障停止しました！`);
+          addLog(`💥【汚染腐食】${tierOf(n).i}${tierOf(n).n} #${n.no} が酸性煤煙により腐食故障した！`, 'd');
+        }
+      }
+    }
+    // 汚染が危険域（POL_EXPLODE_TH 以上）に達した施設は爆発・破壊の危険がある
     if(T && !T.layer && !T.port && !T.raid && n.pol >= POL_EXPLODE_TH){
       n._critT = (n._critT || 0) + d;
       const excess = Math.max(0, (n.pol - POL_EXPLODE_TH) / Math.max(0.01, 1 - POL_EXPLODE_TH));
@@ -9829,8 +9850,8 @@ function ioText(T){
   if(T.chain==='fund')   return `💰⚡ <span class="ar">→</span> 🔬研究`;
   if(T.pay)              return `💰 <span class="ar">→</span> ⚡動力`;
   if(T.payRp)            return `🔬 <span class="ar">→</span> ⚡動力`;
-  if(T.chain==='clean')  return `🗑️×3 ⚡ <span class="ar">→</span> 消去`;
-  if(T.chain==='fuel')   return `🗑️×4 <span class="ar">→</span> ⚡発電`;
+  if(T.chain==='clean')  return `🗑️×3 <span class="ar">→</span> 埋立消去`;
+  if(T.chain==='fuel')   return `🗑️×4 <span class="ar">→</span> ⚡発電＋☣️排煙`;
   if(T.chain){
     const m={ore:'⚡ <span class="ar">→</span> 🪨 🗑️',
              ingot:'🪨×2 ⚡ <span class="ar">→</span> 🟫 🗑️',
@@ -13007,7 +13028,7 @@ function takeBaseSnapshot(){
     CURVE_TAPER: CURVE.taper,
     CURVE_DEPTH: CURVE.depth,
     HUMAN_R,
-    POL_WORK, POL_EXPLODE_TH, POL_EXPLODE_RATE,
+    POL_SLOW, POL_WORK, POL_EXPLODE_TH, POL_EXPLODE_RATE,
     VIT_K, TRAIN_P, EXP_STEP, CAP, PSPEED, PMAX, PMIN, SENDCD,
     BELT_GAP_PX, BELT_CAP_DIV, PRICE_K, UP_K, UP_RATE, MAT_RATE,
     SELL_TAKE, SELL_K, ARMOR_K, LV_STEP, LV_BASE, MAT_RP,
@@ -13094,6 +13115,7 @@ function applyDevCfg(){
   if(c.CURVE_DEPTH != null) CURVE.depth = Math.max(10, +c.CURVE_DEPTH);
   applyCurve();
   if(c.HUMAN_R != null) HUMAN_R = Math.max(80, +c.HUMAN_R);
+  if(c.POL_SLOW != null) POL_SLOW = Math.max(0.5, +c.POL_SLOW);
   if(c.POL_WORK != null) POL_WORK = Math.max(0, +c.POL_WORK);
   if(c.POL_EXPLODE_TH != null) POL_EXPLODE_TH = Math.max(0.1, Math.min(1, +c.POL_EXPLODE_TH));
   if(c.POL_EXPLODE_RATE != null) POL_EXPLODE_RATE = Math.max(0, +c.POL_EXPLODE_RATE);
@@ -13864,6 +13886,7 @@ function renderDtUi(body){
 function renderDtConst(body){
   const cFields = [
     { k:'HUMAN_R',          n:'🧍人の行動範囲（⚡供給距離 px）',       step:10,   v:HUMAN_R },
+    { k:'POL_SLOW',         n:'☣汚染1.0あたりの作業減速倍率',          step:0.1,  v:POL_SLOW },
     { k:'POL_WORK',         n:'☣非クリーン稼働時の汚染発生強度',       step:0.05, v:POL_WORK },
     { k:'POL_EXPLODE_TH',   n:'💥汚染爆発が始まる危険域 (0.8=80%)',    step:0.05, v:POL_EXPLODE_TH },
     { k:'POL_EXPLODE_RATE', n:'💥危険域での毎秒爆発確率係数',          step:0.005,v:POL_EXPLODE_RATE },
