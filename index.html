@@ -1952,8 +1952,16 @@ const payOf   = n => {
 };
 const payRpOf = n => { const T=TYPES[n.type];
   return T.payRp ? Math.max(1, Math.round(T.payRp * Math.pow(2.6, (T.era||1)-1))) : 0; };
-const fundGold  = n => Math.round(12000 * Math.pow(2.6, (TYPES[n.type].era||1)-1));
-const fundRp    = n => Math.max(1, fundGold(n) / FUND_G * lvPow(n.level) * gearMul('arcane'));
+const FUND_PER_ERA = { 1: { g: 300, rp: 15 }, 2: { g: 1800, rp: 120 }, 3: { g: 12000, rp: 1000 } };
+const fundGold  = n => {
+  const e = (TYPES[n.type] && TYPES[n.type].era) || 1;
+  return (FUND_PER_ERA[e] || FUND_PER_ERA[1]).g;
+};
+const fundRp    = n => {
+  const e = (TYPES[n.type] && TYPES[n.type].era) || 1;
+  const base = (FUND_PER_ERA[e] || FUND_PER_ERA[1]).rp;
+  return Math.max(1, Math.round(base * lvPow(n.level) * gearMul('arcane') * skillMul('rp')));
+};
 /* 売り場は「貯まったらまとめて」ではなく、⚡が届いていれば一定間隔で1個ずつ売る。
    間隔が長いぶん、1個の値段は高い                                        */
 let SELL_TAKE = 1, SELL_K = 200;
@@ -2083,15 +2091,15 @@ const TYPES = {
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
   wood  :{n:'木こり小屋', i:'🪓', cost:90,  up:120,  time:2.0, ins:{sta:2}, outs:{wood:1},
           d:'木を切って木材（wood）を生産する作業場。人間（主人公・仲間）が直接生体アニマ（⚡2）を供給することで木材を生成する。火力発電機などの重要な燃料となる'},
-  coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
-          d:'蒸気の時代の動力。石炭を焼く'},
+  coal  :{n:'炭窯',      i:'🪵', cost:320, up:400, time:2.0, ins:{wood:2, sta:1}, outs:{coal:4, waste:1},
+          d:'木材（wood）を蒸し焼きにして高エネルギー燃料の石炭（coal）を製炭する加工施設。火力発電機へ送ると木材の2.5倍の電力（⚡25）を叩き出す'},
   gen   :{n:'火力発電機', i:'🔌', cost:180, up:240, time:2.0, ins:{wood:1}, outs:{sta:10, waste:1}, gen:true,
-          d:'木材（wood）を燃料にして大出力の⚡電力を生み出す工業発電機。配線距離無制限。稼働時に強い煤煙汚染と木灰（🗑️廃材）を排出。排気配管を繋がないと25個で満杯停止する'},
+          d:'木材（wood）または石炭（coal）を燃料にして大出力の⚡電力を生み出す工業発電機（木材: ⚡10／石炭: ⚡25）。配線距離無制限。稼働時に強い煤煙汚染と木灰（🗑️廃材）を排出'},
   cgen  :{n:'人力発電機',i:'🌪️', cost:70, up:90, time:1.0, ins:{sta:1}, outs:{sta:5}, gen:true, cleanEnergy:true, aura:{k:'clean', v:0.8, r:240},
           d:'人間の生体アニマ（⚡1）を機械電力（⚡5）へ変換。1パケット即時変換・汚染ゼロ＆周囲240pxを浄化する清浄オーラを常時放出。繊細な研究所や住宅エリアの保護に最適'},
-  open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
-          d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
-  hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
+  open  :{n:'開封所',    i:'📦', cost:350, up:500, time:2.5, chain:'open',
+          d:'宝箱を開けて、中身を自宅にしまう。装備・研究資材・ゴールドを大量獲得'},
+  hout  :{n:'搬出口',    i:'🏠', cost:250, up:350, time:1.5, chain:'hout',
           d:'自宅にしまってあるものを工房へ出す。開封所の逆。出すものはひとつ選ぶ'},
   lin   :{n:'入口',      i:'🔌', cost:0, up:0, time:0.1, ins:{}, outs:{}, lin:true, port:true,
           d:'レイヤーの外から届いたものが、ここから出てくる'},
@@ -2105,9 +2113,9 @@ const TYPES = {
   purify:{n:'送風機',    i:'🌬️', cost:1500, up:1800, time:2.2, ins:{sta:4}, soft:{cslud:1, miasma:1, waste:1, toxic:1}, outs:{sta:2},
           aura:{k:'clean', v:1.0, r:280},
           d:'置いた場所のまわりの汚染を抑える。❄️冷却気流（CRYO）を精錬炉やダンジョンへ送れるほか、逆流ハザード（🧪腐食粘液・👁️深淵瘴気）を浄化・中和できる'},
-  boost :{n:'作業灯',    i:'💡', cost:2500, up:3000, time:3.0, ins:{sta:5}, outs:{},
-          aura:{k:'speed', v:0.5, r:250},
-          d:'置いた場所のまわりの施設が速くなる。重ねて置くほど効く'},
+  boost :{n:'作業灯',    i:'💡', cost:1500, up:2000, time:3.0, ins:{sta:2}, outs:{},
+          aura:{k:'speed', v:0.5, r:300},
+          d:'置いた場所のまわりの施設が速くなる（+50%）。重ねて置くほど効く'},
   extr  :{n:'魔獣抽出炉', i:'🧬', cost:1200, up:1600, time:3.0, ins:{sta:4}, soft:{mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1, lot1:1, lot2:1, lot3:1, cslud:1}, outs:{sta:11, exs:1, exi:1, exv:1}, effect:'extr', caveMat:{mcore:3, ing1:2},
           d:'【洞窟素材クラフト施設】洞窟で得た👾魔獣の核などを使って建設。稼働ごとに大量の⚡電力と全種類の訓練経験値（💪/🧠/❤️）を抽出し、洞窟素材を送り込むと🧱研究資材と🔬研究力に分解還元する'},
   turret:{n:'戦術支援砲台',i:'🗼', cost:3200, up:4000, time:2.2, ins:{sta:6}, soft:{mcore:1, afang:1, fheart:1, fcryst:1, bdia:1, qstl:1, ing1:1}, outs:{}, effect:'turret', aura:{k:'speed', v:0.35, r:260}, caveMat:{afang:2, mcore:3},
@@ -2243,8 +2251,9 @@ const FAC = {
           {e:3,n:'研究者',      i:'👩‍🔬', baseStats:{str:3,int:8,vit:5}}],
   wood:  [{e:1,n:'木こり小屋',  i:'🪓', ins:{sta:2}, outs:{wood:1}, time:2.0},{e:2,n:'製材所',    i:'🪚', outs:{wood:4}},
           {e:3,n:'自動林場',    i:'🌲', outs:{wood:12}}],
-  coal:  [{e:1,n:'炭窯',        i:'🪵'},{e:2,n:'コークス炉',i:'🏭', outs:{coal:14, waste:2}},
-          {e:3,n:'合成炭素炉',  i:'💎', outs:{coal:48, waste:6}}],
+  coal:  [{e:1,n:'炭窯',        i:'🪵', ins:{wood:2, sta:1}, outs:{coal:4, waste:1}, time:2.0},
+          {e:2,n:'コークス炉',  i:'🏭', ins:{wood:4, sta:2}, outs:{coal:14, waste:2}, time:1.2},
+          {e:3,n:'合成炭素炉',  i:'💎', ins:{wood:8, sta:3}, outs:{coal:48, waste:6}, time:0.6}],
   open:  [{e:1,n:'開封所',      i:'📦'},{e:2,n:'開封場',    i:'🏗'},{e:3,n:'自動開封機',i:'🤖'}],
   hout:  [{e:1,n:'搬出口',      i:'🏠'},{e:2,n:'荷出し場',  i:'🚚'},{e:3,n:'自動搬出機',i:'🤖'}],
   purify:[{e:1,n:'送風機',      i:'🌬️'},{e:2,n:'空気清浄機',i:'🌀'},{e:3,n:'浄化場',    i:'🧱'}],
@@ -2889,8 +2898,14 @@ const TOOL_REF = 8;                                   // 基準になる素材�
 const toolWeight = n => n.item ? Math.max(1, itemVal(n.item)/TOOL_REF) : 1;
 const toolMul  = n => 1 + (TYPES[n.type].mul - 1) / Math.pow(toolWeight(n), 0.22);
 const toolLoad = n => Math.pow(toolWeight(n), 0.30);
-/* その施設が1回に食う⚡。時代の効率と全体の倍率をかけて切り上げる */
-const staCost = (x, e) => Math.max(1, Math.ceil(x * e * COST_K / skillMul('cost')));
+/* その施設が1回に食う⚡。時代の効率と全体の倍率をかけて確率的切り上げ */
+const staCost = (x, e) => {
+  const effMul = skillMul('cost');
+  const raw = (x * e * COST_K) / effMul;
+  if(raw <= 1) return 1;
+  const base = Math.floor(raw);
+  return base + (Math.random() < (raw - base) ? 1 : 0);
+};
 function insOf(n){
   const T = TYPES[n.type], e = effOf(n), o = {};
   if(n.comb) return modIns(n, combCalc(n).ins);      // 複合施設
@@ -2900,7 +2915,7 @@ function insOf(n){
     return modIns(n, {[n.item]:1});
   }
   if(T.chain==='fund'){                        // ゴールドを研究に変える（要るのは⚡だけ）
-    return modIns(n, eraIn(T, {sta:staCost(8, e)}));
+    return modIns(n, eraIn(T, {sta:staCost(6, e)}));
   }
   if(T.chain==='fuel'){                        // 副産物を燃やす（体力は使わない）
     return n.item ? modIns(n, {[n.item]:4}) : {};
@@ -2910,11 +2925,15 @@ function insOf(n){
   if(T.lin)  return {};
   if(T.layer) return layerNeeds(n);
   if(T.chain==='hout'){                        // 自宅から1つ取り出す（⚡だけ要る）
-    return modIns(n, eraIn(T, {sta:staCost(3, e)}));
+    return modIns(n, eraIn(T, {sta:staCost(1, e)}));
   }
   if(T.chain==='open'){                        // 宝箱1つ＋⚡ → 中身は自宅へ
     if(!n.item) return {};
-    return modIns(n, eraIn(T, {sta:staCost(4, e), [n.item]:1}));
+    return modIns(n, eraIn(T, {sta:staCost(2, e), [n.item]:1}));
+  }
+  if(T.gen && !T.cleanEnergy){
+    const takesCoal = (n.inBuf && (n.inBuf.coal||0) > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.to===n.id && l.item==='coal'));
+    return modIns(n, takesCoal ? {coal:1} : (T.ins || {wood:1}));
   }
   const sift = q => hasPerk(T,'sift') ? Math.max(1, Math.ceil(q/2)) : q;  // 選別
   if(T.chain==='alloy'){                       // 地金2つ＋1つ上の地金1つ → 合金
@@ -3083,13 +3102,33 @@ function outsOf(n){
     }
     return modOuts(n, o);
   }
+  if(T.gen && !T.cleanEnergy){
+    const burnsCoal = (n.inBuf && (n.inBuf.coal||0) > 0) || (n._lastFuel === 'coal');
+    const baseOuts = Object.assign({}, T.outs || {sta:10, waste:1});
+    if(burnsCoal){
+      baseOuts.sta = Math.round(baseOuts.sta * 2.5); // 石炭なら2.5倍の高出力！
+    }
+    return modOuts(n, baseOuts);
+  }
   return modOuts(n, T.outs);
 }
 // 必須ではないが受け取れる入力（主人公の経験値・戦術パイプライン注入・送風機のハザード浄化・仲間への好物差し入れなど）。口は作るが、稼働の条件にはしない
 function softIns(n){
   const T=TYPES[n.type];
+  const o = Object.assign({}, T.soft || {});
+  const req = insOf(n);
+  for(const k in req){
+    if(k !== 'sta' && !POW_ITEM[k]){
+      for(let d=1; d<=Math.min(3, (typeof seenDens==='function'?seenDens():0)+1); d++){
+        o[densKey(k, d)] = 1;
+      }
+    }
+  }
+  if(T.gen && !T.cleanEnergy){
+    o.wood = 1; o.coal = 1;
+  }
   if(T.src && n.type !== 'hero'){
-    const o = Object.assign({}, T.soft || {exs:1, exi:1, exv:1});
+    o.exs = 1; o.exi = 1; o.exv = 1;
     const comp = compOfNode(n);
     if(comp && comp.favoriteItem && ITEMS[comp.favoriteItem]) o[comp.favoriteItem] = 1;
     if(typeof S!=='undefined' && S && S.links){
@@ -3136,15 +3175,18 @@ const SKILLS = [
   {k:'atk1', n:'剛力',     i:'💥', str:8,  int:0,  kind:'atk',  v:0.25, d:'攻撃力 +25%'},
   {k:'atk2', n:'一撃',     i:'⚔️', str:25, int:5,  kind:'atk',  v:0.60, d:'攻撃力 +60%'},
   {k:'atk3', n:'覇気',     i:'🔥', str:45, int:15, kind:'atk',  v:1.50, d:'攻撃力 +150%'},
-  {k:'spd1', n:'手際',     i:'⚙️', str:5,  int:8,  kind:'spd',  v:0.15, d:'すべての施設が 15% 速い'},
-  {k:'spd2', n:'流れ作業', i:'🏭', str:12, int:25, kind:'spd',  v:0.35, d:'すべての施設が 35% 速い'},
-  {k:'cst1', n:'省力',     i:'🪶', str:0,  int:12, kind:'cost', v:0.15, d:'⚡の消費が 15% 減る'},
-  {k:'cst2', n:'効率化',   i:'📐', str:0,  int:30, kind:'cost', v:0.30, d:'⚡の消費が 30% 減る'},
-  {k:'sta1', n:'活力',     i:'❤️', str:10, int:10, kind:'sta',  v:0.30, d:'⚡の生成が 30% 増える'},
-  {k:'rp1',  n:'洞察',     i:'🔎', str:0,  int:18, kind:'rp',   v:0.50, d:'研究の入りが 50% 増える'},
-  {k:'gld1', n:'商才',     i:'💰', str:6,  int:14, kind:'gold', v:0.40, d:'売値が 40% 上がる'},
-  {k:'pur1', n:'清廉',     i:'💧', str:8,  int:8,  kind:'pure', v:0.40, d:'汚染を受けにくくなる'},
-  {k:'drp1', n:'幸運',     i:'🍀', str:20, int:20, kind:'drop', v:1.50, d:'ダンジョンの拾い物が出やすい'},
+  {k:'spd1', n:'手際',     i:'⚙️', str:5,  int:8,  kind:'spd',  v:0.20, d:'すべての施設が 20% 速い'},
+  {k:'spd2', n:'流れ作業', i:'🏭', str:12, int:22, kind:'spd',  v:0.45, d:'すべての施設が 45% 速い'},
+  {k:'spd3', n:'神速連撃', i:'⚡', str:20, int:40, kind:'spd',  v:0.80, d:'すべての施設が 80% 速い'},
+  {k:'cst1', n:'省力',     i:'🪶', str:0,  int:10, kind:'cost', v:0.25, d:'⚡の消費が 25% 減る'},
+  {k:'cst2', n:'効率化',   i:'📐', str:0,  int:25, kind:'cost', v:0.50, d:'⚡の消費が 50% 減る'},
+  {k:'sta1', n:'活力',     i:'❤️', str:10, int:10, kind:'sta',  v:0.40, d:'⚡の生成が 40% 増える'},
+  {k:'sta2', n:'強靭',     i:'💪', str:25, int:25, kind:'sta',  v:0.90, d:'⚡の生成が 90% 増える'},
+  {k:'rp1',  n:'洞察',     i:'🔎', str:0,  int:16, kind:'rp',   v:0.60, d:'研究の入りが 60% 増える'},
+  {k:'rp2',  n:'叡智',     i:'🌌', str:10, int:35, kind:'rp',   v:1.50, d:'研究の入りが 150% 増える'},
+  {k:'gld1', n:'商才',     i:'💰', str:6,  int:14, kind:'gold', v:0.50, d:'売値が 50% 上がる'},
+  {k:'pur1', n:'清廉',     i:'💧', str:8,  int:8,  kind:'pure', v:0.50, d:'汚染の回復が +50%、発生が -35%'},
+  {k:'drp1', n:'幸運',     i:'🍀', str:18, int:18, kind:'drop', v:1.80, d:'ダンジョンの拾い物が出やすい'},
 ];
 const SKILL = {}; for(const s2 of SKILLS) SKILL[s2.k] = s2;
 const hasSkill = k => !!(S.skills && S.skills[k]);
@@ -5529,9 +5571,22 @@ function tick(dt,fast){
         const wage = payOf(n);
         let ok=true;
         for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].i+'満杯'; }
-        if(ok) for(const k in need) if((n.inBuf[k]||0) < need[k]){
-          ok=false;
-          n.why = `${ITEMS[k].i}待機 (${fmt(n.inBuf[k]||0)}/${fmt(need[k])})`;
+        if(ok){
+          for(const k in need){
+            let avail = (n.inBuf[k] || 0);
+            if(avail < need[k]){
+              let compBonus = 0;
+              for(let d=1; d<=DENS_MAX; d++){
+                const dk = densKey(k, d);
+                if((n.inBuf[dk]||0) > 0) compBonus += (n.inBuf[dk]||0) * Math.pow(COMP_TAKE, d);
+              }
+              if(avail + compBonus < need[k]){
+                ok = false;
+                n.why = `${ITEMS[k].i}待機 (${fmt(avail)}/${fmt(need[k])})`;
+                break;
+              }
+            }
+          }
         }
         if(ok && wage > 0 && S.gold < wage){
           ok=false;
@@ -5543,7 +5598,30 @@ function tick(dt,fast){
         if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`🔬不足 (${fmt(payRpOf(n))})`; }
 
         if(!ok){ n.stall=true; break; }
-        for(const k in need){ n.inBuf[k]-=need[k]; flowOut(k, need[k]); nodeFlow(n, k, need[k], 'o'); }
+        for(const k in need){
+          let req = need[k];
+          const direct = Math.min(n.inBuf[k] || 0, req);
+          n.inBuf[k] -= direct;
+          req -= direct;
+          flowOut(k, direct); nodeFlow(n, k, direct, 'o');
+          if(req > 0){
+            for(let d=1; d<=DENS_MAX && req > 0; d++){
+              const dk = densKey(k, d);
+              while((n.inBuf[dk]||0) > 0 && req > 0){
+                n.inBuf[dk]--;
+                const val = Math.pow(COMP_TAKE, d);
+                const used = Math.min(req, val);
+                req -= used;
+                n.inBuf[k] = (n.inBuf[k] || 0) + (val - used);
+                flowOut(dk, 1); nodeFlow(n, dk, 1, 'o');
+              }
+            }
+          }
+        }
+        if(T.gen && !T.cleanEnergy){
+          if((n.inBuf.coal||0) >= 1) n._lastFuel = 'coal';
+          else n._lastFuel = 'wood';
+        }
         if(wage > 0){
           S.gold -= wage; n.paid = (n.paid||0) + wage;
           if(n.isStrike){
@@ -6238,15 +6316,17 @@ function openBox(n, fast){
     const pool = [CHAIN[t].ore, CHAIN[t].ingot];
     if(devHas('forge')) pool.push(CHAIN[t].part);           // 加工があるなら部品も
     if(devHas('alloy') && t >= 1) pool.push(alloyOf(t));    // 合金炉があるなら鍛錬の材料も
-    add(pool[Math.floor(Math.random()*pool.length)], 1 + Math.floor(rank/4));
+    add(pool[Math.floor(Math.random()*pool.length)], 2 + Math.floor(rank/3));
   }
-  if(Math.random() < b.eq) add(eqpOf(Math.min(top, lo)), 1);          // 装備
-  const g = Math.round(b.gold * Math.max(1, enemyGold(Math.max(1,S.best)) / 8));
+  if(Math.random() < b.eq * 1.5) add(eqpOf(Math.min(top, lo)), 1);          // 装備
+  const g = Math.round(b.gold * Math.max(1, enemyGold(Math.max(1,S.best)) / 4));
   S.gold += g;
+  const matRw = Math.max(6, Math.round(b.gold * 1.2));
+  S.stock = (S.stock||0) + matRw;                                            // 🧱研究資材の直接ボーナス
   const H = homeOf();
   for(const k in got) H[k] = (H[k]||0) + got[k];
   n.gain = (n.gain||0) + 1;
-  if(!fast) addLog(`${ITEMS[b.k].i}${b.n}を開けた → +${fmt(g)}G ＋ `
+  if(!fast) addLog(`${ITEMS[b.k].i}${b.n}を開けた → +${fmt(g)}G／🧱+${matRw} ＋ `
     + Object.keys(got).map(k=>`${ITEMS[k].i}${fmt(got[k])}`).join(' '), 'w');
 }
 
@@ -6375,6 +6455,9 @@ function polSource(n){
     v += POL_WORK * 1.25 * eraK * fuelBonus;
   }else if(pt === 'dirty' && isWorking){
     v += POL_WORK * 0.85 * eraK;
+  }
+  if(typeof skillSum === 'function' && skillSum().pure > 0){
+    v *= Math.max(0.35, 1 - 0.35 * Math.min(1.5, skillSum().pure));
   }
   return v;
 }
@@ -8495,7 +8578,7 @@ function renderStats(){
       }
     }
 
-    const checkKeys = ['ore1','ore2','ore3','ore4','ore5','ing1','ing2','ing3','ing4','ing5','qstl','lot1','mcore','bstl','fcrys','bpearl','vstone','dmatter','bdia','drelic','core_cursed','fuel','waste','cslud','miasma'];
+    const checkKeys = ['ore1','ore2','ore3','ore4','ore5','ore6','ing1','ing2','ing3','ing4','ing5','ing6','prt1','prt2','prt3','prt4','prt5','prt6','wood','coal','power','nfl','waste','toxic','rad','rift','qstl','bdia','artf','tdat','cslud','miasma','core_cursed','drelic','mcore','afang','arelic','fheart','fcryst','acore','lot1','bxc','bxs','bxg'];
     const rowsHtml = checkKeys.filter(k => ITEMS[k] && ((flowRate[k] && (flowRate[k].i > 0.05 || flowRate[k].o > 0.05)) || stockOfMat(k) > 0 || (homeOf()[k]||0) > 0)).map(k => {
       const it = ITEMS[k];
       const fr = flowRate[k] || {i:0, o:0};
