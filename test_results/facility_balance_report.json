@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-03T09:34:18.173Z",
+  "timestamp": "2026-11-03T09:47:57.572Z",
   "allPassed": true,
   "results": [
     {
@@ -18,12 +18,12 @@
       "pass": true,
       "data": {
         "dumpIns": {
-          "waste": 3
+          "waste": 1
         },
         "dumpStaCost": 0,
-        "genWasteAfterWire": 0,
+        "genWasteAfterWire": 7,
         "genStalledAfterWire": false,
-        "dumpDone": 11
+        "dumpDone": 22
       }
     },
     {
@@ -36,11 +36,11 @@
           "r": 240
         },
         "cOuts": {
-          "sta": 8
+          "sta": 5
         },
         "wasteInCgen": 0,
         "cgenDone": 2,
-        "cgenStaOut": 16
+        "cgenStaOut": 10
       }
     },
     {

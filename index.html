@@ -1793,10 +1793,10 @@ const STAT_OF = {exs:'str', exi:'int', exv:'vit'};
 /* 素材の系統。原鉱→地金→部品 が1対1で対応する。
    floor = この最深到達層で解放 / sta = 採掘1回の体力 / val = 部品1つ分の攻撃力 */
 const CHAIN = [
-  {ore:'ore1', ingot:'ing1', part:'prt1', floor:1,   sta:6,  val:8},
-  {ore:'ore2', ingot:'ing2', part:'prt2', floor:10,  sta:10, val:28},
-  {ore:'ore3', ingot:'ing3', part:'prt3', floor:30,  sta:18, val:100},
-  {ore:'ore4', ingot:'ing4', part:'prt4', floor:60,  sta:30, val:360},
+  {ore:'ore1', ingot:'ing1', part:'prt1', floor:1,   sta:3,  val:8},
+  {ore:'ore2', ingot:'ing2', part:'prt2', floor:10,  sta:6,  val:28},
+  {ore:'ore3', ingot:'ing3', part:'prt3', floor:30,  sta:14, val:100},
+  {ore:'ore4', ingot:'ing4', part:'prt4', floor:60,  sta:28, val:360},
   {ore:'ore5', ingot:'ing5', part:'prt5', floor:100, sta:50, val:1300},
   {ore:'ore6', ingot:'ing6', part:'prt6', floor:175, sta:85, val:4600},
 ];
@@ -2036,16 +2036,16 @@ function chainOpts(t){
 /* ノード＝主人公の「行動」。役割ごとに1つだけ基本を書き、
    時代ちがいの版は下の FAC 表から作る。                                   */
 const TYPES = {
-  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:1.5, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3, start:true, baseStats:{str:0,int:0,vit:0},
+  hero  :{n:'主人公',    i:'🧍', cost:0,    up:4000, time:1.25, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, unique:true, gear:3, start:true, baseStats:{str:1,int:1,vit:1},
           d:'すべての行動の源。主人公個人の体力（⚡1）を生み出す。小規模な活動は賄えるが、工場全体の稼働には風力発電機など複数の発電施設が必要'},
   mate  :{n:'仲間',      i:'👩‍🌾', cost:450,  up:600,  time:1.2, ins:{}, soft:{exs:1,exi:1,exv:1}, outs:{sta:1}, src:true, gear:1, pay:5, baseStats:{str:1,int:1,vit:2},
           d:'固有のステータス（💪/🧠/❤️）を持つ人タイプ。主人公と異なり、行動するたびに💰お金（給料）を消費して⚡体力を生む。人が動かす施設は☣️汚染を出さない'},
   dive  :{n:'ダンジョン', i:'🚪', cost:250,  up:350,  time:3.0, ins:{sta:6}, outs:{}, effect:'dive', loot:true,
           d:'体力を消費して1回攻撃する。撃破すると戦利品が出る。'
            +'また地上の配管・排気を繋ぐと戦場介入（❄️氷結・🔥装甲貫通・☣️毒霧・💥爆風砲撃）が起き、深層からは🧪腐食粘液や👁️深淵瘴気が逆流する'},
-  mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:3.0, ins:{}, outs:{}, chain:'ore',
-          d:'原鉱を掘る。精錬炉（1.8秒で2鉱石消費）をフル稼働させるには、採掘機が3台以上必要になる'},
-  dump  :{n:'廃棄場',    i:'♻️', cost:80,   up:110,  time:1.8, chain:'clean',
+  mine  :{n:'採掘',      i:'⛏️', cost:60,   up:90,   time:2.2, ins:{}, outs:{}, chain:'ore',
+          d:'原鉱を掘る。精錬炉（2.0秒で2鉱石消費）を稼働させるため、採掘機2台体制が基本となる'},
+  dump  :{n:'廃棄場',    i:'♻️', cost:80,   up:110,  time:1.0, chain:'clean',
           d:'副産物を安全に無害化・埋立処分する。⚡電力消費ゼロ・汚染排出ゼロの安全施設。エネルギーは回収できないが、安定した廃材物流の基盤となる'},
   fund  :{n:'出資窓口',  i:'💱', cost:5000, up:6000, time:8.0, ins:{}, outs:{}, chain:'fund',
           d:'ゴールドを研究ポイントに変える。割はとても悪いが、余ったゴールドの使い道になる'},
@@ -2081,14 +2081,14 @@ const TYPES = {
           d:'副産物を燃やして体力に戻す。厄介なものほど多くの体力になるが、燃焼時に☣️汚染も発生する'},
   decomp:{n:'分解機',    i:'🧪', cost:20000, up:26000, time:2.0, chain:'decomp',
           d:'素材を分解して研究ポイントにする。良い素材ほど多く戻る'},
-  wood  :{n:'木こり小屋', i:'🪓', cost:90,  up:120,  time:2.4, ins:{sta:2}, outs:{wood:2},
+  wood  :{n:'木こり小屋', i:'🪓', cost:90,  up:120,  time:2.0, ins:{sta:2}, outs:{wood:1},
           d:'木を切って木材（wood）を生産する作業場。人間（主人公・仲間）が直接生体アニマ（⚡2）を供給することで木材を生成する。火力発電機などの重要な燃料となる'},
   coal  :{n:'炭窯',      i:'🪵', cost:600, up:750, time:2.2, ins:{sta:6}, outs:{coal:6, waste:1},
           d:'蒸気の時代の動力。石炭を焼く'},
-  gen   :{n:'火力発電機', i:'🔌', cost:180, up:240, time:1.8, ins:{wood:1}, outs:{sta:11, waste:1}, gen:true,
+  gen   :{n:'火力発電機', i:'🔌', cost:180, up:240, time:2.0, ins:{wood:1}, outs:{sta:10, waste:1}, gen:true,
           d:'木材（wood）を燃料にして大出力の⚡電力を生み出す工業発電機。配線距離無制限。稼働時に強い煤煙汚染と木灰（🗑️廃材）を排出。排気配管を繋がないと25個で満杯停止する'},
-  cgen  :{n:'人力発電機',i:'🌪️', cost:70, up:90, time:1.4, ins:{sta:2}, outs:{sta:8}, gen:true, cleanEnergy:true, aura:{k:'clean', v:0.8, r:240},
-          d:'人間の生体アニマ（⚡2）を高密度機械電力（⚡8）へ変換。汚染ゼロ＆周囲240pxを浄化する清浄オーラを常時放出。繊細な研究所や住宅エリアの保護に最適'},
+  cgen  :{n:'人力発電機',i:'🌪️', cost:70, up:90, time:1.0, ins:{sta:1}, outs:{sta:5}, gen:true, cleanEnergy:true, aura:{k:'clean', v:0.8, r:240},
+          d:'人間の生体アニマ（⚡1）を機械電力（⚡5）へ変換。1パケット即時変換・汚染ゼロ＆周囲240pxを浄化する清浄オーラを常時放出。繊細な研究所や住宅エリアの保護に最適'},
   open  :{n:'開封所',    i:'📦', cost:800, up:1000, time:4.0, chain:'open',
           d:'宝箱を開けて、中身を自宅にしまう。良い箱ほど中身が多く、深く潜っているほど質が上がる'},
   hout  :{n:'搬出口',    i:'🏠', cost:600, up:800, time:2.0, chain:'hout',
@@ -2209,10 +2209,10 @@ const ERA_EXTRA = {
 const FAC = {
   /* 動力の源。通常の発電機は燃料や機械で動くため汚染を出す。
      クリーン発電（cgen）は自然エネルギーで動き、汚染を一切出さない */
-  gen:   [{e:1,n:'火力発電機',    i:'🔌', ins:{wood:1}, outs:{sta:11, waste:1}, time:1.8},
+  gen:   [{e:1,n:'火力発電機',    i:'🔌', ins:{wood:1}, outs:{sta:10, waste:1}, time:2.0},
           {e:2,n:'高性能発電機',   i:'⚡', ins:{wood:1}, outs:{sta:30, power:4, waste:2}},
           {e:3,n:'超高性能発電機', i:'🌟', ins:{coal:1}, outs:{sta:100, power:16, waste:3}}],
-  cgen:  [{e:1,n:'人力発電機',    i:'🌪️', ins:{sta:2}, outs:{sta:8}, cleanEnergy:true, time:1.4, cost:70, aura:{k:'clean', v:0.8, r:240}},
+  cgen:  [{e:1,n:'人力発電機',    i:'🌪️', ins:{sta:1}, outs:{sta:5}, cleanEnergy:true, time:1.0, cost:70, aura:{k:'clean', v:0.8, r:240}},
           {e:2,n:'太陽光発電所',   i:'☀️', outs:{sta:24, power:4}, cleanEnergy:true, aura:{k:'clean', v:1.2, r:280}},
           {e:3,n:'地熱クリーン発電',i:'🌊', outs:{sta:75, power:16, nfl:2}, cleanEnergy:true, aura:{k:'clean', v:1.8, r:320}}],
   mine:  [{e:1,n:'採掘機',      i:'⛏️'},{e:2,n:'高速採掘機',i:'🚜'},{e:3,n:'重層採掘機',i:'🛰'}],
@@ -2241,8 +2241,8 @@ const FAC = {
   mate:  [{e:1,n:'村人',        i:'👩‍🌾', baseStats:{str:1,int:1,vit:2}},
           {e:2,n:'職人',        i:'👩‍🔧', baseStats:{str:4,int:3,vit:4}},
           {e:3,n:'研究者',      i:'👩‍🔬', baseStats:{str:3,int:8,vit:5}}],
-  wood:  [{e:1,n:'木こり小屋',  i:'🪓', ins:{sta:2}, outs:{wood:2}},{e:2,n:'製材所',    i:'🪚', outs:{wood:6}},
-          {e:3,n:'自動林場',    i:'🌲', outs:{wood:18}}],
+  wood:  [{e:1,n:'木こり小屋',  i:'🪓', ins:{sta:2}, outs:{wood:1}, time:2.0},{e:2,n:'製材所',    i:'🪚', outs:{wood:4}},
+          {e:3,n:'自動林場',    i:'🌲', outs:{wood:12}}],
   coal:  [{e:1,n:'炭窯',        i:'🪵'},{e:2,n:'コークス炉',i:'🏭', outs:{coal:14, waste:2}},
           {e:3,n:'合成炭素炉',  i:'💎', outs:{coal:48, waste:6}}],
   open:  [{e:1,n:'開封所',      i:'📦'},{e:2,n:'開封場',    i:'🏗'},{e:3,n:'自動開封機',i:'🤖'}],
@@ -2896,8 +2896,8 @@ function insOf(n){
   if(n.comb) return modIns(n, combCalc(n).ins);      // 複合施設
   if(T.chain==='clean'){                       // 副産物を片付ける
     if(!n.item) return {};
-    // 安全な物理埋立処分：⚡電力消費ゼロで安全に消去
-    return modIns(n, {[n.item]:3});
+    // 安全な物理埋立処分：⚡電力消費ゼロで1個ずつ滑らかに消去
+    return modIns(n, {[n.item]:1});
   }
   if(T.chain==='fund'){                        // ゴールドを研究に変える（要るのは⚡だけ）
     return modIns(n, eraIn(T, {sta:staCost(8, e)}));
@@ -9850,7 +9850,7 @@ function ioText(T){
   if(T.chain==='fund')   return `💰⚡ <span class="ar">→</span> 🔬研究`;
   if(T.pay)              return `💰 <span class="ar">→</span> ⚡動力`;
   if(T.payRp)            return `🔬 <span class="ar">→</span> ⚡動力`;
-  if(T.chain==='clean')  return `🗑️×3 <span class="ar">→</span> 埋立消去`;
+  if(T.chain==='clean')  return `🗑️×1 <span class="ar">→</span> 埋立消去`;
   if(T.chain==='fuel')   return `🗑️×4 <span class="ar">→</span> ⚡発電＋☣️排煙`;
   if(T.chain){
     const m={ore:'⚡ <span class="ar">→</span> 🪨 🗑️',
