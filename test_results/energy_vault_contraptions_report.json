@@ -1,0 +1,154 @@
+{
+  "timestamp": "2026-11-10T13:48:53.063Z",
+  "passed": 21,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "All 9 energy types have unique SVG icon images",
+      "pass": true,
+      "expected": 9,
+      "actual": 9,
+      "metric": ""
+    },
+    {
+      "name": "All 9 energy types have unique 3D stack layer SVG images",
+      "pass": true,
+      "expected": 9,
+      "actual": 9,
+      "metric": ""
+    },
+    {
+      "name": "Universal Anima energy image !== Electric energy image",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Electric energy image !== Gold energy image",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Node slots render distinct custom SVG <img> for Anima, Elec, Gold, and Tac",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Hero node energy stack grows as Anima accumulates",
+      "pass": true,
+      "expected": ">2",
+      "actual": 8,
+      "metric": "layers"
+    },
+    {
+      "name": "Vault node Gold stack grows to max layers as Gold accumulates",
+      "pass": true,
+      "expected": ">1",
+      "actual": 8,
+      "metric": "layers"
+    },
+    {
+      "name": "Generator node stacks multiple energy columns (Elec + High-Voltage Power)",
+      "pass": true,
+      "expected": ">=2",
+      "actual": 2,
+      "metric": "columns"
+    },
+    {
+      "name": "Energy stack badge shows formatted accumulated value",
+      "pass": true,
+      "expected": "non-empty",
+      "actual": "970",
+      "metric": ""
+    },
+    {
+      "name": "Vault Wealth Aura reduces nearby companion wages by ~35%",
+      "pass": true,
+      "expected": "< 20",
+      "actual": 13,
+      "metric": "G"
+    },
+    {
+      "name": "Supplying Gold energy to Tavern doubles its Anima output",
+      "pass": true,
+      "expected": "8",
+      "actual": 8,
+      "metric": ""
+    },
+    {
+      "name": "Vault compound interest & Gold routing increase Gold & RP",
+      "pass": true,
+      "expected": "goldDelta>0 & rpGained>0",
+      "actual": "+786G, +143.0RP",
+      "metric": ""
+    },
+    {
+      "name": "Gold packets flow along links and activate target node Gold boost",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Dungeon enemies spawn with Tactical Barrier (Shield > 0) and visible UI bar",
+      "pass": true,
+      "expected": true,
+      "actual": "true / UI:true",
+      "metric": ""
+    },
+    {
+      "name": "Tactical Stances (Analyze / Plunder / Assault) switch cleanly",
+      "pass": true,
+      "expected": "analyze/plunder/assault",
+      "actual": "analyze/plunder/assault",
+      "metric": ""
+    },
+    {
+      "name": "Node combinations assemble >= 2 Active Contraptions via Engine Core",
+      "pass": true,
+      "expected": ">=2",
+      "actual": "4 (⚡電磁レールガン撃ち抜き装置, 💰黄金傭兵ブリッツ機関, 🛡️アニマ聖域イージス装置, 👑神機・万物創生オメガ機関)",
+      "metric": ""
+    },
+    {
+      "name": "Active Contraptions boost Dungeon ATK & Shield-Break multipliers",
+      "pass": true,
+      "expected": "atkMul>1.5 & shdMul>1.5",
+      "actual": "atk×8.33, shd×6.35",
+      "metric": ""
+    },
+    {
+      "name": "Contraption-assisted attack damages enemy Tactical Barrier & HP",
+      "pass": true,
+      "expected": true,
+      "actual": "shdReduced:true, hpReduced:true",
+      "metric": ""
+    },
+    {
+      "name": "Sidebar Contraption Box renders active contraption chips",
+      "pass": true,
+      "expected": ">=2",
+      "actual": 4,
+      "metric": ""
+    },
+    {
+      "name": "Hero soft input ports fold when unlinked and expand when linked",
+      "pass": true,
+      "expected": true,
+      "actual": true,
+      "metric": ""
+    },
+    {
+      "name": "Clearing Cave 1 triggers Tutorial Gacha & recruits Garagari",
+      "pass": true,
+      "expected": true,
+      "actual": "Garagari:true, Tavern:true",
+      "metric": ""
+    }
+  ]
+}

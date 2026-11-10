@@ -289,7 +289,47 @@ body.dragging-node .node.in-hrange, body.placing .node.in-hrange{
   background:radial-gradient(circle,rgba(242,193,78,.09),transparent 70%)}
 .node .aura.tavern{border:1px dashed rgba(245,158,11,.45);
   background:radial-gradient(circle,rgba(245,158,11,.14),transparent 70%)}
+.node .aura.wealth{border:1px dashed rgba(251,191,36,.52);
+  background:radial-gradient(circle,rgba(251,191,36,.15),transparent 70%)}
+.node .aura.tac{border:1px dashed rgba(244,63,94,.48);
+  background:radial-gradient(circle,rgba(244,63,94,.14),transparent 70%)}
 .node.stall .aura{opacity:.25}
+/* ノード上部へのエネルギー視覚スタック（溜まったエネルギーがノードの上に物理的に積み上がる） */
+.node .n-energy-stack{
+  position:absolute;left:6px;right:24px;bottom:calc(100% + 2px);
+  display:flex;align-items:flex-end;justify-content:center;gap:5px;
+  pointer-events:none;z-index:5;min-height:0}
+.eng-stack-col{
+  display:flex;flex-direction:column-reverse;align-items:center;
+  position:relative;filter:drop-shadow(0 2px 4px rgba(0,0,0,.65))}
+.eng-stack-layers{
+  display:flex;flex-direction:column-reverse;align-items:center}
+.eng-layer-img{
+  width:22px;height:11px;display:block;margin-top:-5px;
+  transition:transform .18s ease}
+.eng-layer-img:first-child{margin-top:0}
+.eng-stack-val{
+  font-size:9px;font-weight:800;line-height:1;padding:1px 4px;
+  border-radius:99px;background:rgba(9,13,22,.92);border:1px solid var(--ec,#f2c14e);
+  color:var(--ec,#f2c14e);margin-bottom:2px;white-space:nowrap;
+  box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.eng-slot-img{
+  width:13px;height:13px;vertical-align:-2px;margin:0 1px;
+  filter:drop-shadow(0 0 2px rgba(255,255,255,.25))}
+/* 戦略ダンジョン：敵戦術障壁バー・戦術スタンス・複合攻略装置 */
+.hbar.shd{height:6px;margin-top:3px;background:#0b1322;border:1px solid rgba(56,189,248,.4)}
+.hbar.shd i{background:linear-gradient(90deg,#0284c7,#38bdf8,#a5f3fc);box-shadow:0 0 8px rgba(56,189,248,.5)}
+.stance-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:5px}
+.stance-btn{padding:3px 2px;font-size:9.5px;font-weight:700;border-radius:5px;
+  background:#0c111b;border:1px solid var(--line);color:var(--dim);cursor:pointer;
+  text-align:center;transition:all .15s;white-space:nowrap}
+.stance-btn:hover{border-color:var(--acc2);color:var(--fg)}
+.stance-btn.on{background:rgba(56,189,248,.18);border-color:#38bdf8;color:#7dd3fc;box-shadow:0 0 8px rgba(56,189,248,.25)}
+.contraption-box{margin-top:5px;padding:5px 6px;background:rgba(15,23,42,.75);
+  border:1px solid rgba(245,158,11,.35);border-radius:6px;font-size:10px}
+.cnt-chip{display:inline-flex;align-items:center;gap:2px;padding:1px 5px;margin:1px 2px 1px 0;
+  border-radius:4px;font-size:9.5px;font-weight:700;background:rgba(245,158,11,.16);
+  border:1px solid rgba(245,158,11,.5);color:#fde68a}
 /* ダンジョンで拾った施設。性能がばらついているので色で見分ける */
 .node.drop{border-color:#4fb0d8;
   background-color:color-mix(in srgb, #4fb0d8 10%, var(--panel2))}
@@ -1314,6 +1354,28 @@ body[data-lens="hazard"] .node.pol, body[data-lens="hazard"] .node.rx-corrosion,
           </div>
           <div class="hd zsub"><span id="eIc">👾</span><span id="eName">スライム</span><span class="sub num" id="eHp">0 / 0</span></div>
           <div class="hbar eh"><i id="eHpBar"></i></div>
+          <div id="eShieldRow" hidden style="margin-top:3px">
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#7dd3fc;font-weight:700">
+              <span id="eShieldLabel">🛡️ 戦術障壁</span>
+              <span id="eShieldTxt">0 / 0</span>
+            </div>
+            <div class="hbar shd"><i id="eShieldBar" style="width:100%"></i></div>
+          </div>
+          <div class="stance-bar" id="dgnStanceBar" title="ダンジョン戦術スタンス切替">
+            <button class="stance-btn on" data-stance="assault" title="強襲：与ダメージ+35%・被反撃+20%">⚔️強襲</button>
+            <button class="stance-btn" data-stance="fortify" title="堅守：被ダメージ-55%・毎撃HP回復・与ダメ-15%">🛡️堅守</button>
+            <button class="stance-btn" data-stance="analyze" title="解析：敵障壁削り×2.5・研究RP獲得・ドロップ率×1.6">🎯解析</button>
+            <button class="stance-btn" data-stance="plunder" title="略奪：撃破ゴールド×1.8・金貨エネルギー逆流+2">💰略奪</button>
+          </div>
+          <div class="contraption-box" id="dgnContraptionBox">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+              <span style="font-weight:800;color:#fbbf24" id="dgnContraptionTitle">⚙️ 複合攻略装置 (0機稼働)</span>
+              <button class="dt-btn acc" id="btnAutoWireContraption" style="padding:1px 6px;font-size:9px">🔗 自動結線</button>
+            </div>
+            <div id="dgnContraptionList" style="margin-top:3px;color:var(--dim);font-size:9.5px;line-height:1.35">
+              施設を⚙️攻略装置コアや🕳️洞窟へ繋ぐと複合兵装が起動
+            </div>
+          </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:5px;padding:4px 6px;background:rgba(15,23,42,.65);border:1px solid var(--line);border-radius:6px" id="partyLpBox">
             <span style="font-size:10px;font-weight:700;color:#fb7185" id="pLpTxt">❤️LP 3/3</span>
             <div style="display:flex;gap:3px">
@@ -1741,7 +1803,7 @@ let PMIN   = 1.4;   // 短いベルトでも、素材の動きが見えるよう
 let SENDCD = 0.28;  // ベルトへ1個ずつ送り出す間隔
 let BELT_GAP_PX = 34, BELT_CAP_DIV = 30;
 const CABLE_ITEM = {}; // すべての動力・物理素材を視覚的なコンベアパケットとして流す（着弾＝入力一致）
-const ENERGY_ITEM = {sta:1, power:1, nfl:1, str:1, int:1, vit:1}; // エネルギー球（オーブ）として描画する動力・経験値系
+const ENERGY_ITEM = {sta:1, power:1, nfl:1, gold:1, tac:1, exs:1, exi:1, exv:1, str:1, int:1, vit:1}; // エネルギー球（オーブ）・固有エネルギー画像として描画する動力・通貨・経験値系
 const beltGap = l => Math.min(0.24, BELT_GAP_PX / Math.max(96, (l.G && l.G.total) || 180));
 const beltCap = l => Math.max(4, Math.min(20, Math.floor(((l.G && l.G.total) || 180) / Math.max(10, BELT_CAP_DIV))));
 let PRICE_K= 1.28;  // 同種ノードを買うたびの値上がり率
@@ -1830,8 +1892,179 @@ const ITEMS = {
   gem_amethyst :{n:'魔石アメジスト', i:'🟣', c:'#a855f7', desc:'深淵と叡智の魔石：自軍装着で研究RP×3.0／敵捧走で敵DoT呪詛'},
   gem_emerald  :{n:'魔石エメラルド', i:'🟢', c:'#10b981', desc:'生命と共鳴の魔石：自軍装着で好感度×2.5／敵捧走で敵超再生バリア'},
   gem_obsidian :{n:'魔石黒曜石',     i:'⚫', c:'#6b7280', desc:'無限と重力の魔石：自軍装着でバッファ×5.0／敵捧走で敵完全強化'},
+  // お金エネルギー＆複合攻略装置の戦術出力エネルギー
+  gold         :{n:'金貨動力',       i:'🪙', c:'#fbbf24', desc:'お金をエネルギー化した黄金動力。金庫に蓄えられ、出資窓口・酒場・仲間・攻略装置・洞窟へ供給可能'},
+  tac          :{n:'戦術出力',       i:'⚔️', c:'#f43f5e', desc:'複数の施設を組み合わせて攻略装置コアが生み出す高次戦術エネルギー。洞窟や支援砲台へ送ると絶大な攻略効果を発揮'},
 };
 const DEMON_GEMS = ['gem_ruby','gem_sapphire','gem_amethyst','gem_emerald','gem_obsidian'];
+
+/* =========================================================================
+   エネルギー別固有ビジュアル画像（SVG Data URI）＆ ノード上スタック定義
+   万能エネルギー(anima)・電気(elec)・お金(gold)・高圧電力(power)・臨界魔導(nfl)・
+   戦術出力(tac)・鍛錬経験値(exs/exi/exv) を一目で判別できる専用グラフィック
+   ========================================================================= */
+const _svgUri = svg => 'data:image/svg+xml;utf8,' + encodeURIComponent(svg.trim().replace(/\s+/g, ' '));
+const ENERGY_VISUALS = {
+  anima: {
+    k:'anima', n:'万能アニマ', c:'#34d399',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><radialGradient id="ga" cx="38%" cy="32%" r="65%"><stop offset="0%" stop-color="#ecfdf5"/><stop offset="45%" stop-color="#34d399"/><stop offset="100%" stop-color="#047857"/></radialGradient></defs>
+      <circle cx="16" cy="16" r="14" fill="url(#ga)" stroke="#a7f3d0" stroke-width="2"/>
+      <path d="M7 17 C4 12,8 7,12 12 M25 17 C28 12,24 7,20 12" fill="none" stroke="#fef08a" stroke-width="2.2" stroke-linecap="round"/>
+      <polygon points="16,6 20,16 16,26 12,16" fill="#fef08a" opacity="0.92"/>
+      <circle cx="16" cy="16" r="3.2" fill="#ffffff"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <ellipse cx="18" cy="10" rx="15" ry="5" fill="#065f46" stroke="#34d399" stroke-width="1.5"/>
+      <ellipse cx="18" cy="7.5" rx="15" ry="5" fill="#10b981" stroke="#a7f3d0" stroke-width="1.4"/>
+      <ellipse cx="14" cy="6.5" rx="7" ry="2" fill="#d1fae5" opacity="0.8"/>
+    </svg>`)
+  },
+  elec: {
+    k:'elec', n:'電気エネルギー', c:'#38bdf8',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><radialGradient id="ge" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#e0f2fe"/><stop offset="50%" stop-color="#0284c7"/><stop offset="100%" stop-color="#0f172a"/></radialGradient></defs>
+      <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="url(#ge)" stroke="#38bdf8" stroke-width="2"/>
+      <polygon points="18,5 9,17 16,17 13,27 23,14 16,14" fill="#facc15" stroke="#fef08a" stroke-width="1"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <rect x="3" y="6" width="30" height="8" rx="4" fill="#0369a1" stroke="#38bdf8" stroke-width="1.5"/>
+      <rect x="3" y="3.5" width="30" height="7.5" rx="3.8" fill="#0ea5e9" stroke="#bae6fd" stroke-width="1.3"/>
+      <path d="M11 7 L16 5 L15 8.5 L21 6.5" fill="none" stroke="#fef08a" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>`)
+  },
+  gold: {
+    k:'gold', n:'お金エネルギー', c:'#fbbf24',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><radialGradient id="gg" cx="35%" cy="30%" r="68%"><stop offset="0%" stop-color="#fef9c3"/><stop offset="48%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#92400e"/></radialGradient></defs>
+      <circle cx="16" cy="16" r="14" fill="url(#gg)" stroke="#fde68a" stroke-width="2.2"/>
+      <circle cx="16" cy="16" r="10.2" fill="none" stroke="#fef08a" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fffbeb" stroke="#78350f" stroke-width="0.8" font-family="sans-serif">G</text>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <ellipse cx="18" cy="10.5" rx="15" ry="4.8" fill="#b45309" stroke="#fbbf24" stroke-width="1.4"/>
+      <ellipse cx="18" cy="7.5" rx="15" ry="4.8" fill="#f59e0b" stroke="#fef08a" stroke-width="1.5"/>
+      <ellipse cx="18" cy="7.5" rx="10" ry="2.8" fill="none" stroke="#fef9c3" stroke-width="1"/>
+    </svg>`)
+  },
+  power: {
+    k:'power', n:'高圧電力', c:'#f97316',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <rect x="6" y="5" width="20" height="23" rx="4" fill="#ea580c" stroke="#fed7aa" stroke-width="2"/>
+      <rect x="11" y="2" width="10" height="4" rx="1.5" fill="#fdba74"/>
+      <rect x="9" y="9" width="14" height="4" rx="1.5" fill="#fef08a"/>
+      <rect x="9" y="15" width="14" height="4" rx="1.5" fill="#fef08a"/>
+      <rect x="9" y="21" width="14" height="4" rx="1.5" fill="#fef08a"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <rect x="4" y="5.5" width="28" height="8.5" rx="3" fill="#9a3412" stroke="#fb923c" stroke-width="1.4"/>
+      <rect x="4" y="3" width="28" height="8" rx="3" fill="#f97316" stroke="#ffedd5" stroke-width="1.3"/>
+      <rect x="9" y="5" width="18" height="3.5" rx="1.5" fill="#fef08a"/>
+    </svg>`)
+  },
+  nfl: {
+    k:'nfl', n:'臨界エネルギー', c:'#c084fc',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="13.5" fill="#3b0764" stroke="#d8b4fe" stroke-width="2"/>
+      <ellipse cx="16" cy="16" rx="12" ry="4.8" transform="rotate(30 16 16)" fill="none" stroke="#4ade80" stroke-width="2"/>
+      <ellipse cx="16" cy="16" rx="12" ry="4.8" transform="rotate(-30 16 16)" fill="none" stroke="#c084fc" stroke-width="2"/>
+      <circle cx="16" cy="16" r="4.5" fill="#f0fdf4" stroke="#4ade80" stroke-width="1.5"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <ellipse cx="18" cy="10" rx="15" ry="5" fill="#4c1d95" stroke="#c084fc" stroke-width="1.4"/>
+      <ellipse cx="18" cy="7.5" rx="15" ry="5" fill="#7e22ce" stroke="#4ade80" stroke-width="1.4"/>
+      <ellipse cx="18" cy="7.5" rx="7" ry="2.2" fill="#dcfce7"/>
+    </svg>`)
+  },
+  tac: {
+    k:'tac', n:'戦術出力', c:'#f43f5e',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <polygon points="16,2 26,6 30,16 26,26 16,30 6,26 2,16 6,6" fill="#9f1239" stroke="#fda4af" stroke-width="2"/>
+      <path d="M9 23 L23 9 M11 9 L23 21" stroke="#fef08a" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="16" cy="16" r="4.5" fill="#f43f5e" stroke="#ffffff" stroke-width="1.5"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <polygon points="6,14 30,14 33,8 30,4 6,4 3,8" fill="#be123c" stroke="#fda4af" stroke-width="1.4"/>
+      <rect x="10" y="6" width="16" height="3.5" rx="1.5" fill="#fef08a"/>
+    </svg>`)
+  },
+  exs: {
+    k:'exs', n:'筋の鍛錬結晶', c:'#f87171',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <polygon points="16,3 28,12 23,28 9,28 4,12" fill="#dc2626" stroke="#fecaca" stroke-width="2"/>
+      <polygon points="16,7 23,13 19,24 13,24 9,13" fill="#f87171"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <ellipse cx="18" cy="8.5" rx="14" ry="5" fill="#dc2626" stroke="#fecaca" stroke-width="1.4"/>
+    </svg>`)
+  },
+  exi: {
+    k:'exi', n:'知の鍛錬結晶', c:'#60a5fa',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <polygon points="16,2 28,16 16,30 4,16" fill="#2563eb" stroke="#bfdbfe" stroke-width="2"/>
+      <polygon points="16,7 23,16 16,25 9,16" fill="#60a5fa"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <ellipse cx="18" cy="8.5" rx="14" ry="5" fill="#2563eb" stroke="#bfdbfe" stroke-width="1.4"/>
+    </svg>`)
+  },
+  exv: {
+    k:'exv', n:'体の鍛錬結晶', c:'#34d399',
+    iconSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="13" fill="#059669" stroke="#a7f3d0" stroke-width="2"/>
+      <path d="M16 9 L16 23 M9 16 L23 16" stroke="#ecfdf5" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>`),
+    layerSvg: _svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16">
+      <ellipse cx="18" cy="8.5" rx="14" ry="5" fill="#059669" stroke="#a7f3d0" stroke-width="1.4"/>
+    </svg>`)
+  }
+};
+function energyKindOf(itemKey, node, link){
+  const b = (typeof baseOf === 'function') ? baseOf(itemKey || '') : (itemKey || '');
+  if(b === 'gold')  return 'gold';
+  if(b === 'power') return 'power';
+  if(b === 'nfl')   return 'nfl';
+  if(b === 'tac')   return 'tac';
+  if(b === 'exs' || b === 'str') return 'exs';
+  if(b === 'exi' || b === 'int') return 'exi';
+  if(b === 'exv' || b === 'vit') return 'exv';
+  if(b === 'sta'){
+    if(link && typeof N === 'function'){
+      const src = N(link.from), dst = N(link.to);
+      if(src && TYPES[src.type] && TYPES[src.type].src) return 'anima';
+      if(dst && TYPES[dst.type] && (TYPES[dst.type].effect === 'dive' || TYPES[dst.type].src)) return 'anima';
+      return 'elec';
+    }
+    if(node && TYPES[node.type]){
+      const T = TYPES[node.type];
+      if(T.src || T.effect === 'dive' || T.role === 'tavern' || T.line === 'tavern' || T.line === 'tstr' || T.line === 'tint' || T.line === 'tvit') return 'anima';
+      if(typeof S !== 'undefined' && S && S.links){
+        const hasHumanIn = S.links.some(l => l.to === node.id && l.item === 'sta' && N(l.from) && TYPES[N(l.from).type] && TYPES[N(l.from).type].src);
+        const hasGenIn   = S.links.some(l => l.to === node.id && l.item === 'sta' && N(l.from) && TYPES[N(l.from).type] && !TYPES[N(l.from).type].src);
+        if(hasHumanIn && !hasGenIn) return 'anima';
+      }
+      return 'elec';
+    }
+    return 'anima';
+  }
+  return ENERGY_VISUALS[b] ? b : null;
+}
+function getEnergySvgUrl(kind){
+  const v = ENERGY_VISUALS[kind] || ENERGY_VISUALS.anima;
+  return v.iconSvg;
+}
+function getEnergyLayerSvgUrl(kind){
+  const v = ENERGY_VISUALS[kind] || ENERGY_VISUALS.anima;
+  return v.layerSvg;
+}
+function energySlotIconHtml(itemKey, node, dir){
+  const ek = energyKindOf(itemKey, node, null);
+  if(ek && ENERGY_VISUALS[ek]){
+    const ev = ENERGY_VISUALS[ek];
+    return `<img class="eng-slot-img" data-ek="${ek}" src="${ev.iconSvg}" alt="${ev.n}" title="${ev.n}">${ITEMS[itemKey]?ITEMS[itemKey].i:''}`;
+  }
+  return (ITEMS[itemKey] ? ITEMS[itemKey].i : '') + densTag(itemKey);
+}
 /* 副産物と、燃料に戻したときの価値。時代が進むほど厄介なものが増える。
    出るようになる時代と、片付けられるようになる時代は1つずれている。   */
 const BYP = [
@@ -2026,20 +2259,31 @@ function isNearTavern(n){
     return false;
   });
 }
+function isNearVault(n){
+  if(!n || !S || !S.nodes) return false;
+  if(n._goldBoostT && n._goldBoostT > 0) return true;
+  return S.nodes.some(m => {
+    if(!m || m.stall || !TYPES[m.type] || (m.layer||0) !== (n.layer||0)) return false;
+    const T = TYPES[m.type];
+    if((T.vault || T.line === 'vault') && nodeDist(m, n) <= ((T.aura && T.aura.r) || 260)) return true;
+    return false;
+  });
+}
 const payOf   = n => {
   if(!n || n.type==='hero') return 0;
   const T = TYPES[n.type]; if(!T) return 0;
   if(!T.src && !T.pay) return 0;
   const campMul = n._formCamp ? 0.5 : 1.0;
   const comp = compOfNode(n);
-  // 周囲酒場オーラ（給料-30%）＆主人公体力（人望給料割引 最大-30%）
+  // 周囲酒場オーラ（給料-30%）・周囲金庫オーラ（給料-35%）＆主人公体力（人望給料割引 最大-30%）
   const tavernMul = isNearTavern(n) ? 0.70 : 1.0;
+  const vaultMul  = isNearVault(n)  ? 0.65 : 1.0;
   const heroVit = (S && S.stats && S.stats.vit) || 0;
   const inHeroCircle = (typeof inHumanRange==='function' && S && S.nodes)
     ? inHumanRange(S.nodes.find(x => x.type === 'hero'), n)
     : false;
   const heroVitDisc = inHeroCircle ? Math.min(0.30, heroVit * 0.006) : 0;
-  const leadershipMul = tavernMul * (1 - heroVitDisc);
+  const leadershipMul = tavernMul * vaultMul * (1 - heroVitDisc);
 
   if(comp){
     if(comp.traits && comp.traits.includes('god_hand')) return 0; // 神の手は0G無償奉仕
@@ -2230,6 +2474,12 @@ const TYPES = {
   tavern:{n:'酒場', i:'🍻', cost:280, up:360, time:2.0, ins:{}, outs:{sta:4}, cleanEnergy:true, role:'tavern', line:'tavern',
           aura:{k:'tavern', v:0.8, r:280},
           d:'冒険者や職人が集まる活気ある酒場。周囲280pxの仲間の好感度上昇+50%＆給料-30%の福利厚生オーラを放出。施設をクリックして🎲サイコロガチャで新たな仲間をスカウト可能'},
+  vault :{n:'金庫', i:'🏦', cost:120, up:160, time:1.6, ins:{}, soft:{gold:1, lot1:1, lot2:1, lot3:1, lot4:1, lot5:1, lot6:1}, outs:{gold:4}, vault:true, cleanEnergy:true, role:'vault', line:'vault',
+          aura:{k:'wealth', v:0.5, r:260},
+          d:'お金をエネルギー（🪙金貨動力）として貯蔵・供給する黄金金庫。露店や洞窟から金貨エネルギーを集積してノード上に積み上げ、複利ボーナスを生むほか、出資窓口・酒場・仲間・攻略装置・洞窟へ黄金エネルギーを供給する'},
+  engine:{n:'攻略装置コア', i:'⚙️', cost:160, up:220, time:1.8, ins:{sta:2}, soft:{gold:1, power:1, nfl:1, wood:1, coal:1, ore1:1, ing1:1, prt1:1, qstl:1, bdia:1, mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1, exs:1, exi:1, exv:1}, outs:{tac:4}, engine:true, effect:'engine', role:'engine', line:'engine',
+          aura:{k:'tac', v:0.45, r:260},
+          d:'複数の施設・エネルギー・素材を配線で組み合わせて「複合攻略装置（蒸気ガトリング・電磁レールガン・黄金ブリッツ・熱核破砕砲など）」として稼働させる戦術機関。⚔️戦術出力エネルギーを生み出し、ダンジョンの障壁破砕や支援砲撃を行う'},
   abyssal_rift:{n:'深淵の亀裂', i:'👁️‍🗨️', cost:0, up:0, time:2.0, ins:{sta:12}, outs:{miasma:2, cslud:1}, effect:'abyssal_rift', unique:true,
           d:'【深淵の侵食】深層から盤面へ突如出現する異界の亀裂。周囲の施設へ寄生触手を伸ばし耐久力を侵食する。アニマ電力で浄化可能'},
 };
@@ -2377,6 +2627,12 @@ const FAC = {
   tavern:[{e:1,n:'酒場',       i:'🍻', outs:{sta:4}, aura:{k:'tavern', v:0.8, r:280}},
           {e:2,n:'ギルド酒場', i:'🏰', outs:{sta:16, power:2}, aura:{k:'tavern', v:1.2, r:320}},
           {e:3,n:'星辰のサロン',i:'🌌', outs:{sta:50, power:8, nfl:1}, aura:{k:'tavern', v:1.8, r:380}}],
+  vault: [{e:1,n:'金庫',       i:'🏦', outs:{gold:4}, aura:{k:'wealth', v:0.5, r:260}},
+          {e:2,n:'大金庫',     i:'🏛️', outs:{gold:16, sta:4}, aura:{k:'wealth', v:1.0, r:310}},
+          {e:3,n:'星辰宝物庫', i:'👑', outs:{gold:60, sta:16, power:4}, aura:{k:'wealth', v:1.8, r:370}}],
+  engine:[{e:1,n:'攻略装置コア',i:'⚙️', ins:{sta:2}, outs:{tac:4}, aura:{k:'tac', v:0.45, r:260}},
+          {e:2,n:'魔導攻略機関',i:'🛰️', ins:{sta:4}, outs:{tac:14, power:2}, aura:{k:'tac', v:0.85, r:310}},
+          {e:3,n:'神機オメガ炉',i:'☄️', ins:{sta:8}, outs:{tac:45, power:8, nfl:1}, aura:{k:'tac', v:1.4, r:360}}],
 };
 
 /* =========================================================================
@@ -2572,6 +2828,8 @@ const ROLE_TREE_DEFAULT = {
   turret: {start:false, reqRole:'extr',   treeX:2, treeY:10, rp:260, mat:30, reqFloor:10},
   synt:   {start:false, reqRole:'turret', treeX:3, treeY:10, rp:720, mat:60, reqFloor:18},
   altar:  {start:false, reqRole:'synt',   treeX:4, treeY:10, rp:1900, mat:140, reqFloor:28},
+  vault:  {start:true,  reqRole:null,     treeX:0, treeY:11, rp:0},
+  engine: {start:true,  reqRole:null,     treeX:1, treeY:11, rp:0},
 };
 
 const ORDER = ['hero'];
@@ -2637,7 +2895,7 @@ const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',e
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
   wood:'木こり小屋',coal:'石炭',gen:'火力発電',cgen:'人力発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',
-  extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇',tavern:'酒場'};
+  extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇',tavern:'酒場',vault:'金庫',engine:'攻略装置'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -3285,7 +3543,8 @@ function outsOf(n){
     return modOuts(n, base); }
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
-  if(T.chain==='decomp' || T.chain==='sell' || T.chain==='open' || T.chain==='fund') return {};
+  if(T.chain==='sell')   return modOuts(n, {gold: Math.max(2, Math.round(3 * (T.era||1)))});
+  if(T.chain==='decomp' || T.chain==='open' || T.chain==='fund') return {};
   if(T.chain==='hout') return n.item ? modOuts(n, {[n.item]:1}) : {};
   if(T.chain==='equip'){                       // できた装備はふつうに出力へ積まれる
     const i = tierIdx(n.item); if(i<0) return {};
@@ -3342,8 +3601,14 @@ function outsOf(n){
     const isLinkedOut = k => !!(typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item===k));
     for(const ck of CAVE_ITEMS) if(isLinkedOut(ck)) o[ck] = 1;
     for(const b of BOXES) if(isLinkedOut(b.k) || n._allOutputs) o[b.k] = 1;
-    for(const sk of ['sta','waste','cslud','miasma']) if(isLinkedOut(sk) || n._allOutputs) o[sk] = 1;
+    for(const sk of ['sta','gold','waste','cslud','miasma']) if(isLinkedOut(sk) || n._allOutputs) o[sk] = 1;
     return modOuts(n, o);
+  }
+  if(T.role==='tavern' || T.line==='tavern'){
+    const base = Object.assign({}, T.outs || {sta:4});
+    const hasGold = (n._goldBoostT && n._goldBoostT > 0) || (n.inBuf && (n.inBuf.gold||0) > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.to===n.id && l.item==='gold'));
+    if(hasGold) base.sta = Math.round((base.sta || 4) * 2.0);
+    return modOuts(n, base);
   }
   if(T.effect==='synt'){
     const o = Object.assign({}, T.outs || {});
@@ -3398,9 +3663,30 @@ function softIns(n){
     o.wood = 1; o.coal = 1;
   }
   if(T.src && n.type !== 'hero'){
-    o.exs = 1; o.exi = 1; o.exv = 1;
+    o.exs = 1; o.exi = 1; o.exv = 1; o.gold = 1;
     const comp = compOfNode(n);
     if(comp && comp.favoriteItem && ITEMS[comp.favoriteItem]) o[comp.favoriteItem] = 1;
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to===n.id && l.item!=='sta') o[l.item] = 1;
+    }
+    return o;
+  }
+  if(T.vault || T.line === 'vault'){
+    const o = Object.assign({gold:1}, T.soft || {});
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to===n.id) o[l.item] = 1;
+    }
+    return o;
+  }
+  if(T.engine || T.effect === 'engine'){
+    const o = Object.assign({gold:1, power:1, nfl:1, wood:1, coal:1}, T.soft || {});
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to===n.id && l.item!=='sta') o[l.item] = 1;
+    }
+    return o;
+  }
+  if(T.chain === 'fund' || T.role === 'tavern' || T.line === 'tavern'){
+    const o = Object.assign({gold:1}, T.soft || {});
     if(typeof S!=='undefined' && S && S.links){
       for(const l of S.links) if(l.to===n.id && l.item!=='sta') o[l.item] = 1;
     }
@@ -3417,13 +3703,14 @@ function softIns(n){
   }
   if(T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar'){
     const o = Object.assign({}, T.soft || {});
+    if(T.effect==='turret'){ o.gold = 1; o.tac = 1; }
     if(typeof S!=='undefined' && S && S.links){
-      for(const l of S.links) if(l.to===n.id && !POW_ITEM[l.item]) o[l.item] = 1;
+      for(const l of S.links) if(l.to===n.id && l.item!=='sta') o[l.item] = 1;
     }
     return o;
   }
   if(T.effect==='dive'){
-    const o = Object.assign({}, T.soft || {});
+    const o = Object.assign({gold:1, tac:1}, T.soft || {});
     if(typeof S!=='undefined' && S && S.links){
       for(const l of S.links) if(l.to===n.id && l.item!=='sta') o[l.item] = 1;
     }
@@ -4454,11 +4741,361 @@ function hasGearOrTacticalReady(node){
   if(!S) return false;
   if(totalEquippedGearPower() > 0) return true;
   if((S.atkBonus || 0) >= 10 || ((S.stats && S.stats.str) || 0) >= 5) return true;
+  if(S.activeContraptions && S.activeContraptions.list && S.activeContraptions.list.length > 0) return true;
+  if(node && ((node._tacPower || 0) > 0 || (node.inBuf && ((node.inBuf.tac || 0) > 0 || (node.inBuf.gold || 0) > 0)))) return true;
   const brx = S.battleRx || {};
   if(brx.heat || brx.cryo || brx.shatter || brx.napalm || brx.berserk || brx.cannon || brx.hazCorrosion) return true;
   if(node && node.inTags && (node.inTags.HEAT || node.inTags.CRYO || node.inTags.CORROSION || node.inTags.SHOCKWAVE)) return true;
   return false;
 }
+
+/* ========================= 戦略的ダンジョン指令（スタンス）＆ 複合攻略装置システム ========================= */
+const DUNGEON_STANCES = {
+  assault: {
+    k: 'assault', n: '⚔️強襲', c: '#f97316',
+    atkMul: 1.45, shieldMul: 1.30, dmgTakenMul: 1.10, healRate: 0, goldMul: 1.0, rpBonus: 0,
+    d: '攻撃特化：与ダメ×1.45・バリア削り×1.30（被反撃×1.10）'
+  },
+  fortify: {
+    k: 'fortify', n: '🛡️堅守', c: '#38bdf8',
+    atkMul: 0.92, shieldMul: 1.05, dmgTakenMul: 0.45, healRate: 0.06, goldMul: 1.0, rpBonus: 0,
+    d: '防衛特化：被反撃-55%・毎撃HP6%回復（強敵・ボス持久戦向け）'
+  },
+  analyze: {
+    k: 'analyze', n: '🎯解析', c: '#a855f7',
+    atkMul: 1.18, shieldMul: 2.35, dmgTakenMul: 0.85, healRate: 0, goldMul: 1.0, rpBonus: 8,
+    d: '障壁解析：敵の戦術バリア削り×2.35・撃破時📘研究+8・被反撃-15%'
+  },
+  plunder: {
+    k: 'plunder', n: '💰略奪', c: '#f59e0b',
+    atkMul: 1.12, shieldMul: 1.15, dmgTakenMul: 1.0, healRate: 0, goldMul: 2.0, rpBonus: 0,
+    d: '金貨略奪：撃破G×2.0・ダンジョンからの🪙金貨エネルギー出力2倍'
+  }
+};
+function setDungeonStance(st){
+  if(!S || !DUNGEON_STANCES[st]) return;
+  S.dungeonStance = st;
+  const def = DUNGEON_STANCES[st];
+  addLog(`🎖️【戦術指令切替】${def.n}スタンスを発令！（${def.d}）`, 'u');
+  render();
+}
+
+const CAVE_TACTICS = {
+  cave1: {
+    shieldName: '🪨岩殻シールド', shieldMul: 0.35, dmgCutOnShield: 0.35,
+    counterText: '🎯解析スタンス / ⚙️蒸気ガトリング / ⚒️装備で破砕'
+  },
+  cave2: {
+    shieldName: '🌿胞子再生幕', shieldMul: 0.50, dmgCutOnShield: 0.45,
+    counterText: '🔥蒸気ガトリング / 💰黄金ブリッツ / ⚡電磁レールガンで焼却'
+  },
+  cave3: {
+    shieldName: '🍄猛毒菌糸障壁', shieldMul: 0.65, dmgCutOnShield: 0.50,
+    counterText: '🛡️アニマイージス / 🎯解析 / ❄️氷結・浄化で中和'
+  },
+  cave4: {
+    shieldName: '💎黒曜電磁装甲', shieldMul: 0.80, dmgCutOnShield: 0.55,
+    counterText: '⚡電磁レールガン / 💥高圧カタパルトで装甲貫通'
+  },
+  cave5: {
+    shieldName: '🐉古竜鱗フィールド', shieldMul: 1.00, dmgCutOnShield: 0.60,
+    counterText: '❄️熱核クライオ機関 / 🔮エーテルレーザーで竜鱗破砕'
+  },
+  cave6: {
+    shieldName: '🌌次元歪曲障壁', shieldMul: 1.20, dmgCutOnShield: 0.65,
+    counterText: '👑神機オメガ機関 / 複合攻略装置2基以上で次元突破'
+  },
+  tower: {
+    shieldName: '🗼試練の結界', shieldMul: 0.85, dmgCutOnShield: 0.55,
+    counterText: '⚙️複合攻略装置＋戦術スタンス切替で突破'
+  }
+};
+
+/* ノードを組み合わせて稼働する「複合攻略装置（Contraptions）」レシピ定義 */
+const CONTRAPTION_DEFS = [
+  {
+    id: 'gatling',
+    n: '🔥蒸気ガトリング攻城装置',
+    i: '🔥',
+    c: '#f97316',
+    recipeText: '[木こり/炭焼き/精錬] ＋ [⚙️攻略装置コア または ⚔️洞窟]',
+    atkMul: 1.55, shieldBreak: 2.0, armorPen: 0.25, dmgCut: 0, goldMul: 1.0, rpBonus: 0, tag: 'HEAT',
+    d: '燃料と鉱石を蒸気圧で連射！与ダメ×1.55・バリア削り×2.0・🔥HEAT付与'
+  },
+  {
+    id: 'railgun',
+    n: '⚡電磁レールガン撃ち抜き装置',
+    i: '⚡',
+    c: '#38bdf8',
+    recipeText: '[発電施設(⚡電気/🔋電力)] ＋ [精錬/加工] ＋ [⚙️装置コア/🗼砲台/⚔️洞窟]',
+    atkMul: 1.85, shieldBreak: 2.6, armorPen: 0.65, dmgCut: 0, goldMul: 1.0, rpBonus: 0, tag: 'SHOCKWAVE',
+    d: '電気エネルギーで金属弾を超音速射出！敵装甲65%無視・与ダメ×1.85・バリア削り×2.6'
+  },
+  {
+    id: 'blitz',
+    n: '💰黄金傭兵ブリッツ機関',
+    i: '🪙',
+    c: '#fbbf24',
+    recipeText: '[🏦金庫(🪙金貨エネルギー)] ＋ [🍺酒場/🏪露店/仲間] ＋ [⚙️装置コア/⚔️洞窟]',
+    atkMul: 1.75, shieldBreak: 2.2, armorPen: 0.30, dmgCut: 0.15, goldMul: 1.85, rpBonus: 0, tag: 'HEAT',
+    d: '金庫から流れる金貨エネルギーで前線を黄金鼓舞！与ダメ×1.75・撃破G×1.85'
+  },
+  {
+    id: 'aegis',
+    n: '🛡️アニマ聖域イージス装置',
+    i: '🛡️',
+    c: '#4ade80',
+    recipeText: '[🧑人間/仲間(🔥万能アニマ)] ＋ [🍺酒場/⛺野営/金庫] ＋ [⚙️装置コア/⚔️洞窟]',
+    atkMul: 1.35, shieldBreak: 1.6, armorPen: 0, dmgCut: 0.55, healRate: 0.08, goldMul: 1.0, rpBonus: 0, tag: null,
+    d: '万能アニマを防衛結界に変換！被反撃ダメージ-55%・毎撃パーティHP8%回復・与ダメ×1.35'
+  },
+  {
+    id: 'catapult',
+    n: '💥高圧爆縮カタパルト',
+    i: '💥',
+    c: '#fb7185',
+    recipeText: '[🗜️圧縮機/⚙️組立機/🗼砲台] ＋ [⚙️攻略装置コア または ⚔️洞窟]',
+    atkMul: 1.95, shieldBreak: 3.0, armorPen: 0.45, dmgCut: 0, goldMul: 1.0, rpBonus: 0, tag: 'SHOCKWAVE',
+    d: '高密度に圧縮した質量弾を投射！与ダメ×1.95・戦術バリア削り×3.0'
+  },
+  {
+    id: 'laser',
+    n: '🔮魔導エーテル収束レーザー',
+    i: '🔮',
+    c: '#c084fc',
+    recipeText: '[🔬研究所/⚗️合成器] ＋ [発電/🏦金庫] ＋ [⚙️装置コア/⚔️洞窟]',
+    atkMul: 2.15, shieldBreak: 2.8, armorPen: 0.50, dmgCut: 0, goldMul: 1.2, rpBonus: 10, tag: 'CORROSION',
+    d: '研究機関とエネルギー網を直結した収束レーザー！与ダメ×2.15・撃破毎📘研究+10'
+  },
+  {
+    id: 'cryo_shatter',
+    n: '❄️熱核クライオ破砕機関',
+    i: '❄️',
+    c: '#22d3ee',
+    recipeText: '[☢️原子炉(臨界エネルギー)] ＋ [⚙️攻略装置コア または ⚔️洞窟]',
+    atkMul: 2.60, shieldBreak: 3.8, armorPen: 0.70, dmgCut: 0.25, goldMul: 1.0, rpBonus: 0, tag: 'CRYO',
+    d: '臨界エネルギーで敵の超再生を完全凍結破砕！与ダメ×2.60・バリア削り×3.8'
+  },
+  {
+    id: 'omega',
+    n: '👑神機・万物創生オメガ機関',
+    i: '👑',
+    c: '#fde047',
+    recipeText: '[🔥万能アニマ ＋ ⚡電気/🔋電力 ＋ 🪙金貨エネルギー] を複合接続',
+    atkMul: 3.50, shieldBreak: 5.0, armorPen: 0.85, dmgCut: 0.60, healRate: 0.10, goldMul: 2.40, rpBonus: 15, tag: 'SHOCKWAVE',
+    d: '万能・電気・金貨の3大エネルギーを統合した究極兵装！与ダメ×3.50・バリア削り×5.0・撃破G×2.4'
+  }
+];
+
+function analyzeEngineNode(n){
+  if(!n || !S || !S.links) return { feeds: [], energyKinds: new Set(), lineSet: new Set(), contraptions: [] };
+  const inLinks = S.links.filter(l => l.to === n.id);
+  const outLinks = S.links.filter(l => l.from === n.id);
+  const feeds = [];
+  const energyKinds = new Set();
+  const lineSet = new Set();
+  for(const l of inLinks){
+    const src = N(l.from);
+    if(!src) continue;
+    const st = TYPES[src.type] || {};
+    const ek = energyKindOf(l.item, src, l);
+    feeds.push({ node: src, item: l.item, line: st.line || src.type, ek });
+    if(ek) energyKinds.add(ek);
+    if(st.line) lineSet.add(st.line);
+    if(st.src) lineSet.add('human');
+  }
+  // バッファに溜まっているエネルギーも判定に加える
+  const buf = n.inBuf || {};
+  if((buf.sta || 0) > 0) energyKinds.add(inLinks.some(l => l.item === 'sta' && N(l.from) && TYPES[N(l.from).type] && TYPES[N(l.from).type].gen) ? 'elec' : 'anima');
+  if((buf.power || 0) > 0) energyKinds.add('power');
+  if((buf.gold || 0) > 0) energyKinds.add('gold');
+  if((buf.nfl || 0) > 0) energyKinds.add('nfl');
+  if((buf.tac || 0) > 0) energyKinds.add('tac');
+  return { feeds, outLinks, energyKinds, lineSet };
+}
+
+function evaluateDungeonContraptions(){
+  if(!S || !S.nodes || !S.links){
+    return { list: [], atkMul: 1, shieldBreak: 1, armorPen: 0, dmgCut: 0, healRate: 0, goldMul: 1, rpBonus: 0, tags: [] };
+  }
+  // 盤面上の⚙️攻略装置コア（engine）、⚔️ダンジョン入口（dive）、🗼支援砲台（turret）に集まっている接続・エネルギー網を解析
+  const targetNodes = S.nodes.filter(n => {
+    const T = TYPES[n.type];
+    return T && (T.effect === 'engine' || T.effect === 'dive' || T.effect === 'turret');
+  });
+  const hasEngineNode = S.nodes.some(n => TYPES[n.type] && TYPES[n.type].effect === 'engine');
+  const energyKinds = new Set();
+  const connectedLines = new Set();
+  const connectedItems = new Set();
+
+  for(const tn of targetNodes){
+    const info = analyzeEngineNode(tn);
+    for(const ek of info.energyKinds) energyKinds.add(ek);
+    for(const ln of info.lineSet) connectedLines.add(ln);
+    for(const f of info.feeds){
+      connectedItems.add(f.item);
+      // 2ホップ上流（例: 木こり→精錬炉→装置コア、金庫→酒場→洞窟 など）も装置の一部として認識
+      const upLinks = S.links.filter(l2 => l2.to === f.node.id);
+      for(const l2 of upLinks){
+        const upNode = N(l2.from);
+        if(!upNode) continue;
+        const ut = TYPES[upNode.type] || {};
+        if(ut.line) connectedLines.add(ut.line);
+        if(ut.src) connectedLines.add('human');
+        connectedItems.add(l2.item);
+        const uek = energyKindOf(l2.item, upNode, l2);
+        if(uek) energyKinds.add(uek);
+      }
+    }
+  }
+
+  // 金庫→酒場/露店/研究所、発電→精錬/砲台 などのノード間連携も補助判定
+  for(const l of S.links){
+    const a = N(l.from), b = N(l.to);
+    if(!a || !b) continue;
+    const ta = TYPES[a.type] || {}, tb = TYPES[b.type] || {};
+    if(ta.line === 'vault' || l.item === 'gold'){
+      energyKinds.add('gold');
+      connectedLines.add('vault');
+      if(tb.line) connectedLines.add(tb.line);
+    }
+    if(ta.line === 'engine' || tb.line === 'engine'){
+      connectedLines.add('engine');
+      if(ta.line) connectedLines.add(ta.line);
+      if(tb.line) connectedLines.add(tb.line);
+      const ek = energyKindOf(l.item, a, l);
+      if(ek) energyKinds.add(ek);
+    }
+  }
+
+  const active = [];
+  const hasThermal = connectedLines.has('wood') || connectedLines.has('coal') || connectedLines.has('smelt') || connectedItems.has('wood') || connectedItems.has('coal') || connectedItems.has('ing1');
+  const hasElec = energyKinds.has('elec') || energyKinds.has('power') || connectedLines.has('wind') || connectedLines.has('burn') || connectedLines.has('grid');
+  const hasGold = energyKinds.has('gold') || connectedLines.has('vault');
+  const hasAnima = energyKinds.has('anima') || connectedLines.has('human');
+  const hasHeavy = connectedLines.has('comp') || connectedLines.has('press') || connectedLines.has('turret') || connectedItems.has('cmp1') || connectedItems.has('plate1');
+  const hasLab = connectedLines.has('lab') || connectedLines.has('synt') || connectedItems.has('mat');
+  const hasNuke = energyKinds.has('nfl') || connectedLines.has('nuke') || connectedItems.has('nfl');
+
+  if(hasThermal && (hasEngineNode || targetNodes.length > 0) && (connectedItems.size > 0 || hasEngineNode)){
+    if(hasThermal && (connectedLines.has('engine') || targetNodes.some(t => S.links.some(l => l.to === t.id)))){
+      active.push(CONTRAPTION_DEFS[0]); // gatling
+    }
+  }
+  if(hasElec && (hasThermal || hasHeavy || connectedLines.has('engine'))){
+    active.push(CONTRAPTION_DEFS[1]); // railgun
+  }
+  if(hasGold && (connectedLines.has('tavern') || connectedLines.has('shop') || connectedLines.has('human') || connectedLines.has('engine') || S.nodes.some(n => n.type === 'vault' && (n.vaultGold||0) >= 50 && S.links.some(l => l.from === n.id)))){
+    active.push(CONTRAPTION_DEFS[2]); // blitz
+  }
+  if(hasAnima && (connectedLines.has('tavern') || connectedLines.has('camp') || connectedLines.has('vault') || connectedLines.has('engine'))){
+    active.push(CONTRAPTION_DEFS[3]); // aegis
+  }
+  if(hasHeavy){
+    active.push(CONTRAPTION_DEFS[4]); // catapult
+  }
+  if(hasLab && (hasElec || hasGold)){
+    active.push(CONTRAPTION_DEFS[5]); // laser
+  }
+  if(hasNuke){
+    active.push(CONTRAPTION_DEFS[6]); // cryo_shatter
+  }
+  if(hasAnima && hasElec && hasGold && (hasEngineNode || active.length >= 3)){
+    active.push(CONTRAPTION_DEFS[7]); // omega
+  }
+
+  let atkMul = 1.0, shieldBreak = 1.0, armorPen = 0, dmgCut = 0, healRate = 0, goldMul = 1.0, rpBonus = 0;
+  const tags = [];
+  for(const c of active){
+    atkMul *= (1 + (c.atkMul - 1) * 0.65);
+    shieldBreak = Math.max(shieldBreak, c.shieldBreak || 1) + (c.shieldBreak ? (c.shieldBreak - 1) * 0.25 : 0);
+    armorPen = Math.max(armorPen, c.armorPen || 0);
+    dmgCut = Math.min(0.78, dmgCut + (c.dmgCut || 0) * 0.75);
+    healRate = Math.min(0.18, healRate + (c.healRate || 0));
+    goldMul *= (1 + ((c.goldMul || 1) - 1) * 0.75);
+    rpBonus += (c.rpBonus || 0);
+    if(c.tag && !tags.includes(c.tag)) tags.push(c.tag);
+  }
+  // ⚙️攻略装置コア自体のレベル・戦術出力ボーナスも加算
+  for(const en of S.nodes.filter(n => TYPES[n.type] && TYPES[n.type].effect === 'engine')){
+    const t = tierOf(en);
+    const lvMul = 1 + 0.12 * (en.level || 1) + 0.20 * ((t && t.tier) || 0);
+    atkMul *= lvMul;
+    shieldBreak += 0.35 * (1 + ((t && t.tier) || 0));
+  }
+  return {
+    list: active,
+    atkMul: Math.round(atkMul * 100) / 100,
+    shieldBreak: Math.round(shieldBreak * 100) / 100,
+    armorPen,
+    dmgCut,
+    healRate,
+    goldMul: Math.round(goldMul * 100) / 100,
+    rpBonus,
+    tags
+  };
+}
+
+/* ワンクリックで⚙️攻略装置コア（未設置なら自動設置）と金庫・動力・ダンジョン入口を組み合わせて配線する */
+function autoWireContraption(){
+  if(!S || !S.nodes) return;
+  const diveNode = S.nodes.find(n => TYPES[n.type] && TYPES[n.type].effect === 'dive');
+  let engNode = S.nodes.find(n => TYPES[n.type] && TYPES[n.type].effect === 'engine');
+  if(!engNode){
+    const bx = diveNode ? diveNode.x - 210 : 720;
+    const by = diveNode ? diveNode.y + 110 : 280;
+    engNode = addNode('engine', bx, by);
+    addLog('⚙️【複合攻略装置】盤面に「攻略装置コア」を新設しました！', 'u');
+  }
+  let wired = 0;
+  // 1) 人間/発電/金庫/加工施設 → ⚙️攻略装置コアへ接続
+  const candidates = S.nodes.filter(n => n.id !== engNode.id && (!diveNode || n.id !== diveNode.id));
+  for(const src of candidates){
+    const outs = Object.keys(outsOf(src) || {});
+    for(const item of outs){
+      if(['sta','power','gold','nfl','wood','coal','ing1','cmp1','mat'].includes(item)){
+        if(!S.links.some(l => l.from === src.id && l.to === engNode.id && l.item === item)){
+          if(canLink(src, item, engNode)){
+            if(storeCanTake(engNode, item)) storeAssign(engNode, item);
+            addLink(src.id, item, engNode.id);
+            wired++;
+            break;
+          }
+        }
+      }
+    }
+    if(wired >= 4) break;
+  }
+  // 2) ⚙️攻略装置コア → ⚔️ダンジョン入口（または🗼支援砲台）へ戦術出力(tac)を接続
+  if(diveNode && !S.links.some(l => l.from === engNode.id && l.to === diveNode.id && l.item === 'tac')){
+    if(canLink(engNode, 'tac', diveNode)){
+      if(storeCanTake(diveNode, 'tac')) storeAssign(diveNode, 'tac');
+      addLink(engNode.id, 'tac', diveNode.id);
+      wired++;
+    }
+  }
+  // 3) 🏦金庫があれば🏪露店→🏦金庫→⚙️装置コア/🍺酒場も接続補助
+  const vaultNode = S.nodes.find(n => n.type === 'vault');
+  const shopNode = S.nodes.find(n => TYPES[n.type] && TYPES[n.type].chain === 'sell');
+  if(vaultNode && shopNode && !S.links.some(l => l.from === shopNode.id && l.to === vaultNode.id && l.item === 'gold')){
+    if(canLink(shopNode, 'gold', vaultNode)){
+      addLink(shopNode.id, 'gold', vaultNode.id);
+      wired++;
+    }
+  }
+  if(vaultNode && engNode && !S.links.some(l => l.from === vaultNode.id && l.to === engNode.id && l.item === 'gold')){
+    if(canLink(vaultNode, 'gold', engNode)){
+      addLink(vaultNode.id, 'gold', engNode.id);
+      wired++;
+    }
+  }
+  S.activeContraptions = evaluateDungeonContraptions();
+  const names = S.activeContraptions.list.map(c => c.n).join(' / ') || '⚙️攻略装置コア稼働準備完了';
+  addLog(`🔗【複合攻略装置・自動配線】${wired}本のエネルギー＆素材ラインを接続！（発動中: ${names}）`, 'u');
+  renderInsp();
+  render();
+}
+
 function pushCombatLog(text, cls){
   if(!S) return;
   S.combatLog = S.combatLog || [];
@@ -4997,6 +5634,30 @@ function portIns(n){
     for(const k in c) if(POW_ITEM[k]) o[k]=c[k];
     for(const k of storeItems(n)) o[k]=SELL_TAKE;
     return o; }
+  if((T.engine || T.effect==='engine') && !n._allPorts){
+    const o = Object.assign({}, insOf(n), {gold:1, power:1});
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to === n.id) o[l.item] = 1;
+    }
+    for(const k in (n.inBuf||{})) if((n.inBuf[k]||0) > 0) o[k] = 1;
+    return o;
+  }
+  if(T.effect==='dive' && !n._allPorts){
+    const o = Object.assign({}, insOf(n));
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to === n.id) o[l.item] = 1;
+    }
+    for(const k in (n.inBuf||{})) if((n.inBuf[k]||0) > 0) o[k] = 1;
+    return o;
+  }
+  if(n.type === 'hero' && !n._allPorts){
+    const o = Object.assign({}, insOf(n));
+    if(typeof S!=='undefined' && S && S.links){
+      for(const l of S.links) if(l.to === n.id) o[l.item] = 1;
+    }
+    for(const k in (n.inBuf||{})) if((n.inBuf[k]||0) > 0) o[k] = 1;
+    return o;
+  }
   if(T.src && n.type !== 'hero' && !n._allPorts){
     const o = {};
     const req = insOf(n);
@@ -5026,11 +5687,13 @@ function mkNodeEl(n){
   let rows = '', ports = '';
   for(let i=0;i<rowsOf(n);i++){
     const a = ik[i], b = ok[i];
+    const aIcon = a ? energySlotIconHtml(a, n, 'in') : '';
+    const bIcon = b ? energySlotIconHtml(b, n, 'out') : '';
     rows += `<div class="rowio">`+
-      (a ? `<div class="slot i" data-s="in-${a}" title="${ITEMS[a].n}">${ITEMS[a].i}${densTag(a)}<b>0</b><span class="q">/0</span></div>`
+      (a ? `<div class="slot i" data-s="in-${a}" title="${ITEMS[a].n}">${aIcon}${densTag(a)}<b>0</b><span class="q">/0</span></div>`
          : i===anyRow ? `<div class="slot i anyslot">＋ ${TYPES[n.type].chain==='sell'?'なんでも':(TYPES[n.type].src && n.type!=='hero')?'🎁好物/物資':'空き'}</div>`
          : `<div class="slot e"></div>`)+
-      (b ? `<div class="slot o" data-s="out-${b}" title="${ITEMS[b].n}"><span class="q">/0</span><b>0</b>${ITEMS[b].i}${densTag(b)}</div>`
+      (b ? `<div class="slot o" data-s="out-${b}" title="${ITEMS[b].n}"><span class="q">/0</span><b>0</b>${bIcon}${densTag(b)}</div>`
          : `<div class="slot e"></div>`)+
       `</div>`;
     if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
@@ -5064,7 +5727,7 @@ function mkNodeEl(n){
     : n.alienTech
     ? `<div class="alien-badge" style="position:absolute;top:-12px;left:10px;background:#059669;color:#fff;border-radius:4px;padding:1px 6px;font-size:9.5px;font-weight:700;z-index:4">🛸 Tech ${n.alienTech}</div>`
     : '';
-  el.innerHTML = auraEl + asBadge + strikeBadge + gemBadge + spireBadge +
+  el.innerHTML = auraEl + `<div class="n-energy-stack"></div>` + asBadge + strikeBadge + gemBadge + spireBadge +
     `<button class="node-more-btn" data-more="${n.id}" title="詳細・設定を開く">＋</button>`+
     `<div class="nh"><span class="status-led led-run" title="稼働状態LED"></span><span class="no">#${n.no||'-'}</span>`+
     `<span class="ic">${tr.i}</span><span class="nm">${tr.n}</span>`+
@@ -5103,9 +5766,67 @@ function mkNodeEl(n){
           led:el.querySelector('.status-led'), strikeBadge:el.querySelector('.strike-badge'),
           polr:el.querySelector('.polr'), hrange:el.querySelector('.hrange'),
           hrangeLbl:el.querySelector('.hrange-lbl'), rngBadge:el.querySelector('.rng-badge'),
+          engStack:el.querySelector('.n-energy-stack'),
           slots, sig: portSig(ik, ok)};
   el.style.left = n.x+'px'; el.style.top = n.y+'px';
   world.appendChild(el);
+  updateNodeEnergyStack(n);
+}
+
+/* ノード上部に蓄積されたエネルギー（万能・電気・お金・高圧・臨界・戦術など）を視覚的に積み上げて描画 */
+function updateNodeEnergyStack(n){
+  if(!n || !n.el || !n.el.engStack) return;
+  const T = TYPES[n.type] || {};
+  const need = insOf(n) || {};
+  const give = outsOf(n) || {};
+  const stacks = [];
+  const keys = ['gold', 'sta', 'power', 'nfl', 'tac', 'exs', 'exi', 'exv'];
+  for(const k of keys){
+    let amt = (n.inBuf && n.inBuf[k] ? n.inBuf[k] : 0) + (n.outBuf && n.outBuf[k] ? n.outBuf[k] : 0);
+    if(k === 'gold' && (T.vault || T.line === 'vault')){
+      amt += (n.vaultGold || 0);
+    }
+    if(k === 'tac' && (n._tacPower || 0) > 0){
+      amt += n._tacPower;
+    }
+    // 稼働中ノードの内部チャージ分も視覚化（送出直後でも空に見えないようにする）
+    if(n.crafting && (n.need || 0) > 0){
+      const ratio = Math.min(1, Math.max(0.15, (n.prog || 0) / n.need));
+      if(give[k]) amt += give[k] * ratio;
+      else if(need[k]) amt += need[k] * (1 - ratio * 0.5);
+    }else if((T.src || T.gen || T.vault || T.line === 'vault' || T.engine || T.effect === 'engine') && give[k] && amt <= 0){
+      amt = Math.max(1, Math.round(give[k] * 0.5));
+    }
+    const val = Math.floor(amt);
+    if(val <= 0) continue;
+    const ek = energyKindOf(k, n, null);
+    if(!ek) continue;
+    const maxRef = (k === 'gold' && (T.vault || T.line === 'vault')) ? 300 : Math.max(8, capIn(n, k) || 16);
+    const layers = Math.max(1, Math.min(8, Math.ceil((val / maxRef) * 7)));
+    stacks.push({ k, ek, val, layers });
+    if(stacks.length >= 3) break; // 最大3列まで並べて視認性を維持
+  }
+  const sig = stacks.map(s => `${s.ek}:${s.layers}:${s.val}`).join('|');
+  if(n._engStackSig === sig) return;
+  n._engStackSig = sig;
+  if(!stacks.length){
+    n.el.engStack.innerHTML = '';
+    return;
+  }
+  let html = '';
+  for(const s of stacks){
+    const ev = ENERGY_VISUALS[s.ek] || ENERGY_VISUALS.anima;
+    const layerUrl = getEnergyLayerSvgUrl(s.ek);
+    let imgs = '';
+    for(let i = 0; i < s.layers; i++){
+      imgs += `<img class="eng-layer-img" src="${layerUrl}" alt="${ev.name}">`;
+    }
+    html += `<div class="eng-stack-col" data-energy-kind="${s.ek}" data-layers="${s.layers}" title="${ev.name}: ${fmt(s.val)}">`+
+      `<div class="eng-stack-val" style="color:${ev.color};border-color:${ev.color}">${fmt(s.val)}</div>`+
+      `<div class="eng-stack-layers">${imgs}</div>`+
+      `</div>`;
+  }
+  n.el.engStack.innerHTML = html;
 }
 // 道具の対象素材を変える／ティアが上がったときにノードを作り直す
 function rebuildNodeEl(n){
@@ -5160,7 +5881,8 @@ function clearBoardEls(){
 }
 function mkLinkEl(l){
   ensureItem(l.item);
-  const c = (ITEMS[l.item] && ITEMS[l.item].c) || '#8aa';
+  const ek = energyKindOf(l.item, null, l);
+  const c = (ek && ENERGY_VISUALS[ek] && ENERGY_VISUALS[ek].color) || (ITEMS[l.item] && ITEMS[l.item].c) || '#8aa';
   const isEng = !!ENERGY_ITEM[l.item];
   const hit =document.createElementNS(SVG,'path');  hit.setAttribute('class','hit');
   const rail=document.createElementNS(SVG,'path');
@@ -5225,38 +5947,36 @@ function updatePacketBadge(p){
   qt.setAttribute('y', '-9.5');
   qt.textContent = txt;
 }
-function mkPacketEl(p){
+function mkPacketEl(p, l){
   ensureItem(p.item);
   const it = ITEMS[p.item] || ITEMS.ore1;
   const isEng = !!ENERGY_ITEM[p.item];
   const g = document.createElementNS(SVG,'g');
   g.setAttribute('class', isEng ? 'pkt energy-pkt' : 'pkt item-pkt');
   if(isEng){
-    // エネルギー・動力系：発光するプラズマ球（ハロー＋コア＋スパーク＋アイコン）
+    const ek = energyKindOf(p.item, null, l) || 'anima';
+    const ev = ENERGY_VISUALS[ek] || ENERGY_VISUALS.anima;
+    const ec = ev.color || it.c;
+    g.dataset.energyKind = ek;
+    // エネルギー・動力系：種類ごとに異なる専用SVG画像＋発光プラズマ球
     const halo = document.createElementNS(SVG,'circle');
     halo.setAttribute('class','pk-halo');
     halo.setAttribute('cx','0'); halo.setAttribute('cy','0'); halo.setAttribute('r','12.5');
-    halo.setAttribute('fill', `color-mix(in srgb, ${it.c} 26%, transparent)`);
-    halo.setAttribute('stroke', it.c);
+    halo.setAttribute('fill', `color-mix(in srgb, ${ec} 26%, transparent)`);
+    halo.setAttribute('stroke', ec);
     halo.setAttribute('stroke-width','1.2');
     halo.setAttribute('stroke-dasharray','4 3');
     const core = document.createElementNS(SVG,'circle');
     core.setAttribute('class','pk-core');
     core.setAttribute('cx','0'); core.setAttribute('cy','0'); core.setAttribute('r','9.5');
-    core.setAttribute('fill', `color-mix(in srgb, ${it.c} 32%, #0c121d)`);
-    core.setAttribute('stroke', it.c);
-    const spark = document.createElementNS(SVG,'circle');
-    spark.setAttribute('class','pk-spark');
-    spark.setAttribute('cx','-3'); spark.setAttribute('cy','-3'); spark.setAttribute('r','2.2');
-    spark.setAttribute('fill', '#ffffff');
-    spark.setAttribute('opacity', '0.65');
-    const t = document.createElementNS(SVG,'text');
-    t.setAttribute('class','pkic');
-    t.setAttribute('x','0'); t.setAttribute('y','0.8');
-    t.setAttribute('text-anchor','middle');
-    t.setAttribute('dominant-baseline','central');
-    t.textContent = it.i;
-    g.append(halo, core, spark, t);
+    core.setAttribute('fill', `color-mix(in srgb, ${ec} 32%, #0c121d)`);
+    core.setAttribute('stroke', ec);
+    const img = document.createElementNS(SVG,'image');
+    img.setAttribute('class','pk-eng-img');
+    img.setAttribute('href', getEnergySvgUrl(ek));
+    img.setAttribute('x','-9.5'); img.setAttribute('y','-9.5');
+    img.setAttribute('width','19'); img.setAttribute('height','19');
+    g.append(halo, core, img);
   }else{
     // 物理素材系：立体的なコンテナ箱（底面影＋本体＋上辺ハイライト＋アイコン）
     const sh = document.createElementNS(SVG,'rect');
@@ -5308,7 +6028,8 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y,existingComp){
   if(!TYPES[type] && TYPES[type.replace(/\d+$/, '')]) type = type.replace(/\d+$/, '');
-  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,craftMat:null,assim:[],caveId:(TYPES[type]&&TYPES[type].effect==='dive')?(S.caveId||'cave1'):null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[],compId:null,isStrike:false};
+  const isVault = !!(TYPES[type] && (TYPES[type].vault || TYPES[type].line === 'vault'));
+  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:isVault?{gold:4}:{},vaultGold:isVault?60:0,crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,craftMat:null,assim:[],caveId:(TYPES[type]&&TYPES[type].effect==='dive')?(S.caveId||'cave1'):null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[],compId:null,isStrike:false};
   // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく。
   // 売り場だけは既定を「なんでも売る」にする
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
@@ -5348,9 +6069,11 @@ function removeNode(id){
 function storeCanTake(n, item){
   const T = TYPES[n.type];
   if(T.store) return !!item && spaceIn(n, item) > 0;      // 貯蔵は何でも受け取る
+  if(T.vault || T.line==='vault') return item === 'gold' || item === 'sta';
+  if(T.engine || T.effect==='engine') return !!item;      // 攻略装置コアはあらゆるエネルギー・素材を受け取れる
   if(T.src && n.type!=='hero') return !!item && item!=='sta'; // 仲間は差し入れ物資・好物を何でも受け取れる
   if(T.effect==='dive') return !!item;                    // ダンジョン入口は戦術パイプラインとして何でも注入可能
-  if(T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar') return !POW_ITEM[item];
+  if(T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar') return !POW_ITEM[item] || item==='gold' || item==='tac';
   if(T.matIn && (HAZ_ITEM[item] || CAVE_ITEMS.includes(item))) return true; // 研究所は逆流ハザード・洞窟素材をいつでも受け入れ可能
   if(T.line==='purify' && (HAZ_ITEM[item] || POL_ITEM[item])) return true; // 送風機はハザード・汚染物質を浄化受け入れ可能
   if(T.line==='smelt' && HAZ_ITEM[item]) return true;     // 精錬炉もハザードを高温精製受け入れ可能
@@ -5361,7 +6084,7 @@ function storeCanTake(n, item){
 }
 function storeAssign(n, item){
   const T = TYPES[n.type];
-  if((T.src && n.type!=='hero') || T.effect==='dive' || T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar' || T.line==='purify' || (T.matIn && (HAZ_ITEM[item] || CAVE_ITEMS.includes(item))) || (T.line==='smelt' && HAZ_ITEM[item])){
+  if((T.src && n.type!=='hero') || T.vault || T.line==='vault' || T.engine || T.effect==='engine' || T.effect==='dive' || T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar' || T.line==='purify' || (T.matIn && (HAZ_ITEM[item] || CAVE_ITEMS.includes(item))) || (T.line==='smelt' && HAZ_ITEM[item])){
     rebuildNodeEl(n);
     return true;
   }
@@ -5462,7 +6185,7 @@ function allocText(n, item){
 /* 倉庫はどんな素材でも受け取る。種類の上限と、1種類あたりの量で決まる */
 const wareKinds = n => Object.keys(n.inBuf||{}).filter(k=>(n.inBuf[k]||0) > 0);
 const wareTotal = n => wareKinds(n).reduce((a,k)=>a+(n.inBuf[k]||0), 0);
-const POW_ITEM = {sta:1, wood:1, coal:1, power:1, nfl:1};
+const POW_ITEM = {sta:1, wood:1, coal:1, power:1, nfl:1, gold:1, tac:1};
 /* 売り場に届いているもののうち、いちばん値打ちのあるものを選ぶ */
 function sellPick(n){
   let best=null, bv=-1;
@@ -5495,6 +6218,13 @@ function spaceIn(n,item){
     if(held <= 0 && !RX_ITEMS.includes(item) && wareKinds(n).length >= (T.kinds||8)) return 0;
     return Math.max(0, capIn(n,item) - held);
   }
+  if(T.vault || T.line==='vault'){
+    if(item === 'gold') return Math.max(0, CAP*8 - (n.inBuf.gold||0));
+    if(item === 'sta')  return Math.max(0, capIn(n,'sta') - (n.inBuf.sta||0));
+  }
+  if(T.engine || T.effect==='engine'){
+    return Math.max(0, CAP*4 - (n.inBuf[item]||0));
+  }
   if(T.chain==='sell' && !POW_ITEM[item]){          // 売り場：受け入れた種類（＋創発変異品）
     if(!(n.items||[]).includes(item) && !RX_ITEMS.includes(item)) return 0;
     return Math.max(0, CAP*4 - (n.inBuf[item]||0));
@@ -5505,7 +6235,7 @@ function spaceIn(n,item){
   if(T.effect==='dive' && item!=='sta'){            // ダンジョン戦術パイプライン注入
     return Math.max(0, CAP*3 - (n.inBuf[item]||0));
   }
-  if((T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar') && !POW_ITEM[item]){
+  if((T.effect==='extr' || T.effect==='turret' || T.effect==='synt' || T.effect==='altar') && (!POW_ITEM[item] || item==='gold' || item==='tac')){
     return Math.max(0, CAP*3 - (n.inBuf[item]||0));
   }
   if((T.matIn || T.line==='purify' || T.line==='smelt') && (HAZ_ITEM[item] || POL_ITEM[item] || CAVE_ITEMS.includes(item))){
@@ -5537,6 +6267,7 @@ function tick(dt,fast){
     S.lpRecovT = 0;
   }
   updateReactionEngine(dt, fast);
+  S.activeContraptions = evaluateDungeonContraptions();
   // ── 5大魔神眼（Destiny Demon Gems）地中発掘近接判定 ──
   if(S.demonGemVeins && Array.isArray(S.demonGemVeins)){
     for(const v of S.demonGemVeins){
@@ -5632,6 +6363,7 @@ function tick(dt,fast){
       }
     }
     const soft = softIns(n);
+    if((n._goldBoostT||0) > 0) n._goldBoostT = Math.max(0, n._goldBoostT - dt);
     if(Object.keys(soft).length){      // 届いたものをその場で受け取る
       for(const k in soft){
         const c=Math.floor(n.inBuf[k]||0); if(c<=0) continue;
@@ -5647,7 +6379,39 @@ function tick(dt,fast){
             const who = tierOf(n);
             addLog(`${who.i}${who.n} の ${ITEMS[k].i}${statName(st)} が ${stObj[st]} になった`,'u');
           }
+        }else if(T.vault || T.line === 'vault'){ // 🏦金庫：お金エネルギー（🪙gold）を貯蔵・蓄積してボーナス利子を生む
+          const dep = Math.max(12, Math.round(18 * c * lvPow(n.level) * Math.pow(2.2, (T.era||1)-1)));
+          n.vaultGold = (n.vaultGold || 0) + dep;
+          S.gold += Math.round(dep * 0.40);
+          n.gain = (n.gain || 0) + dep;
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `🏦🪙 金貨エネルギー貯蔵！ +${fmt(dep)}G`, '#fbbf24');
+            _rxPopCd = 0.65;
+          }
+        }else if(T.engine || T.effect === 'engine'){ // ⚙️攻略装置コア：エネルギー・素材を受け取って戦術出力と複合兵装をチャージ
+          n._chargedTypes = n._chargedTypes || {};
+          n._chargedTypes[k] = (n._chargedTypes[k] || 0) + c;
+          n._tacCharge = Math.min(120, (n._tacCharge || 0) + c * 5);
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `⚙️⚡ 複合装置チャージ(${ITEMS[k]?ITEMS[k].i:k})！`, '#f43f5e');
+            _rxPopCd = 0.65;
+          }
+        }else if(T.chain === 'fund' && k === 'gold'){ // 💱出資窓口：金庫や露店から届いた🪙お金エネルギーを直接研究力へ変換
+          const rp = Math.max(5, Math.round(fundRp(n) * 0.75 * c));
+          n.gain = (n.gain || 0) + rp;
+          grantRp(rp, fast);
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `💱🪙 金貨出資！ +🔬${fmt(rp)}`, '#fbbf24');
+            _rxPopCd = 0.65;
+          }
+        }else if((T.role === 'tavern' || T.line === 'tavern') && k === 'gold'){ // 🍻酒場：🪙お金エネルギー供給で万能アニマ出力2倍ブースト
+          n._goldBoostT = Math.min(30, (n._goldBoostT || 0) + 12 * c);
+          if(!fast && _rxPopCd <= 0){
+            spawnReactionPop(n, `🍻🪙 金貨注入！ 酒場アニマ出力2倍！`, '#fbbf24');
+            _rxPopCd = 0.7;
+          }
         }else if(T.src && n.type !== 'hero'){ // 仲間への物資・好物差し入れ（ベルトコンベア自動供給）→ 好感度UP＆給料割引！
+          if(k === 'gold') n._goldBoostT = Math.min(30, (n._goldBoostT || 0) + 12 * c);
           feedCompanionByNode(n, k, c, fast);
         }else if(T.matIn){              // 研究所：素材 → 研究資材と研究ポイント（廃棄物や触媒時は未知データを抽出、逆流ハザード時は👑深淵遺物を精製）
           const v = itemVal(k)*c;
@@ -5738,6 +6502,19 @@ function tick(dt,fast){
         }else if(T.effect === 'dive'){  // ダンジョン入口への戦術パイプライン物資注入
           if(k === 'bdia'){
             fireBlastCannon(n, fast, '💎爆風結晶');
+          }else if(k === 'tac'){
+            n._tacPower = Math.min(200, (n._tacPower || 0) + 8 * c);
+            if(S.enemy && (S.enemy.shield || 0) > 0){
+              const sb = Math.max(15, Math.round((S.enemy.maxShield || 50) * 0.20 * c));
+              S.enemy.shield = Math.max(0, S.enemy.shield - sb);
+            }
+            if(!fast && _rxPopCd <= 0){
+              spawnReactionPop(n, `⚔️💥 戦術兵装注入！ 障壁粉砕＆攻撃強化`, '#f43f5e');
+              _rxPopCd = 0.65;
+            }
+          }else if(k === 'gold'){
+            n._goldPower = Math.min(100, (n._goldPower || 0) + 5 * c);
+            n._tacHeat = Math.max(n._tacHeat || 0, 6.0);
           }else if(k === 'fheart'){
             n._tacHeat = Math.max(n._tacHeat||0, 12.0);
             n._tacFlam = Math.max(n._tacFlam||0, 12.0);
@@ -5840,7 +6617,7 @@ function tick(dt,fast){
         const need=insOf(n), give=T.loot ? {} : outsOf(n);   // 戦利品は満杯でも止めない
         const wage = payOf(n);
         let ok=true;
-        for(const k in give) if((n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].i+'満杯'; }
+        for(const k in give) if(k!=='gold' && k!=='tac' && (n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].i+'満杯'; }
         if(ok){
           for(const k in need){
             let avail = (n.inBuf[k] || 0);
@@ -5974,7 +6751,10 @@ function tick(dt,fast){
           if(!fast) spawnReactionPop(n, '👁️🔮 呪詛変異：🔮呪縛コア生成！', '#a855f7');
         }
       }
-      for(const k in give){ n.outBuf[k]=(n.outBuf[k]||0)+give[k]; flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
+      for(const k in give){
+        const maxCap = (k === 'gold' || k === 'tac') ? capOut(n, k) * 3 : Infinity;
+        n.outBuf[k] = Math.min(maxCap, (n.outBuf[k]||0) + give[k]);
+        flowIn(k, give[k]); nodeFlow(n, k, give[k], 'i');
         const d=densOf(k); if(!d) continue;
         if(isEqp(k)){ if(d>(S.maxEqp||0)) S.maxEqp=d;
           const c=compOf(k); if(c>(S.maxComp||0)) S.maxComp=c; }
@@ -6040,6 +6820,36 @@ function tick(dt,fast){
         S.atkBonus = (S.atkBonus||0) + atkAdd;
         n.gain = (n.gain||0) + rpAdd;
         grantRp(rpAdd, fast);
+      }
+      if(T.vault || T.line==='vault'){
+        const interest = Math.max(6, Math.round((10 + (n.vaultGold || 0) * 0.045 + Math.min(8000, S.gold || 0) * 0.015) * lvPow(n.level) * Math.pow(2.2, (T.era||1)-1)));
+        const maxVault = 50000 * Math.pow(4, (T.era||1)-1);
+        n.vaultGold = Math.min(maxVault, (n.vaultGold || 0) + interest);
+        S.gold += interest;
+        n.gain = (n.gain || 0) + interest;
+      }
+      if(T.engine || T.effect==='engine'){
+        if(!S.enemy) spawnEnemy();
+        const cnt = S.activeContraptions || { list:[], atkMul:1, shieldBreak:1.5 };
+        const chargeBonus = 1 + Math.min(2.5, (n._tacCharge || 0) * 0.025);
+        if((n._tacCharge||0) > 0) n._tacCharge = Math.max(0, n._tacCharge - 4);
+        const edmg = Math.max(2, Math.round(dmg() * 1.45 * lvPow(n.level) * Math.pow(2.4, (T.era||1)-1) * (cnt.atkMul || 1) * chargeBonus));
+        if((S.enemy.shield || 0) > 0){
+          const sDmg = Math.max(6, Math.round(edmg * 1.8 * (cnt.shieldBreak || 1.5)));
+          S.enemy.shield = Math.max(0, S.enemy.shield - sDmg);
+        }
+        S.enemy.hp -= edmg;
+        n.gain = (n.gain || 0) + edmg;
+        if(!fast && _rxPopCd <= 0 && Math.random() < 0.4){
+          const cname = (cnt.list && cnt.list[0]) ? cnt.list[0].n : tierOf(n).n;
+          spawnReactionPop(n, `⚙️💥 ${cname} 作動！ (-${fmt(edmg)})`, '#f43f5e');
+          _rxPopCd = 0.65;
+        }
+        if(S.enemy.hp <= 0){
+          S.enemy.hp = 1;
+          const dvNode = S.nodes.find(x => TYPES[x.type] && TYPES[x.type].effect === 'dive') || n;
+          doDive(fast, dvNode, true);
+        }
       }
       if(T.effect==='raid'){
         n.hp = (n.hp || raidHp()) - atk();     // 階層の装甲は関係しない
@@ -6131,7 +6941,7 @@ function tick(dt,fast){
                 dst.inBuf[deliv]=(dst.inBuf[deliv]||0)+q;
               }else{
                 const p={item:pktItem, origItem:item, t:0, q, jam:false, tags: l.tags ? [...l.tags] : []};
-                mkPacketEl(p); l.packets.push(p);
+                mkPacketEl(p, l); l.packets.push(p);
               }
               l._active = 0.35;
               sent=true; break;
@@ -8604,18 +9414,25 @@ function doDive(fast, node, fromCannon){
   }
   const brx = S.battleRx || {};
   const inT = (node && node.inTags) || {};
-  const hasCorrosion = !!(brx.hazCorrosion || inT.CORROSION);
-  const hasHeat      = !!(brx.heat || inT.HEAT);
-  const hasCryo      = !!(brx.cryo || inT.CRYO);
-  const hasShock     = !!(brx.shock || brx.cannon || inT.SHOCKWAVE);
+  const stance = DUNGEON_STANCES[S.dungeonStance || 'assault'] || DUNGEON_STANCES.assault;
+  const cnt = S.activeContraptions || evaluateDungeonContraptions();
+  const cntTags = (cnt && cnt.tags) || [];
+  const hasCorrosion = !!(brx.hazCorrosion || inT.CORROSION || cntTags.includes('CORROSION'));
+  const hasHeat      = !!(brx.heat || inT.HEAT || cntTags.includes('HEAT'));
+  const hasCryo      = !!(brx.cryo || inT.CRYO || cntTags.includes('CRYO'));
+  const hasShock     = !!(brx.shock || brx.cannon || inT.SHOCKWAVE || cntTags.includes('SHOCKWAVE'));
 
-  // ── 属性アーキタイプ別ダメージ＆装甲・再生計算 ──
+  // ── 属性アーキタイプ別ダメージ＆装甲・再生・戦術スタンス・複合攻略装置計算 ──
   const baseAtkVal = Math.max(15, Math.round((15 + (S.atkBonus||0)) * (1 + totalStr()*0.15) * depthBonus()));
   const gearM      = +(gearMul('firm') * skillMul('atk')).toFixed(2);
   const rawStrike  = Math.round(baseAtkVal * gearM);
   let rawArm       = Math.round(enemyArm(S.floor) * (arch.armMul || 1.0));
-  let armFactor    = effArmorFactor();
+  let armFactor    = effArmorFactor() * (1 - Math.min(0.85, (cnt && cnt.armorPen) || 0));
   let statusNotes  = [];
+  if(stance.k !== 'assault') statusNotes.push(`${stance.n}`);
+  if(cnt && cnt.list && cnt.list.length){
+    statusNotes.push(`⚙️装置×${cnt.atkMul}`);
+  }
 
   if(arch.k === 'armored'){
     if(hasCorrosion){
@@ -8632,12 +9449,35 @@ function doDive(fast, node, fromCannon){
   }
   const effArm = Math.max(0, Math.round(rawArm * armFactor));
   let netDmg = Math.max(1, Math.round(rawStrike * 100 / (100 + effArm * ARMOR_K)));
+  const tacBoost = 1 + Math.min(1.5, ((node && node._tacPower) || 0) * 0.025) + Math.min(0.8, ((node && node._goldPower) || 0) * 0.02);
+  if(node && (node._tacPower||0) > 0) node._tacPower = Math.max(0, node._tacPower - 2);
+  if(node && (node._goldPower||0) > 0) node._goldPower = Math.max(0, node._goldPower - 1);
+  netDmg = Math.max(1, Math.round(netDmg * (stance.atkMul || 1.0) * ((cnt && cnt.atkMul) || 1.0) * tacBoost));
   if(hasCryo)        { netDmg = Math.round(netDmg * 1.5); statusNotes.push('❄️冷気(×1.5)'); }
   if(brx.napalm)     { netDmg = Math.round(netDmg * 1.6); statusNotes.push('🔥爆炎(×1.6)'); }
   if(brx.shatter)    { netDmg = Math.round(netDmg * 2.2); statusNotes.push('❄️🔨砕氷(×2.2)'); }
   if(brx.berserk)    { netDmg = Math.round(netDmg * 2.5); statusNotes.push('⚡😡過負荷怒気(×2.5)'); }
   if(arch.k === 'armored' && (hasCorrosion || hasHeat)) netDmg = Math.round(netDmg * 1.45);
   if(arch.k === 'regen'   && (hasCryo || hasShock))     netDmg = Math.round(netDmg * 1.45);
+
+  // ── 敵の戦術バリア（Tactical Shield）削り＆ブレイク判定 ──
+  if(S.enemy && (S.enemy.shield || 0) > 0 && S.enemy.hp > 1){
+    const sBreakMul = (stance.shieldMul || 1.0) * ((cnt && cnt.shieldBreak) || 1.0);
+    const sDmg = Math.max(2, Math.round(netDmg * sBreakMul));
+    S.enemy.shield = Math.max(0, S.enemy.shield - sDmg);
+    if(S.enemy.shield <= 0){
+      netDmg = Math.round(netDmg * 1.45);
+      statusNotes.push('🛡️💥障壁ブレイク！(×1.45)');
+    }else{
+      const cut = ((S.enemy.tactic && S.enemy.tactic.dmgCutOnShield) || 0.35) * 0.45;
+      netDmg = Math.max(1, Math.round(netDmg * (1 - cut)));
+    }
+  }
+  // スタンス・複合攻略装置によるパーティHPリジェネ回復
+  const totHealRate = (stance.healRate || 0) + ((cnt && cnt.healRate) || 0);
+  if(totHealRate > 0 && S.partyHp != null && S.partyMaxHp){
+    S.partyHp = Math.min(S.partyMaxHp, S.partyHp + Math.max(2, Math.round(S.partyMaxHp * totHealRate)));
+  }
 
   // ── 案D：無限塔の節目パズル・ギミックボス（Puzzle Boss）特殊判定 ──
   const gim = (S.enemy && S.enemy.gimmick) ? S.enemy.gimmick : null;
@@ -8735,7 +9575,8 @@ function doDive(fast, node, fromCannon){
     }
     // 推奨攻撃力未満で弱点も突いていない場合、敵の反撃でパーティHPが削られ、0になると全滅（LP -1）
     if(underPowered && !statusNotes.length){
-      const counter = Math.max(18, Math.ceil((S.partyMaxHp||120) * 0.28));
+      const rawCounter = Math.max(18, Math.ceil((S.partyMaxHp||120) * 0.28));
+      const counter = Math.max(4, Math.round(rawCounter * (stance.dmgTakenMul || 1.0) * (1 - ((cnt && cnt.dmgCut) || 0))));
       S.partyHp = Math.max(0, (S.partyHp || S.partyMaxHp || 120) - counter);
       if(S.partyHp <= 0){
         S.lp = Math.max(0, (S.lp != null ? S.lp : 3) - 1);
@@ -8770,13 +9611,21 @@ function doDive(fast, node, fromCannon){
     toast('👑👁️‍🗨️ 真ボス「輪廻の主」討伐達成！');
     troSave();
   }
-  const f=S.floor, g=Math.round(enemyGold(f) * (gim && gim.k === 'greed' ? 10 : 1)), wasTier=depthTier();
+  const f=S.floor;
+  const gMul = (gim && gim.k === 'greed' ? 10 : 1) * (stance.goldMul || 1.0) * ((cnt && cnt.goldMul) || 1.0);
+  const g=Math.round(enemyGold(f) * gMul), wasTier=depthTier();
   S.gold += g;
+  const bonusRp = (stance.rpBonus || 0) + ((cnt && cnt.rpBonus) || 0);
+  if(bonusRp > 0) grantRp(bonusRp, fast);
   const cDrop = cave.drop || 'mcore';
   let droppedNames = [`💰+${fmt(g)}G`];
-  if(node){                                  // 撃破すると戦利品＋洞窟固有素材＋たまに宝箱が出る
+  if(bonusRp > 0) droppedNames.push(`📘+${fmt(bonusRp)}RP`);
+  if(node){                                  // 撃破すると戦利品＋洞窟固有素材＋たまに宝箱＋🪙金貨エネルギーが出る
     const k = lootItem(node);
     node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
+    const gPkt = Math.max(2, Math.round(3 * (stance.goldMul || 1.0)));
+    node.outBuf.gold = Math.min((capOut(node,'gold') || 25) * 3, (node.outBuf.gold || 0) + gPkt);
+    flowIn('gold', gPkt); nodeFlow(node, 'gold', gPkt, 'i');
     droppedNames.push(`${ITEMS[k].i}`);
     // 洞窟固有素材ドロップ（ボスは確定2個、通常モンスターも高確率でドロップし分解研究・施設クラフトに使える）
     const dropChance = S.enemy.boss ? 1.0 : 0.65;
@@ -8949,11 +9798,13 @@ function spawnEnemy(){
   let hp = enemyHp(ef);
   if(sacGems > 0) hp = Math.round(hp * (1 + sacGems * 0.40));
   if(isTrueBoss) hp = Math.round(hp * 2.5);
+  const tactic = CAVE_TACTICS[c.id] || CAVE_TACTICS.cave1;
+  const maxShield = Math.max(10, Math.round(hp * (tactic.shieldMul || 0.35) * (boss ? 0.55 : 0.25)));
   S.enemy = isTrueBoss
-    ? {name:'👁️‍🗨️【真・輪廻の主】Sovereign of Samsara', icon:'👁️‍🗨️', hp, max:hp, boss:true, finalBoss:true, trueBoss:true, zone:c, eIdx, arch:meta.arch, gimmick:gim}
+    ? {name:'👁️‍🗨️【真・輪廻の主】Sovereign of Samsara', icon:'👁️‍🗨️', hp, max:hp, shield:maxShield, maxShield, tactic, boss:true, finalBoss:true, trueBoss:true, zone:c, eIdx, arch:meta.arch, gimmick:gim}
     : boss
-    ? {name:(isFinalBoss ? '👑洞窟主 ' : gim ? `🧩【${gim.n}】` : '★ ') + c.e[eIdx], icon:isFinalBoss?'🐉':gim?'🧩':'👑', hp, max:hp, boss:true, finalBoss:isFinalBoss, trueBoss:false, zone:c, eIdx, arch:meta.arch, gimmick:gim}
-    : {name:c.e[eIdx], icon:c.i, hp, max:hp, boss:false, finalBoss:false, trueBoss:false, zone:c, eIdx, arch:meta.arch, gimmick:null};
+    ? {name:(isFinalBoss ? '👑洞窟主 ' : gim ? `🧩【${gim.n}】` : '★ ') + c.e[eIdx], icon:isFinalBoss?'🐉':gim?'🧩':'👑', hp, max:hp, shield:maxShield, maxShield, tactic, boss:true, finalBoss:isFinalBoss, trueBoss:false, zone:c, eIdx, arch:meta.arch, gimmick:gim}
+    : {name:c.e[eIdx], icon:c.i, hp, max:hp, shield:maxShield, maxShield, tactic, boss:false, finalBoss:false, trueBoss:false, zone:c, eIdx, arch:meta.arch, gimmick:null};
 }
 /* 研究ポイントを、判明済みでまだ開発していない対象に均等に配る */
 function grantRp(amount){
@@ -10099,6 +10950,8 @@ function render(fdt){
       : T.effect==='dive' ? `${curCave().i}${S.caveFloor||1}F (${n.done||0}回)`
       : T.effect==='lab'  ? `🔬+${fmt(n.gain||0)}`
       : T.chain==='sell'  ? `💰+${fmt(n.gain||0)}G`
+      : (T.vault || T.line==='vault') ? `🏦蓄財 ${fmt(n.vaultGold||0)}G`
+      : (T.engine || T.effect==='engine') ? `⚙️戦術 +${fmt(n.gain||0)}`
       : T.ware ? `${wareKinds(n).length}/${T.kinds||8}種 (${fmt(wareTotal(n))})`
       : T.store ? `${storeItems(n).length}/${T.slots}枠`
       : T.layer ? `${memCount(n)}個収納`
@@ -10156,6 +11009,7 @@ function render(fdt){
     setCls(e.root,'dim',  !!F && !F.has(n.id));
     setCls(e.root,'near', !!F && n.id!==sel && F.has(n.id));
     setTxt(e.no, '#'+(n.no||'-'));
+    updateNodeEnergyStack(n);
   }
   for(const l of S.links){
     // レイヤーの中に隠れた端点を持つ線は見せない
@@ -10460,6 +11314,54 @@ function render(fdt){
     $('#eDmg').textContent=fmt(dmg())+` (-${cut}%)`;
     $('#eHits').textContent=fmt(hitsLeft())+'回';
     $('#eGold').textContent=fmt(enemyGold(S.floor))+'G '+(ITEMS[z.drop]?ITEMS[z.drop].i:'');
+    const shRow = $('#eShieldRow'), shName = $('#eShieldName'), shVal = $('#eShield'), shBar = $('#eShieldBar'), tacHint = $('#eTacticHint');
+    if(shRow && shName && shVal && shBar){
+      const maxSh = S.enemy.maxShield || 0;
+      const curSh = Math.max(0, Math.round(S.enemy.shield || 0));
+      const tac = S.enemy.tactic || CAVE_TACTICS[z.id] || CAVE_TACTICS.cave1;
+      shRow.hidden = !(maxSh > 0);
+      if(maxSh > 0){
+        shName.textContent = tac.shieldName || '🛡️戦術障壁';
+        shVal.textContent = curSh > 0 ? `${fmt(curSh)} / ${fmt(maxSh)}` : '💥BREAK!';
+        shBar.style.width = Math.max(0, Math.min(100, curSh / maxSh * 100)) + '%';
+        if(tacHint) tacHint.textContent = `💡対策: ${tac.counterText || ''}`;
+      }
+    }
+    const stBar = $('#dgnStanceBar');
+    if(stBar){
+      const curSt = S.dungeonStance || 'assault';
+      stBar.querySelectorAll('.stance-btn').forEach(btn => {
+        const st = btn.dataset.stance;
+        btn.classList.toggle('on', st === curSt);
+        if(!btn._bound){
+          btn._bound = true;
+          btn.onclick = () => setDungeonStance(st);
+        }
+      });
+    }
+    const cntBox = $('#dgnContraptionBox'), cntListEl = $('#dgnContraptionList'), cntCountEl = $('#dgnContraptionCount'), autoBtn = $('#btnAutoWireContraption');
+    if(cntBox && cntListEl && cntCountEl){
+      const cnt = S.activeContraptions || evaluateDungeonContraptions();
+      const actIds = new Set((cnt.list || []).map(x => x.id));
+      cntCountEl.textContent = actIds.size > 0 ? `${actIds.size}基稼働 (攻撃×${cnt.atkMul} / 障壁×${cnt.shieldBreak})` : `0基稼働 (要接続)`;
+      const sig = [...actIds].join(',') + '|' + cnt.atkMul;
+      if(cntListEl._sig !== sig){
+        cntListEl._sig = sig;
+        if(actIds.size > 0){
+          cntListEl.innerHTML = (cnt.list || []).map(c =>
+            `<span class="cnt-chip active" title="${c.d}｜構成: ${c.recipeText}">${c.i}${c.n} (×${c.atkMul})</span>`
+          ).join('');
+        }else{
+          cntListEl.innerHTML = CONTRAPTION_DEFS.slice(0, 3).map(c =>
+            `<span class="cnt-chip" title="未発動｜${c.recipeText} → ${c.d}">${c.i}${c.n}</span>`
+          ).join('');
+        }
+      }
+      if(autoBtn && !autoBtn._bound){
+        autoBtn._bound = true;
+        autoBtn.onclick = () => autoWireContraption();
+      }
+    }
     const eWeakEl = $('#eWeak');
     if(eWeakEl){
       const eIdx = Math.min((z.e && z.e.length ? z.e.length - 1 : 0), Math.floor(((cf - 1) / Math.max(1, z.maxF || 20)) * ((z.e && z.e.length) || 5)));
@@ -10564,6 +11466,8 @@ function ioText(T){
              anvil:'🎽 🔩×2 ⚡ <span class="ar">→</span> ⚔️鍛錬'};
     return m[T.chain] || '—';
   }
+  if(T.vault || T.line==='vault')   return `🪙⚡ <span class="ar">→</span> 🏦蓄財・🪙金貨供給`;
+  if(T.engine || T.effect==='engine') return `⚡🪙📦 <span class="ar">→</span> ⚙️複合装置・⚔️戦術`;
   if(T.effect==='extr')   return `👾⚡ <span class="ar">→</span> ⚡ 💪🧠❤️ 🔬`;
   if(T.effect==='turret') return `⚡ <span class="ar">→</span> 🎯砲撃・加速`;
   if(T.effect==='synt')   return `👾⚡ <span class="ar">→</span> 🏺🎽⚙️錬成`;
@@ -10835,7 +11739,7 @@ function bounds(){
 }
 function fitView(maxS){
   if(!S.nodes.some(onBoard)) return;
-  const b=bounds(), W=stage.clientWidth, H=stage.clientHeight, pad=48;
+  const b=bounds(), W=stage.clientWidth||800, H=stage.clientHeight||600, pad=48;
   const s=Math.min(maxS||1.2, Math.max(0.2, Math.min((W-pad*2)/Math.max(1,b.x1-b.x0),
                                                (H-pad*2)/Math.max(1,b.y1-b.y0))));
   S.view.s=s;
@@ -11014,7 +11918,41 @@ function renderInsp(){
 
   let tabBody = '';
   if(curInspTab === '1'){
+    const cntInfo = (T.engine || T.effect==='engine' || T.effect==='dive') ? (S.activeContraptions || evaluateDungeonContraptions()) : null;
+    const actIds = cntInfo ? new Set((cntInfo.list || []).map(x => x.id)) : null;
     tabBody = `
+      ${(T.vault || T.line==='vault') ? `
+        <div style="background:linear-gradient(135deg,rgba(251,191,36,.18),rgba(15,23,42,.9));border:1px solid #fbbf24;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font-weight:800;color:#fde68a;font-size:12px">
+            <span>🏦 金庫蓄財残高</span>
+            <b style="font-size:13.5px;color:#fbbf24">${fmt(n.vaultGold || 0)}G</b>
+          </div>
+          <div style="font-size:10px;color:#cbd5e1;margin-top:3px;line-height:1.4">
+            🏪露店や⚔️洞窟から届く<b>🪙お金エネルギー</b>を貯蔵してノード上に積み上げ、複利ボーナスと<b>🪙金貨エネルギー</b>を酒場・出資窓口・攻略装置へ供給します（周囲の仲間給料-35%）。
+          </div>
+          <div style="display:flex;gap:5px;margin-top:6px">
+            <button id="btnVaultDeposit" style="flex:1;background:rgba(251,191,36,.2);border:1px solid #fbbf24;border-radius:6px;padding:5px 6px;color:#fde68a;font-weight:800;font-size:10.5px;cursor:pointer">💰100Gを金貨エネルギー化</button>
+            <button id="btnVaultEmit" style="flex:1;background:rgba(56,189,248,.18);border:1px solid #38bdf8;border-radius:6px;padding:5px 6px;color:#7dd3fc;font-weight:800;font-size:10.5px;cursor:pointer">🪙金貨放出 (+6)</button>
+          </div>
+        </div>
+      ` : ''}
+      ${cntInfo ? `
+        <div style="background:linear-gradient(135deg,rgba(244,63,94,.16),rgba(15,23,42,.9));border:1px solid rgba(244,63,94,.55);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font-weight:800;color:#fda4af;font-size:11.5px">
+            <span>⚙️ 複合攻略装置ネットワーク</span>
+            <b style="color:#5ee0c0">攻撃×${cntInfo.atkMul} / 障壁×${cntInfo.shieldBreak}</b>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin:5px 0">
+            ${CONTRAPTION_DEFS.map(c => {
+              const on = actIds.has(c.id);
+              return `<span class="cnt-chip ${on?'active':''}" title="${c.recipeText} → ${c.d}">${on?'✅':'⬜'}${c.i}${c.n}</span>`;
+            }).join('')}
+          </div>
+          <button id="btnInspAutoWireContraption" style="width:100%;background:linear-gradient(135deg,#e11d48,#be123c);border:none;border-radius:6px;padding:6px;color:#fff;font-weight:800;font-size:11px;cursor:pointer">
+            🔗 複合攻略装置を自動構築・配線
+          </button>
+        </div>
+      ` : ''}
       ${(T.role==='tavern'||T.line==='tavern') ? `
         <div style="background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(15,23,42,.85));border:1px solid #f59e0b;border-radius:8px;padding:8px 10px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:6px;font-weight:800;color:var(--gold);font-size:12.5px">
@@ -11107,6 +12045,30 @@ function renderInsp(){
 
   const heBtn = box.querySelector('.human-expand-btn');
   if(heBtn) heBtn.onclick = () => { n._allPorts = !n._allPorts; rebuildNodeEl(n); renderInsp(); };
+
+  const vDepBtn = box.querySelector('#btnVaultDeposit');
+  if(vDepBtn) vDepBtn.onclick = () => {
+    const dep = Math.min(100, Math.floor(S.gold || 0));
+    if(dep <= 0) return toast('💰 手持ちのゴールドが足りません');
+    S.gold -= dep;
+    n.vaultGold = (n.vaultGold || 0) + Math.round(dep * 1.25);
+    n.outBuf.gold = Math.min(capOut(n, 'gold') * 3, (n.outBuf.gold || 0) + Math.max(4, Math.round(dep / 15)));
+    updateNodeEnergyStack(n);
+    toast(`🏦 金庫に ${dep}G を預け入れ、🪙お金エネルギーをチャージしました！`);
+    renderInsp(); render();
+  };
+  const vEmitBtn = box.querySelector('#btnVaultEmit');
+  if(vEmitBtn) vEmitBtn.onclick = () => {
+    if((n.vaultGold || 0) < 20 && (S.gold || 0) < 20) return toast('🏦 蓄財ゴールドが足りません');
+    if((n.vaultGold || 0) >= 20) n.vaultGold -= 20;
+    else S.gold -= 20;
+    n.outBuf.gold = Math.min(capOut(n, 'gold') * 3, (n.outBuf.gold || 0) + 6);
+    updateNodeEnergyStack(n);
+    toast('🪙 金貨エネルギー (+6) を出力バッファへ放出しました！');
+    renderInsp(); render();
+  };
+  const autoCntBtn = box.querySelector('#btnInspAutoWireContraption');
+  if(autoCntBtn) autoCntBtn.onclick = () => autoWireContraption();
 
   const rpBtn = box.querySelector('.repair-btn');
   if(rpBtn) rpBtn.onclick = () => { repairNode(n); renderInsp(); };
@@ -12655,7 +13617,7 @@ function load(){
       for(const p of pk){
         if(!p || !ITEMS[p.item] || CABLE_ITEM[p.item]) continue;
         const np={item:p.item, t:Math.max(0,Math.min(0.94,+p.t||0)), q:p.q||1, jam:!!p.jam};
-        mkPacketEl(np); l.packets.push(np);
+        mkPacketEl(np, l); l.packets.push(np);
       }
     }
     S.at = null; applyView(); renderLog(); renderBoard();
@@ -13777,13 +14739,14 @@ takeBaseSnapshot();
 
 function defaultDevCfg(){
   return {
-    v: 3,
+    v: 4,
     initBoard: {
       initGold: 500,
       initIng1: 0,
       nodes: [
-        { type:'hero',  x:80,  y:150 },
-        { type:'dive1', x:290, y:150 }
+        { type:'hero',   x:80,  y:150 },
+        { type:'dive1',  x:290, y:150 },
+        { type:'vault1', x:500, y:150 }
       ],
       links: [
         { from:0, item:'sta', to:1 }
@@ -13899,7 +14862,7 @@ function loadDevCfg(){
     const raw = localStorage.getItem(DEV_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
-    if(!d || typeof d !== 'object' || d.v !== 3){
+    if(!d || typeof d !== 'object' || d.v !== 4){
       localStorage.removeItem(DEV_KEY);
       return false;
     }
