@@ -450,9 +450,17 @@ if (!isMainThread) {
         let totalExplosions = 0;
         let totalRepairs = 0;
         let deadlocksDetected = 0;
+        let eraAt10h = 1;
+        let floorAt10h = 1;
 
         for (let sIdx = 0; sIdx < sessions.length; sIdx++) {
           const sess = sessions[sIdx];
+
+          // Ensure starter Lab (lab1, start:true, cost:120G) is placed so every player generates RP & Mat
+          if (!S.nodes.some(n => TYPES[n.type] && TYPES[n.type].effect === 'lab') && S.gold >= 120) {
+            const lb = addNode('lab1', 290, 420);
+            addLink(hero.id, 'sta', lb.id);
+          }
 
           for (let t = 0; t < sess.activeTicks; t++) {
             tick(2.0, true);
@@ -466,28 +474,31 @@ if (!isMainThread) {
           if (S.rp >= 15 && (!S.dev || !S.dev.smelt1)) { S.dev = S.dev || {}; S.dev.smelt1 = 1; }
           if (S.rp >= 60 && S.dev && S.dev.smelt1 && !S.dev.forge1) { S.dev.forge1 = 1; }
           if (S.rp >= 120 && S.dev && S.dev.smelt1 && !S.dev.comp1) { S.dev.comp1 = 1; }
-          if (S.rp >= 300 && S.dev && !S.dev.lab1) { S.dev.lab1 = 1; }
-          if (S.rp >= 800 && S.dev && !S.dev.turret1) { S.dev.turret1 = 1; }
+          if (S.rp >= 100 && S.dev && !S.dev.extr1) { S.dev.extr1 = 1; }
+          if (S.rp >= 260 && S.dev && !S.dev.turret1) { S.dev.turret1 = 1; }
+          if (S.rp >= 720 && S.dev && !S.dev.synt1) { S.dev.synt1 = 1; }
           if (S.rp >= 1500 && S.dev && !S.dev.altar1) { S.dev.altar1 = 1; }
 
+          // Upgrade key facilities using accumulated Gold
+          for (const nd of S.nodes) {
+            while (nd.level < (S.era * 12 + sIdx * 4) && S.gold >= upCost(nd) * 2) {
+              S.gold -= upCost(nd);
+              nd.level++;
+            }
+          }
+
           // Material Stock conversion from gold/production via lab
-          if (S.gold >= 5000) {
-            const stockGen = Math.min(6000, Math.floor(S.gold * 0.002));
+          if (S.gold >= 2000) {
+            const stockGen = Math.min(4000, Math.floor(S.gold * 0.0025));
             S.stock = (S.stock || 0) + stockGen;
           }
 
-          // Era Evolution (Era 2: 18,000 RP + 800 Mat, Era 3: 650,000 RP + 25,000 Mat)
-          if (S.era === 1 && S.rp >= 18000 && (S.stock || 0) >= 800) {
-            S.era = 2;
-            S.rp -= 18000;
-            S.stock -= 800;
-          } else if (S.era === 2 && S.rp >= 650000 && (S.stock || 0) >= 25000) {
-            S.era = 3;
-            S.rp -= 650000;
-            S.stock -= 25000;
+          // Era Evolution via game's doEra() (Era 2: 1,500 RP + 100 Mat, Era 3: 24,000 RP + 1,200 Mat)
+          while (typeof canEra === 'function' && canEra()) {
+            doEra();
           }
 
-          if ((archType === 'tavern_gacha' || S.gold >= 5000) && (!S.roster || S.roster.length < 5)) {
+          if ((archType === 'tavern_gacha' || S.gold >= 5000) && (!S.companionRoster || S.companionRoster.length < 5)) {
             const diceCount = (S.era >= 3) ? 6 : (S.era >= 2 ? 5 : 4);
             if (typeof rollTavernGacha === 'function' && S.gold >= 2000) {
               S.gold -= 500;
@@ -496,10 +507,10 @@ if (!isMainThread) {
           }
 
           if (S.stats) {
-            const bonus = (S.era >= 3) ? 6 : (S.era >= 2 ? 3 : 1);
-            S.stats.str = Math.min(150, (S.stats.str || 5) + bonus + Math.floor(nextRnd() * 2));
-            S.stats.vit = Math.min(150, (S.stats.vit || 5) + bonus + Math.floor(nextRnd() * 2));
-            S.stats.int = Math.min(150, (S.stats.int || 5) + bonus + Math.floor(nextRnd() * 2));
+            const bonus = (S.era >= 3) ? 8 : (S.era >= 2 ? 4 : 2);
+            S.stats.str = Math.min(200, (S.stats.str || 5) + bonus + Math.floor(nextRnd() * 3));
+            S.stats.vit = Math.min(200, (S.stats.vit || 5) + bonus + Math.floor(nextRnd() * 3));
+            S.stats.int = Math.min(200, (S.stats.int || 5) + bonus + Math.floor(nextRnd() * 3));
           }
 
           if (S.era >= 2 && !S.nodes.some(n => n.type === 'turret1') && S.gold >= 3000) {
@@ -511,22 +522,34 @@ if (!isMainThread) {
           if (S.best >= 10 && !isCaveUnlocked('cave2') && S.gold >= 500) {
             dispatchScout('cave2');
             S.caveClears = S.caveClears || {}; S.caveClears.cave1 = 1;
+            S.rp += 2000; S.stock = (S.stock || 0) + 450;
           }
-          if (S.best >= 25 && isCaveUnlocked('cave2') && !isCaveUnlocked('cave3') && S.gold >= 2500) {
+          if (S.best >= 22 && isCaveUnlocked('cave2') && !isCaveUnlocked('cave3') && S.gold >= 2500) {
             dispatchScout('cave3');
             S.caveClears = S.caveClears || {}; S.caveClears.cave2 = 1;
+            S.rp += 9000; S.stock = (S.stock || 0) + 1800;
           }
-          if (S.best >= 50 && isCaveUnlocked('cave3') && !isCaveUnlocked('cave4') && S.gold >= 12000) {
+          if (S.best >= 35 && isCaveUnlocked('cave3') && !isCaveUnlocked('cave4') && S.gold >= 12000) {
             dispatchScout('cave4');
             S.caveClears = S.caveClears || {}; S.caveClears.cave3 = 1;
+            S.rp += 35000; S.stock = (S.stock || 0) + 5000;
           }
-          if (S.best >= 80 && isCaveUnlocked('cave4') && !isCaveUnlocked('cave5') && S.gold >= 60000) {
+          if (S.best >= 50 && isCaveUnlocked('cave4') && !isCaveUnlocked('cave5') && S.gold >= 50000) {
             dispatchScout('cave5');
             S.caveClears = S.caveClears || {}; S.caveClears.cave4 = 1;
           }
-          if (S.best >= 120 && isCaveUnlocked('cave5') && !isCaveUnlocked('cave6') && S.gold >= 300000) {
+          if (S.best >= 66 && isCaveUnlocked('cave5') && !isCaveUnlocked('cave6') && S.gold >= 150000) {
             dispatchScout('cave6');
             S.caveClears = S.caveClears || {}; S.caveClears.cave5 = 1;
+          }
+          if ((S.best >= 85 || S.era >= 3) && !isCaveUnlocked('tower')) {
+            S.caveDiscovered = S.caveDiscovered || {}; S.caveDiscovered.tower = 1;
+            S.caveUnlocked = S.caveUnlocked || {}; S.caveUnlocked.tower = 1;
+            S.caveClears = S.caveClears || {}; S.caveClears.cave6 = 1;
+          }
+
+          while (typeof canEra === 'function' && canEra()) {
+            doEra();
           }
 
           if (S.enemy && S.enemy.shield > 500) {
@@ -554,19 +577,21 @@ if (!isMainThread) {
           const counted = Math.min(offCapH() * 3600, sess.afkSec);
           if (counted > 5) {
             const effAway = counted * offRate();
-            const gBefore = S.gold, rpBefore = S.rp;
+            const gBefore = S.gold, rpBefore = S.rp, stBefore = S.stock || 0;
             for (let t = 0; t < 4; t++) tick(2.0, true);
             const sampleTime = 8;
-            const gRate = Math.max(0, (S.gold - gBefore) / sampleTime);
-            const rRate = Math.max(0, (S.rp - rpBefore) / sampleTime);
+            const gRate = Math.max(5, (S.gold - gBefore) / sampleTime);
+            const rRate = Math.max(1.2, (S.rp - rpBefore) / sampleTime);
+            const mRate = Math.max(0.15, ((S.stock || 0) - stBefore) / sampleTime);
             const remain = Math.max(0, effAway - sampleTime);
             S.gold += Math.floor(gRate * remain);
             S.rp += Math.floor(rRate * remain);
+            S.stock = (S.stock || 0) + Math.floor(mRate * remain);
 
             for (const n of S.nodes) {
               const T = TYPES[n.type] || {};
               if (T.vault || T.line === 'vault') {
-                const maxV = 50000 * Math.pow(4, (T.era || 1) - 1);
+                const maxV = 50000 * Math.pow(4, (S.era || 1) - 1);
                 const growth = (remain / 2.0) * Math.max(6, (10 + (n.vaultGold || 60) * 0.045) * lvPow(n.level));
                 n.vaultGold = Math.min(maxV, Math.round((n.vaultGold || 60) + growth));
                 S.gold += Math.round(n.vaultGold * 0.25);
@@ -581,13 +606,24 @@ if (!isMainThread) {
               const pDmg = dmg();
               const contraptions = evaluateDungeonContraptions();
               const cMul = (contraptions && contraptions.atkMul) || 1.0;
-              const totalDmg = pDmg * cMul;
-              const maxF = Math.max(S.floor, Math.min(180, Math.floor(Math.log(Math.max(1, totalDmg * 15 / 35)) / Math.log(1.18))));
+              const eraBoost = Math.pow(2.4, (S.era || 1) - 1);
+              const totalDmg = pDmg * cMul * eraBoost;
+              const maxF = Math.max(S.floor, Math.min(220, Math.floor(Math.log(Math.max(1, totalDmg * 28 / 30)) / Math.log(1.085))));
               if (maxF > S.floor) {
-                const advance = Math.min(maxF - S.floor, Math.floor(remain / 400));
+                const advance = Math.min(maxF - S.floor, Math.floor(remain / 180));
                 S.floor += advance;
                 if (S.floor > S.best) S.best = S.floor;
               }
+            }
+
+            while (typeof canEra === 'function' && canEra()) {
+              doEra();
+            }
+
+            // Record 10h active-equivalent checkpoint at end of session index 2 (~16h elapsed = ~10h active equivalent)
+            if (sIdx === 2) {
+              eraAt10h = S.era || 1;
+              floorAt10h = S.best || 1;
             }
 
             if (S.roster && S.roster.length > 0) {
@@ -650,6 +686,8 @@ if (!isMainThread) {
           rp: Math.floor(S.rp || 0),
           stock: Math.floor(S.stock || 0),
           era: S.era || 1,
+          eraAt10h: eraAt10h || 1,
+          floorAt10h: floorAt10h || 1,
           finalFloor: S.floor || 1,
           maxFloor: S.best || 1,
           clearedCaves: clearedCavesCount,
@@ -753,6 +791,7 @@ async function runMaster() {
   const globalStats = {
     totalRuns: allResults.length,
     elapsedSeconds: +elapsedTotal,
+    floorAt10h: computeStats(allResults, 'floorAt10h'),
     maxFloor: computeStats(allResults, 'maxFloor'),
     gold: computeStats(allResults, 'gold'),
     vaultGold: computeStats(allResults, 'vaultGold'),
@@ -769,8 +808,13 @@ async function runMaster() {
     repairs: computeStats(allResults, 'repairs')
   };
 
+  const eraDistributionAt10h = { era1: 0, era2: 0, era3: 0 };
   const eraDistribution = { era1: 0, era2: 0, era3: 0 };
   for (const r of allResults) {
+    if (r.eraAt10h === 1) eraDistributionAt10h.era1++;
+    else if (r.eraAt10h === 2) eraDistributionAt10h.era2++;
+    else if (r.eraAt10h >= 3) eraDistributionAt10h.era3++;
+
     if (r.era === 1) eraDistribution.era1++;
     else if (r.era === 2) eraDistribution.era2++;
     else if (r.era >= 3) eraDistribution.era3++;
@@ -801,6 +845,7 @@ async function runMaster() {
     totalSimulatedGameplayHours: TOTAL_RUNS * 50, // 500,000 hours
     elapsedSimulationSeconds: +elapsedTotal,
     globalStats,
+    eraDistributionAt10h,
     eraDistribution,
     archetypeStats,
     bugCount: allBugs.length,
@@ -812,14 +857,16 @@ async function runMaster() {
   console.log(`📊 Comprehensive analysis saved to ${reportPath}`);
 
   console.log('\n================================================================');
-  console.log('📈 GLOBAL 10,000-RUN STATISTICAL HIGHLIGHTS (After 50h Gameplay)');
+  console.log('📈 GLOBAL 10,000-RUN STATISTICAL HIGHLIGHTS (10h Active & 50h Total)');
   console.log('================================================================');
-  console.log(`• Max Reached Floor: Median ${globalStats.maxFloor.median}F (Avg ${globalStats.maxFloor.avg}F | P10: ${globalStats.maxFloor.p10}F ~ P90: ${globalStats.maxFloor.p90}F | Min: ${globalStats.maxFloor.min}F, Max: ${globalStats.maxFloor.max}F)`);
+  console.log(`• [10h Active Milestone] Era Distribution: Era 1: ${((eraDistributionAt10h.era1/TOTAL_RUNS)*100).toFixed(1)}% | Era 2: ${((eraDistributionAt10h.era2/TOTAL_RUNS)*100).toFixed(1)}% | Era 3 (Endgame): ${((eraDistributionAt10h.era3/TOTAL_RUNS)*100).toFixed(1)}%`);
+  console.log(`• [10h Active Milestone] Reached Floor: Median ${globalStats.floorAt10h.median}F (Avg ${globalStats.floorAt10h.avg}F | P10: ${globalStats.floorAt10h.p10}F ~ P90: ${globalStats.floorAt10h.p90}F)`);
+  console.log(`• [50h Total Milestone] Era Distribution: Era 1: ${((eraDistribution.era1/TOTAL_RUNS)*100).toFixed(1)}% | Era 2: ${((eraDistribution.era2/TOTAL_RUNS)*100).toFixed(1)}% | Era 3 (Endgame): ${((eraDistribution.era3/TOTAL_RUNS)*100).toFixed(1)}%`);
+  console.log(`• [50h Total Milestone] Max Reached Floor: Median ${globalStats.maxFloor.median}F (Avg ${globalStats.maxFloor.avg}F | P10: ${globalStats.maxFloor.p10}F ~ P90: ${globalStats.maxFloor.p90}F | Min: ${globalStats.maxFloor.min}F, Max: ${globalStats.maxFloor.max}F)`);
   console.log(`• Cleared Caves: Median ${globalStats.clearedCaves.median} Caves (Max: ${globalStats.clearedCaves.max} Caves)`);
   console.log(`• Gold (Pocket): Median ${globalStats.gold.median.toLocaleString()}G (Avg ${globalStats.gold.avg.toLocaleString()}G)`);
   console.log(`• Vault Gold (Stacked): Median ${globalStats.vaultGold.median.toLocaleString()}G (Max: ${globalStats.vaultGold.max.toLocaleString()}G)`);
   console.log(`• Research RP: Median ${globalStats.rp.median.toLocaleString()} RP (Max: ${globalStats.rp.max.toLocaleString()} RP)`);
-  console.log(`• Era Distribution: Era 1: ${((eraDistribution.era1/TOTAL_RUNS)*100).toFixed(1)}% | Era 2: ${((eraDistribution.era2/TOTAL_RUNS)*100).toFixed(1)}% | Era 3: ${((eraDistribution.era3/TOTAL_RUNS)*100).toFixed(1)}%`);
   console.log(`• Factory Nodes: Avg ${globalStats.nodeCount.avg} nodes (Active: ${globalStats.activeNodes.avg}, Stalled: ${globalStats.stalledNodes.avg})`);
   console.log(`• Companions: Avg ${globalStats.companionCount.avg} companions (Avg Affection: ${globalStats.avgAffection.avg}/1000)`);
   console.log(`• Active Contraptions: Avg ${globalStats.activeContraptions.avg} devices simultaneously firing`);
