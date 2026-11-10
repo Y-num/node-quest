@@ -1,0 +1,996 @@
+{
+  "generatedAt": "2026-11-10T21:44:21.075Z",
+  "totalRunsSimulated": 10000,
+  "hoursPerRun": 50,
+  "totalSimulatedGameplayHours": 500000,
+  "elapsedSimulationSeconds": 356.4,
+  "globalStats": {
+    "totalRuns": 10000,
+    "elapsedSeconds": 356.4,
+    "maxFloor": {
+      "min": 6,
+      "max": 26,
+      "avg": 14.49,
+      "median": 15,
+      "p10": 8,
+      "p90": 21,
+      "p99": 23
+    },
+    "gold": {
+      "min": 100545970,
+      "max": 1207019777,
+      "avg": 277557360.47,
+      "median": 210020021,
+      "p10": 158768650,
+      "p90": 704580777,
+      "p99": 1067158045
+    },
+    "vaultGold": {
+      "min": 50000,
+      "max": 100000,
+      "avg": 55000,
+      "median": 50000,
+      "p10": 50000,
+      "p90": 100000,
+      "p99": 100000
+    },
+    "rp": {
+      "min": 30,
+      "max": 14166672,
+      "avg": 1147673.9,
+      "median": 30,
+      "p10": 30,
+      "p90": 4940502,
+      "p99": 13093312
+    },
+    "clearedCaves": {
+      "min": 0,
+      "max": 2,
+      "avg": 0.78,
+      "median": 1,
+      "p10": 0,
+      "p90": 1,
+      "p99": 1
+    },
+    "nodeCount": {
+      "min": 3,
+      "max": 9,
+      "avg": 6.2,
+      "median": 6,
+      "p10": 4,
+      "p90": 8,
+      "p99": 8
+    },
+    "activeNodes": {
+      "min": 1,
+      "max": 5,
+      "avg": 2.81,
+      "median": 3,
+      "p10": 2,
+      "p90": 4,
+      "p99": 5
+    },
+    "stalledNodes": {
+      "min": 0,
+      "max": 7,
+      "avg": 3.39,
+      "median": 3,
+      "p10": 1,
+      "p90": 6,
+      "p99": 6
+    },
+    "strikingNodes": {
+      "min": 0,
+      "max": 0,
+      "avg": 0,
+      "median": 0,
+      "p10": 0,
+      "p90": 0,
+      "p99": 0
+    },
+    "companionCount": {
+      "min": 0,
+      "max": 0,
+      "avg": 0,
+      "median": 0,
+      "p10": 0,
+      "p90": 0,
+      "p99": 0
+    },
+    "avgAffection": {
+      "min": 0,
+      "max": 0,
+      "avg": 0,
+      "median": 0,
+      "p10": 0,
+      "p90": 0,
+      "p99": 0
+    },
+    "activeContraptions": {
+      "min": 0,
+      "max": 3,
+      "avg": 0.67,
+      "median": 0,
+      "p10": 0,
+      "p90": 3,
+      "p99": 3
+    },
+    "explosions": {
+      "min": 0,
+      "max": 0,
+      "avg": 0,
+      "median": 0,
+      "p10": 0,
+      "p90": 0,
+      "p99": 0
+    },
+    "repairs": {
+      "min": 0,
+      "max": 0,
+      "avg": 0,
+      "median": 0,
+      "p10": 0,
+      "p90": 0,
+      "p99": 0
+    }
+  },
+  "eraDistribution": {
+    "era1": 7987,
+    "era2": 2013,
+    "era3": 0
+  },
+  "archetypeStats": {
+    "standard": {
+      "name": "標準バランス型 (Standard Balanced)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 6,
+        "max": 19,
+        "avg": 13.13,
+        "median": 12,
+        "p10": 9,
+        "p90": 16,
+        "p99": 19
+      },
+      "gold": {
+        "min": 158768650,
+        "max": 262760647,
+        "avg": 206073001.5,
+        "median": 204735616,
+        "p10": 180793382,
+        "p90": 234089334,
+        "p99": 254333265
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 667317,
+        "avg": 83461.17,
+        "median": 30,
+        "p10": 30,
+        "p90": 555946,
+        "p99": 630167
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.74,
+        "median": 1,
+        "p10": 0,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.06,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 1
+      },
+      "activeNodes": {
+        "min": 2,
+        "max": 3,
+        "avg": 2.4,
+        "median": 2,
+        "p10": 2,
+        "p90": 3,
+        "p99": 3
+      },
+      "stalledNodes": {
+        "min": 4,
+        "max": 6,
+        "avg": 4.68,
+        "median": 5,
+        "p10": 4,
+        "p90": 5,
+        "p99": 6
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "vault_wealth": {
+      "name": "金庫蓄財・商業富豪型 (Vault Wealth & Commerce)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 12,
+        "max": 23,
+        "avg": 18.43,
+        "median": 19,
+        "p10": 12,
+        "p90": 22,
+        "p99": 22
+      },
+      "gold": {
+        "min": 704580777,
+        "max": 1207019777,
+        "avg": 938292554.83,
+        "median": 928703004,
+        "p10": 817991916,
+        "p90": 1067158045,
+        "p99": 1169537902
+      },
+      "vaultGold": {
+        "min": 100000,
+        "max": 100000,
+        "avg": 100000,
+        "median": 100000,
+        "p10": 100000,
+        "p90": 100000,
+        "p99": 100000
+      },
+      "rp": {
+        "min": 30,
+        "max": 1289647,
+        "avg": 387965.85,
+        "median": 395424,
+        "p10": 204,
+        "p90": 1083379,
+        "p99": 1261494
+      },
+      "clearedCaves": {
+        "min": 1,
+        "max": 1,
+        "avg": 1,
+        "median": 1,
+        "p10": 1,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 1,
+        "max": 3,
+        "avg": 2.46,
+        "median": 2,
+        "p10": 2,
+        "p90": 3,
+        "p99": 3
+      },
+      "activeNodes": {
+        "min": 3,
+        "max": 4,
+        "avg": 3.75,
+        "median": 4,
+        "p10": 3,
+        "p90": 4,
+        "p99": 4
+      },
+      "stalledNodes": {
+        "min": 3,
+        "max": 5,
+        "avg": 3.75,
+        "median": 4,
+        "p10": 3,
+        "p90": 4,
+        "p99": 5
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "tavern_gacha": {
+      "name": "酒場ギルド・仲間スウォーム型 (Tavern Guild & Gacha)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 7,
+        "max": 21,
+        "avg": 14.43,
+        "median": 15,
+        "p10": 12,
+        "p90": 16,
+        "p99": 21
+      },
+      "gold": {
+        "min": 166730911,
+        "max": 286940728,
+        "avg": 215075583.36,
+        "median": 214399210,
+        "p10": 187571622,
+        "p90": 243277798,
+        "p99": 266367497
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 644992,
+        "avg": 100246.29,
+        "median": 30,
+        "p10": 30,
+        "p90": 570002,
+        "p99": 623139
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.91,
+        "median": 1,
+        "p10": 1,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.09,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 1
+      },
+      "activeNodes": {
+        "min": 1,
+        "max": 4,
+        "avg": 2.61,
+        "median": 3,
+        "p10": 2,
+        "p90": 3,
+        "p99": 3
+      },
+      "stalledNodes": {
+        "min": 1,
+        "max": 3,
+        "avg": 1.51,
+        "median": 1,
+        "p10": 1,
+        "p90": 2,
+        "p99": 3
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "modular_contraption": {
+      "name": "複合攻略装置・戦術コア特化型 (Modular Contraptions)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 10,
+        "max": 21,
+        "avg": 15.56,
+        "median": 16,
+        "p10": 12,
+        "p90": 21,
+        "p99": 21
+      },
+      "gold": {
+        "min": 178679256,
+        "max": 287488413,
+        "avg": 223381385.3,
+        "median": 222690062,
+        "p10": 198520388,
+        "p90": 249102861,
+        "p99": 279445356
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 1294527,
+        "avg": 197961.55,
+        "median": 211,
+        "p10": 30,
+        "p90": 615225,
+        "p99": 1247418
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 1,
+        "median": 1,
+        "p10": 1,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.98,
+        "median": 1,
+        "p10": 1,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeNodes": {
+        "min": 2,
+        "max": 5,
+        "avg": 2.37,
+        "median": 2,
+        "p10": 2,
+        "p90": 3,
+        "p99": 4
+      },
+      "stalledNodes": {
+        "min": 0,
+        "max": 4,
+        "avg": 2.64,
+        "median": 3,
+        "p10": 2,
+        "p90": 3,
+        "p99": 4
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "clean_energy": {
+      "name": "自然エネルギー・アニマ特化型 (Clean Anima)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 6,
+        "max": 21,
+        "avg": 13.49,
+        "median": 13,
+        "p10": 10,
+        "p90": 16,
+        "p99": 19
+      },
+      "gold": {
+        "min": 164533046,
+        "max": 268437587,
+        "avg": 208398785.43,
+        "median": 207632738,
+        "p10": 182245665,
+        "p90": 235727245,
+        "p99": 256758680
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 674759,
+        "avg": 103741.9,
+        "median": 30,
+        "p10": 30,
+        "p90": 573946,
+        "p99": 630167
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.82,
+        "median": 1,
+        "p10": 0,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.08,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 1
+      },
+      "activeNodes": {
+        "min": 2,
+        "max": 3,
+        "avg": 2.45,
+        "median": 2,
+        "p10": 2,
+        "p90": 3,
+        "p99": 3
+      },
+      "stalledNodes": {
+        "min": 3,
+        "max": 5,
+        "avg": 3.65,
+        "median": 4,
+        "p10": 3,
+        "p90": 4,
+        "p99": 5
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "thermal_industrial": {
+      "name": "火力発電・過負荷工業ラッシュ型 (Thermal Rush)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 6,
+        "max": 19,
+        "avg": 12.37,
+        "median": 13,
+        "p10": 6,
+        "p90": 16,
+        "p99": 18
+      },
+      "gold": {
+        "min": 100545970,
+        "max": 157596167,
+        "avg": 124891193.09,
+        "median": 124156574,
+        "p10": 112649881,
+        "p90": 139416150,
+        "p99": 147362714
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 637549,
+        "avg": 52215.96,
+        "median": 30,
+        "p10": 30,
+        "p90": 1867,
+        "p99": 623139
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.56,
+        "median": 1,
+        "p10": 0,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.02,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 1
+      },
+      "activeNodes": {
+        "min": 1,
+        "max": 3,
+        "avg": 2.54,
+        "median": 3,
+        "p10": 2,
+        "p90": 3,
+        "p99": 3
+      },
+      "stalledNodes": {
+        "min": 4,
+        "max": 7,
+        "avg": 5.49,
+        "median": 5,
+        "p10": 5,
+        "p90": 6,
+        "p99": 6
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "combat_forge": {
+      "name": "武闘派・装備鍛造速攻型 (Combat Forge)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 6,
+        "max": 17,
+        "avg": 9.18,
+        "median": 8,
+        "p10": 6,
+        "p90": 16,
+        "p99": 16
+      },
+      "gold": {
+        "min": 160624099,
+        "max": 242312724,
+        "avg": 192714085.21,
+        "median": 193054776,
+        "p10": 173653509,
+        "p90": 212478815,
+        "p99": 228710481
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 644992,
+        "avg": 35017.13,
+        "median": 30,
+        "p10": 30,
+        "p90": 30,
+        "p99": 630108
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.22,
+        "median": 0,
+        "p10": 0,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      },
+      "activeNodes": {
+        "min": 2,
+        "max": 3,
+        "avg": 2.14,
+        "median": 2,
+        "p10": 2,
+        "p90": 3,
+        "p99": 3
+      },
+      "stalledNodes": {
+        "min": 5,
+        "max": 7,
+        "avg": 5.87,
+        "median": 6,
+        "p10": 5,
+        "p90": 6,
+        "p99": 7
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "scholar_tech": {
+      "name": "学者・研究ツリー最速突破型 (Scholar Tech Tree)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 19,
+        "max": 26,
+        "avg": 22,
+        "median": 22,
+        "p10": 21,
+        "p90": 23,
+        "p99": 24
+      },
+      "gold": {
+        "min": 205371577,
+        "max": 305153124,
+        "avg": 256207740.56,
+        "median": 254744405,
+        "p10": 232147828,
+        "p90": 283406337,
+        "p99": 296674698
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 4940502,
+        "max": 14166672,
+        "avg": 10377086.07,
+        "median": 11025092,
+        "p10": 6531976,
+        "p90": 13093312,
+        "p99": 14004863
+      },
+      "clearedCaves": {
+        "min": 1,
+        "max": 2,
+        "avg": 1,
+        "median": 1,
+        "p10": 1,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 3,
+        "avg": 2.9,
+        "median": 3,
+        "p10": 3,
+        "p90": 3,
+        "p99": 3
+      },
+      "activeNodes": {
+        "min": 3,
+        "max": 5,
+        "avg": 4.17,
+        "median": 4,
+        "p10": 4,
+        "p90": 5,
+        "p99": 5
+      },
+      "stalledNodes": {
+        "min": 1,
+        "max": 3,
+        "avg": 1.82,
+        "median": 2,
+        "p10": 1,
+        "p90": 2,
+        "p99": 3
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "alchemy_reaction": {
+      "name": "創発リアクション・錬金術型 (Emergent Alchemy)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 6,
+        "max": 19,
+        "avg": 12.63,
+        "median": 12,
+        "p10": 8,
+        "p90": 16,
+        "p99": 19
+      },
+      "gold": {
+        "min": 162366651,
+        "max": 259152426,
+        "avg": 203484103.75,
+        "median": 202589609,
+        "p10": 179678290,
+        "p90": 229568369,
+        "p99": 253166404
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 644222,
+        "avg": 79036.47,
+        "median": 30,
+        "p10": 30,
+        "p90": 555946,
+        "p99": 623139
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.66,
+        "median": 1,
+        "p10": 0,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.05,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 1
+      },
+      "activeNodes": {
+        "min": 3,
+        "max": 4,
+        "avg": 3.35,
+        "median": 3,
+        "p10": 3,
+        "p90": 4,
+        "p99": 4
+      },
+      "stalledNodes": {
+        "min": 2,
+        "max": 4,
+        "avg": 2.73,
+        "median": 3,
+        "p10": 2,
+        "p90": 3,
+        "p99": 4
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    },
+    "afk_idle": {
+      "name": "長期放置・自動換金型 (Idle Investor)",
+      "runs": 1000,
+      "maxFloor": {
+        "min": 7,
+        "max": 19,
+        "avg": 13.69,
+        "median": 14,
+        "p10": 10,
+        "p90": 16,
+        "p99": 19
+      },
+      "gold": {
+        "min": 162720979,
+        "max": 268493245,
+        "avg": 207055171.68,
+        "median": 205988477,
+        "p10": 183669933,
+        "p90": 232397888,
+        "p99": 253062181
+      },
+      "vaultGold": {
+        "min": 50000,
+        "max": 50000,
+        "avg": 50000,
+        "median": 50000,
+        "p10": 50000,
+        "p90": 50000,
+        "p99": 50000
+      },
+      "rp": {
+        "min": 30,
+        "max": 651250,
+        "avg": 60006.58,
+        "median": 30,
+        "p10": 30,
+        "p90": 520809,
+        "p99": 623139
+      },
+      "clearedCaves": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.86,
+        "median": 1,
+        "p10": 0,
+        "p90": 1,
+        "p99": 1
+      },
+      "activeContraptions": {
+        "min": 0,
+        "max": 1,
+        "avg": 0.04,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 1
+      },
+      "activeNodes": {
+        "min": 2,
+        "max": 3,
+        "avg": 2.36,
+        "median": 2,
+        "p10": 2,
+        "p90": 3,
+        "p99": 3
+      },
+      "stalledNodes": {
+        "min": 1,
+        "max": 3,
+        "avg": 1.71,
+        "median": 2,
+        "p10": 1,
+        "p90": 2,
+        "p99": 3
+      },
+      "explosions": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "p99": 0
+      }
+    }
+  },
+  "bugCount": 0,
+  "bugs": []
+}

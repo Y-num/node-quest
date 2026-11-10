@@ -9862,7 +9862,7 @@ function renderTree(force){
     const oldWrap = g.querySelector('.rt-wrap');
     const prevScrollLeft = oldWrap ? oldWrap.scrollLeft : 0;
     const prevScrollTop = oldWrap ? oldWrap.scrollTop : 0;
-    const treeModal = g.closest('#tree') || g.closest('.modal') || document.querySelector('#tree');
+    const treeModal = (g && typeof g.closest === 'function' ? (g.closest('#tree') || g.closest('.modal')) : null) || document.querySelector('#tree');
     const prevModalTop = treeModal ? treeModal.scrollTop : 0;
 
     const NW_T = 188, NH_T = 96, GX = 224, GY = 134, PADX = 20, PADY = 20;
@@ -10936,7 +10936,7 @@ function render(fdt){
       setCls(s,'full', c+give[k]>capOut(n,k));
     }
     const bw=(n.crafting?Math.min(100,n.prog/n.need*100):0);
-    if(Math.abs((e.lastBar||0)-bw) > 0.7){ e.lastBar=bw; e.bar.style.width=bw+'%'; }
+    if(e.bar && Math.abs((e.lastBar||0)-bw) > 0.7){ e.lastBar=bw; e.bar.style.width=bw+'%'; }
     const pv = Math.round((n.pol||0)*20)/20;          // 5%きざみで書き換える
     const rxSig = (n.activeReactions||[]).join(',') + '|' + (n.broken?1:0) + '|' + Math.round((n.hpDur??100)/5) + '|' + Math.round((n.resLoop||0)*20);
     if(slow || e.lastStall !== (n.stall?n.why:'') || e.lastPol !== pv || e.lastRx !== rxSig){
@@ -11669,7 +11669,7 @@ function uiBlocked(wx,wy){
   const sr=stage.getBoundingClientRect(), pad=12;
   for(const id of UI_PANELS){
     const el=$(id);
-    if(!el || getComputedStyle(el).display==='none') continue;
+    if(!el || (typeof getComputedStyle !== 'undefined' ? getComputedStyle(el).display==='none' : (el.style && el.style.display==='none'))) continue;
     const r=el.getBoundingClientRect();
     if(!r.width || !r.height) continue;
     const l=r.left-sr.left-pad, t=r.top-sr.top-pad;
