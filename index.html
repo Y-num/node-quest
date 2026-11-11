@@ -2489,6 +2489,8 @@ const TYPES = {
   vault :{n:'金庫', i:'🏦', cost:120, up:140, time:0.4, ins:{}, soft:{gold:1}, outs:{gold:1}, vault:true, cap:500, cleanEnergy:true, role:'vault', line:'vault',
           aura:{k:'wealth', v:0.5, r:260},
           d:'お金（🪙金貨）を容量上限まで保管するストレージ施設。洞窟や露店から金貨を配線して貯めることで建設・強化・給料・ガチャの資金として使え、さらに出資窓口・酒場・攻略装置へ金貨エネルギーを供給できる。強化・増設で容量が拡大する'},
+  reward:{n:'報酬ノード', shortNm:'報酬', i:'🏆', cost:0, up:0, time:0.4, ins:{}, outs:{gold:1}, rewardNode:true, cap:999999999, cleanEnergy:true, role:'reward', line:'reward',
+          d:'マイルストーンや踏破報酬の🪙金貨・資材を安全に一時保管し、配線先の🏦金庫や倉庫へ順次出力するノード。配線をつなぐと金庫の空き容量に応じて自動搬出されます'},
   engine:{n:'攻略装置コア', i:'⚙️', cost:160, up:220, time:1.8, ins:{sta:2}, soft:{gold:1, power:1, nfl:1, wood:1, coal:1, ore1:1, ing1:1, prt1:1, qstl:1, bdia:1, mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1, exs:1, exi:1, exv:1}, outs:{tac:4}, engine:true, effect:'engine', role:'engine', line:'engine',
           aura:{k:'tac', v:0.45, r:260},
           d:'複数の施設・エネルギー・素材を配線で組み合わせて「複合攻略装置（蒸気ガトリング・電磁レールガン・黄金ブリッツ・熱核破砕砲など）」として稼働させる戦術機関。⚔️戦術出力エネルギーを生み出し、ダンジョンの障壁破砕や支援砲撃を行う'},
@@ -2642,6 +2644,9 @@ const FAC = {
   vault: [{e:1,n:'金庫',       i:'🏦', cap:500,    outs:{gold:1}, aura:{k:'wealth', v:0.5, r:260}},
           {e:2,n:'大金庫',     i:'🏛️', cap:8000,   outs:{gold:1}, aura:{k:'wealth', v:1.0, r:310}},
           {e:3,n:'星辰宝物庫', i:'👑', cap:120000, outs:{gold:1}, aura:{k:'wealth', v:1.8, r:370}}],
+  reward:[{e:1,n:'報酬ノード',   i:'🏆', cost:0, up:0, time:0.4, cap:999999999, outs:{gold:1}, cleanEnergy:true},
+          {e:2,n:'大報酬ノード', i:'🏆', cost:0, up:0, time:0.3, cap:999999999, outs:{gold:1}, cleanEnergy:true},
+          {e:3,n:'天恵の報酬座', i:'🏆', cost:0, up:0, time:0.1, cap:999999999, outs:{gold:1}, cleanEnergy:true}],
   engine:[{e:1,n:'攻略装置コア',i:'⚙️', ins:{sta:2}, outs:{tac:4}, aura:{k:'tac', v:0.45, r:260}},
           {e:2,n:'魔導攻略機関',i:'🛰️', ins:{sta:4}, outs:{tac:14, power:2}, aura:{k:'tac', v:0.85, r:310}},
           {e:3,n:'神機オメガ炉',i:'☄️', ins:{sta:8}, outs:{tac:45, power:8, nfl:1}, aura:{k:'tac', v:1.4, r:360}}],
@@ -2842,6 +2847,7 @@ const ROLE_TREE_DEFAULT = {
   synt:   {start:false, reqRole:'turret', treeX:3, treeY:10, rp:720, mat:60, reqFloor:18},
   altar:  {start:false, reqRole:'synt',   treeX:4, treeY:10, rp:1900, mat:140, reqFloor:28},
   vault:  {start:true,  reqRole:null,     treeX:0, treeY:11, rp:0},
+  reward: {start:true,  reqRole:null,     treeX:0, treeY:12, rp:0},
   engine: {start:true,  reqRole:null,     treeX:1, treeY:11, rp:0},
 };
 
@@ -2908,7 +2914,7 @@ const LINE_LABEL = {mine:'採掘',smelt:'精錬',alloy:'合成',forge:'加工',e
   dive:'探索',lab:'研究',dump:'廃棄',fuel:'再利用',comp:'圧縮',decomp:'分解',shop:'販売',
   fund:'出資',tool:'増幅',box:'貯蔵',tstr:'筋トレ',tint:'読書',tvit:'走り込み',mate:'仲間',
   wood:'木こり小屋',coal:'石炭',gen:'火力発電',cgen:'人力発電',purify:'清浄',boost:'加速',open:'開封',hout:'搬出',
-  extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇',tavern:'酒場',vault:'金庫',engine:'攻略装置'};
+  extr:'魔獣抽出',turret:'支援砲台',synt:'遺物錬成',altar:'星辰祭壇',tavern:'酒場',vault:'金庫',reward:'報酬',engine:'攻略装置'};
 /* 圧縮でできる高密度の素材を、ふつうの素材と同じように扱えるよう登録する */
 (function buildDens(){
   const base = Object.keys(ITEMS).filter(k=>/^(ore|ing|prt|eqp)\d$/.test(k) || BYP_VAL[k]!==undefined);
@@ -3618,6 +3624,16 @@ function outsOf(n){
     for(const sk of ['sta','waste','cslud','miasma']) if(isLinkedOut(sk) || n._allOutputs) o[sk] = 1;
     return modOuts(n, o);
   }
+  if(T.rewardNode || T.line==='reward'){
+    const o = {gold: 1};
+    for(const k in (n.outBuf || {})){
+      if((n.outBuf[k] || 0) > 0 && ITEMS[k]) o[k] = 1;
+    }
+    if(typeof S !== 'undefined' && S && S.links){
+      for(const l of S.links) if(l.from === n.id && ITEMS[l.item]) o[l.item] = 1;
+    }
+    return o;
+  }
   if(T.role==='tavern' || T.line==='tavern'){
     const base = Object.assign({}, T.outs || {sta:4});
     const hasGold = (n._goldBoostT && n._goldBoostT > 0) || (n.inBuf && (n.inBuf.gold||0) > 0) || (typeof S!=='undefined' && S && S.links && S.links.some(l=>l.to===n.id && l.item==='gold'));
@@ -4198,7 +4214,8 @@ function syncVaultGold(){
   S._vaultSum = finalSum;
 }
 
-const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
+const capOut  = (n,item) => (TYPES[n.type].rewardNode || TYPES[n.type].line==='reward') ? Math.max(999999999, ((n.outBuf && n.outBuf[item]) || 0) + 10000)
+                          : (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
                           : (TYPES[n.type].src && item==='sta') ? maxStaOf(n)
                           : (TYPES[n.type].vault || TYPES[n.type].line==='vault') ? Math.ceil(capMul(n) * 40)
                           : (item === 'gold') ? Math.ceil(capMul(n) * 150 * lvPow(n.level || 1) * Math.pow(4, (TYPES[n.type]?.era || 1) - 1))
@@ -5873,6 +5890,7 @@ function updateNodeEnergyStack(n){
   for(const k of keys){
     let amt = (n.inBuf && n.inBuf[k] ? n.inBuf[k] : 0) + (n.outBuf && n.outBuf[k] ? n.outBuf[k] : 0);
     const isVaultGold = k === 'gold' && (T.vault || T.line === 'vault');
+    const isRewardGold = k === 'gold' && (T.rewardNode || T.line === 'reward');
     if(isVaultGold){
       amt = (n.vaultGold || 0);
     }
@@ -5891,8 +5909,8 @@ function updateNodeEnergyStack(n){
     const ek = energyKindOf(k, n, null);
     if(!ek) continue;
     const ev = ENERGY_VISUALS[ek] || ENERGY_VISUALS.anima;
-    const vCap = isVaultGold ? Math.max(1, vaultCapOf(n)) : 0;
-    const maxRef = isVaultGold ? vCap : (give[k] ? Math.max(4, capOut(n, k) || 16) : Math.max(4, capIn(n, k) || 16));
+    const vCap = isVaultGold ? Math.max(1, vaultCapOf(n)) : isRewardGold ? Math.max(100, n.rewardMaxGold || val || 500) : 0;
+    const maxRef = (isVaultGold || isRewardGold) ? vCap : (give[k] ? Math.max(4, capOut(n, k) || 16) : Math.max(4, capIn(n, k) || 16));
     const layers = val <= 0 ? 0 : Math.max(1, Math.min(8, Math.ceil((val / maxRef) * 8)));
     stacks.push({ k, ek, val, vCap: maxRef, layers, color: ev.color, name: ev.name, iconUrl: getEnergySvgUrl(ek) });
     if(stacks.length >= 2) break;
@@ -6332,6 +6350,7 @@ function spaceIn(n,item){
     if(item === 'gold') return Math.max(0, vaultCapOf(n) - (n.vaultGold||0) - (n.inBuf.gold||0));
     return 0;
   }
+  if(T.rewardNode || T.line==='reward') return 0;
   if(T.engine || T.effect==='engine'){
     return Math.max(0, CAP*4 - (n.inBuf[item]||0));
   }
@@ -6707,6 +6726,11 @@ function tick(dt,fast){
         n.stall = false;
         n.why = '';
       }
+      continue;
+    }
+    if(T.rewardNode || T.line === 'reward'){     // 🏆報酬ノード：マイルストーンや踏破報酬を安全保管、配線先へ自動搬出
+      n.stall = false;
+      n.why = '';
       continue;
     }
     // 人（主人公・仲間）を動力にする場合、一定の距離内（HUMAN_R）にないと起動しない
@@ -7603,7 +7627,8 @@ function raidDone(n){
 }
 function raidClaim(n){
   const r = n.reward || { g: raidGold(), m: raidMat(), d: null };
-  S.gold += r.g; S.stock = (S.stock||0) + r.m;
+  S.stock = (S.stock||0) + r.m;
+  deliverToRewardNode(r.g || 0, null, '突発ダンジョン討伐報酬');
   if(r.d) S.drops.push(r.d);
   if(r.p) addPart(r.p, 1);
   addLog(`【突発】報酬を受け取った → +${fmt(r.g)}G ＋🧱${fmt(r.m)}`
@@ -9814,13 +9839,9 @@ function doDive(fast, node, fromCannon){
     const rMat = Math.round(rw.mat * mul);
     const rQty = Math.round((rw.q || 2) * mul);
     const rItm = rw.item || cDrop;
-    S.gold  += rG;
     S.stock  = (S.stock || 0) + rMat;
     grantRp(rRp, fast);
-    if(ITEMS[rItm]){
-      homeOf()[rItm] = (homeOf()[rItm] || 0) + rQty;
-      if(node) node.outBuf[rItm] = Math.min(capOut(node, rItm), (node.outBuf[rItm]||0) + rQty);
-    }
+    deliverToRewardNode(rG, ITEMS[rItm] ? {[rItm]: rQty} : null, `${cave.n}踏破報酬`);
     if(isFirst){
       addPart('core', 1); // 初回クリアで換装コアも1個進呈
       if(cave.id === 'cave1'){
@@ -12114,6 +12135,31 @@ function renderInsp(){
           </div>
         </div>
       ` : ''}
+      ${(T.rewardNode || T.line==='reward') ? `
+        <div style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(15,23,42,.9));border:1px solid #f59e0b;border-radius:8px;padding:8px 10px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font-weight:800;color:#fde68a;font-size:11.5px">
+            <span>🏆 報酬ストック</span>
+            <b style="font-size:12.5px;color:#fbbf24" class="reward-gold-txt">🪙 ${fmt((n.outBuf && n.outBuf.gold) || 0)} G</b>
+          </div>
+          <div style="font-size:10px;color:var(--dim);margin-top:3px;line-height:1.4">
+            達成報酬を保管中。配線すると金庫の空き容量に応じて自動搬出されます。
+          </div>
+          ${Object.keys(n.outBuf || {}).filter(k => k !== 'gold' && (n.outBuf[k] || 0) > 0).length ? `
+            <div style="margin-top:5px;border-top:1px solid rgba(245,158,11,.25);padding-top:4px">
+              <span style="color:var(--dim);font-size:9.5px">ストック資材:</span>
+              <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">
+                ${Object.keys(n.outBuf || {}).filter(k => k !== 'gold' && (n.outBuf[k] || 0) > 0).map(k => {
+                  const it = ITEMS[k] || {i:'📦', n:k};
+                  return `<span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:1px 5px;color:#f8fafc;font-size:10px">${it.i}${it.n} <b>×${fmt(n.outBuf[k])}</b></span>`;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+          <button id="btnInspAutoWireReward" style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:6px;padding:5px;color:#000;font-weight:800;font-size:10.5px;cursor:pointer;margin-top:6px">
+            🔗 🏦金庫へ金貨ベルトを自動配線
+          </button>
+        </div>
+      ` : ''}
       ${cntInfo ? `
         <div style="background:linear-gradient(135deg,rgba(244,63,94,.16),rgba(15,23,42,.9));border:1px solid rgba(244,63,94,.55);border-radius:8px;padding:6px 9px;margin-bottom:6px">
           <div style="display:flex;align-items:center;justify-content:space-between;font-weight:800;color:#fda4af;font-size:11px">
@@ -12228,6 +12274,20 @@ function renderInsp(){
 
   const autoCntBtn = box.querySelector('#btnInspAutoWireContraption');
   if(autoCntBtn) autoCntBtn.onclick = () => autoWireContraption();
+
+  const autoRwBtn = box.querySelector('#btnInspAutoWireReward');
+  if(autoRwBtn){
+    autoRwBtn.onclick = () => {
+      const vault = S.nodes.find(v => TYPES[v.type] && (TYPES[v.type].vault || TYPES[v.type].line === 'vault'));
+      if(!vault){ toast('⚠️ 盤面に金庫が見つかりません'); return; }
+      if(S.links.some(l => l.from === n.id && l.to === vault.id && l.item === 'gold')){
+        toast('既に金庫へ配線されています'); return;
+      }
+      addLink(n.id, 'gold', vault.id);
+      renderHandles(); renderInsp(); render();
+      toast('🔗 報酬ノードから金庫へ配線しました！');
+    };
+  }
 
   const rpBtn = box.querySelector('.repair-btn');
   if(rpBtn) rpBtn.onclick = () => { repairNode(n); renderInsp(); };
@@ -12797,6 +12857,8 @@ function renderInspLive(){
   if(vCapBar) vCapBar.style.width = `${Math.min(100, Math.round(((n.vaultGold||0)/Math.max(1,vaultCapOf(n)))*100))}%`;
   const vTotTxt = box.querySelector('.vault-tot-txt');
   if(vTotTxt) vTotTxt.textContent = `🪙 ${fmt(totalVaultGold())} / ${fmt(totalVaultCap())}`;
+  const rGoldTxt = box.querySelector('.reward-gold-txt');
+  if(rGoldTxt) rGoldTxt.textContent = `🪙 ${fmt((n.outBuf && n.outBuf.gold) || 0)} G`;
 
   const ubtn = box.querySelector('button.up');
   if(ubtn){
@@ -12929,13 +12991,9 @@ function tutFinish(msg){
   $('#tut').classList.remove('on');
   if(!S.starterKitClaimed){
     S.starterKitClaimed = true;
-    S.gold = (S.gold || 0) + 300;
-    syncVaultGold();
     S.stock = (S.stock || 0) + 40;
     grantRp(20, true);
-    homeOf().ing1 = (homeOf().ing1 || 0) + 10;
-    addLog('🎁【初期物資支給】冒険支援パック（🪙+300, 🧱+40資材, 🔬+20RP, 🧱銅の地金×10）を受け取りました！', 'b');
-    toast('🎁 スターター物資支給！ +🪙300 / +🧱40 / +🔬20 / 銅地金×10');
+    deliverToRewardNode(300, {ing1: 10}, 'スターター初期物資');
   }else if(msg){
     toast(msg);
   }
@@ -14237,7 +14295,7 @@ const MILESTONES = [
     title: '銅の製錬自動化',
     desc: '製錬所で銅鉱石から銅インゴットを自動製錬するラインを構築する',
     reqText: '製錬所(🏭)でインゴット生産',
-    gold: 500, rp: 50, mat: 40, items: { part1: 10 },
+    gold: 500, rp: 50, mat: 40, items: { prt1: 10 },
     check: () => S.nodes && S.nodes.some(n => n.type==='ingot' && (n.done || 0) >= 1),
     rewardDesc: '💰500G 🔬50RP ⚙️部品10'
   },
@@ -14328,23 +14386,74 @@ function checkMilestones(){
   updateMilestonePill();
 }
 
+/* ── 🏆 報酬ノード管理 & 報酬搬入ヘルパー ──
+   マイルストーンや踏破報酬のゴールド・素材を直接金庫や自宅に投げ込まず、
+   盤面の報酬ノードにストックして配線ベルトから安全に順次出力できるようにする */
+function ensureRewardNode(){
+  if(!S || !S.nodes) return null;
+  let rn = S.nodes.find(n => TYPES[n.type] && (TYPES[n.type].rewardNode || TYPES[n.type].line === 'reward'));
+  if(!rn){
+    const vault = S.nodes.find(n => TYPES[n.type] && (TYPES[n.type].vault || TYPES[n.type].line === 'vault'));
+    const rx = vault ? vault.x : 500;
+    const ry = vault ? Math.max(20, vault.y - 120) : 30;
+    rn = addNode('reward1', rx, ry);
+    if(rn){
+      S.counts = S.counts || {};
+      S.counts.reward1 = (S.counts.reward1 || 0) + 1;
+      toast('🏆 盤面に「報酬ノード」を設置しました！');
+    }
+  }
+  return rn;
+}
+
+function deliverToRewardNode(goldAmt, itemsMap, label){
+  const rn = ensureRewardNode();
+  if(!rn){
+    if(goldAmt) S.gold = (S.gold || 0) + goldAmt;
+    if(itemsMap) for(const k in itemsMap) homeOf()[k] = (homeOf()[k] || 0) + itemsMap[k];
+    syncVaultGold();
+    return;
+  }
+  rn.outBuf = rn.outBuf || {};
+  let addedGold = 0;
+  if(goldAmt > 0){
+    rn.outBuf.gold = (rn.outBuf.gold || 0) + goldAmt;
+    rn.rewardMaxGold = Math.max(rn.rewardMaxGold || 0, rn.outBuf.gold);
+    addedGold = goldAmt;
+  }
+  const itemTexts = [];
+  if(itemsMap && typeof itemsMap === 'object'){
+    for(const rawK of Object.keys(itemsMap)){
+      const q = itemsMap[rawK];
+      if(!q || q <= 0) continue;
+      const k = ITEMS[rawK] ? rawK : (rawK === 'part1' ? 'prt1' : rawK);
+      if(!ITEMS[k]) continue;
+      rn.outBuf[k] = (rn.outBuf[k] || 0) + q;
+      itemTexts.push(`${ITEMS[k].i}${ITEMS[k].n}×${q}`);
+    }
+  }
+  if(rn.el && rn.el.root) rebuildNodeEl(rn);
+  updateNodeEnergyStack(rn);
+  if(sel === rn.id) renderInsp();
+
+  const rewardSummary = [
+    addedGold ? `🪙${fmt(addedGold)}G` : '',
+    ...itemTexts
+  ].filter(Boolean).join('、');
+
+  addLog(`🏆【報酬ノード搬入】${label || '報酬'}: ${rewardSummary} を報酬ノードにストック！ 🔗配線して搬出できます`, 'b');
+  toast(`🏆 報酬ノードへ搬入: ${rewardSummary}\n金庫へ配線して搬出してください`);
+}
+
 function claimMilestone(mId){
   S.claimedMilestones = S.claimedMilestones || {};
   if(S.claimedMilestones[mId]) return;
   const m = MILESTONES.find(x => x.id === mId);
   if(!m || !m.check()) return;
   S.claimedMilestones[mId] = Date.now();
-  if(m.gold) S.gold = (S.gold || 0) + m.gold;
   if(m.rp) grantRp(m.rp, false);
   if(m.mat) S.stock = (S.stock || 0) + m.mat;
-  if(m.items){
-    const H = homeOf();
-    for(const k of Object.keys(m.items)){
-      H[k] = (H[k] || 0) + m.items[k];
-    }
-  }
-  toast(`🎉 マイルストーン達成！【${m.title}】\n報酬: ${m.rewardDesc}`);
-  addLog(`🎯 マイルストーン【${m.title}】達成！報酬: ${m.rewardDesc}`, 'b');
+  deliverToRewardNode(m.gold || 0, m.items || null, `マイルストーン【${m.title}】`);
   updateMilestonePill();
   renderCodex();
   render();
@@ -14863,9 +14972,9 @@ function renderCodexMilestones(body){
     <div style="display:flex;justify-content:space-between;align-items:center;background:#090e17;padding:10px 14px;border-radius:8px;border:1px solid var(--line);flex-wrap:wrap;gap:8px">
       <div>
         <div style="font-size:13px;font-weight:800;color:#f8fafc">🎯 冒険マイルストーン進捗</div>
-        <div style="font-size:11px;color:var(--dim)">達成度: <b style="color:#fbbf24">${claimedCount} / ${MILESTONES.length}</b> 制覇（自由プレイで自動達成・受取可能）</div>
+        <div style="font-size:11px;color:var(--dim)">達成度: <b style="color:#fbbf24">${claimedCount} / ${MILESTONES.length}</b> 制覇｜報酬は盤面の <b>🏆 報酬ノード</b> にストックされ配線搬出できます</div>
       </div>
-      <button class="dt-btn ${canClaimAny?'acc':''}" id="cdxClaimAllBtn" ${canClaimAny?'':'disabled'}>🎁 達成済みを一括受取</button>
+      <button class="dt-btn ${canClaimAny?'acc':''}" id="cdxClaimAllBtn" ${canClaimAny?'':'disabled'}>🎁 達成済みを一括送出</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
   `;
@@ -14877,7 +14986,7 @@ function renderCodexMilestones(body){
     if(isClaimed){
       stateHtml = `<span class="cdx-claimed-badge">✓ 達成受取済</span>`;
     } else if(isReady){
-      stateHtml = `<button class="cdx-claim-btn" data-claim-mid="${m.id}">🎁 報酬受取</button>`;
+      stateHtml = `<button class="cdx-claim-btn" data-claim-mid="${m.id}">🏆 報酬ノードへ送出</button>`;
     } else {
       stateHtml = `<span style="font-size:11px;color:var(--dim);padding:3px 8px;border:1px solid rgba(255,255,255,.08);border-radius:4px">進行中...</span>`;
     }
@@ -15116,14 +15225,15 @@ takeBaseSnapshot();
 
 function defaultDevCfg(){
   return {
-    v: 6,
+    v: 7,
     initBoard: {
       initGold: 150,
       initIng1: 0,
       nodes: [
-        { type:'hero',   x:80,  y:150 },
-        { type:'dive1',  x:290, y:150 },
-        { type:'vault1', x:500, y:150 }
+        { type:'hero',    x:80,  y:150 },
+        { type:'dive1',   x:290, y:150 },
+        { type:'vault1',  x:500, y:150 },
+        { type:'reward1', x:500, y:30  }
       ],
       links: []
     },
@@ -16397,6 +16507,11 @@ function newGame(){
     const v = addNode('vault1', 500, 150);
     spawned.push(v);
     S.counts.vault1 = (S.counts.vault1 || 0) + 1;
+  }
+  if(!spawned.some(n => TYPES[n.type] && (TYPES[n.type].rewardNode || TYPES[n.type].line === 'reward'))){
+    const rn = addNode('reward1', 500, 30);
+    spawned.push(rn);
+    S.counts.reward1 = (S.counts.reward1 || 0) + 1;
   }
   const initHero = spawned.find(n => n.type === 'hero');
   if(initHero){
