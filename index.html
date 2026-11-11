@@ -1242,7 +1242,6 @@ body[data-lens="normal"] .hrange-lbl{display:none}
   <div id="top">
     <span class="logo">NODE QUEST</span>
     <div class="stat lp" id="tLpStat" title="パーティLP"><span class="k">❤️<em>LP</em></span><span class="v num" id="tLp">3/3</span></div>
-    <div class="stat g"><span class="k">GOLD</span><span class="v num" id="tGold">0</span></div>
     <div class="stat r"><span class="k">🔬<em>研究</em></span><span class="v num" id="tRp">0</span></div>
     <div class="stat m"><span class="k">🧱<em>資材</em></span><span class="v num" id="tMat">0</span></div>
     <div class="milestone-pill" id="milestonePill" title="冒険マイルストーン（目標・達成報酬）"><span id="mPillTxt">🎯 目標を確認</span></div>
@@ -1253,6 +1252,7 @@ body[data-lens="normal"] .hrange-lbl{display:none}
     <button class="tbtn bag" id="bBag">🎒 持物 <b id="bCount">0</b></button>
     <button class="tbtn pri" id="bMenuBtn" style="border-color:var(--acc);color:var(--acc);font-weight:800">☰ メニュー</button>
     <div style="display:none">
+      <span id="tGold">0</span>
       <span id="tAtk">0</span>
       <button id="bTree">🔬 研究</button>
       <button id="bBst"><b id="bstN">0</b></button>
@@ -2479,9 +2479,9 @@ const TYPES = {
   tavern:{n:'酒場', i:'🍻', cost:280, up:360, time:2.0, ins:{}, outs:{sta:4}, cleanEnergy:true, role:'tavern', line:'tavern',
           aura:{k:'tavern', v:0.8, r:280},
           d:'冒険者や職人が集まる活気ある酒場。周囲280pxの仲間の好感度上昇+50%＆給料-30%の福利厚生オーラを放出。施設をクリックして🎲サイコロガチャで新たな仲間をスカウト可能'},
-  vault :{n:'金庫', i:'🏦', cost:120, up:160, time:1.6, ins:{}, soft:{gold:1, lot1:1, lot2:1, lot3:1, lot4:1, lot5:1, lot6:1}, outs:{gold:4}, vault:true, cleanEnergy:true, role:'vault', line:'vault',
+  vault :{n:'金庫', i:'🏦', cost:120, up:140, time:0.4, ins:{}, soft:{gold:1}, outs:{gold:1}, vault:true, cap:500, cleanEnergy:true, role:'vault', line:'vault',
           aura:{k:'wealth', v:0.5, r:260},
-          d:'お金をエネルギー（🪙金貨動力）として貯蔵・供給する黄金金庫。露店や洞窟から金貨エネルギーを集積してノード上に積み上げ、複利ボーナスを生むほか、出資窓口・酒場・仲間・攻略装置・洞窟へ黄金エネルギーを供給する'},
+          d:'お金（🪙金貨）を容量上限まで保管するストレージ施設。洞窟や露店から金貨を配線して貯めることで建設・強化・給料・ガチャの資金として使え、さらに出資窓口・酒場・攻略装置へ金貨エネルギーを供給できる。強化・増設で容量が拡大する'},
   engine:{n:'攻略装置コア', i:'⚙️', cost:160, up:220, time:1.8, ins:{sta:2}, soft:{gold:1, power:1, nfl:1, wood:1, coal:1, ore1:1, ing1:1, prt1:1, qstl:1, bdia:1, mcore:1, afang:1, arelic:1, fheart:1, fcryst:1, acore:1, exs:1, exi:1, exv:1}, outs:{tac:4}, engine:true, effect:'engine', role:'engine', line:'engine',
           aura:{k:'tac', v:0.45, r:260},
           d:'複数の施設・エネルギー・素材を配線で組み合わせて「複合攻略装置（蒸気ガトリング・電磁レールガン・黄金ブリッツ・熱核破砕砲など）」として稼働させる戦術機関。⚔️戦術出力エネルギーを生み出し、ダンジョンの障壁破砕や支援砲撃を行う'},
@@ -2632,9 +2632,9 @@ const FAC = {
   tavern:[{e:1,n:'酒場',       i:'🍻', outs:{sta:4}, aura:{k:'tavern', v:0.8, r:280}},
           {e:2,n:'ギルド酒場', i:'🏰', outs:{sta:16, power:2}, aura:{k:'tavern', v:1.2, r:320}},
           {e:3,n:'星辰のサロン',i:'🌌', outs:{sta:50, power:8, nfl:1}, aura:{k:'tavern', v:1.8, r:380}}],
-  vault: [{e:1,n:'金庫',       i:'🏦', outs:{gold:4}, aura:{k:'wealth', v:0.5, r:260}},
-          {e:2,n:'大金庫',     i:'🏛️', outs:{gold:16, sta:4}, aura:{k:'wealth', v:1.0, r:310}},
-          {e:3,n:'星辰宝物庫', i:'👑', outs:{gold:60, sta:16, power:4}, aura:{k:'wealth', v:1.8, r:370}}],
+  vault: [{e:1,n:'金庫',       i:'🏦', cap:500,    outs:{gold:1}, aura:{k:'wealth', v:0.5, r:260}},
+          {e:2,n:'大金庫',     i:'🏛️', cap:8000,   outs:{gold:1}, aura:{k:'wealth', v:1.0, r:310}},
+          {e:3,n:'星辰宝物庫', i:'👑', cap:120000, outs:{gold:1}, aura:{k:'wealth', v:1.8, r:370}}],
   engine:[{e:1,n:'攻略装置コア',i:'⚙️', ins:{sta:2}, outs:{tac:4}, aura:{k:'tac', v:0.45, r:260}},
           {e:2,n:'魔導攻略機関',i:'🛰️', ins:{sta:4}, outs:{tac:14, power:2}, aura:{k:'tac', v:0.85, r:310}},
           {e:3,n:'神機オメガ炉',i:'☄️', ins:{sta:8}, outs:{tac:45, power:8, nfl:1}, aura:{k:'tac', v:1.4, r:360}}],
@@ -3549,8 +3549,9 @@ function outsOf(n){
     return modOuts(n, base); }
   if(T.chain==='clean') return {};
   if(T.chain==='fuel')   return n.item ? modOuts(n, {sta: fuelOut(n)}) : {};
-  if(T.chain==='sell')   return modOuts(n, {gold: Math.max(2, Math.round(3 * (T.era||1)))});
-  if(T.chain==='decomp' || T.chain==='open' || T.chain==='fund') return {};
+  if(T.chain==='sell')   return {gold: 1};
+  if(T.chain==='open')   return {gold: 1};
+  if(T.chain==='decomp' || T.chain==='fund') return {};
   if(T.chain==='hout') return n.item ? modOuts(n, {[n.item]:1}) : {};
   if(T.chain==='equip'){                       // できた装備はふつうに出力へ積まれる
     const i = tierIdx(n.item); if(i<0) return {};
@@ -3601,13 +3602,13 @@ function outsOf(n){
     return modOuts(n, ex);
   }
   if(T.loot){
-    const o = {[lootItem(n)]:1};
+    const o = {[lootItem(n)]:1, gold:1};
     const cd = curCave().drop;
     if(cd && ITEMS[cd]) o[cd] = 1;             // 現在の洞窟の固有素材排出口
     const isLinkedOut = k => !!(typeof S!=='undefined' && S && S.links && S.links.some(l=>l.from===n.id && l.item===k));
     for(const ck of CAVE_ITEMS) if(isLinkedOut(ck)) o[ck] = 1;
     for(const b of BOXES) if(isLinkedOut(b.k) || n._allOutputs) o[b.k] = 1;
-    for(const sk of ['sta','gold','waste','cslud','miasma']) if(isLinkedOut(sk) || n._allOutputs) o[sk] = 1;
+    for(const sk of ['sta','waste','cslud','miasma']) if(isLinkedOut(sk) || n._allOutputs) o[sk] = 1;
     return modOuts(n, o);
   }
   if(T.role==='tavern' || T.line==='tavern'){
@@ -4123,8 +4124,77 @@ const bypCap = n => {
   const base = e === 1 ? 25 : e === 2 ? 60 : 120;
   return base * (n.comb ? n.comb.length + 1 : 1);
 };
+function vaultCapOf(n){
+  if(!n) return 0;
+  const T = TYPES[n.type] || {};
+  if(!T.vault && T.line !== 'vault') return 0;
+  const era = T.era || 1;
+  const base = T.cap || (era === 1 ? 500 : era === 2 ? 8000 : 120000);
+  return Math.ceil(capMul(n) * base * lvPow(n.level || 1));
+}
+function totalVaultCap(){
+  if(typeof S === 'undefined' || !S || !Array.isArray(S.nodes)) return 0;
+  let c = 0;
+  for(const n of S.nodes){
+    const T = TYPES[n.type] || {};
+    if(T.vault || T.line === 'vault') c += vaultCapOf(n);
+  }
+  return c;
+}
+function totalVaultGold(){
+  if(typeof S === 'undefined' || !S || !Array.isArray(S.nodes)) return 0;
+  let g = 0;
+  for(const n of S.nodes){
+    const T = TYPES[n.type] || {};
+    if(T.vault || T.line === 'vault') g += Math.floor(n.vaultGold || 0);
+  }
+  return g;
+}
+function syncVaultGold(){
+  if(typeof S === 'undefined' || !S || !Array.isArray(S.nodes)) return;
+  const vaults = S.nodes.filter(n => { const T = TYPES[n.type] || {}; return T.vault || T.line === 'vault'; });
+  if(!vaults.length){
+    S.gold = 0;
+    S._vaultSum = 0;
+    return;
+  }
+  let vSum = 0;
+  for(const v of vaults){
+    const cap = vaultCapOf(v);
+    v.vaultGold = Math.max(0, Math.min(cap, Math.floor(v.vaultGold || 0)));
+    vSum += v.vaultGold;
+  }
+  if(S._vaultSum === undefined) S._vaultSum = vSum;
+  const curGold = Math.max(0, Math.floor(S.gold || 0));
+  const delta = curGold - S._vaultSum;
+  if(delta < 0){
+    let toTake = Math.min(vSum, -delta);
+    for(let i = vaults.length - 1; i >= 0 && toTake > 0; i--){
+      const v = vaults[i];
+      const u = Math.min(v.vaultGold || 0, toTake);
+      v.vaultGold -= u;
+      toTake -= u;
+    }
+  }else if(delta > 0){
+    let toPut = delta;
+    for(const v of vaults){
+      if(toPut <= 0) break;
+      const room = Math.max(0, vaultCapOf(v) - (v.vaultGold || 0));
+      const u = Math.min(room, toPut);
+      v.vaultGold = (v.vaultGold || 0) + u;
+      toPut -= u;
+    }
+  }
+  let finalSum = 0;
+  for(const v of vaults) finalSum += Math.floor(v.vaultGold || 0);
+  S.gold = finalSum;
+  S._vaultSum = finalSum;
+}
+
 const capOut  = (n,item) => (TYPES[n.type].layer || TYPES[n.type].port) ? 1e12
                           : (TYPES[n.type].src && item==='sta') ? maxStaOf(n)
+                          : (TYPES[n.type].vault || TYPES[n.type].line==='vault') ? Math.ceil(capMul(n) * 40)
+                          : (item === 'gold') ? Math.ceil(capMul(n) * 150 * lvPow(n.level || 1) * Math.pow(4, (TYPES[n.type]?.era || 1) - 1))
                           : isByp(item) ? bypCap(n)
                           : TYPES[n.type].loot ? Math.ceil(capMul(n) * LOOT_CAP)
                           : Math.ceil(capMul(n) * Math.max(CAP, (outsOf(n)[item]||0) * 2));
@@ -5263,7 +5333,7 @@ function freshState(){
     companionRoster:[], scoutCount:0,
     enemy:null, log:[], drops:[], dives:0, name:'',
     hist:[], histStep:60, histAt:0, playT:0, exp:{str:0,int:0,vit:0},
-    era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:-1, view:{x:0,y:0,s:1}, savedAt:Date.now(),
+    era:1, home:{}, parts:{}, maxEqp:0, maxComp:0, skills:{}, at:null, homeView:null, v:SAVE_V, tut:0, tutDone:false, view:{x:0,y:0,s:1}, savedAt:Date.now(),
   };
 }
 function fmt(n){
@@ -5794,8 +5864,9 @@ function updateNodeEnergyStack(n){
   const keys = ['gold', 'sta', 'power', 'nfl', 'tac', 'exs', 'exi', 'exv'];
   for(const k of keys){
     let amt = (n.inBuf && n.inBuf[k] ? n.inBuf[k] : 0) + (n.outBuf && n.outBuf[k] ? n.outBuf[k] : 0);
-    if(k === 'gold' && (T.vault || T.line === 'vault')){
-      amt += (n.vaultGold || 0);
+    const isVaultGold = k === 'gold' && (T.vault || T.line === 'vault');
+    if(isVaultGold){
+      amt = (n.vaultGold || 0);
     }
     if(k === 'tac' && (n._tacPower || 0) > 0){
       amt += n._tacPower;
@@ -5805,19 +5876,20 @@ function updateNodeEnergyStack(n){
       const ratio = Math.min(1, Math.max(0.15, (n.prog || 0) / n.need));
       if(give[k]) amt += give[k] * ratio;
       else if(need[k]) amt += need[k] * (1 - ratio * 0.5);
-    }else if((T.src || T.gen || T.vault || T.line === 'vault' || T.engine || T.effect === 'engine') && give[k] && amt <= 0){
+    }else if((T.src || T.gen || T.engine || T.effect === 'engine') && give[k] && amt <= 0){
       amt = Math.max(1, Math.round(give[k] * 0.5));
     }
     const val = Math.floor(amt);
-    if(val <= 0) continue;
+    if(val <= 0 && !isVaultGold) continue;
     const ek = energyKindOf(k, n, null);
     if(!ek) continue;
-    const maxRef = (k === 'gold' && (T.vault || T.line === 'vault')) ? 300 : Math.max(8, capIn(n, k) || 16);
-    const layers = Math.max(1, Math.min(8, Math.ceil((val / maxRef) * 7)));
-    stacks.push({ k, ek, val, layers });
+    const vCap = isVaultGold ? Math.max(1, vaultCapOf(n)) : 0;
+    const maxRef = isVaultGold ? vCap : Math.max(8, capIn(n, k) || 16);
+    const layers = val <= 0 ? 0 : Math.max(1, Math.min(8, Math.ceil((val / maxRef) * 8)));
+    stacks.push({ k, ek, val, vCap, layers });
     if(stacks.length >= 3) break; // 最大3列まで並べて視認性を維持
   }
-  const sig = stacks.map(s => `${s.ek}:${s.layers}:${s.val}`).join('|');
+  const sig = stacks.map(s => `${s.ek}:${s.layers}:${s.val}:${s.vCap||0}`).join('|');
   if(n._engStackSig === sig) return;
   n._engStackSig = sig;
   if(!stacks.length){
@@ -5832,8 +5904,9 @@ function updateNodeEnergyStack(n){
     for(let i = 0; i < s.layers; i++){
       imgs += `<img class="eng-layer-img" src="${layerUrl}" alt="${ev.name}">`;
     }
-    html += `<div class="eng-stack-col" data-energy-kind="${s.ek}" data-layers="${s.layers}" title="${ev.name}: ${fmt(s.val)}">`+
-      `<div class="eng-stack-val" style="color:${ev.color};border-color:${ev.color}">${fmt(s.val)}</div>`+
+    const labelTxt = s.vCap ? `${fmt(s.val)}/${fmt(s.vCap)}` : fmt(s.val);
+    html += `<div class="eng-stack-col" data-energy-kind="${s.ek}" data-layers="${s.layers}" title="${ev.name}: ${labelTxt}">`+
+      `<div class="eng-stack-val" style="color:${ev.color};border-color:${ev.color}">${labelTxt}</div>`+
       `<div class="eng-stack-layers">${imgs}</div>`+
       `</div>`;
   }
@@ -6039,8 +6112,7 @@ function delPacket(l,i){ const p=l.packets[i]; if(p.el){p.el.remove();packetCoun
 /* ========================= 建設・接続 ========================= */
 function addNode(type,x,y,existingComp){
   if(!TYPES[type] && TYPES[type.replace(/\d+$/, '')]) type = type.replace(/\d+$/, '');
-  const isVault = !!(TYPES[type] && (TYPES[type].vault || TYPES[type].line === 'vault'));
-  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:isVault?{gold:4}:{},vaultGold:isVault?60:0,crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,craftMat:null,assim:[],caveId:(TYPES[type]&&TYPES[type].effect==='dive')?(S.caveId||'cave1'):null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[],compId:null,isStrike:false};
+  const n={id:S.nextId++,type,x,y,layer:atNow(),level:1,inBuf:{},outBuf:{},vaultGold:0,crafting:false,prog:0,need:0,rr:{},cd:{},wrr:{},prio:1,stall:false,done:0,target:null,item:null,items:[],mods:null,craftMat:null,assim:[],caveId:(TYPES[type]&&TYPES[type].effect==='dive')?(S.caveId||'cave1'):null,drop:false,hpDur:100,hpDurMax:100,broken:false,resLoop:0,inTags:{},outTags:[],activeReactions:[],compId:null,isStrike:false};
   // 素材を選ぶ種類のノードは、いちばん手前の選択肢を最初から入れておく。
   // 売り場だけは既定を「なんでも売る」にする
   if(TYPES[type].chain && TYPES[type].chain!=='sell'){
@@ -6080,7 +6152,7 @@ function removeNode(id){
 function storeCanTake(n, item){
   const T = TYPES[n.type];
   if(T.store) return !!item && spaceIn(n, item) > 0;      // 貯蔵は何でも受け取る
-  if(T.vault || T.line==='vault') return item === 'gold' || item === 'sta';
+  if(T.vault || T.line==='vault') return item === 'gold';
   if(T.engine || T.effect==='engine') return !!item;      // 攻略装置コアはあらゆるエネルギー・素材を受け取れる
   if(T.src && n.type!=='hero') return !!item && item!=='sta'; // 仲間は差し入れ物資・好物を何でも受け取れる
   if(T.effect==='dive') return !!item;                    // ダンジョン入口は戦術パイプラインとして何でも注入可能
@@ -6230,8 +6302,8 @@ function spaceIn(n,item){
     return Math.max(0, capIn(n,item) - held);
   }
   if(T.vault || T.line==='vault'){
-    if(item === 'gold') return Math.max(0, CAP*8 - (n.inBuf.gold||0));
-    if(item === 'sta')  return Math.max(0, capIn(n,'sta') - (n.inBuf.sta||0));
+    if(item === 'gold') return Math.max(0, vaultCapOf(n) - (n.vaultGold||0) - (n.inBuf.gold||0));
+    return 0;
   }
   if(T.engine || T.effect==='engine'){
     return Math.max(0, CAP*4 - (n.inBuf[item]||0));
@@ -6258,6 +6330,7 @@ function spaceIn(n,item){
 /* ========================= シミュレーション ========================= */
 function tick(dt,fast){
   flowOff = !!fast;
+  syncVaultGold();
   if(S.lp == null) S.lp = 3;
   if(S.maxLp == null) S.maxLp = 3;
   S.partyMaxHp = calcPartyMaxHp();
@@ -6390,14 +6463,21 @@ function tick(dt,fast){
             const who = tierOf(n);
             addLog(`${who.i}${who.n} の ${ITEMS[k].i}${statName(st)} が ${stObj[st]} になった`,'u');
           }
-        }else if(T.vault || T.line === 'vault'){ // 🏦金庫：お金エネルギー（🪙gold）を貯蔵・蓄積してボーナス利子を生む
-          const dep = Math.max(12, Math.round(18 * c * lvPow(n.level) * Math.pow(2.2, (T.era||1)-1)));
-          n.vaultGold = (n.vaultGold || 0) + dep;
-          S.gold += Math.round(dep * 0.40);
-          n.gain = (n.gain || 0) + dep;
-          if(!fast && _rxPopCd <= 0){
-            spawnReactionPop(n, `🏦🪙 金貨エネルギー貯蔵！ +${fmt(dep)}G`, '#fbbf24');
-            _rxPopCd = 0.65;
+        }else if(T.vault || T.line === 'vault'){ // 🏦金庫：お金（🪙gold）を容量上限までストレージ貯蔵
+          const cap = vaultCapOf(n);
+          const cur = Math.floor(n.vaultGold || 0);
+          const room = Math.max(0, cap - cur);
+          const addG = k === 'gold' ? c : Math.max(1, Math.round(sellPrice(k, n.level) * c));
+          const stored = Math.min(room, addG);
+          if(stored > 0){
+            n.vaultGold = cur + stored;
+            S.gold = (S.gold || 0) + stored;
+            S._vaultSum = (S._vaultSum || 0) + stored;
+            n.gain = (n.gain || 0) + stored;
+            if(!fast && _rxPopCd <= 0){
+              spawnReactionPop(n, `🏦🪙 +${fmt(stored)} (${fmt(n.vaultGold)}/${fmt(cap)})`, '#fbbf24');
+              _rxPopCd = 0.65;
+            }
           }
         }else if(T.engine || T.effect === 'engine'){ // ⚙️攻略装置コア：エネルギー・素材を受け取って戦術出力と複合兵装をチャージ
           n._chargedTypes = n._chargedTypes || {};
@@ -6446,7 +6526,6 @@ function tick(dt,fast){
         }else if(T.line === 'purify'){  // 送風機・浄化施設：逆流ハザード（腐食粘液・深淵瘴気・汚染塊）を中和・無害化
           n.pol = Math.max(0, (n.pol||0) - 0.12 * c);
           n.hpDur = Math.min(100, (n.hpDur != null ? n.hpDur : 100) + 10 * c);
-          S.gold += 15 * c;
           if(!fast) spawnReactionPop(n, '🌬️✨ ハザード浄化・中和完了！', '#5ee0c0');
         }else if(T.line === 'smelt' && HAZ_ITEM[k]){ // 精錬炉に逆流ハザードを投入 → 狂科学・深淵精製で👑深淵遺物または🔮呪縛コアへ昇華
           if(k === 'miasma'){
@@ -6574,6 +6653,35 @@ function tick(dt,fast){
       }
       continue;
     }
+    if(T.vault || T.line === 'vault'){           // 🏦金庫：お金（🪙gold）のストレージ管理（容量上限＆出力配線時のみ搬出）
+      const cap = vaultCapOf(n);
+      const hasOutLink = S.links.some(l => l.from === n.id && l.item === 'gold');
+      if(hasOutLink && (n.vaultGold || 0) > 0){
+        const room = Math.max(0, capOut(n, 'gold') - (n.outBuf.gold || 0));
+        const q = Math.min(room, Math.floor(n.vaultGold || 0), 10);
+        if(q > 0){
+          n.vaultGold -= q;
+          S.gold = Math.max(0, (S.gold || 0) - q);
+          S._vaultSum = Math.max(0, (S._vaultSum || 0) - q);
+          n.outBuf.gold = (n.outBuf.gold || 0) + q;
+        }
+      }else if(!hasOutLink && (n.outBuf.gold || 0) > 0){
+        const ret = Math.min(Math.max(0, cap - (n.vaultGold || 0)), Math.floor(n.outBuf.gold || 0));
+        n.outBuf.gold -= ret;
+        if(n.outBuf.gold <= 0) delete n.outBuf.gold;
+        n.vaultGold = (n.vaultGold || 0) + ret;
+        S.gold = (S.gold || 0) + ret;
+        S._vaultSum = (S._vaultSum || 0) + ret;
+      }
+      if((n.vaultGold || 0) >= cap){
+        n.stall = true;
+        n.why = `容量満杯 (${fmt(cap)})`;
+      }else{
+        n.stall = false;
+        n.why = '';
+      }
+      continue;
+    }
     // 人（主人公・仲間）を動力にする場合、一定の距離内（HUMAN_R）にないと起動しない
     const far = farHumanInfo(n);
     if(far){
@@ -6625,9 +6733,10 @@ function tick(dt,fast){
     let budget=dt, guard=1000;
     for(;;){
       if(!n.crafting){
-        const need=insOf(n), give=T.loot ? {} : outsOf(n);   // 戦利品は満杯でも止めない
+        const need=insOf(n), give=(T.loot || T.chain==='sell' || T.chain==='open') ? {} : outsOf(n);   // 戦利品や売却金は完了時に積む
         const wage = payOf(n);
         let ok=true;
+        if(T.chain==='sell' && (n.outBuf.gold||0) >= capOut(n,'gold')){ ok=false; n.why='🪙満杯(金庫へ配線)'; }
         for(const k in give) if(k!=='gold' && k!=='tac' && (n.outBuf[k]||0)+give[k] > capOut(n,k)){ ok=false; n.why=ITEMS[k].i+'満杯'; }
         if(ok){
           for(const k in need){
@@ -6683,6 +6792,7 @@ function tick(dt,fast){
         }
         if(wage > 0){
           S.gold -= wage; n.paid = (n.paid||0) + wage;
+          syncVaultGold();
           if(n.isStrike){
             n.isStrike = false;
             if(!fast) spawnReactionPop(n, '💰 給料支払い再開！ ストライキ解除', '#5ee0c0');
@@ -6699,7 +6809,7 @@ function tick(dt,fast){
       const rest=n.need-n.prog;
       if(budget < rest){ n.prog+=budget; break; }
       budget-=rest;
-      let give = T.loot ? {} : outsOf(n);        // 戦利品は撃破したときだけ積む
+      let give = (T.loot || T.chain==='sell' || T.chain==='open') ? {} : outsOf(n);
       if(T.chain==='hout'){                      // 自宅の在庫を1つ減らして出す
         const H=homeOf(), have=Math.floor(H[n.item]||0);
         if(have < 1) give = {};
@@ -6775,11 +6885,14 @@ function tick(dt,fast){
       if(T.effect==='equip' || T.effect==='anvil') n.gain=(n.gain||0)+1;
       if(T.chain==='open') openBox(n, fast);
       if(T.chain==='sell' && n.sellK){
-        const g=sellPrice(n.sellK, n.level)*sellMul(n); S.gold+=g; n.gain=(n.gain||0)+g;
+        const g = Math.max(1, Math.round(sellPrice(n.sellK, n.level) * sellMul(n)));
+        n.outBuf.gold = Math.min(capOut(n, 'gold') * 2, (n.outBuf.gold || 0) + g);
+        flowIn('gold', g); nodeFlow(n, 'gold', g, 'i');
+        n.gain = (n.gain || 0) + g;
       }
       if(T.chain==='fund'){                     // ゴールドを払って研究に変える
         const g = fundGold(n);
-        if(S.gold >= g){ S.gold -= g; const rp = fundRp(n);
+        if(S.gold >= g){ S.gold -= g; syncVaultGold(); const rp = fundRp(n);
           n.gain=(n.gain||0)+rp; grantRp(rp, fast); }
       }
       if(T.chain==='decomp' && n.item){
@@ -6831,13 +6944,6 @@ function tick(dt,fast){
         S.atkBonus = (S.atkBonus||0) + atkAdd;
         n.gain = (n.gain||0) + rpAdd;
         grantRp(rpAdd, fast);
-      }
-      if(T.vault || T.line==='vault'){
-        const interest = Math.max(6, Math.round((10 + (n.vaultGold || 0) * 0.045 + Math.min(8000, S.gold || 0) * 0.015) * lvPow(n.level) * Math.pow(2.2, (T.era||1)-1)));
-        const maxVault = 50000 * Math.pow(4, (T.era||1)-1);
-        n.vaultGold = Math.min(maxVault, (n.vaultGold || 0) + interest);
-        S.gold += interest;
-        n.gain = (n.gain || 0) + interest;
       }
       if(T.engine || T.effect==='engine'){
         if(!S.enemy) spawnEnemy();
@@ -7030,6 +7136,7 @@ function tick(dt,fast){
     l._moving = anyMoved;
   }
   if(!S.enemy) spawnEnemy();
+  syncVaultGold();
   polTick(dt, fast);
   if(!fast) troTick(dt);
   flowTick(dt, fast);
@@ -7426,7 +7533,8 @@ function openBox(n, fast){
   }
   if(Math.random() < b.eq * 1.5) add(eqpOf(Math.min(top, lo)), 1);          // 装備
   const g = Math.round(b.gold * Math.max(1, enemyGold(Math.max(1,S.best)) / 4));
-  S.gold += g;
+  n.outBuf.gold = Math.min(capOut(n, 'gold') * 2, (n.outBuf.gold || 0) + g);
+  flowIn('gold', g); nodeFlow(n, 'gold', g, 'i');
   const matRw = Math.max(6, Math.round(b.gold * 1.2));
   S.stock = (S.stock||0) + matRw;                                            // 🧱研究資材の直接ボーナス
   const H = homeOf();
@@ -9625,18 +9733,18 @@ function doDive(fast, node, fromCannon){
   const f=S.floor;
   const gMul = (gim && gim.k === 'greed' ? 10 : 1) * (stance.goldMul || 1.0) * ((cnt && cnt.goldMul) || 1.0);
   const g=Math.round(enemyGold(f) * gMul), wasTier=depthTier();
-  S.gold += g;
   const bonusRp = (stance.rpBonus || 0) + ((cnt && cnt.rpBonus) || 0);
   if(bonusRp > 0) grantRp(bonusRp, fast);
   const cDrop = cave.drop || 'mcore';
-  let droppedNames = [`💰+${fmt(g)}G`];
+  let droppedNames = [`🪙+${fmt(g)}`];
   if(bonusRp > 0) droppedNames.push(`📘+${fmt(bonusRp)}RP`);
-  if(node){                                  // 撃破すると戦利品＋洞窟固有素材＋たまに宝箱＋🪙金貨エネルギーが出る
+  if(node){                                  // 撃破すると戦利品＋洞窟固有素材＋たまに宝箱＋🪙金貨エネルギーが出力へ積まれる
     const k = lootItem(node);
     node.outBuf[k] = Math.min(capOut(node,k), (node.outBuf[k]||0) + 1);
-    const gPkt = Math.max(2, Math.round(3 * (stance.goldMul || 1.0)));
-    node.outBuf.gold = Math.min((capOut(node,'gold') || 25) * 3, (node.outBuf.gold || 0) + gPkt);
-    flowIn('gold', gPkt); nodeFlow(node, 'gold', gPkt, 'i');
+    const gCap = Math.max(50, capOut(node,'gold') || 150);
+    const gAdd = Math.max(0, Math.min(gCap - (node.outBuf.gold || 0), g));
+    node.outBuf.gold = (node.outBuf.gold || 0) + gAdd;
+    if(gAdd > 0){ flowIn('gold', gAdd); nodeFlow(node, 'gold', gAdd, 'i'); }
     droppedNames.push(`${ITEMS[k].i}`);
     // 洞窟固有素材ドロップ（ボスは確定2個、通常モンスターも高確率でドロップし分解研究・施設クラフトに使える）
     const dropChance = S.enemy.boss ? 1.0 : 0.65;
@@ -10947,22 +11055,24 @@ function render(fdt){
           : (isByp(k) || T.layer || T.port) ? '' : '/'+fmt(capOut(n,k)));
       setCls(s,'full', c+give[k]>capOut(n,k));
     }
-    const bw=(n.crafting?Math.min(100,n.prog/n.need*100):0);
+    const bw = (T.vault || T.line==='vault') ? Math.min(100, ((n.vaultGold||0) / Math.max(1, vaultCapOf(n))) * 100)
+             : (n.crafting ? Math.min(100, n.prog / n.need * 100) : 0);
     if(e.bar && Math.abs((e.lastBar||0)-bw) > 0.7){ e.lastBar=bw; e.bar.style.width=bw+'%'; }
     const pv = Math.round((n.pol||0)*20)/20;          // 5%きざみで書き換える
-    const rxSig = (n.activeReactions||[]).join(',') + '|' + (n.broken?1:0) + '|' + Math.round((n.hpDur??100)/5) + '|' + Math.round((n.resLoop||0)*20);
+    const rxSig = (n.activeReactions||[]).join(',') + '|' + (n.broken?1:0) + '|' + Math.round((n.hpDur??100)/5) + '|' + Math.round((n.resLoop||0)*20) + '|' + ((T.vault||T.line==='vault') ? `${Math.floor(n.vaultGold||0)}/${vaultCapOf(n)}` : '');
     if(slow || e.lastStall !== (n.stall?n.why:'') || e.lastPol !== pv || e.lastRx !== rxSig){
     e.lastStall = n.stall?n.why:'';
     e.lastRx = rxSig;
-    e.nf.textContent = n.stall
+    e.nf.textContent = (T.vault || T.line==='vault')
+        ? ((n.vaultGold||0) >= vaultCapOf(n) ? `🪙 ${fmt(n.vaultGold||0)}/${fmt(vaultCapOf(n))} 満杯` : `🪙 ${fmt(n.vaultGold||0)}/${fmt(vaultCapOf(n))}`)
+      : n.stall
         ? (T.stat && expMiss(n) ? `⚠ ${ITEMS[expMiss(n)].i}未配線` : `⚠ ${n.why||'停止'}`)
       : T.src ? srcFace(n)
       : T.stat ? (expRouted(n) ? `→ ${ITEMS[EXP_OF[T.stat]].i}` : `⚠ ${ITEMS[expMiss(n)].i}未配線`)
       : T.effect==='raid' ? (n.clear ? `✨クリア! タップ受取` : `HP ${fmt(Math.max(0,n.hp||0))}/${fmt(n.hpMax||1)}`)
       : T.effect==='dive' ? `${curCave().i}${S.caveFloor||1}F (${n.done||0}回)`
       : T.effect==='lab'  ? `🔬+${fmt(n.gain||0)}`
-      : T.chain==='sell'  ? `💰+${fmt(n.gain||0)}G`
-      : (T.vault || T.line==='vault') ? `🏦蓄財 ${fmt(n.vaultGold||0)}G`
+      : T.chain==='sell'  ? `🪙+${fmt(n.gain||0)}`
       : (T.engine || T.effect==='engine') ? `⚙️戦術 +${fmt(n.gain||0)}`
       : T.ware ? `${wareKinds(n).length}/${T.kinds||8}種 (${fmt(wareTotal(n))})`
       : T.store ? `${storeItems(n).length}/${T.slots}枠`
@@ -11800,6 +11910,10 @@ function destText(item){
 /* 撤去1台ぶんの処理。返ってくるのは戻ってきたもの */
 function canScrap(n){
   const T = TYPES[n.type];
+  if(T.vault || T.line === 'vault'){
+    const vCount = S.nodes.filter(x => TYPES[x.type] && (TYPES[x.type].vault || TYPES[x.type].line === 'vault')).length;
+    if(vCount <= 1) return false;
+  }
   return !T.layer && !T.port && !T.unique;
 }
 function scrapNode(n){
@@ -11946,12 +12060,15 @@ function renderInsp(){
       ${(T.vault || T.line==='vault') ? `
         <div style="background:linear-gradient(135deg,rgba(251,191,36,.18),rgba(15,23,42,.9));border:1px solid #fbbf24;border-radius:8px;padding:6px 9px;margin-bottom:6px">
           <div style="display:flex;align-items:center;justify-content:space-between;font-weight:800;color:#fde68a;font-size:11.5px">
-            <span>🏦 蓄財残高</span>
-            <b style="font-size:13px;color:#fbbf24">${fmt(n.vaultGold || 0)}G</b>
+            <span>🏦 ストレージ容量</span>
+            <b style="font-size:12.5px;color:#fbbf24" class="vault-cap-txt">🪙 ${fmt(n.vaultGold || 0)} / ${fmt(vaultCapOf(n))}</b>
           </div>
-          <div style="display:flex;gap:5px;margin-top:5px">
-            <button id="btnVaultDeposit" style="flex:1;background:rgba(251,191,36,.2);border:1px solid #fbbf24;border-radius:6px;padding:4px 6px;color:#fde68a;font-weight:800;font-size:10.5px;cursor:pointer">💰100G預入</button>
-            <button id="btnVaultEmit" style="flex:1;background:rgba(56,189,248,.18);border:1px solid #38bdf8;border-radius:6px;padding:4px 6px;color:#7dd3fc;font-weight:800;font-size:10.5px;cursor:pointer">🪙放出(+6)</button>
+          <div style="height:6px;background:#090d16;border-radius:99px;overflow:hidden;margin-top:4px;border:1px solid rgba(251,191,36,.3)">
+            <div class="vault-cap-bar" style="height:100%;width:${Math.min(100, Math.round(((n.vaultGold||0)/Math.max(1,vaultCapOf(n)))*100))}%;background:linear-gradient(90deg,#f59e0b,#fde047)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:3px">
+            <span>全金庫合計</span>
+            <b style="color:#fbbf24" class="vault-tot-txt">🪙 ${fmt(totalVaultGold())} / ${fmt(totalVaultCap())}</b>
           </div>
         </div>
       ` : ''}
@@ -12067,27 +12184,6 @@ function renderInsp(){
   const heBtn = box.querySelector('.human-expand-btn');
   if(heBtn) heBtn.onclick = () => { n._allPorts = !n._allPorts; rebuildNodeEl(n); renderInsp(); };
 
-  const vDepBtn = box.querySelector('#btnVaultDeposit');
-  if(vDepBtn) vDepBtn.onclick = () => {
-    const dep = Math.min(100, Math.floor(S.gold || 0));
-    if(dep <= 0) return toast('💰 手持ちのゴールドが足りません');
-    S.gold -= dep;
-    n.vaultGold = (n.vaultGold || 0) + Math.round(dep * 1.25);
-    n.outBuf.gold = Math.min(capOut(n, 'gold') * 3, (n.outBuf.gold || 0) + Math.max(4, Math.round(dep / 15)));
-    updateNodeEnergyStack(n);
-    toast(`🏦 金庫に ${dep}G を預け入れ、🪙お金エネルギーをチャージしました！`);
-    renderInsp(); render();
-  };
-  const vEmitBtn = box.querySelector('#btnVaultEmit');
-  if(vEmitBtn) vEmitBtn.onclick = () => {
-    if((n.vaultGold || 0) < 20 && (S.gold || 0) < 20) return toast('🏦 蓄財ゴールドが足りません');
-    if((n.vaultGold || 0) >= 20) n.vaultGold -= 20;
-    else S.gold -= 20;
-    n.outBuf.gold = Math.min(capOut(n, 'gold') * 3, (n.outBuf.gold || 0) + 6);
-    updateNodeEnergyStack(n);
-    toast('🪙 金貨エネルギー (+6) を出力バッファへ放出しました！');
-    renderInsp(); render();
-  };
   const autoCntBtn = box.querySelector('#btnInspAutoWireContraption');
   if(autoCntBtn) autoCntBtn.onclick = () => autoWireContraption();
 
@@ -12310,14 +12406,14 @@ function renderInsp(){
   const upBtn = box.querySelector('button.up');
   if(upBtn) upBtn.onclick=()=>{
     const c=upCost(n);
-    if(S.gold<c) return toast('ゴールドが足りません');
-    S.gold-=c; n.level++; renderInsp();
+    if(S.gold<c) return toast('金庫の金貨が足りません');
+    S.gold-=c; n.level++; syncVaultGold(); updateNodeEnergyStack(n); renderInsp(); render();
   };
   const up10Btn = box.querySelector('button.up10');
   if(up10Btn) up10Btn.onclick=()=>{
     const c=upCostN(n, UP_BULK);
     if(S.gold<c) return toast(`まとめて強化するには ${fmt(c)} G 要ります`);
-    S.gold-=c; n.level+=UP_BULK; renderInsp();
+    S.gold-=c; n.level+=UP_BULK; syncVaultGold(); updateNodeEnergyStack(n); renderInsp(); render();
     toast(`${tierOf(n).n} を Lv.${n.level} まで強化しました`);
   };
 
@@ -12653,6 +12749,13 @@ function renderInspLive(){
   const pv = box.querySelector('.pv');
   if(pv) pv.textContent = prioOf(n);
 
+  const vCapTxt = box.querySelector('.vault-cap-txt');
+  if(vCapTxt) vCapTxt.textContent = `🪙 ${fmt(n.vaultGold || 0)} / ${fmt(vaultCapOf(n))}`;
+  const vCapBar = box.querySelector('.vault-cap-bar');
+  if(vCapBar) vCapBar.style.width = `${Math.min(100, Math.round(((n.vaultGold||0)/Math.max(1,vaultCapOf(n)))*100))}%`;
+  const vTotTxt = box.querySelector('.vault-tot-txt');
+  if(vTotTxt) vTotTxt.textContent = `🪙 ${fmt(totalVaultGold())} / ${fmt(totalVaultCap())}`;
+
   const ubtn = box.querySelector('button.up');
   if(ubtn){
     const c = upCost(n);
@@ -12679,7 +12782,7 @@ function renderInspLive(){
   const del = box.querySelector('.del');
   if(del){
     del.textContent = compOfNode(n) ? '🏠 待機' : '撤去';
-    del.disabled = !!(TYPES[n.type].unique || TYPES[n.type].port);
+    del.disabled = !canScrap(n);
   }
 }
 
@@ -12698,33 +12801,33 @@ const linkPowerTo = b => linkFrom('hero','sta',b) || linkFrom('gen','sta',b) || 
 const TUT = [
   { t:'ようこそ',
     d:'これは <b>⚡体力の配り方とベルトコンベア</b>を考える自動化RPGです。最初のエネルギーを生むのは <b>🧍主人公</b>。'
-     +'そこから伸ばす配線が、そのまま体力の配分になります。',
+     +'そこから伸ばす配線が、そのまま動力の配分になります。',
     manual:true },
 
-  { t:'まずは放っておく',
-    d:'🧍主人公 ⚡→ 🕳️洞窟の入口 はもう繋がっています。何もしなくても自動で潜り、ゴールドが貯まります。'
-     +'<b>⛏️採掘機が買えるまで待ってください。</b>',
-    check:()=> S.gold >= buyCost('mine1') },
+  { t:'お金を金庫に貯める',
+    d:'お金（<b>🪙金貨</b>）も資材のひとつです。そのままでは増えません。'
+     +'<b>🕳️洞窟の入口の右にある金貨（🪙）</b>から <b>🏦金庫</b> まで線を引いて、金貨を金庫に貯めましょう。（金庫には容量上限があります）',
+    pane:'stage', hi:()=> { const d=S.nodes.find(n=>roleOf(n.type)==='dive'); return d && d.el && d.el.root.querySelector('.pout[data-item="gold"]'); },
+    check:()=> linkFrom('dive','gold','vault') },
 
   { t:'採掘機を建てる',
     d:'左の一覧（スマホでは下の〈建設〉タブ）から <b>⛏️ 採掘機</b> を選び、'
-     +'<b>盤面の置きたい場所をタップ</b>してください。素材が手に入るようになります。',
+     +'<b>盤面の置きたい場所をタップ</b>してください。金庫の🪙金貨を消費して建設できます。',
     pane:'shop', hi:()=> shopEls.mine && shopEls.mine.root,
     check:()=> S.nodes.some(n=>roleOf(n.type)==='mine') },
 
   { t:'体力を分ける',
-    d:'建てただけでは動きません。<b>主人公の右にある緑の丸（⚡）</b>から、'
+    d:'建てただけでは動きません。<b>主人公の右にある丸（⚡）</b>から、'
      +'<b>採掘機</b>まで線を引いてください。'
      +'（そのままドラッグしても、丸をタップしてから相手をタップしても引けます）',
     pane:'stage', hi:()=> { const h=heroNode()||genNode(); return h && h.el.root.querySelector('.pout'); },
     check:()=> linkPowerTo('mine') },
 
-  { t:'戦利品を売る',
-    d:'ダンジョンは撃破のたびに <b>🎁戦利品</b> を出します。自分の中には5個までしか積めず、'
-     +'あふれたぶんは手に入りません（潜るのは続きます）。<b>🏪 露店</b>を建て、'
-     +'<b>主人公の⚡</b> と <b>洞窟の入口の🎁</b> の2本を繋いでください。',
+  { t:'戦利品を売って金庫へ送る',
+    d:'ダンジョンが出す <b>🎁戦利品</b> は <b>🏪 露店</b> で売ると大量の <b>🪙金貨</b> になります。'
+     +'<b>🏪 露店</b>を建て、<b>主人公の⚡</b> と <b>洞窟の入口の🎁</b> を繋ぎ、さらに <b>露店の🪙 → 🏦金庫</b> へ繋いでください。',
     pane:'shop', hi:()=> shopEls.shop && shopEls.shop.root,
-    check:()=> linkPowerTo('shop') && linkFrom('dive','lot1','shop') },
+    check:()=> linkPowerTo('shop') && linkFrom('dive','lot1','shop') && linkFrom('shop','gold','vault') },
 
   { t:'廃材を片付ける',
     d:'採掘機は <b>🗑廃材</b> も出します。溜めても止まりはしませんが、'
@@ -12735,14 +12838,13 @@ const TUT = [
 
   { t:'研究室を建てて新施設を解放する',
     d:'第1世代の施設も最初は一部しか開いていません。<b>🔬 研究室</b>を建てて採掘機の🪨鉱石を送り、'
-     +'上の <b>🔬 研究ツリー</b> から <b>🔥精錬炉・🔌発電機・🏋️訓練所</b> などをアンロックしましょう。',
+     +'メニューの <b>🔬 研究ツリー</b> から <b>🔥精錬炉・🔌発電機・🏋️訓練所</b> などをアンロックしましょう。',
     pane:'shop', hi:()=> shopEls.lab && shopEls.lab.root,
     check:()=> S.nodes.some(n=>roleOf(n.type)==='lab') },
 
   { t:'あとは自由に',
-    d:'基本はこれだけです。🔬研究ツリーで <b>🔌発電機</b> や <b>🧍仲間</b> を開放すれば⚡供給を大きく増やせます。'
-     +'🏋️訓練の経験値は<b>主人公に配線を戻す</b>と能力になり、体力の自然回復も伸びます。'
-     +'目標は <b>どこまで深く潜れるか</b> です。',
+    d:'基本はこれだけです！🏦金庫がいっぱいになったら<b>金庫を強化・増設</b>して容量を広げましょう。'
+     +'最初の洞窟を踏破すると <b>🍻酒場</b> が解放され、仲間をスカウトできるようになります。',
     manual:true, last:true },
 ];
 
@@ -12779,17 +12881,18 @@ function tutAdvance(){
   toast('できました');
 }
 function tutFinish(msg){
-  S.tut=-1; tutSetHi(null); tutShown=-1;
+  S.tut=-1; S.tutDone=true; tutSetHi(null); tutShown=-1;
   document.body.classList.remove('tut');
   $('#tut').classList.remove('on');
   if(!S.starterKitClaimed){
     S.starterKitClaimed = true;
     S.gold = (S.gold || 0) + 300;
+    syncVaultGold();
     S.stock = (S.stock || 0) + 40;
     grantRp(20, true);
     homeOf().ing1 = (homeOf().ing1 || 0) + 10;
-    addLog('🎁【初期物資支給】冒険支援パック（💰+300G, 🧱+40資材, 🔬+20RP, 🧱銅の地金×10）を受け取りました！', 'b');
-    toast('🎁 スターター物資支給！ +300G / +🧱40 / +🔬20 / 銅地金×10');
+    addLog('🎁【初期物資支給】冒険支援パック（🪙+300, 🧱+40資材, 🔬+20RP, 🧱銅の地金×10）を受け取りました！', 'b');
+    toast('🎁 スターター物資支給！ +🪙300 / +🧱40 / +🔬20 / 銅地金×10');
   }else if(msg){
     toast(msg);
   }
@@ -12797,7 +12900,7 @@ function tutFinish(msg){
 }
 $('#tNext').onclick=()=>{ const st=TUT[S.tut]; if(st&&st.last) tutFinish('それでは、良い深層を'); else tutAdvance(); };
 $('#tSkip').onclick=()=>tutFinish('チュートリアルをスキップしました');
-$('#tRestart').onclick=()=>{ S.tut=0; tutShown=-1; setPane('stage'); toast('チュートリアルを最初から'); };
+$('#tRestart').onclick=()=>{ S.tut=0; S.tutDone=false; tutShown=-1; setPane('stage'); tutRender(); toast('チュートリアルを最初から'); };
 
 /* ========================= 操作 ========================= */
 let drag=null;
@@ -13621,7 +13724,8 @@ function load(){
     delete d.tro;
     S=Object.assign(freshState(),d); reindex(); devDirty(); gearDirty(); skillDirty();
     S.skills = S.skills || {};
-    if(S.tut===0 && (S.best>3 || S.nodes.length>2)) S.tut=-1;   // 既に遊んでいる人には出さない
+    if(!S.tutDone && (S.best||1) <= 5 && S.nodes.length <= 4) S.tut = 0;
+    else if(S.tut===0 && (S.best>5 || S.nodes.length>4)) S.tut=-1;   // 既に遊んでいる人には出さない
     clearBoardEls();
     S.companionRoster = Array.isArray(S.companionRoster) ? S.companionRoster : [];
     initDemonGems();
@@ -13632,6 +13736,13 @@ function load(){
       }
       n.el=null; mkNodeEl(n);
     }
+    if(!S.nodes.some(n => TYPES[n.type] && (TYPES[n.type].vault || TYPES[n.type].line === 'vault'))){
+      const vNode = addNode('vault1', 500, 150);
+      S.counts.vault1 = (S.counts.vault1 || 0) + 1;
+      vNode.vaultGold = Math.min(vaultCapOf(vNode), Math.max(150, Math.floor(S.gold || 150)));
+    }
+    S._vaultSum = totalVaultGold();
+    S.gold = S._vaultSum;
     for(const l of S.links){
       const pk = Array.isArray(l.packets) ? l.packets : [];
       l.packets=[]; mkLinkEl(l);
@@ -13644,17 +13755,7 @@ function load(){
     S.at = null; applyView(); renderLog(); renderBoard();
     layerDirty();                       // 数え直せるものは持ち越さない
     applyAway((Date.now() - (d.savedAt||Date.now())) / 1000);
-    if(S.gold < 150 && (!S.best || S.best <= 2) && (!S.counts || Object.keys(S.counts).length <= 2)){
-      S.gold = Math.max(S.gold, 500);
-      S.rp = Math.max(S.rp || 0, 30);
-      S.stock = Math.max(S.stock || 0, 25);
-      S.home = S.home || {};
-      const hNode = S.nodes.find(n => n.type === 'hero');
-      if(hNode && (!hNode.gear || !hNode.gear.some(g => g && g.item))){
-        hNode.gear = [{item:'eqp1'}, {item:null}, {item:null}];
-        gearDirty();
-      }
-    }
+    syncVaultGold();
     return true;
   }catch(_){ return false; }
 }
@@ -14972,9 +15073,9 @@ takeBaseSnapshot();
 
 function defaultDevCfg(){
   return {
-    v: 4,
+    v: 5,
     initBoard: {
-      initGold: 500,
+      initGold: 150,
       initIng1: 0,
       nodes: [
         { type:'hero',   x:80,  y:150 },
@@ -15095,7 +15196,7 @@ function loadDevCfg(){
     const raw = localStorage.getItem(DEV_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
-    if(!d || typeof d !== 'object' || d.v !== 4){
+    if(!d || typeof d !== 'object' || d.v !== 5){
       localStorage.removeItem(DEV_KEY);
       return false;
     }
@@ -16225,15 +16326,18 @@ function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
   const ib = (DEV_CFG && DEV_CFG.initBoard) || {
-    initGold: 500, initIng1: 0,
-    nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:290, y:150}],
+    initGold: 150, initIng1: 0,
+    nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:290, y:150}, {type:'vault1', x:500, y:150}],
     links: [{from:0, item:'sta', to:1}]
   };
-  S.gold = ib.initGold != null ? ib.initGold : 500;
+  const initG = ib.initGold != null ? ib.initGold : 150;
   S.rp = 30;
   S.stock = 25;
   S.home = {};
-  S.starterKitClaimed = true;
+  S.tut = 0;
+  S.tutDone = false;
+  tutShown = -1;
+  S.starterKitClaimed = false;
   if(ib.initIng1) S.home.ing1 = ib.initIng1;
   S.counts = {};
   const spawned = [];
@@ -16248,6 +16352,11 @@ function newGame(){
     spawned.unshift(h);
     S.counts.hero = 1;
   }
+  if(!spawned.some(n => TYPES[n.type] && (TYPES[n.type].vault || TYPES[n.type].line === 'vault'))){
+    const v = addNode('vault1', 500, 150);
+    spawned.push(v);
+    S.counts.vault1 = (S.counts.vault1 || 0) + 1;
+  }
   const initHero = spawned.find(n => n.type === 'hero');
   if(initHero){
     initHero.outBuf.sta = 3;
@@ -16258,11 +16367,18 @@ function newGame(){
   if(initDive){
     initDive.inBuf.sta = 5;
   }
+  const initVault = spawned.find(n => TYPES[n.type] && (TYPES[n.type].vault || TYPES[n.type].line === 'vault'));
+  if(initVault){
+    initVault.vaultGold = Math.min(vaultCapOf(initVault), initG);
+    updateNodeEnergyStack(initVault);
+  }
+  S._vaultSum = totalVaultGold();
+  S.gold = S._vaultSum;
   for(const lk of (ib.links || [])){
     const a = spawned[lk.from], b = spawned[lk.to];
     if(a && b && ITEMS[lk.item]) addLink(a.id, lk.item, b.id);
   }
-  addLog('🎁 開始ボーナス: 💰500G 🎽銅の剣 🔬30RP 🧱25','u');
+  addLog(`🎁 開始ボーナス: 🏦金庫(🪙${fmt(S.gold)}/${fmt(totalVaultCap())}) 🎽銅の剣 🔬30RP 🧱25`,'u');
   S.at = null; renderBoard();
   fitView(1);
 }
@@ -16274,6 +16390,7 @@ for(const L of S.nodes.filter(isLayer)){   // 旧版のレイヤーは出口が�
 buildShop();                       // 建設リストは研究の進み具合を見るので S を作ってから
 if(!S.enemy) spawnEnemy();
 updateMilestonePill();
+tutRender();
 
 let last=performance.now(), accS=0;
 let SPEED = 1;                      // デバッグ時だけ変えられる進行速度
