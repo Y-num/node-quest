@@ -203,13 +203,11 @@ body.linking .node.tgt .port:not(.hot){opacity:.25}
 body.linking .slot.hot{outline:1px solid var(--acc2);border-radius:4px;background:rgba(122,162,255,.14)}
 @keyframes hotp{0%,100%{box-shadow:0 0 0 3px rgba(122,162,255,.35)}
                 50%{box-shadow:0 0 0 7px rgba(122,162,255,.12)}}
-.nh{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;height:22px}
-.nh .ic{font-size:14px;flex:none}
-.nh .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-/* 通し番号。どのノードとどのノードが繋がっているかを、番号で言い表せる */
-.nh .no{font-size:9.5px;font-weight:700;color:var(--dim);
-  background:#0b1119;border:1px solid var(--line);padding:0 4px;border-radius:4px;
-  font-variant-numeric:tabular-nums;flex:none}
+.nh{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;height:22px;padding-right:22px}
+.nh .ic{font-size:16px;line-height:1;flex:none}
+.nh .nm{display:none !important}
+/* 通し番号・レベル・下部文字列・スロット数値などノード内の文字列は非表示にし、インジケータのみで視覚化 */
+.nh .no{display:none !important}
 .node.sel .nh .no{color:var(--acc);border-color:var(--acc)}
 /* 選んだノードと、その相手だけを残して、ほかは沈める */
 .node.dim{opacity:.16;filter:saturate(.35)}
@@ -234,22 +232,25 @@ circle.wph.dim{opacity:.12}
 /* 魔石ソケットバッジ（Demon Gem Socket） */
 .gem-badge{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;border:1px solid #f59e0b;background:rgba(245,158,11,.15);color:#fef3c7;margin-left:4px}
 .incomp-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:#ef4444;color:#fff;margin-top:3px}
-.nh .lv{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--acc);
-  background:#0b1119;border:1px solid var(--line);padding:0 5px;border-radius:4px}
-/* 素材ごとに1行＝1ポート。左が入力、右が出力 */
+.nh .lv{display:none !important}
+/* 素材ごとに1行＝1ポート。左が入力、右が出力（文字列は非表示・スロット内ゲージで容量表示） */
 .rowio{display:flex;align-items:center;height:22px;gap:4px}
-.slot{flex:1;min-width:0;display:flex;align-items:center;gap:3px;font-size:9.5px;
-  border-radius:4px;padding:0 4px;height:17px;white-space:nowrap;overflow:hidden}
+.slot{flex:1;min-width:0;display:flex;align-items:center;gap:3px;font-size:11px;
+  border-radius:4px;padding:0 5px;height:17px;white-space:nowrap;overflow:hidden;position:relative;
+  border:1px solid rgba(255,255,255,.06)}
 .slot.i{justify-content:flex-start;background:rgba(122,162,255,.09);color:var(--acc2)}
 .slot.o{justify-content:flex-end;  background:rgba(94,224,192,.09);color:var(--acc)}
-.slot.e{background:none}
-.slot .q{color:var(--dim);font-size:8.5px}
-.slot b{color:var(--fg);font-weight:700}
-.slot.full{background:rgba(224,138,75,.18);color:var(--warn)}
-.slot.full b{color:var(--warn)}
-.bar{height:5px;background:#0b1119;border-radius:3px;overflow:hidden;margin-top:5px}
+.slot.e{background:none;border-color:transparent}
+.slot .slot-fill{position:absolute;top:0;bottom:0;width:0%;pointer-events:none;transition:width .18s ease;z-index:0}
+.slot.i .slot-fill{left:0;background:linear-gradient(90deg,rgba(122,162,255,.36),rgba(122,162,255,.14))}
+.slot.o .slot-fill{right:0;background:linear-gradient(270deg,rgba(94,224,192,.36),rgba(94,224,192,.14))}
+.slot.full .slot-fill{background:linear-gradient(90deg,rgba(245,158,11,.52),rgba(239,68,68,.38)) !important}
+.slot > *:not(.slot-fill){position:relative;z-index:1}
+.slot .q, .slot b, .slot .dm{display:none !important}
+.slot.full{background:rgba(224,138,75,.18);color:var(--warn);border-color:rgba(245,158,11,.45)}
+.bar{height:4px;background:#0b1119;border-radius:3px;overflow:hidden;margin-top:4px}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc))}
-.nf{font-size:9.5px;color:var(--dim);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:14px;line-height:14px}
+.nf{display:none !important}
 .node.stall .nf{color:var(--warn)}
 .node .aura{position:absolute;border-radius:50%;pointer-events:none;z-index:-1}
 /* 人（主人公・仲間）の行動範囲。この円の中にある施設だけが人の⚡で起動する（発電機は距離制限なし） */
@@ -278,11 +279,7 @@ body.dragging-node .node.in-hrange, body.placing .node.in-hrange{
   transition:opacity .6s}
 .node .sk{font-size:11px;line-height:1;margin-left:2px}
 .port.any{border-style:dashed;color:var(--dim);font-size:11px;line-height:1}
-.slot.anyslot{color:var(--dim);border-style:dashed;font-size:9.5px;letter-spacing:.02em}
-/* 圧縮・鍛錬の段数。素のものと見分けるための小さなしるし */
-.slot .dm{font-style:normal;font-size:9px;color:var(--acc);font-weight:700;margin:0 1px 0 -1px;
-  vertical-align:super;line-height:1}
-.slot.o .dm{margin:0 0 0 1px}
+.slot.anyslot{color:var(--dim);border-style:dashed;font-size:11px;justify-content:center}
 .node .aura.clean{border:1px dashed rgba(94,224,192,.30);
   background:radial-gradient(circle,rgba(94,224,192,.09),transparent 70%)}
 .node .aura.speed{border:1px dashed rgba(242,193,78,.30);
@@ -294,25 +291,35 @@ body.dragging-node .node.in-hrange, body.placing .node.in-hrange{
 .node .aura.tac{border:1px dashed rgba(244,63,94,.48);
   background:radial-gradient(circle,rgba(244,63,94,.14),transparent 70%)}
 .node.stall .aura{opacity:.25}
-/* ノード上部へのエネルギー視覚スタック（溜まったエネルギーがノードの上に物理的に積み上がる） */
+/* ノード内容量インジケータ（邪魔にならないようノード内部の下部に8セグメントゲージで表示） */
 .node .n-energy-stack{
-  position:absolute;left:6px;right:24px;bottom:calc(100% + 2px);
-  display:flex;align-items:flex-end;justify-content:center;gap:5px;
-  pointer-events:none;z-index:5;min-height:0}
+  position:relative;left:auto;right:auto;bottom:auto;
+  display:flex;align-items:center;justify-content:stretch;gap:4px;
+  height:14px;margin-top:4px;pointer-events:none;z-index:2;min-height:14px}
 .eng-stack-col{
-  display:flex;flex-direction:column-reverse;align-items:center;
-  position:relative;filter:drop-shadow(0 2px 4px rgba(0,0,0,.65))}
-.eng-stack-layers{
-  display:flex;flex-direction:column-reverse;align-items:center}
-.eng-layer-img{
-  width:22px;height:11px;display:block;margin-top:-5px;
-  transition:transform .18s ease}
-.eng-layer-img:first-child{margin-top:0}
-.eng-stack-val{
-  font-size:9px;font-weight:800;line-height:1;padding:1px 4px;
-  border-radius:99px;background:rgba(9,13,22,.92);border:1px solid var(--ec,#f2c14e);
-  color:var(--ec,#f2c14e);margin-bottom:2px;white-space:nowrap;
-  box-shadow:0 1px 4px rgba(0,0,0,.6)}
+  flex:1;min-width:0;height:13px;
+  display:flex;flex-direction:row;align-items:center;gap:4px;
+  padding:0 4px;border-radius:4px;
+  background:rgba(9,13,22,.86);border:1px solid rgba(255,255,255,.09);
+  position:relative}
+.eng-stack-col.is-full{
+  border-color:rgba(245,158,11,.7);background:rgba(245,158,11,.12);
+  box-shadow:inset 0 0 6px rgba(245,158,11,.25)}
+.cap-ind-ic{width:10px;height:10px;flex:0 0 10px;display:block;object-fit:contain}
+.cap-ind-dot{width:6px;height:6px;border-radius:50%;flex:0 0 6px}
+.cap-ind-segs{
+  flex:1;min-width:0;height:6px;
+  display:grid;grid-template-columns:repeat(8,1fr);gap:1.5px;align-items:stretch}
+.cap-seg{
+  display:block;border-radius:1px;background:rgba(255,255,255,.09);
+  transition:background .15s,box-shadow .15s}
+.cap-seg.on{
+  background:var(--ec,#5ee0c0);
+  box-shadow:0 0 4px color-mix(in srgb, var(--ec,#5ee0c0) 60%, transparent)}
+.cap-seg.on.full{
+  background:#f59e0b;
+  box-shadow:0 0 5px rgba(245,158,11,.8)}
+.eng-stack-val{display:none !important}
 .eng-slot-img{
   width:13px;height:13px;vertical-align:-2px;margin:0 1px;
   filter:drop-shadow(0 0 2px rgba(255,255,255,.25))}
@@ -5771,10 +5778,10 @@ function mkNodeEl(n){
     const aIcon = a ? energySlotIconHtml(a, n, 'in') : '';
     const bIcon = b ? energySlotIconHtml(b, n, 'out') : '';
     rows += `<div class="rowio">`+
-      (a ? `<div class="slot i" data-s="in-${a}" title="${ITEMS[a].n}">${aIcon}${densTag(a)}<b>0</b><span class="q">/0</span></div>`
-         : i===anyRow ? `<div class="slot i anyslot">＋ ${TYPES[n.type].chain==='sell'?'なんでも':(TYPES[n.type].src && n.type!=='hero')?'🎁好物/物資':'空き'}</div>`
+      (a ? `<div class="slot i" data-s="in-${a}" title="${ITEMS[a].n}"><i class="slot-fill"></i>${aIcon}${densTag(a)}<b>0</b><span class="q">/0</span></div>`
+         : i===anyRow ? `<div class="slot i anyslot" title="${TYPES[n.type].chain==='sell'?'なんでも':(TYPES[n.type].src && n.type!=='hero')?'好物/物資':'空き'}">＋</div>`
          : `<div class="slot e"></div>`)+
-      (b ? `<div class="slot o" data-s="out-${b}" title="${ITEMS[b].n}"><span class="q">/0</span><b>0</b>${bIcon}${densTag(b)}</div>`
+      (b ? `<div class="slot o" data-s="out-${b}" title="${ITEMS[b].n}"><i class="slot-fill"></i><span class="q">/0</span><b>0</b>${bIcon}${densTag(b)}</div>`
          : `<div class="slot e"></div>`)+
       `</div>`;
     if(a) ports += `<div class="port pin"  data-item="${a}" style="top:${portY(i)}px" title="入力口: ${ITEMS[a].n}">▸</div>`;
@@ -5786,8 +5793,8 @@ function mkNodeEl(n){
     ? `<div class="aura ${A.k}" style="width:${A.r*2}px;height:${A.r*2}px;left:${NW/2-A.r}px;top:${45-A.r}px"></div>`
     : '')
     + (hr
-      ? `<div class="hrange" style="width:${hr*2}px;height:${hr*2}px;left:${NW/2-hr}px;top:${45-hr}px"><span class="hrange-lbl">${tr.i} 行動範囲（半径${hr}px）</span></div>`
-      : `<div class="rng-badge">🚫 人の行動範囲外</div>`)
+      ? `<div class="hrange" style="width:${hr*2}px;height:${hr*2}px;left:${NW/2-hr}px;top:${45-hr}px"><span class="hrange-lbl"></span></div>`
+      : `<div class="rng-badge"></div>`)
     + `<div class="polr" style="width:${POL_R*2}px;height:${POL_R*2}px;left:${NW/2-POL_R}px;top:${45-POL_R}px"></div>`;
   if(any) ports += `<div class="port pin any" style="top:${portY(anyRow)}px"`
     + ` title="${TYPES[n.type].chain==='sell' ? 'どんな素材でもここへ繋げます（届いたものから売ります）'
@@ -5795,25 +5802,26 @@ function mkNodeEl(n){
         : '空きスロット：どんな素材でもここへ繋げます（つないだ素材が自動で入ります）'}">＋</div>`;
   const asInfo = (n.assim && n.assim.length) ? assimStatsOf(n) : null;
   const asBadge = asInfo
-    ? `<div class="assim-badge">${asInfo.chimera ? '🧬キメラ×'+asInfo.mul : '🦠吸収×'+asInfo.mul}${asInfo.selfPow?'⚡':''}</div>`
+    ? `<div class="assim-badge" title="${asInfo.chimera ? 'キメラ×'+asInfo.mul : '吸収×'+asInfo.mul}">${asInfo.chimera ? '🧬' : '🦠'}${asInfo.selfPow?'⚡':''}</div>`
     : '';
   const strikeBadge = (TYPES[n.type].src && n.type!=='hero')
-    ? `<div class="strike-badge" ${n.isStrike?'':'hidden'}>💢 ストライキ中</div>`
+    ? `<div class="strike-badge" title="ストライキ中" ${n.isStrike?'':'hidden'}>💢</div>`
     : '';
   const gemBadge = (n.slottedGem && ITEMS[n.slottedGem])
     ? `<div class="gem-badge" title="魔神眼: ${ITEMS[n.slottedGem].n}">${ITEMS[n.slottedGem].i}</div>`
     : '';
   const spireBadge = n.isOverrun
-    ? `<div class="spire-badge" style="position:absolute;top:-12px;left:10px;background:#7e22ce;color:#fff;border-radius:4px;padding:1px 6px;font-size:9.5px;font-weight:700;z-index:4">👾 侵食尖塔</div>`
+    ? `<div class="spire-badge" title="侵食尖塔" style="position:absolute;top:-12px;left:10px;background:#7e22ce;color:#fff;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:700;z-index:4">👾</div>`
     : n.alienTech
-    ? `<div class="alien-badge" style="position:absolute;top:-12px;left:10px;background:#059669;color:#fff;border-radius:4px;padding:1px 6px;font-size:9.5px;font-weight:700;z-index:4">🛸 Tech ${n.alienTech}</div>`
+    ? `<div class="alien-badge" title="Tech ${n.alienTech}" style="position:absolute;top:-12px;left:10px;background:#059669;color:#fff;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:700;z-index:4">🛸</div>`
     : '';
-  el.innerHTML = auraEl + `<div class="n-energy-stack"></div>` + asBadge + strikeBadge + gemBadge + spireBadge +
+  el.title = `${tr.i} ${tr.n} (Lv.${n.level})`;
+  el.innerHTML = auraEl + asBadge + strikeBadge + gemBadge + spireBadge +
     `<button class="node-more-btn" data-more="${n.id}" title="詳細・設定を開く">＋</button>`+
     `<div class="nh"><span class="status-led led-run" title="稼働状態LED"></span><span class="no">#${n.no||'-'}</span>`+
     `<span class="ic">${tr.i}</span><span class="nm">${tr.shortNm || tr.n}</span>`+
     `<span class="sk"></span><span class="lv">Lv.${n.level}</span></div>`+
-    rows + `<div class="bar"><i></i></div><div class="nf"></div>` + ports;
+    rows + `<div class="bar"><i></i></div><div class="n-energy-stack"></div><div class="nf"></div>` + ports;
   if(asInfo){
     el.classList.add('assim');
     if(asInfo.chimera) el.classList.add('chimera');
@@ -5854,7 +5862,7 @@ function mkNodeEl(n){
   updateNodeEnergyStack(n);
 }
 
-/* ノード上部に蓄積されたエネルギー（万能・電気・お金・高圧・臨界・戦術など）を視覚的に積み上げて描画 */
+/* ノード内部の下部に容量・蓄積量を8セグメントのインジケータとして視覚化（文字列なし） */
 function updateNodeEnergyStack(n){
   if(!n || !n.el || !n.el.engStack) return;
   const T = TYPES[n.type] || {};
@@ -5871,7 +5879,6 @@ function updateNodeEnergyStack(n){
     if(k === 'tac' && (n._tacPower || 0) > 0){
       amt += n._tacPower;
     }
-    // 稼働中ノードの内部チャージ分も視覚化（送出直後でも空に見えないようにする）
     if(n.crafting && (n.need || 0) > 0){
       const ratio = Math.min(1, Math.max(0.15, (n.prog || 0) / n.need));
       if(give[k]) amt += give[k] * ratio;
@@ -5883,31 +5890,51 @@ function updateNodeEnergyStack(n){
     if(val <= 0 && !isVaultGold) continue;
     const ek = energyKindOf(k, n, null);
     if(!ek) continue;
+    const ev = ENERGY_VISUALS[ek] || ENERGY_VISUALS.anima;
     const vCap = isVaultGold ? Math.max(1, vaultCapOf(n)) : 0;
-    const maxRef = isVaultGold ? vCap : Math.max(8, capIn(n, k) || 16);
+    const maxRef = isVaultGold ? vCap : (give[k] ? Math.max(4, capOut(n, k) || 16) : Math.max(4, capIn(n, k) || 16));
     const layers = val <= 0 ? 0 : Math.max(1, Math.min(8, Math.ceil((val / maxRef) * 8)));
-    stacks.push({ k, ek, val, vCap, layers });
-    if(stacks.length >= 3) break; // 最大3列まで並べて視認性を維持
+    stacks.push({ k, ek, val, vCap: maxRef, layers, color: ev.color, name: ev.name, iconUrl: getEnergySvgUrl(ek) });
+    if(stacks.length >= 2) break;
+  }
+  // 倉庫・貯蔵庫や物理素材ノードでも、内部容量インジケータを常時表示する
+  if(!stacks.length){
+    if(T.ware || T.store){
+      const stored = Object.values(n.inBuf||{}).reduce((a,b)=>a+b,0) + Object.values(n.outBuf||{}).reduce((a,b)=>a+b,0);
+      const maxCap = Math.max(1, Math.ceil(capMul(n) * (T.cap || 40) * lvPow(n.level || 1)));
+      const val = Math.floor(stored);
+      const layers = val <= 0 ? 0 : Math.max(1, Math.min(8, Math.ceil((val / maxCap) * 8)));
+      stacks.push({ k:'store', ek:'store', val, vCap: maxCap, layers, color:'#5ee0c0', name:'ストレージ容量', iconUrl: null });
+    } else {
+      const pKey = Object.keys(give)[0] || Object.keys(need)[0] || 'sta';
+      const isOut = !!give[pKey];
+      const val = Math.floor(isOut ? ((n.outBuf && n.outBuf[pKey]) || 0) : ((n.inBuf && n.inBuf[pKey]) || 0));
+      const maxCap = Math.max(1, isOut ? (capOut(n, pKey) || 10) : (capIn(n, pKey) || 10));
+      const ek = energyKindOf(pKey, n, null);
+      const ev = ek ? ENERGY_VISUALS[ek] : null;
+      const color = (ev && ev.color) || (ITEMS[pKey] && ITEMS[pKey].c) || '#7aa2ff';
+      const name = (ev && ev.name) || (ITEMS[pKey] && ITEMS[pKey].n) || '容量';
+      const layers = val <= 0 ? 0 : Math.max(1, Math.min(8, Math.ceil((val / maxCap) * 8)));
+      stacks.push({ k: pKey, ek: ek || pKey, val, vCap: maxCap, layers, color, name, iconUrl: ek ? getEnergySvgUrl(ek) : null });
+    }
   }
   const sig = stacks.map(s => `${s.ek}:${s.layers}:${s.val}:${s.vCap||0}`).join('|');
   if(n._engStackSig === sig) return;
   n._engStackSig = sig;
-  if(!stacks.length){
-    n.el.engStack.innerHTML = '';
-    return;
-  }
   let html = '';
   for(const s of stacks){
-    const ev = ENERGY_VISUALS[s.ek] || ENERGY_VISUALS.anima;
-    const layerUrl = getEnergyLayerSvgUrl(s.ek);
-    let imgs = '';
-    for(let i = 0; i < s.layers; i++){
-      imgs += `<img class="eng-layer-img" src="${layerUrl}" alt="${ev.name}">`;
+    let segs = '';
+    const isFull = s.layers >= 8 && s.val >= s.vCap;
+    for(let i = 0; i < 8; i++){
+      segs += `<i class="cap-seg${i < s.layers ? ' on' : ''}${isFull ? ' full' : ''}"></i>`;
     }
-    const labelTxt = s.vCap ? `${fmt(s.val)}/${fmt(s.vCap)}` : fmt(s.val);
-    html += `<div class="eng-stack-col" data-energy-kind="${s.ek}" data-layers="${s.layers}" title="${ev.name}: ${labelTxt}">`+
-      `<div class="eng-stack-val" style="color:${ev.color};border-color:${ev.color}">${labelTxt}</div>`+
-      `<div class="eng-stack-layers">${imgs}</div>`+
+    const icHtml = s.iconUrl
+      ? `<img class="cap-ind-ic" src="${s.iconUrl}" alt="">`
+      : `<span class="cap-ind-dot" style="background:${s.color}"></span>`;
+    const labelTxt = `${fmt(s.val)}/${fmt(s.vCap)}`;
+    html += `<div class="eng-stack-col${isFull ? ' is-full' : ''}" data-energy-kind="${s.ek}" data-layers="${s.layers}" title="${s.name}: ${labelTxt}">`+
+      icHtml +
+      `<div class="cap-ind-segs" style="--ec:${s.color}">${segs}</div>`+
       `</div>`;
   }
   n.el.engStack.innerHTML = html;
@@ -11000,8 +11027,11 @@ function render(fdt){
     const e=n.el;
     const tr=tierOf(n);
     const boardNm = tr.shortNm || tr.n;
-    if(e.lastTier!==tr.t || e.lastNm!==boardNm){ e.lastTier=tr.t; e.lastNm=boardNm;
-      setTxt(e.ic, tr.i); setTxt(e.nm, boardNm); }
+    if(e.lastTier!==tr.t || e.lastNm!==boardNm || e.lastLv!==n.level){
+      e.lastTier=tr.t; e.lastNm=boardNm; e.lastLv=n.level;
+      setTxt(e.ic, tr.i); setTxt(e.nm, boardNm);
+      e.root.title = `${tr.i} ${tr.n} (Lv.${n.level})`;
+    }
     setTxt(e.lv, T.layer ? `${memCount(n)}個` : 'Lv.'+n.level);
     setCls(e.root,'lay', !!T.layer);
     setCls(e.root,'port', !!T.port);
@@ -11013,7 +11043,7 @@ function render(fdt){
         e.hrange.style.width  = (hr*2)+'px';
         e.hrange.style.height = (hr*2)+'px';
       }
-      if(e.hrangeLbl) setTxt(e.hrangeLbl, `🧍 ${boardNm} (${hr}px)`);
+      if(e.hrangeLbl) setTxt(e.hrangeLbl, '');
       const hasFarLink = S.links.some(l => l.from === n.id && isLinkOutOfRange(l));
       setCls(e.hrange, 'warn', hasFarLink);
     }
@@ -11021,39 +11051,51 @@ function render(fdt){
     setCls(e.root, 'out-range', !!farInfo);
     setCls(e.root, 'in-hrange', !T.src && !T.layer && !T.port && !farInfo && !!(need.sta || T.power) && inAnyHumanRange(n));
     if(e.rngBadge){
-      setTxt(e.rngBadge, farInfo ? `🚫 範囲外` : '');
+      setTxt(e.rngBadge, '');
     }
     for(const k in shown){
       const s=e.slots['in-'+k]; if(!s) continue;
       s._b = s._b || s.querySelector('b'); s._q = s._q || s.querySelector('.q');
+      s._fill = s._fill || s.querySelector('.slot-fill');
       if(T.src && STAT_OF[k]){
         const stKey = STAT_OF[k], stVal = statsOf(n)[stKey] || 0, exVal = expOf(n)[stKey] || 0, exReq = expNeed(stVal);
         setTxt(s._b, fmt(stVal));
         setTxt(s._q, ` (${fmt(exVal)}/${fmt(exReq)})`);
         setCls(s,'short', false);
         setCls(s,'full', false);
+        const pct = Math.min(100, Math.round((exVal / Math.max(1, exReq)) * 100));
+        if(s._fill && s._lastFill !== pct){ s._lastFill = pct; s._fill.style.width = pct + '%'; }
         continue;
       }
-      const c=n.inBuf[k]||0, req=need[k];
+      const isVaultGold = (T.vault || T.line==='vault') && k === 'gold';
+      const c = isVaultGold ? (n.vaultGold||0) : (n.inBuf[k]||0), req=need[k];
       // 分母は「その口が何を待っているか」に合わせる。
       // 貯蔵と倉庫と売り場は入れておける量、それ以外は1回に要る数
-      const stack = (T.store || T.ware || T.chain==='sell' || T.layer || T.port);
-      const den = (T.layer || T.port) ? 0 : stack ? capIn(n,k) : req;
+      const stack = (T.store || T.ware || T.chain==='sell' || T.layer || T.port || isVaultGold);
+      const maxC = isVaultGold ? Math.max(1, vaultCapOf(n)) : Math.max(1, capIn(n,k));
+      const den = (T.layer || T.port) ? 0 : isVaultGold ? maxC : stack ? capIn(n,k) : req;
       setTxt(s._b, fmt(c));
       setTxt(s._q, den ? '/'+fmt(den) : '');
       setCls(s,'short', !stack && !!req && c < req);
-      setCls(s,'full', c >= capIn(n,k));
+      setCls(s,'full', c >= maxC);
+      const pct = Math.min(100, Math.round((c / Math.max(1, den || maxC)) * 100));
+      if(s._fill && s._lastFill !== pct){ s._lastFill = pct; s._fill.style.width = pct + '%'; }
     }
     for(const k in give){
       const s=e.slots['out-'+k]; if(!s) continue;
-      const c=n.outBuf[k]||0;
+      const isVaultGold = (T.vault || T.line==='vault') && k === 'gold';
+      const c = isVaultGold ? (n.vaultGold||0) : (n.outBuf[k]||0);
+      const maxC = isVaultGold ? Math.max(1, vaultCapOf(n)) : Math.max(1, capOut(n,k));
       const r=(n.rate&&n.rate[k])||0;
       s._b = s._b || s.querySelector('b'); s._q = s._q || s.querySelector('.q');
+      s._fill = s._fill || s.querySelector('.slot-fill');
       setTxt(s._b, fmt(c));
       setTxt(s._q, flowing.has(n.id+':'+k)
           ? (r>=0.05 ? fmt(r)+'/分' : '待ち')                 // 流している最中は勢いで見せる
-          : (isByp(k) || T.layer || T.port) ? '' : '/'+fmt(capOut(n,k)));
-      setCls(s,'full', c+give[k]>capOut(n,k));
+          : (isByp(k) || T.layer || T.port) ? '' : '/'+fmt(maxC));
+      setCls(s,'full', isVaultGold ? c >= maxC : c+give[k]>maxC);
+      const pct = Math.min(100, Math.round((c / maxC) * 100));
+      if(s._fill && s._lastFill !== pct){ s._lastFill = pct; s._fill.style.width = pct + '%'; }
     }
     const bw = (T.vault || T.line==='vault') ? Math.min(100, ((n.vaultGold||0) / Math.max(1, vaultCapOf(n))) * 100)
              : (n.crafting ? Math.min(100, n.prog / n.need * 100) : 0);
@@ -12799,14 +12841,15 @@ const linkFrom = (a,item,b) => S.links.some(l =>
 const linkPowerTo = b => linkFrom('hero','sta',b) || linkFrom('gen','sta',b) || linkFrom('mate','sta',b) || linkFrom('cgen','sta',b);
 
 const TUT = [
-  { t:'ようこそ',
-    d:'これは <b>⚡体力の配り方とベルトコンベア</b>を考える自動化RPGです。最初のエネルギーを生むのは <b>🧍主人公</b>。'
-     +'そこから伸ばす配線が、そのまま動力の配分になります。',
-    manual:true },
+  { t:'主人公と洞窟をつなぐ',
+    d:'これは <b>⚡体力の配り方とベルトコンベア</b>を考える自動化RPGです。<br>'
+     +'まずは <b>🧍主人公の右にある丸（⚡）</b>から <b>🕳️洞窟の入口</b> まで線を引いて、探索を始めましょう！',
+    pane:'stage', hi:()=> { const h=heroNode(); return h && h.el && (h.el.root.querySelector('.pout[data-item="sta"]') || h.el.root.querySelector('.pout')); },
+    check:()=> linkFrom('hero','sta','dive') },
 
   { t:'お金を金庫に貯める',
-    d:'お金（<b>🪙金貨</b>）も資材のひとつです。そのままでは増えません。'
-     +'<b>🕳️洞窟の入口の右にある金貨（🪙）</b>から <b>🏦金庫</b> まで線を引いて、金貨を金庫に貯めましょう。（金庫には容量上限があります）',
+    d:'洞窟で敵を倒すと <b>🪙金貨</b> が出ますが、そのままでは所持金になりません。<br>'
+     +'<b>🕳️洞窟の入口の右にある金貨（🪙）</b>から <b>🏦金庫</b> まで線を引いて、金貨を金庫に貯めましょう。（容量はノード内のインジケータで確認できます）',
     pane:'stage', hi:()=> { const d=S.nodes.find(n=>roleOf(n.type)==='dive'); return d && d.el && d.el.root.querySelector('.pout[data-item="gold"]'); },
     check:()=> linkFrom('dive','gold','vault') },
 
@@ -15073,7 +15116,7 @@ takeBaseSnapshot();
 
 function defaultDevCfg(){
   return {
-    v: 5,
+    v: 6,
     initBoard: {
       initGold: 150,
       initIng1: 0,
@@ -15082,9 +15125,7 @@ function defaultDevCfg(){
         { type:'dive1',  x:290, y:150 },
         { type:'vault1', x:500, y:150 }
       ],
-      links: [
-        { from:0, item:'sta', to:1 }
-      ]
+      links: []
     },
     ui: {
       shopW: 210,
@@ -15196,7 +15237,7 @@ function loadDevCfg(){
     const raw = localStorage.getItem(DEV_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
-    if(!d || typeof d !== 'object' || d.v !== 5){
+    if(!d || typeof d !== 'object' || d.v !== 6){
       localStorage.removeItem(DEV_KEY);
       return false;
     }
@@ -16328,7 +16369,7 @@ function newGame(){
   const ib = (DEV_CFG && DEV_CFG.initBoard) || {
     initGold: 150, initIng1: 0,
     nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:290, y:150}, {type:'vault1', x:500, y:150}],
-    links: [{from:0, item:'sta', to:1}]
+    links: []
   };
   const initG = ib.initGold != null ? ib.initGold : 150;
   S.rp = 30;
@@ -16365,7 +16406,7 @@ function newGame(){
   }
   const initDive = spawned.find(n => TYPES[n.type] && TYPES[n.type].effect === 'dive');
   if(initDive){
-    initDive.inBuf.sta = 5;
+    initDive.inBuf.sta = 0;
   }
   const initVault = spawned.find(n => TYPES[n.type] && (TYPES[n.type].vault || TYPES[n.type].line === 'vault'));
   if(initVault){
