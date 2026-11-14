@@ -3936,13 +3936,15 @@ function craftTime(n){
   const env = (1 + (n.pol||0) * POL_SLOW) / (n.spd || 1);   // 汚染で遅く、ピンで速く
   const rxm = rxSpeedMul(n);
   // 祝福は主人公・仲間にも効く。仲間は特性補正と好感度ボーナス（最大+50%加速）も乗る
+  // ストライキ中（給料未払い）は完全停止せず速度33%（所要時間3倍）でサボり稼働し、デッドロックを防ぐ
+  const strikeSlow = n.isStrike ? 3.0 : 1.0;
   if(T.src){
     const comp = (n.type !== 'hero') ? compOfNode(n) : null;
     const cSpd = comp ? (compTraitSpdMul(comp) * compAffectionSpdMul(comp)) : 1;
-    return staRate(n) * sp * env / skillMul('sta') / troMul() / rxm / cSpd;
+    return staRate(n) * sp * env * strikeSlow / skillMul('sta') / troMul() / rxm / cSpd;
   }
   const base = n.comb ? combCalc(n).time : T.time;
-  return base / lvPow(n.level) / intBoost() / humanBoostOf(n) * sp * env / skillMul('spd') / troMul() / rxm;
+  return (base * strikeSlow) / lvPow(n.level) / intBoost() / humanBoostOf(n) * sp * env / skillMul('spd') / troMul() / rxm;
 }
 /* 最初のひとつは安い。序盤で足踏みしないように、
    チュートリアルで触る役割はとくに安くしてある */
@@ -4640,6 +4642,7 @@ function doResearchNode(t){
   S.dev = S.dev || {};
   S.dev[t] = 1;
   devDirty();
+  markFacDiscovered(t);
   addLog(`【研究解放】${T.i}${T.n} が建設できるようになった！`, 'b');
   toast(`🔬 ${T.i}${T.n} を解放しました！`);
   buildShop(); renderShop(); renderTree(true);
@@ -4795,7 +4798,7 @@ function bestiaryUnlockedCount(){
   if(!S || !S.bestiary) return 0;
   return Object.values(S.bestiary).filter(x => (x.kills||0) > 0).length;
 }
-const LP_RECOV_SEC = 180; // 3分ごとに1 LP自然回復
+const LP_RECOV_SEC = 45; // 45秒ごとに1 LP自然回復 (テンポ改善)
 function calcPartyMaxHp(){
   if(!S) return 120;
   const vit = (S.stats && S.stats.vit) || 0;
@@ -6182,6 +6185,7 @@ function addNode(type,x,y,existingComp){
     }
   }
   n.no = S.nextNo = (S.nextNo || 0) + 1;      // 見分けるための通し番号（一度ついたら変わらない）
+  markFacDiscovered(type);
   S.nodes.push(n); reindex(); if(n.layer) layerDirty(); mkNodeEl(n); return n;
 }
 function removeNode(id){
@@ -6475,23 +6479,14 @@ function tick(dt,fast){
     if(n.broken){
       n.stall=true; n.why='🔥 過負荷で発火・故障！（インスペクタで修理）'; continue;
     }
-    // ── LP枯渇・活動停止 (LP Exhaustion Trigger: 0 LP) ──
-    // パーティのLPが0になると探索ループは即座に停止し、主人公・仲間（hero, mate1..3）は疲労困憊で⚡体力・KINETIC出力を完全停止する
-    if(S.lp <= 0){
+    // ── LP枯渇・探索停止 (LP Exhaustion: 0 LP) ──
+    // パーティのLPが0になると洞窟探索は即座に停止して拠点へ撤退するが、拠点での作業（hero等の動力出力）は継続して工場を稼働維持できる
+    if(S.lp <= 0 && T.effect === 'dive'){
       S.lpExhausted = true;
-      if(T.src){
-        n.stall = true;
-        n.crafting = false; n.prog = 0;
-        n.outBuf.sta = 0;
-        n.why = '💔 LP枯渇・疲労困憊で活動停止中（💊物資補給または回復待ち）';
-        continue;
-      }
-      if(T.effect === 'dive'){
-        n.stall = true;
-        n.crafting = false; n.prog = 0;
-        n.why = '💔 パーティLP枯渇（0 LP）により探索ループ停止・基地へ撤退中';
-        continue;
-      }
+      n.stall = true;
+      n.crafting = false; n.prog = 0;
+      n.why = '💔 パーティLP枯渇（0 LP）により探索一時停止・拠点へ撤退中（45秒ごとに自然回復）';
+      continue;
     }
     const soft = softIns(n);
     if((n._goldBoostT||0) > 0) n._goldBoostT = Math.max(0, n._goldBoostT - dt);
@@ -6743,7 +6738,7 @@ function tick(dt,fast){
       n.why = `${tierOf(far.src).i}${tierOf(far.src).n}の行動範囲外（あと${far.over}px近づける）`;
       continue;
     }
-    // 仲間（人タイプ）の給料未払いチェック（資金不足なら即座にストライキ突入）
+    // 仲間（人タイプ）の給料未払いチェック（資金不足でも完全停止せず速度33%でサボり稼働し、デッドロックを防ぐ）
     if(T.src && n.type !== 'hero'){
       const comp = compOfNode(n);
       const isImmune = isNearTavern(n) || (comp && comp.traits && (comp.traits.includes('tavern_cheer') || comp.traits.includes('immortal') || comp.traits.includes('god_hand')));
@@ -6751,13 +6746,10 @@ function tick(dt,fast){
       if(wage > 0 && S.gold < wage && !isImmune){
         n.isStrike = true;
         if(comp) comp.isStrike = true;
-        n.stall = true;
-        n.why = `💢 給料未払い・ストライキ中！（💰${fmt(wage)}G 必要）`;
-        continue;
+        n.why = `💢 給料未払い・サボり稼働中（速度33%・💰${fmt(wage)}Gで解消）`;
       }else if(n.isStrike && (isImmune || (wage > 0 && S.gold >= wage))){
         n.isStrike = false;
         if(comp) comp.isStrike = false;
-        n.stall = false;
         n.why = '';
       }
     }
@@ -6810,10 +6802,13 @@ function tick(dt,fast){
         const comp = compOfNode(n);
         const isImmune = isNearTavern(n) || (comp && comp.traits && (comp.traits.includes('tavern_cheer') || comp.traits.includes('immortal') || comp.traits.includes('god_hand')));
         if(ok && wage > 0 && S.gold < wage && !isImmune){
-          ok=false;
           n.isStrike = true;
           if(comp) comp.isStrike = true;
-          n.why=`💢給料不足 (${fmt(wage)}G)`;
+          n.why=`💢給料不足・サボり稼働 (${fmt(wage)}G)`;
+        }else if(n.isStrike && (isImmune || (wage > 0 && S.gold >= wage))){
+          n.isStrike = false;
+          if(comp) comp.isStrike = false;
+          n.why='';
         }
         if(ok && T.payRp && (S.rp||0) < payRpOf(n)){ ok=false; n.why=`🔬不足 (${fmt(payRpOf(n))})`; }
 
@@ -6843,16 +6838,21 @@ function tick(dt,fast){
           else n._lastFuel = 'wood';
         }
         if(wage > 0){
-          S.gold -= wage; n.paid = (n.paid||0) + wage;
-          syncVaultGold();
-          if(n.isStrike){
-            n.isStrike = false;
-            if(!fast) spawnReactionPop(n, '💰 給料支払い再開！ ストライキ解除', '#5ee0c0');
-          }
-          if(comp){
-            comp.isStrike = false;
-            const tavMul = isNearTavern(n) ? 1.5 : 1.0;
-            comp.affection = Math.min(1000, +((comp.affection || 0) + 0.5 * tavMul).toFixed(1));
+          if(S.gold >= wage || isImmune){
+            const payAmt = isImmune ? 0 : wage;
+            if(payAmt > 0){
+              S.gold -= payAmt; n.paid = (n.paid||0) + payAmt;
+              syncVaultGold();
+            }
+            if(n.isStrike){
+              n.isStrike = false;
+              if(!fast) spawnReactionPop(n, '💰 給料支払い再開！ ストライキ解除', '#5ee0c0');
+            }
+            if(comp){
+              comp.isStrike = false;
+              const tavMul = isNearTavern(n) ? 1.5 : 1.0;
+              comp.affection = Math.min(1000, +((comp.affection || 0) + 0.5 * tavMul).toFixed(1));
+            }
           }
         }
         if(T.payRp) S.rp = (S.rp||0) - payRpOf(n);
@@ -7857,14 +7857,12 @@ function getLinkTags(src, item, dst){
   if(src.assim && src.assim.length){
     for(const atg of assimStatsOf(src).tags) tags.add(atg);
   }
-  // LP枯渇時（S.lp <= 0）またはストライキ中（src.isStrike）は、主人公・仲間からの物理打撃・触媒・特性タグ出力が完全停止する
-  if(((S && S.lp <= 0) || src.isStrike) && (src.type === 'hero' || src.type === 'mate1' || src.type === 'mate2' || src.type === 'mate3' || T.src)){
+  // ストライキ中（src.isStrike）は、仲間からの物理打撃・触媒・特性タグ出力が停止する
+  if(src.isStrike && (src.type === 'hero' || src.type === 'mate1' || src.type === 'mate2' || src.type === 'mate3' || T.src)){
     tags.delete('KINETIC');
     tags.delete('CATALYST_WORKER');
     tags.delete('CATALYST_RESEARCH');
-    if(src.isStrike){
-      tags.delete('HEAT'); tags.delete('CRYO'); tags.delete('SHOCKWAVE'); tags.delete('RESONANCE');
-    }
+    tags.delete('HEAT'); tags.delete('CRYO'); tags.delete('SHOCKWAVE'); tags.delete('RESONANCE');
   }
   // 中継ノードは受け取っているタグも下流へ伝播する
   if(src.inTags){
@@ -8008,7 +8006,7 @@ function updateReactionEngine(dt, fast){
         }
       }
     }
-    if(((S && S.lp <= 0) || n.isStrike) && (n.type === 'hero' || n.type === 'mate1' || n.type === 'mate2' || n.type === 'mate3' || T.src)){
+    if(n.isStrike && (n.type === 'hero' || n.type === 'mate1' || n.type === 'mate2' || n.type === 'mate3' || T.src)){
       delete inT.KINETIC; delete inT.CATALYST_WORKER; delete inT.CATALYST_RESEARCH;
     }
     const cmB = n.craftMat ? craftMatBonus(n.craftMat) : null;
@@ -8641,8 +8639,8 @@ function polTick(dt, fast){
     // 上がっている最中に丸めると、じわじわ進む汚染がいつまでも0のままになる
     n.pol = (nv < 0.001 && up <= down) ? 0 : nv;
     const T = TYPES[n.type];
-    // 汚染が50%以上の高濃度環境下では酸性煤煙により施設の耐久度が摩耗
-    if(T && !T.src && !T.unique && !T.port && !T.layer && !n.broken && !n.isOverrun && n.pol >= 0.50){
+    // 汚染が50%以上の高濃度環境下では酸性煤煙により施設の耐久度が摩耗（Era 2以降の重工業・環境対策ギミック）
+    if((S.era || 1) >= 2 && T && !T.src && !T.unique && !T.port && !T.layer && !n.broken && !n.isOverrun && n.pol >= 0.50){
       n.hpDur = Math.max(0, (n.hpDur != null ? n.hpDur : 100) - 0.45 * d * (n.pol - 0.5));
       if(n.hpDur <= 0){
         n.broken = true;
@@ -8655,8 +8653,8 @@ function polTick(dt, fast){
         }
       }
     }
-    // 汚染が危険域（POL_EXPLODE_TH 以上）に達した施設は爆発・破壊の危険がある
-    if(T && !T.layer && !T.port && !T.raid && n.pol >= POL_EXPLODE_TH){
+    // 汚染が危険域（POL_EXPLODE_TH 以上）に達した施設は爆発・破壊の危険がある（Era 2以降）
+    if((S.era || 1) >= 2 && T && !T.layer && !T.port && !T.raid && n.pol >= POL_EXPLODE_TH){
       n._critT = (n._critT || 0) + d;
       const excess = Math.max(0, (n.pol - POL_EXPLODE_TH) / Math.max(0.01, 1 - POL_EXPLODE_TH));
       const prob = (0.012 + excess * excess * POL_EXPLODE_RATE + (n._critT > 20 ? 0.025 : 0)) * d;
@@ -9554,19 +9552,25 @@ function doDive(fast, node, fromCannon){
     if(S.partyHp <= 0){
       S.lp = Math.max(0, (S.lp != null ? S.lp : 3) - 1);
       S.partyHp = S.partyMaxHp;
-      S.enemy.hp = S.enemy.max;
+      if(S.caveFloor > 1){
+        S.caveFloor = Math.max(1, S.caveFloor - 1);
+        S.floor = Math.max(1, (S.floor || 1) - 1);
+        spawnEnemy();
+        pushCombatLog(`【撤退】💨 危険を感じて第${S.floor}層へ安全撤退した！`, 'sts');
+      } else {
+        S.enemy.hp = S.enemy.max;
+      }
       if(S.lp <= 0){
         S.lpExhausted = true;
         for(const hn of S.nodes){
-          if(TYPES[hn.type] && (TYPES[hn.type].src || TYPES[hn.type].effect === 'dive')){
+          if(TYPES[hn.type] && TYPES[hn.type].effect === 'dive'){
             hn.stall = true; hn.crafting = false; hn.prog = 0;
-            if(TYPES[hn.type].src) hn.outBuf.sta = 0;
-            hn.why = '💔 LP枯渇・全滅撤退中（💊物資補給または回復待ち）';
+            hn.why = '💔 LP枯渇・全滅撤退中（45秒自然回復または💊物資補給待ち）';
           }
         }
-        pushCombatLog(`【結果】💀 全滅撤退（未装備によりパーティ全滅）！ LP: 0/${S.maxLp||3} → 探索停止＆主人公たちの⚡・動力出力が完全停止！`, 'bad');
-        addLog(`💔【LP枯渇・活動停止】未装備で${S.enemy.name}に全滅し LP が 0 になった！探索ループが停止し、主人公と仲間の⚡供給が停止した（💊物資補給で回復可能）`, 'd');
-        if(!fast) toast('💔 LPが0になりました！探索ループと主人公たちの⚡出力が停止しました');
+        pushCombatLog(`【結果】💀 全滅撤退（未装備によりパーティ全滅）！ LP: 0/${S.maxLp||3} → 探索停止（拠点作業・LP回復待ち）！`, 'bad');
+        addLog(`💔【LP枯渇・探索停止】未装備で${S.enemy.name}に全滅し LP が 0 になった！洞窟探索が停止した（拠点で作業しつつLP自然回復または💊物資補給で再開可能）`, 'd');
+        if(!fast) toast('💔 LPが0になりました！探索が一時停止しました（拠点生産は稼働中）');
       }else{
         pushCombatLog(`【結果】💀 パーティ全滅（未装備）！ LP -1（残りLP: ${S.lp}/${S.maxLp||3}）※🎽装備を装着してください！`, 'bad');
         if(!fast){
@@ -9753,7 +9757,14 @@ function doDive(fast, node, fromCannon){
       if(S.partyHp <= 0){
         S.lp = Math.max(0, (S.lp != null ? S.lp : 3) - 1);
         S.partyHp = S.partyMaxHp || 120;
-        S.enemy.hp = S.enemy.max;
+        if(S.caveFloor > 1){
+          S.caveFloor = Math.max(1, S.caveFloor - 1);
+          S.floor = Math.max(1, (S.floor || 1) - 1);
+          spawnEnemy();
+          pushCombatLog(`【撤退】💨 危険を感じて第${S.floor}層へ安全撤退した！`, 'sts');
+        } else {
+          S.enemy.hp = S.enemy.max;
+        }
         pushCombatLog(`【結果】💀 火力不足・反撃全滅！ LP -1 → 残りLP: ${S.lp}/${S.maxLp||3}`, 'bad');
         if(S.lp <= 0) S.lpExhausted = true;
         return;
@@ -9900,6 +9911,7 @@ function doDive(fast, node, fromCannon){
       S.dev = S.dev || {};
       S.dev[cave.unlockFac] = 1;
       devDirty();
+      markFacDiscovered(cave.unlockFac);
       unlockedFacName = `${TYPES[cave.unlockFac].i}${TYPES[cave.unlockFac].n}`;
       buildShop(); renderShop(); renderTree(true);
     }
@@ -9947,6 +9959,7 @@ function tryDrop(f, fast){
   const d = rollDrop(f);
   if(!d) return;
   S.drops.push(d);
+  if(d && d.type) markFacDiscovered(d.type);
   if(!fast) addLog(`【入手】${dropName(d)}（等級${d.grade}）`,'b');
 }
 function spawnEnemy(){
@@ -11168,11 +11181,11 @@ function render(fdt){
     const asInfo = assimStatsOf(n);
     setCls(e.root,'assim', !!(asInfo && asInfo.count > 0));
     setCls(e.root,'chimera', !!(asInfo && asInfo.count > 0 && asInfo.isChimera));
-    setCls(e.root,'lp-exhaust', !!(S.lp <= 0 && (T.src || T.effect === 'dive')));
+    setCls(e.root,'lp-exhaust', !!(S.lp <= 0 && T.effect === 'dive'));
     setCls(e.root,'strike', !!n.isStrike);
     if(e.strikeBadge) e.strikeBadge.hidden = !n.isStrike;
     if(e.led){
-      const ledState = (n.stall || n.broken || n.isStrike || (S.lp <= 0 && (T.src || T.effect === 'dive'))) ? 'led-stall'
+      const ledState = (n.stall || n.broken || n.isStrike || (S.lp <= 0 && T.effect === 'dive')) ? 'led-stall'
                      : (n.crafting || T.src || T.gen || (asInfo && asInfo.selfPow)) ? 'led-run'
                      : 'led-idle';
       if(e.lastLed !== ledState){
@@ -12173,6 +12186,14 @@ function renderInsp(){
               return `<span class="cnt-chip ${on?'active':''}" title="${c.recipeText} → ${c.d}">${on?'✅':'⬜'}${c.i}</span>`;
             }).join('')}
           </div>
+          ${(() => {
+            const nextInactive = CONTRAPTION_DEFS.find(c => !actIds.has(c.id));
+            if(!nextInactive) return '<div style="margin:3px 0 5px;font-size:10px;color:#4ade80;font-weight:700">🎉 全ての攻略装置が稼働中！</div>';
+            return `<div style="margin:3px 0 5px;padding:4px 6px;background:rgba(0,0,0,.35);border-radius:5px;font-size:10px;color:#cbd5e1;line-height:1.4">
+              <span style="color:#fbbf24;font-weight:700">💡 次の目標:</span> ${nextInactive.i}<b>${nextInactive.n}</b><br>
+              <span style="color:#94a3b8">配線:</span> <span style="color:#38bdf8">${nextInactive.recipeText}</span>
+            </div>`;
+          })()}
           <button id="btnInspAutoWireContraption" style="width:100%;background:linear-gradient(135deg,#e11d48,#be123c);border:none;border-radius:6px;padding:5px;color:#fff;font-weight:800;font-size:10.5px;cursor:pointer">
             🔗 自動結線
           </button>
@@ -12607,8 +12628,8 @@ function renderInspLive(){
 
   const st2 = box.querySelector('.st2');
   if(st2){
-    const stCol = (n.stall || n.broken || n.isStrike || (S.lp <= 0 && (TYPES[n.type].src || TYPES[n.type].effect === 'dive'))) ? 'var(--bad)' : 'var(--acc)';
-    const stTxt = (S.lp <= 0 && (TYPES[n.type].src || TYPES[n.type].effect === 'dive')) ? '🚨 LP枯渇停止'
+    const stCol = (n.stall || n.broken || n.isStrike || (S.lp <= 0 && TYPES[n.type].effect === 'dive')) ? 'var(--bad)' : 'var(--acc)';
+    const stTxt = (S.lp <= 0 && TYPES[n.type].effect === 'dive') ? '🚨 LP枯渇停止'
                 : n.isStrike ? '💢 ストライキ（未払い）'
                 : n.broken ? '🔧 故障（修理必要）'
                 : n.stall ? `⚠️ 停止（${n.why||'素材待ち'}）`
@@ -14115,8 +14136,8 @@ function renderRadialHud(){
   const spdStr = T.src
     ? `⚡ ${(1/Math.max(0.05, staRate(n))).toFixed(2)}/秒`
     : `${(1/Math.max(0.05, craftTime(n))).toFixed(2)}回/秒 (出力×${asSt?asSt.mul.toFixed(1):'1.0'})`;
-  const stCol = (n.stall || n.broken || (S.lp<=0 && (T.src||T.effect==='dive'))) ? '#ff5c5c' : '#22c55e';
-  const stLabel = (S.lp<=0 && (T.src||T.effect==='dive')) ? '🚨LP枯渇停止' : n.broken ? '🔧故障' : n.stall ? `⚠${n.why||'停止'}` : '●稼働中';
+  const stCol = (n.stall || n.broken || (S.lp<=0 && T.effect==='dive')) ? '#ff5c5c' : '#22c55e';
+  const stLabel = (S.lp<=0 && T.effect==='dive') ? '🚨LP枯渇停止' : n.broken ? '🔧故障' : n.stall ? `⚠${n.why||'停止'}` : '●稼働中';
   const sig = `${n.id}|${tr.n}|${ n.level }|${spdStr}|${stLabel}|${cands.length}|${tags.join(',')}|${Math.round(n.hpDur??100)}`;
   if(hud._sig !== sig){
     hud._sig = sig;
@@ -14510,12 +14531,43 @@ function openCodexFor(query, cat){
   toggleCodexModal(true, 'codex');
 }
 
+/* ── 📖 辞書・図鑑における施設入手判定 ──
+   手に入れた施設（初期所持・解放済み・建設済み・ドロップ入手）だけを辞書に登録 */
+function isFacDiscovered(t){
+  if(!t || !TYPES[t]) return false;
+  const T = TYPES[t];
+  if(T.port || T.layer) return false;
+  if(t === 'hero' || t === 'vault1' || t === 'dive1' || t === 'reward1') return true;
+  if(T.start && (T.era || 1) <= (S ? (S.era || 1) : 1)) return true;
+  if(S && S.discoveredFacs && S.discoveredFacs[t]) return true;
+  if(typeof isDev === 'function' && isDev(t)) return true;
+  if(S && S.counts && (S.counts[t] || 0) > 0) return true;
+  if(S && S.nodes && S.nodes.some(n => n.type === t)) return true;
+  return false;
+}
+
+function markFacDiscovered(t, quiet){
+  if(!t || !TYPES[t]) return;
+  const T = TYPES[t];
+  if(T.port || T.layer) return;
+  if(typeof S === 'undefined' || !S) return;
+  S.discoveredFacs = S.discoveredFacs || {};
+  if(!S.discoveredFacs[t]){
+    S.discoveredFacs[t] = 1;
+    if(!quiet){
+      toast(`📖 辞書に新施設「${T.i}${T.n}」が登録されました！`);
+      addLog(`📖【図鑑登録】新施設「${T.i}${T.n}」が辞書に記録された！`, 'u');
+    }
+  }
+}
+
 function buildUnifiedDictionaryEntries(){
   const entries = [];
-  // 1) 施設 (Facilities)
+  // 1) 施設 (Facilities) - 手に入れた施設のみ辞書に掲載
   for(const t of ORDER){
     const T = TYPES[t];
     if(!T || T.port || T.layer) continue;
+    if(!isFacDiscovered(t)) continue; // 手に入れた施設だけ載せる
     const inStr = Object.entries(T.ins||{}).map(([k,v]) => `${ITEMS[k]?.i||'📦'}${ITEMS[k]?.n||k}×${v}`).join(' ＋ ') || 'なし';
     const outStr = Object.entries(T.outs||{}).map(([k,v]) => `${ITEMS[k]?.i||'📦'}${ITEMS[k]?.n||k}×${v}`).join(' ＋ ') || 'なし';
     const era = eraOf(t);
@@ -14724,9 +14776,13 @@ function buildUnifiedDictionaryEntries(){
 }
 
 function renderCodexGlossary(body){
+  const allFacKeys = ORDER.filter(t => TYPES[t] && !TYPES[t].port && !TYPES[t].layer);
+  const discoveredFacCount = allFacKeys.filter(isFacDiscovered).length;
+  const totalFacCount = allFacKeys.length;
+
   const cats = [
     {k: 'all',  n: '🌐 すべて'},
-    {k: 'fac',  n: '🏭 施設'},
+    {k: 'fac',  n: `🏭 施設 (${discoveredFacCount}/${totalFacCount})`},
     {k: 'item', n: '⚡ 動力・素材'},
     {k: 'cnt',  n: '⚙️ からくり・反応'},
     {k: 'dgn',  n: '⚔️ 洞窟・戦術'},
@@ -15226,7 +15282,7 @@ takeBaseSnapshot();
 
 function defaultDevCfg(){
   return {
-    v: 7,
+    v: 8,
     initBoard: {
       initGold: 150,
       initIng1: 0,
@@ -15236,7 +15292,9 @@ function defaultDevCfg(){
         { type:'vault1',  x:500, y:150 },
         { type:'reward1', x:500, y:30  }
       ],
-      links: []
+      links: [
+        { from: 3, item: 'gold', to: 2 }
+      ]
     },
     ui: {
       shopW: 210,
@@ -15348,7 +15406,7 @@ function loadDevCfg(){
     const raw = localStorage.getItem(DEV_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
-    if(!d || typeof d !== 'object' || d.v !== 6){
+    if(!d || typeof d !== 'object' || d.v !== 8){
       localStorage.removeItem(DEV_KEY);
       return false;
     }
@@ -16477,10 +16535,11 @@ loadDevCfg();
 function newGame(){
   clearBoardEls();
   S=freshState(); reindex(); applyView(); devDirty(); gearDirty(); skillDirty();
+  S.discoveredFacs = { hero: 1, dive1: 1, vault1: 1, reward1: 1 };
   const ib = (DEV_CFG && DEV_CFG.initBoard) || {
     initGold: 150, initIng1: 0,
-    nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:290, y:150}, {type:'vault1', x:500, y:150}],
-    links: []
+    nodes: [{type:'hero', x:80, y:150}, {type:'dive1', x:290, y:150}, {type:'vault1', x:500, y:150}, {type:'reward1', x:500, y:30}],
+    links: [{from:3, item:'gold', to:2}]
   };
   const initG = ib.initGold != null ? ib.initGold : 150;
   S.rp = 30;
@@ -16534,6 +16593,11 @@ function newGame(){
   for(const lk of (ib.links || [])){
     const a = spawned[lk.from], b = spawned[lk.to];
     if(a && b && ITEMS[lk.item]) addLink(a.id, lk.item, b.id);
+  }
+  const rNode = spawned.find(n => n.type === 'reward1');
+  const vNode = spawned.find(n => n.type === 'vault1');
+  if(rNode && vNode && !S.links.some(l => l.from === rNode.id && l.to === vNode.id)){
+    addLink(rNode.id, 'gold', vNode.id);
   }
   addLog(`🎁 開始ボーナス: 🏦金庫(🪙${fmt(S.gold)}/${fmt(totalVaultCap())}) 🎽銅の剣 🔬30RP 🧱25`,'u');
   S.at = null; renderBoard();
